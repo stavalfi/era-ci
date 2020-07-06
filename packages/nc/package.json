@@ -1,0 +1,35 @@
+{
+  "name": "@tahini/nc",
+  "version": "1.2.19",
+  "license": "UNLICENSED",
+  "main": "dist/src/index.js",
+  "private": false,
+  "files": [
+    "src",
+    "__tests__",
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig-build.json",
+    "test": "jest"
+  },
+  "dependencies": {
+    "ci-info": "^2.0.0",
+    "cmd-ts": "^0.6.3",
+    "execa": "^4.0.1",
+    "find-project-root": "^1.1.1",
+    "git-url-parse": "^11.1.2",
+    "got": "^11.3.0",
+    "ioredis": "^4.17.1",
+    "is-ip": "^3.1.0",
+    "@tahini/log": "^1.0.0",
+    "semver": "^7.3.2"
+  },
+  "devDependencies": {
+    "k8test": "^1.0.0"
+  }
+}
