@@ -61,6 +61,7 @@ async function publishNpm({
         // npm need this env-var for auth - this is needed only for production publishing.
         // in tests it doesn't do anything and we login manually to npm in tests.
         NPM_AUTH_TOKEN: auth.npmRegistryToken,
+        NPM_TOKEN: auth.npmRegistryToken,
       },
     },
   )
