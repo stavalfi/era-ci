@@ -1,6 +1,6 @@
 /* eslint-disable no-process-env */
 
-import { CiOptions } from 'nc/src'
+import { CiOptions } from '@tahini/nc'
 import path from 'path'
 
 export const getPrCiOptions = (): CiOptions => {
@@ -14,7 +14,7 @@ export const getPrCiOptions = (): CiOptions => {
       protocol: 'https',
     },
     gitOrganizationName: 'stavalfi',
-    gitRepositoryName: 'nc',
+    gitRepositoryName: '@tahini/nc',
     gitServer: {
       host: 'github.com',
       port: 443,
