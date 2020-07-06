@@ -1,34 +1,35 @@
 import execa from 'execa'
-import got from 'got'
-import Redis from 'ioredis'
-import { SingletonStrategy, subscribe, Subscription } from 'k8test'
+import { ServerInfo } from '../../src/types'
 import { GitServer, starGittServer } from './git-server-testkit'
 
-const isRedisReadyPredicate = (_url: string, host: string, port: number) => {
-  const redis = new Redis({
-    host,
-    port,
-    lazyConnect: true, // because i will try to connect manually in the next line
-    connectTimeout: 1000,
-  })
+type Deployment = { serverInfo: ServerInfo; cleanup: () => Promise<unknown> }
 
-  return redis.connect().finally(() => {
-    try {
-      redis.disconnect()
-    } catch {
-      // ignore error
-    }
-  })
+async function startDockerImage(fullDockerImageName: string, port: number): Promise<Deployment> {
+  const { stdout: dockerRegistryContainerId } = await execa.command(`docker run -d -p 0:${port} ${fullDockerImageName}`)
+  const { stdout: dockerRegistryPort } = await execa.command(
+    `docker inspect --format="{{(index (index .NetworkSettings.Ports \\"${port}/tcp\\") 0).HostPort}}" ${dockerRegistryContainerId}`,
+    {
+      shell: true,
+    },
+  )
+  return {
+    cleanup: () =>
+      execa.command(`docker kill ${dockerRegistryContainerId}`).then(
+        () => execa.command(`docker rm ${dockerRegistryContainerId}`),
+        () => Promise.resolve(),
+      ),
+    serverInfo: {
+      protocol: 'http',
+      port: Number(dockerRegistryPort),
+      host: 'localhost',
+    },
+  }
 }
 
 export function prepareTestResources() {
-  let dockerRegistry: {
-    containerId: string
-    port: number
-    host: string
-  }
-  let npmRegistryDeployment: Subscription
-  let redisDeployment: Subscription
+  let dockerRegistry: Deployment
+  let npmRegistryDeployment: Deployment
+  let redisDeployment: Deployment
   let gitServer: GitServer
 
   // verdaccio allow us to login as any user & password & email
@@ -41,73 +42,41 @@ export function prepareTestResources() {
   beforeAll(async () => {
     gitServer = await starGittServer()
     const deployments = await Promise.all([
-      subscribe({
-        imageName: 'verdaccio/verdaccio',
-        imagePort: 4873,
-        isReadyPredicate: url =>
-          got.get(url, {
-            timeout: 100,
-          }),
-        singletonStrategy: SingletonStrategy.oneInNamespace,
-        namespaceName: 'k8test-ci',
-      }),
-      subscribe({
-        imageName: 'redis',
-        imagePort: 6379,
-        singletonStrategy: SingletonStrategy.oneInNamespace,
-        isReadyPredicate: isRedisReadyPredicate,
-        namespaceName: 'k8test-ci',
-      }),
+      startDockerImage('verdaccio/verdaccio', 4873),
+      startDockerImage('redis', 6379),
+      startDockerImage('registry:2', 5000),
     ])
     npmRegistryDeployment = deployments[0]
     redisDeployment = deployments[1]
-    // I can't use k8s for docker-registry so easly: https://stackoverflow.com/questions/62596124/how-to-setup-docker-registry-in-k8s-cluster
-    const { stdout: dockerRegistryContainerId } = await execa.command(`docker run -d -p 0:5000 registry:2`)
-    const { stdout: dockerRegistryPort } = await execa.command(
-      `docker inspect --format="{{(index (index .NetworkSettings.Ports \\"5000/tcp\\") 0).HostPort}}" ${dockerRegistryContainerId}`,
-      {
-        shell: true,
-      },
-    )
-    dockerRegistry = {
-      containerId: dockerRegistryContainerId,
-      port: Number(dockerRegistryPort),
-      host: 'localhost',
-    }
+    dockerRegistry = deployments[2]
   })
   afterAll(async () => {
     await Promise.all(
       [
         gitServer && gitServer.close(),
-        npmRegistryDeployment && npmRegistryDeployment.unsubscribe(),
-        dockerRegistry &&
-          execa
-            .command(`docker kill ${dockerRegistry.containerId}`)
-            .then(
-              () => execa.command(`docker rm ${dockerRegistry.containerId}`),
-              () => Promise.resolve(),
-            )
-            .catch(() => Promise.resolve()),
+        npmRegistryDeployment && npmRegistryDeployment.cleanup(),
+        redisDeployment && redisDeployment.cleanup(),
+        dockerRegistry && dockerRegistry.cleanup(),
       ].filter(Boolean),
-    )
+    ).catch(() => Promise.resolve())
   })
 
   return {
     get: () => ({
       npmRegistry: {
-        host: npmRegistryDeployment.deployedImageIp,
-        port: npmRegistryDeployment.deployedImagePort,
-        protocol: 'http' as 'http',
+        host: npmRegistryDeployment.serverInfo.host,
+        port: npmRegistryDeployment.serverInfo.port,
+        protocol: npmRegistryDeployment.serverInfo.protocol,
         auth: verdaccioCardentials,
       },
       dockerRegistry: {
-        protocol: 'http' as 'http',
-        host: dockerRegistry.host,
-        port: dockerRegistry.port,
+        host: dockerRegistry.serverInfo.host,
+        port: dockerRegistry.serverInfo.port,
+        protocol: dockerRegistry.serverInfo.protocol,
       },
       redisServer: {
-        host: redisDeployment.deployedImageIp,
-        port: redisDeployment.deployedImagePort,
+        host: redisDeployment.serverInfo.host,
+        port: redisDeployment.serverInfo.port,
       },
       gitServer,
     }),

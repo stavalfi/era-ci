@@ -24,12 +24,12 @@ const app = subcommands({
     'run-ci-pr': command({
       name: 'run-ci-pr',
       args: {},
-      handler: () => require('@tahini/log').runCiCli(require('./get-ci-options').getPrCiOptions(), 'inherit'),
+      handler: () => require('@tahini/nc').runCiCli(require('./get-ci-options').getPrCiOptions(), 'inherit'),
     }),
     'run-ci-master': command({
       name: 'run-ci-master',
       args: {},
-      handler: () => require('@tahini/log').runCiCli(require('./get-ci-options').getMasterCiOptions(), 'inherit'),
+      handler: () => require('@tahini/nc').runCiCli(require('./get-ci-options').getMasterCiOptions(), 'inherit'),
     }),
   },
 })

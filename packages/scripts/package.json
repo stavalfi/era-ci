@@ -15,6 +15,7 @@
     "execa": "^4.0.1",
     "find-project-root": "^1.1.1",
     "semver": "^7.3.2",
-    "@tahini/log": "^1.0.0"
+    "@tahini/log": "^1.0.0",
+    "@tahini/nc": "^1.0.0"
   }
 }

@@ -1,9 +1,12 @@
-name: pull-request-build
+name: master-build
 
-on: [pull_request]
+on:
+  push:
+    branches:
+      - master
 
 jobs:
-  test:
+  deploy:
     runs-on: ubuntu-latest
 
     strategy:
@@ -15,14 +18,12 @@ jobs:
       - uses: secrethub/actions/env-export@v0.1.0
         env:
           SECRETHUB_CREDENTIAL: ${{ secrets.SECRETHUB_CREDENTIAL }}
-      - name: install k8s
-        uses: engineerd/setup-kind@v0.4.0
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
       - run: yarn build
-      - run: yarn run-ci-pr
+      - run: yarn run-ci-master
         env:
           DEBUG: nc:*
