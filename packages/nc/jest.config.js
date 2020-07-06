@@ -6,5 +6,4 @@ const path = require('path')
 
 module.exports = deepmerge(baseConfig, {
   testMatch: [path.join(__dirname, '__tests__/**/*.spec.ts')],
-  globalSetup: path.join(__dirname, 'jest-global-setup.js'),
 })

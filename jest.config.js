@@ -11,4 +11,5 @@ module.exports = {
   projects: Object.values(workspacesInfo)
     .map(workspaceInfo => workspaceInfo.location)
     .map(packagePath => path.join(__dirname, packagePath, 'jest.config.js')),
+  globalSetup: path.join(__dirname, 'jest-global-setup.js'),
 }
