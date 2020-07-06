@@ -15,7 +15,7 @@
     "baseUrl": "packages",
     "paths": {
       "@tahini/log": ["log/src/index.ts"],
-      "@stavalfi/nc": ["nc/src/index.ts"]
+      "@tahini/nc": ["nc/src/index.ts"]
     }
   }
 }

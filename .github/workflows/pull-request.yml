@@ -1,12 +1,9 @@
-name: master-build
+name: pull-request-build
 
-on:
-  push:
-    branches:
-      - master
+on: [pull_request]
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
 
     strategy:
@@ -24,6 +21,6 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
       - run: yarn build
-      - run: yarn run-ci-master
+      - run: yarn run-ci-pr
         env:
-          DEBUG: k8test:*
+          DEBUG: nc:*

@@ -5,9 +5,9 @@ export { CiOptions }
 
 export const runCiCli = async (
   options: CiOptions,
-  stdio: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[],
+  stdio: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[] = 'inherit',
 ): Promise<execa.ExecaChildProcess> => {
-  const ciCliPath = require.resolve('@tahini/log/dist/src/index.js')
+  const ciCliPath = require.resolve('@tahini/nc/dist/src/index.js')
 
   const command = `\
   node --unhandled-rejections=strict ${ciCliPath}\
