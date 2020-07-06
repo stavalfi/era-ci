@@ -1,10 +1,10 @@
 import execa from 'execa'
-import k8testLog from '@tahini/log'
+import ncLog from '@tahini/log'
 import { ServerInfo } from './types'
 import { getHighestDockerTag } from './versions'
 import isIp from 'is-ip'
 
-const log = k8testLog('ci:docker-utils')
+const log = ncLog('ci:docker-utils')
 
 export async function dockerRegistryLogin({
   dockerRegistry,

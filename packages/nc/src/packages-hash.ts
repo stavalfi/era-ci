@@ -4,10 +4,10 @@ import fs from 'fs-extra'
 import path from 'path'
 import _ from 'lodash'
 import { Graph } from './types'
-import k8testLog from '@tahini/log'
+import ncLog from '@tahini/log'
 import { IPackageJson } from 'package-json-type'
 
-const log = k8testLog('ci:packages-hash')
+const log = ncLog('ci:packages-hash')
 
 const isInParent = (parent: string, child: string) => {
   const relative = path.relative(parent, child)

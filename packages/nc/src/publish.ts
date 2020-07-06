@@ -1,12 +1,12 @@
 import execa from 'execa'
-import k8testLog from '@tahini/log'
+import ncLog from '@tahini/log'
 import _ from 'lodash'
 import { buildFullDockerImageName } from './docker-utils'
 import { npmRegistryLogin } from './npm-utils'
 import { Auth, Graph, PackageInfo, PublishResult, ServerInfo, TargetInfo, TargetType } from './types'
 import isIp from 'is-ip'
 
-const log = k8testLog('ci:publish')
+const log = ncLog('ci:publish')
 
 async function publishNpm({
   isDryRun,

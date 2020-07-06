@@ -1,9 +1,9 @@
 import execa from 'execa'
 import { ServerInfo } from './types'
 import isIp from 'is-ip'
-import k8testLog from '@tahini/log'
+import ncLog from '@tahini/log'
 
-const log = k8testLog('ci:npm-utils')
+const log = ncLog('ci:npm-utils')
 
 export async function npmRegistryLogin({
   npmRegistry,

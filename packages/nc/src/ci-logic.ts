@@ -3,7 +3,7 @@
 import execa from 'execa'
 import fse from 'fs-extra'
 import Redis from 'ioredis'
-import k8testLog from '@tahini/log'
+import ncLog from '@tahini/log'
 import _ from 'lodash'
 import path from 'path'
 import { dockerRegistryLogin } from './docker-utils'
@@ -18,7 +18,7 @@ export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndT
 export { npmRegistryLogin } from './npm-utils'
 export { TargetType } from './types'
 
-const log = k8testLog('ci')
+const log = ncLog('ci')
 
 async function getPackages(rootPath: string): Promise<string[]> {
   const result = await execa.command('yarn workspaces --json info', {

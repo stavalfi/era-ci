@@ -14,7 +14,7 @@ export const getPrCiOptions = (): CiOptions => {
       protocol: 'https',
     },
     gitOrganizationName: 'stavalfi',
-    gitRepositoryName: 'k8test',
+    gitRepositoryName: 'nc',
     gitServer: {
       host: 'github.com',
       port: 443,

@@ -80,8 +80,7 @@ async function main() {
       'git-repo': option({
         type: string,
         long: 'git-repo',
-        description:
-          'example: https://github.com/stavalfi/k8test, http://localhost:8081/a/b (ssh-url is not supported)',
+        description: 'example: https://github.com/stavalfi/nc, http://localhost:8081/a/b (ssh-url is not supported)',
       }),
       'docker-repository': option({
         type: string,

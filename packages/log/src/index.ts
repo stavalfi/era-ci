@@ -1,6 +1,6 @@
 import debug from 'debug'
 
-export default (namespace: string) => debug('k8test').extend(namespace)
+export default (namespace: string) => debug('nc').extend(namespace)
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function minimal(obj: any): object {

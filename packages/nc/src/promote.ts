@@ -1,8 +1,8 @@
 import execa from 'execa'
-import k8testLog from '@tahini/log'
+import ncLog from '@tahini/log'
 import { Graph, PackageInfo } from './types'
 
-const log = k8testLog('ci:promote')
+const log = ncLog('ci:promote')
 
 export async function promote(orderedGraph: Graph<PackageInfo>): Promise<PackageInfo[]> {
   log('start promoting packages...')

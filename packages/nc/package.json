@@ -9,6 +9,9 @@
     "__tests__",
     "dist"
   ],
+  "bin": {
+    "nc-ci": "./dist/src/index.js"
+  },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
@@ -28,8 +31,5 @@
     "is-ip": "^3.1.0",
     "@tahini/log": "^1.0.0",
     "semver": "^7.3.2"
-  },
-  "devDependencies": {
-    "k8test": "^1.0.0"
   }
 }

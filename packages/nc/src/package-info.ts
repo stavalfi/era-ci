@@ -1,14 +1,14 @@
 import execa from 'execa'
 import fs from 'fs-extra'
 import { Redis } from 'ioredis'
-import k8testLog from '@tahini/log'
+import ncLog from '@tahini/log'
 import path from 'path'
 import { getDockerImageLabelsAndTags } from './docker-utils'
 import { PackageInfo, ServerInfo, TargetInfo, TargetType } from './types'
 import { calculateNewVersion } from './versions'
 import { IPackageJson } from 'package-json-type'
 
-const log = k8testLog('ci:package-info')
+const log = ncLog('ci:package-info')
 
 async function getNpmLatestVersionInfo(
   packageName: string,
