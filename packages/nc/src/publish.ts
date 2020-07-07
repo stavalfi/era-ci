@@ -102,7 +102,7 @@ async function publishDocker({
     )
     return {
       published: true,
-      newVersion: dockerTarget.latestPublishedVersion.version,
+      newVersion: dockerTarget.latestPublishedVersion?.version,
       packagePath: packageInfo.packagePath,
     }
   }

@@ -48,7 +48,8 @@ export type TargetInfo<TargetTypParam extends TargetType> = { targetType: Target
     }
   | {
       needPublish: false
-      latestPublishedVersion: { version?: string; hash?: string }
+      // even if we already published the same hash, the user could remove the meta-data we saved on the latest-published-version
+      latestPublishedVersion?: { version?: string; hash?: string }
     }
 )
 

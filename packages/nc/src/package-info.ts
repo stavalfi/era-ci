@@ -1,56 +1,11 @@
-import execa from 'execa'
 import fs from 'fs-extra'
 import { Redis } from 'ioredis'
-import ncLog from '@tahini/log'
+import { IPackageJson } from 'package-json-type'
 import path from 'path'
-import { getDockerImageLabelsAndTags } from './docker-utils'
+import { getDockerImageLabelsAndTags, isDockerHashAlreadyPulished } from './docker-utils'
+import { getNpmLatestVersionInfo, isNpmHashAlreadyPulished } from './npm-utils'
 import { PackageInfo, ServerInfo, TargetInfo, TargetType } from './types'
 import { calculateNewVersion } from './versions'
-import { IPackageJson } from 'package-json-type'
-
-const log = ncLog('ci:package-info')
-
-async function getNpmLatestVersionInfo(
-  packageName: string,
-  npmRegistry: ServerInfo,
-  redisClient: Redis,
-): Promise<
-  | {
-      latestVersion?: string
-      // it can be undefine if the ci failed after publishing the package but before setting this tag remotely.
-      // in this case, the local-hash will be different and we will push again. its ok.
-      latestVersionHash?: string
-      allVersions: string[]
-    }
-  | undefined
-> {
-  try {
-    const command = `npm view ${packageName} --json --registry ${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
-    log('searching the latest tag and hash: "%s"', command)
-    const result = await execa.command(command)
-    const resultJson = JSON.parse(result.stdout) || {}
-    const allVersions: string[] = resultJson['versions'] || []
-    const distTags = resultJson['dist-tags'] as { [key: string]: string }
-    const latestVersion = distTags['latest']
-    const latestVersionHashResult = Object.entries(distTags).find(
-      ([key, value]) => value === latestVersion && key.startsWith('latest-hash--'),
-    )?.[0]
-
-    const latest = {
-      latestVersionHash: latestVersionHashResult?.replace('latest-hash--', ''),
-      latestVersion,
-      allVersions,
-    }
-    log('latest tag and hash for "%s" are: "%O"', packageName, latest)
-    return latest
-  } catch (e) {
-    if (e.message.includes('code E404')) {
-      log(`"%s" weren't published`, packageName)
-    } else {
-      throw e
-    }
-  }
-}
 
 async function isNpmTarget({
   packageJson,
@@ -73,32 +28,32 @@ async function isNpmTarget({
     if (!packageJson.version) {
       throw new Error(`package.json of: ${packagePath} must have a version property.`)
     }
+    const needPublish = await isNpmHashAlreadyPulished(packageJson.name, packageHash, npmRegistry)
     const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistry, redisClient)
-    return {
-      targetType: TargetType.npm,
-      ...(npmLatestVersionInfo?.latestVersionHash === packageHash
-        ? {
-            needPublish: false,
-            latestPublishedVersion: {
-              version: npmLatestVersionInfo.latestVersion,
-              hash: npmLatestVersionInfo.latestVersionHash,
-            },
-          }
-        : {
-            needPublish: true,
-            newVersion: calculateNewVersion({
-              packagePath,
-              packageJsonVersion: packageJson.version,
-              latestPublishedVersion: npmLatestVersionInfo?.latestVersion,
-              allVersions: npmLatestVersionInfo?.allVersions,
-            }),
-            ...(npmLatestVersionInfo && {
-              latestPublishedVersion: {
-                version: npmLatestVersionInfo.latestVersion,
-                hash: npmLatestVersionInfo.latestVersionHash,
-              },
-            }),
-          }),
+    if (needPublish) {
+      return {
+        targetType: TargetType.npm,
+        needPublish: true,
+        newVersion: calculateNewVersion({
+          packagePath,
+          packageJsonVersion: packageJson.version,
+          latestPublishedVersion: npmLatestVersionInfo?.latestVersion,
+          allVersions: npmLatestVersionInfo?.allVersions,
+        }),
+        latestPublishedVersion: npmLatestVersionInfo && {
+          version: npmLatestVersionInfo?.latestVersion,
+          hash: npmLatestVersionInfo?.latestVersionHash,
+        },
+      }
+    } else {
+      return {
+        targetType: TargetType.npm,
+        needPublish: false,
+        latestPublishedVersion: npmLatestVersionInfo && {
+          version: npmLatestVersionInfo?.latestVersion,
+          hash: npmLatestVersionInfo?.latestVersionHash,
+        },
+      }
     }
   }
 }
@@ -127,36 +82,42 @@ async function isDockerTarget({
     if (!packageJson.version) {
       throw new Error(`package.json of: ${packagePath} must have a version property.`)
     }
+    const needPublish = await isDockerHashAlreadyPulished({
+      currentPackageHash: packageHash,
+      dockerOrganizationName,
+      dockerRegistry,
+      packageName: packageJson.name,
+    })
     const dockerLatestTagInfo = await getDockerImageLabelsAndTags({
       dockerRegistry,
       dockerOrganizationName,
       packageJsonName: packageJson.name,
     })
-    return {
-      targetType: TargetType.docker,
-      ...(dockerLatestTagInfo?.latestHash === packageHash
-        ? {
-            needPublish: false,
-            latestPublishedVersion: {
-              version: dockerLatestTagInfo.latestTag,
-              hash: dockerLatestTagInfo.latestHash,
-            },
-          }
-        : {
-            needPublish: true,
-            newVersion: calculateNewVersion({
-              packagePath,
-              packageJsonVersion: packageJson.version,
-              latestPublishedVersion: dockerLatestTagInfo?.latestTag,
-              allVersions: dockerLatestTagInfo?.allTags,
-            }),
-            ...(dockerLatestTagInfo && {
-              latestPublishedVersion: {
-                version: dockerLatestTagInfo.latestTag,
-                hash: dockerLatestTagInfo.latestHash,
-              },
-            }),
-          }),
+
+    if (needPublish) {
+      return {
+        targetType: TargetType.docker,
+        needPublish: true,
+        newVersion: calculateNewVersion({
+          packagePath,
+          packageJsonVersion: packageJson.version,
+          latestPublishedVersion: dockerLatestTagInfo?.latestTag,
+          allVersions: dockerLatestTagInfo?.allTags,
+        }),
+        latestPublishedVersion: dockerLatestTagInfo && {
+          version: dockerLatestTagInfo.latestTag,
+          hash: dockerLatestTagInfo.latestHash,
+        },
+      }
+    } else {
+      return {
+        targetType: TargetType.docker,
+        needPublish: false,
+        latestPublishedVersion: dockerLatestTagInfo && {
+          version: dockerLatestTagInfo.latestTag,
+          hash: dockerLatestTagInfo.latestHash,
+        },
+      }
     }
   }
 }

@@ -3,6 +3,7 @@ import execa from 'execa'
 import { GitServer } from './git-server-testkit'
 import { Repo, TargetType, ToActualName } from './types'
 import chance from 'chance'
+import path from 'path'
 
 async function initializeGitRepo({
   gitServer,
@@ -41,13 +42,14 @@ export async function createRepo({
     .slice(0, 8)}`
 
   const isFromThisMonorepo = (depName: string) => repo.packages?.some(packageInfo => packageInfo.name === depName)
-
+  const packagesFolderName = 'packages'
+  const subPackagesFolderName = 'more-packages'
   const repoPath = await createFolder({
     'package.json': {
       name: repoName,
       version: '1.0.0',
       private: true,
-      workspaces: ['packages/*'],
+      workspaces: [`${packagesFolderName}/*`, `${packagesFolderName}/${subPackagesFolderName}/*`],
       scripts: {
         test: 'echo running tests..... no tests to run',
       },
@@ -100,6 +102,9 @@ export async function createRepo({
     ...repo.rootFiles,
   })
 
+  const packagesFolderPath = path.join(repoPath, packagesFolderName)
+  const subPackagesFolderPath = path.join(packagesFolderPath, subPackagesFolderName)
+
   await execa.command(`yarn install`, { cwd: repoPath })
 
   await initializeGitRepo({
@@ -113,5 +118,7 @@ export async function createRepo({
     repoPath,
     repoName,
     repoOrg,
+    packagesFolderPath,
+    subPackagesFolderPath,
   }
 }

@@ -1,13 +1,13 @@
 import chance from 'chance'
 import execa from 'execa'
 import fse from 'fs-extra'
+import { IPackageJson } from 'package-json-type'
 import path from 'path'
-import { npmRegistryLogin, buildFullDockerImageName } from '../../src/ci-logic'
+import { buildFullDockerImageName, npmRegistryLogin } from '../../src/ci-logic'
 import { ServerInfo } from '../../src/types'
 import { latestNpmPackageDistTags, latestNpmPackageVersion } from './seach-targets'
-import { CreateAndManageRepo, TargetType, ToActualName } from './types'
+import { CreateAndManageRepo, MinimalNpmPackage, TargetType, ToActualName } from './types'
 import { getPackagePath, getPackages } from './utils'
-import { IPackageJson } from 'package-json-type'
 
 export async function commitAllAndPushChanges(repoPath: string, gitRepoAddress: string) {
   await execa.command('git add --all', { cwd: repoPath })
@@ -239,12 +239,94 @@ export const modifyPackageJson = async ({
   repoPath: string
   gitRepoAddress: string
   toActualName: ToActualName
-  modification: (packageJson: IPackageJson) => Promise<IPackageJson>
+  modification: (packageJson: IPackageJson) => IPackageJson
 }): Promise<void> => {
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
   const before: IPackageJson = await fse.readJson(path.join(packagePath, 'package.json'))
-  const after = await modification(before)
+  const after = modification(before)
   await fse.remove(path.join(packagePath, 'package.json'))
   await fse.writeJSON(path.join(packagePath, 'package.json'), after)
+  await commitAllAndPushChanges(repoPath, gitRepoAddress)
+}
+
+export const renamePackageFolder = async ({
+  packageName,
+  repoPath,
+  gitRepoAddress,
+  toActualName,
+}: {
+  packageName: string
+  repoPath: string
+  gitRepoAddress: string
+  toActualName: ToActualName
+}): Promise<string> => {
+  const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
+  const newPackagePath = path.join(
+    packagePath,
+    '..',
+    chance()
+      .hash()
+      .slice(0, 8),
+  )
+  await fse.rename(packagePath, newPackagePath)
+  await commitAllAndPushChanges(repoPath, gitRepoAddress)
+  return newPackagePath
+}
+
+export const movePackageFolder = async ({
+  packageName,
+  repoPath,
+  gitRepoAddress,
+  toActualName,
+  newParentDirPath,
+}: {
+  packageName: string
+  repoPath: string
+  gitRepoAddress: string
+  toActualName: ToActualName
+  newParentDirPath: string
+}): Promise<string> => {
+  const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
+  const newPackagePath = path.join(newParentDirPath, path.basename(packagePath))
+  await fse.move(packagePath, newPackagePath)
+  await commitAllAndPushChanges(repoPath, gitRepoAddress)
+  return newPackagePath
+}
+
+export const createNewPackage = async ({
+  repoPath,
+  gitRepoAddress,
+  toActualName,
+  newNpmPackage,
+  createUnderFolderPath,
+}: {
+  repoPath: string
+  gitRepoAddress: string
+  toActualName: ToActualName
+  newNpmPackage: MinimalNpmPackage
+  createUnderFolderPath: string
+}): Promise<void> => {
+  await fse.writeJSON(path.join(createUnderFolderPath, 'package.json'), {
+    name: toActualName(newNpmPackage.name),
+    version: newNpmPackage.version,
+  })
+  await execa.command(`yarn install`, { cwd: repoPath })
+  await commitAllAndPushChanges(repoPath, gitRepoAddress)
+}
+
+export const deletePackage = async ({
+  repoPath,
+  gitRepoAddress,
+  toActualName,
+  packageName,
+}: {
+  repoPath: string
+  gitRepoAddress: string
+  toActualName: ToActualName
+  packageName: string
+}): Promise<void> => {
+  const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
+  await fse.remove(packagePath)
+  await execa.command(`yarn install`, { cwd: repoPath })
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
 }
