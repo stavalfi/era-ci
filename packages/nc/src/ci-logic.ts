@@ -136,17 +136,15 @@ export async function ci(options: CiOptions) {
   }
 
   if (options.isMasterBuild) {
-    const promoted = await promote(orderedGraph)
-    if (promoted.length > 0) {
-      await publish(orderedGraph, {
-        isDryRun: options.isDryRun,
-        rootPath: options.rootPath,
-        dockerRegistry: options.dockerRegistry,
-        npmRegistry: options.npmRegistry,
-        dockerOrganizationName: options.dockerOrganizationName,
-        auth: options.auth,
-      })
-    }
+    await promote(orderedGraph)
+    await publish(orderedGraph, {
+      isDryRun: options.isDryRun,
+      rootPath: options.rootPath,
+      dockerRegistry: options.dockerRegistry,
+      npmRegistry: options.npmRegistry,
+      dockerOrganizationName: options.dockerOrganizationName,
+      auth: options.auth,
+    })
   }
-  await redisClient.quit()
+  await Promise.all([redisClient.quit(), execa.command(`git reset HEAD --hard`, { cwd: options.rootPath })])
 }

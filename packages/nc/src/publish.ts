@@ -168,6 +168,9 @@ export async function publish(
     auth: Auth
   },
 ) {
+  if (orderedGraph.length === 0) {
+    return log(`all packages are already published from last builds. skipping publish step...`)
+  }
   log('start publishing packages...')
   const toPublish = orderedGraph.map(node => node.data).filter(data => data.target?.needPublish)
 
