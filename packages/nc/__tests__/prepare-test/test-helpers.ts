@@ -245,7 +245,7 @@ export const modifyPackageJson = async ({
   const before: IPackageJson = await fse.readJson(path.join(packagePath, 'package.json'))
   const after = modification(before)
   await fse.remove(path.join(packagePath, 'package.json'))
-  await fse.writeJSON(path.join(packagePath, 'package.json'), after)
+  await fse.writeFile(path.join(packagePath, 'package.json'), JSON.stringify(after, null, 2))
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
 }
 
@@ -306,10 +306,17 @@ export const createNewPackage = async ({
   newNpmPackage: MinimalNpmPackage
   createUnderFolderPath: string
 }): Promise<void> => {
-  await fse.writeJSON(path.join(createUnderFolderPath, 'package.json'), {
-    name: toActualName(newNpmPackage.name),
-    version: newNpmPackage.version,
-  })
+  await fse.writeFile(
+    path.join(createUnderFolderPath, 'package.json'),
+    JSON.stringify(
+      {
+        name: toActualName(newNpmPackage.name),
+        version: newNpmPackage.version,
+      },
+      null,
+      2,
+    ),
+  )
   await execa.command(`yarn install`, { cwd: repoPath })
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
 }
