@@ -21,7 +21,7 @@ export async function npmRegistryLogin({
   npmRegistryEmail: string
 }): Promise<void> {
   const withPort = isIp.v4(npmRegistry.host) || npmRegistry.host === 'localhost' ? `:${npmRegistry.port}` : ''
-  const npmRegistryAddress = `${npmRegistry.host}${withPort}`
+  const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}${withPort}`
   // only login in tests. publishing in non-interactive mode is very buggy and tricky.
   // ---------------------------------------------------------------------------------
   // it's an ugly why to check if we are in a test but at least,
@@ -44,10 +44,10 @@ export async function isNpmHashAlreadyPulished(
   currentPackageHash: string,
   npmRegistry: ServerInfo,
 ) {
-  const command = `npm view ${packageName}@latest-hash--${currentPackageHash} --json --registry ${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
+  const command = `npm view ${packageName}@${currentPackageHash} --json --registry ${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
   try {
-    await execa.command(command)
-    return true
+    const { stdout } = await execa.command(command)
+    return Boolean(stdout) // for some reaosn, if the version is not found, it doesn't throw an error. but the stdout is empty.
   } catch (e) {
     if (e.message.includes('code E404')) {
       return false
@@ -80,11 +80,11 @@ export async function getNpmLatestVersionInfo(
     const distTags = resultJson['dist-tags'] as { [key: string]: string }
     const latestVersion = distTags['latest']
     const latestVersionHashResult = Object.entries(distTags).find(
-      ([key, value]) => value === latestVersion && key.startsWith('latest-hash--'),
+      ([key, value]) => value === latestVersion && key.length === 56,
     )?.[0]
 
     const latest = {
-      latestVersionHash: latestVersionHashResult?.replace('latest-hash--', ''),
+      latestVersionHash: latestVersionHashResult,
       latestVersion,
       allVersions,
     }

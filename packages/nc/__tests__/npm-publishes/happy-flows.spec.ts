@@ -42,6 +42,7 @@ test('multiple publishes of the same package', async () => {
   const master2 = await runCi({
     isMasterBuild: true,
   })
+
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
   expect(master2.published.get('a')?.npm?.latestVersion).toEqual('1.0.1')
 

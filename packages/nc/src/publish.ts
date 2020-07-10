@@ -67,7 +67,7 @@ async function publishNpm({
   )
 
   await execa.command(
-    `npm dist-tag add ${packageInfo.packageJson.name}@${npmTarget.newVersion} latest-hash--${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
+    `npm dist-tag add ${packageInfo.packageJson.name}@${npmTarget.newVersion} ${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
   )
 
   log('published npm target in package: "%s"', packageInfo.packageJson.name)

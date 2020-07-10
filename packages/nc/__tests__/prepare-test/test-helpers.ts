@@ -46,7 +46,7 @@ export async function removeAllNpmHashTags({
 
   await Promise.all(
     Object.keys(distTags || {})
-      .filter(key => key.startsWith('latest-hash--'))
+      .filter(key => key.length === 56)
       .map(key =>
         execa.command(
           `npm dist-tag rm ${toActualName(packageName)}@${latestVersion} ${key} --registry ${npmRegistryAddress}`,

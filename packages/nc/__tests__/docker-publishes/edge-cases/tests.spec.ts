@@ -152,7 +152,7 @@ test('run ci -> change packageJson.version to invalid version -> run ci', async 
     ],
   })
 
-  await modifyPackageJson('a', async packageJson => ({ ...packageJson, version: 'lalalal' }))
+  await modifyPackageJson('a', packageJson => ({ ...packageJson, version: 'lalalal' }))
 
   await expect(
     runCi({

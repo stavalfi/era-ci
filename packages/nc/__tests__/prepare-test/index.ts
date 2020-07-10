@@ -39,6 +39,8 @@ export const newEnv: NewEnvFunc = () => {
     const toActualName = (name: string) =>
       name.endsWith(`-${resourcesNamesPostfix}`) ? name : `${name}-${resourcesNamesPostfix}`
 
+    const toOriginalName = (name: string) => toActualName(name).replace(`-${resourcesNamesPostfix}`, '')
+
     const dockerOrganizationName = toActualName('repo')
 
     const { dockerRegistry, npmRegistry, gitServer, redisServer } = testResources.get()
@@ -81,15 +83,14 @@ export const newEnv: NewEnvFunc = () => {
         packagesPaths // todo: need to search in runtime which packages I have NOW
           .map(packagePath => require(path.join(packagePath, 'package.json')).name)
           .map<Promise<[string, PublishedPackageInfo]>>(async (packageName: string) => {
-            const actualName = toActualName(packageName)
             const [versions, latestVersion, tags, latestTag] = await Promise.all([
-              publishedNpmPackageVersions(actualName, npmRegistry),
-              latestNpmPackageVersion(actualName, npmRegistry),
-              publishedDockerImageTags(actualName, dockerOrganizationName, dockerRegistry),
-              latestDockerImageTag(actualName, dockerOrganizationName, dockerRegistry),
+              publishedNpmPackageVersions(packageName, npmRegistry),
+              latestNpmPackageVersion(packageName, npmRegistry),
+              publishedDockerImageTags(packageName, dockerOrganizationName, dockerRegistry),
+              latestDockerImageTag(packageName, dockerOrganizationName, dockerRegistry),
             ])
             return [
-              packageName,
+              toOriginalName(packageName),
               {
                 npm: {
                   versions,

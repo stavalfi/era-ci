@@ -19,7 +19,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       isMasterBuild: true,
     })
 
-    await modifyPackageJson('a', async packageJson => ({ ...packageJson, version: '2.0.0' }))
+    await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '2.0.0' }))
 
     const master = await runCi({
       isMasterBuild: true,
@@ -44,7 +44,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       isMasterBuild: true,
     })
 
-    await modifyPackageJson('a', async packageJson => ({ ...packageJson, version: '1.1.0' }))
+    await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.1.0' }))
 
     const master = await runCi({
       isMasterBuild: true,
@@ -68,7 +68,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       isMasterBuild: true,
     })
 
-    await modifyPackageJson('a', async packageJson => ({ ...packageJson, version: '1.0.1' }))
+    await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.1' }))
 
     const master = await runCi({
       isMasterBuild: true,
@@ -93,7 +93,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       isMasterBuild: true,
     })
 
-    await modifyPackageJson('a', async packageJson => ({ ...packageJson, version: '1.0.4' }))
+    await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.4' }))
 
     const master = await runCi({
       isMasterBuild: true,

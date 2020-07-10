@@ -28,7 +28,7 @@ async function isNpmTarget({
     if (!packageJson.version) {
       throw new Error(`package.json of: ${packagePath} must have a version property.`)
     }
-    const needPublish = await isNpmHashAlreadyPulished(packageJson.name, packageHash, npmRegistry)
+    const needPublish = !(await isNpmHashAlreadyPulished(packageJson.name, packageHash, npmRegistry))
     const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistry, redisClient)
     if (needPublish) {
       return {
@@ -82,12 +82,12 @@ async function isDockerTarget({
     if (!packageJson.version) {
       throw new Error(`package.json of: ${packagePath} must have a version property.`)
     }
-    const needPublish = await isDockerHashAlreadyPulished({
+    const needPublish = !(await isDockerHashAlreadyPulished({
       currentPackageHash: packageHash,
       dockerOrganizationName,
       dockerRegistry,
       packageName: packageJson.name,
-    })
+    }))
     const dockerLatestTagInfo = await getDockerImageLabelsAndTags({
       dockerRegistry,
       dockerOrganizationName,
