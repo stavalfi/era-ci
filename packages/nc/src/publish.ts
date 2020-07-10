@@ -1,10 +1,9 @@
-import execa from 'execa'
 import ncLog from '@tahini/log'
+import execa from 'execa'
+import isIp from 'is-ip'
 import _ from 'lodash'
 import { buildFullDockerImageName } from './docker-utils'
-import { npmRegistryLogin } from './npm-utils'
 import { Auth, Graph, PackageInfo, PublishResult, ServerInfo, TargetInfo, TargetType } from './types'
-import isIp from 'is-ip'
 
 const log = ncLog('ci:publish')
 
@@ -182,16 +181,6 @@ export async function publish(
     log(`there is no need to publish anything. all packages that should publish, didn't change.`)
   } else {
     log('publishing the following packages: %s', toPublish.map(node => `"${node.packageJson.name}"`).join(', '))
-    if (!options.isDryRun) {
-      if (npm.length > 0) {
-        await npmRegistryLogin({
-          npmRegistry: options.npmRegistry,
-          npmRegistryUsername: options.auth.npmRegistryUsername,
-          npmRegistryToken: options.auth.npmRegistryToken,
-          npmRegistryEmail: options.auth.npmRegistryEmail,
-        })
-      }
-    }
 
     const npmResult = await Promise.all(
       npm.map(node =>

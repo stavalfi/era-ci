@@ -34,6 +34,8 @@ export type CiOptions = {
   auth: Auth
 }
 
+export type PackageName = string
+
 export enum TargetType {
   docker = 'docker',
   npm = 'npm',

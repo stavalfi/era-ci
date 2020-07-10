@@ -1,5 +1,79 @@
-import { ServerInfo, Protocol } from './types'
+import execa from 'execa'
+import Redis from 'ioredis'
 import isIp from 'is-ip'
+import path from 'path'
+import { getPackageInfo } from './package-info'
+import { calculatePackagesHash } from './packages-hash'
+import { Graph, PackageInfo, Protocol, ServerInfo, TargetType } from './types'
+import ncLog from '@tahini/log'
+import _ from 'lodash'
+
+const log = ncLog('nc:utils')
+
+export const isRepoModified = async (rootPath: string) => {
+  // todo: fix it. it doesn't work.
+  return execa.command('git status --porcelain', { cwd: rootPath }).then(
+    () => false,
+    () => true,
+  )
+}
+
+export async function getPackages(rootPath: string): Promise<string[]> {
+  const result = await execa.command('yarn workspaces --json info', {
+    cwd: rootPath,
+  })
+  const workspacesInfo: { location: string }[] = JSON.parse(JSON.parse(result.stdout).data)
+  return Object.values(workspacesInfo)
+    .map(workspaceInfo => workspaceInfo.location)
+    .map(relativePackagePath => path.join(rootPath, relativePackagePath))
+}
+
+export async function getOrderedGraph({
+  packagesTargets,
+  rootPath,
+  dockerOrganizationName,
+  redisClient,
+  dockerRegistry,
+  npmRegistry,
+}: {
+  rootPath: string
+  packagesTargets: { packagePath: string; packageTarget?: TargetType }[]
+  npmRegistry: ServerInfo
+  dockerRegistry: ServerInfo
+  dockerOrganizationName: string
+  redisClient: Redis.Redis
+}): Promise<Graph<PackageInfo>> {
+  log('calculate hash of every package and check which packages changed since their last publish')
+  const orderedGraph = await calculatePackagesHash(
+    rootPath,
+    packagesTargets.map(({ packagePath }) => packagePath),
+  )
+  const result = await Promise.all(
+    orderedGraph.map(async node => ({
+      ...node,
+      data: await getPackageInfo({
+        dockerRegistry,
+        npmRegistry,
+        targetType: packagesTargets.find(({ packagePath }) => node.data.packagePath === packagePath)
+          ?.packageTarget as TargetType,
+        dockerOrganizationName,
+        packageHash: node.data.packageHash,
+        packagePath: node.data.packagePath,
+        relativePackagePath: node.data.relativePackagePath,
+        redisClient,
+      }),
+    })),
+  )
+  log('%d packages: %s', orderedGraph.length, orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', '))
+  result.forEach(node => {
+    log(`%s (%s): %O`, node.data.relativePackagePath, node.data.packageJson.name, {
+      ..._.omit(node.data, ['packageJson']),
+      packageJsonVersion: node.data.packageJson.version,
+    })
+  })
+
+  return result
+}
 
 export function toServerInfo({ protocol, host, port }: { protocol?: string; host: string; port?: number }): ServerInfo {
   const paramsToString = JSON.stringify({ protocol, host, port }, null, 2)
