@@ -64,7 +64,7 @@ export async function isDockerHashAlreadyPulished({
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
 }) {
-  const fullImageNameWithoutTag = buildFullDockerImageName({
+  const fullImageName = buildFullDockerImageName({
     dockerOrganizationName,
     dockerRegistry,
     packageJsonName: packageName,
@@ -72,9 +72,7 @@ export async function isDockerHashAlreadyPulished({
   })
   try {
     await execa.command(
-      `skopeo list-tags ${
-        dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
-      } docker://${fullImageNameWithoutTag}`,
+      `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
     )
     return true
   } catch (e) {
