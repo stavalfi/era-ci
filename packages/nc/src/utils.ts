@@ -1,13 +1,12 @@
+import ncLog from '@tahini/log'
 import execa from 'execa'
-import Redis from 'ioredis'
 import isIp from 'is-ip'
+import _ from 'lodash'
+import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { getPackageInfo } from './package-info'
 import { calculatePackagesHash } from './packages-hash'
-import { Graph, PackageInfo, Protocol, ServerInfo, TargetType } from './types'
-import ncLog from '@tahini/log'
-import _ from 'lodash'
-import { IPackageJson } from 'package-json-type'
+import { Cache, Graph, PackageInfo, Protocol, ServerInfo, TargetType } from './types'
 
 const log = ncLog('utils')
 
@@ -33,7 +32,7 @@ export async function getOrderedGraph({
   packagesInfo,
   rootPath,
   dockerOrganizationName,
-  redisClient,
+  cache,
   dockerRegistry,
   npmRegistry,
 }: {
@@ -47,7 +46,7 @@ export async function getOrderedGraph({
   npmRegistry: ServerInfo
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
-  redisClient: Redis.Redis
+  cache: Cache
 }): Promise<Graph<PackageInfo>> {
   log('calculate hash of every package and check which packages changed since their last publish')
   const orderedGraph = await calculatePackagesHash(
@@ -66,7 +65,7 @@ export async function getOrderedGraph({
         packageHash: node.data.packageHash,
         packagePath: node.data.packagePath,
         relativePackagePath: node.data.relativePackagePath,
-        redisClient,
+        cache,
       }),
     })),
   )

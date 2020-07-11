@@ -3,7 +3,6 @@
 import ncLog from '@tahini/log'
 import execa from 'execa'
 import fse from 'fs-extra'
-import Redis from 'ioredis'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { dockerRegistryLogin } from './docker-utils'
@@ -14,6 +13,7 @@ import { publish } from './publish'
 import { CiOptions, TargetType } from './types'
 import { getOrderedGraph, getPackages, isRepoModified } from './utils'
 import { validatePackages } from './validate-packages'
+import { intializeCache } from './cache'
 
 export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
 export { npmRegistryLogin } from './npm-utils'
@@ -69,10 +69,12 @@ export async function ci(options: CiOptions) {
     })
   }
 
-  const redisClient = new Redis({
-    host: options.redisServer.host,
-    port: options.redisServer.port,
-    ...(options.auth.redisPassword && { password: options.auth.redisPassword }),
+  const cache = await intializeCache({
+    auth: options.auth,
+    dockerOrganizationName: options.dockerOrganizationName,
+    dockerRegistry: options.dockerRegistry,
+    npmRegistry: options.npmRegistry,
+    redisServer: options.redisServer,
   })
 
   const orderedGraph = await getOrderedGraph({
@@ -81,7 +83,7 @@ export async function ci(options: CiOptions) {
     dockerRegistry: options.dockerRegistry,
     dockerOrganizationName: options.dockerOrganizationName,
     npmRegistry: options.npmRegistry,
-    redisClient,
+    cache,
   })
 
   await execa.command('yarn install', {
@@ -113,8 +115,9 @@ export async function ci(options: CiOptions) {
       dockerRegistry: options.dockerRegistry,
       npmRegistry: options.npmRegistry,
       dockerOrganizationName: options.dockerOrganizationName,
+      cache,
       auth: options.auth,
     })
   }
-  await Promise.all([redisClient.quit(), execa.command(`git reset HEAD --hard`, { cwd: options.rootPath })])
+  await Promise.all([cache.disconnect(), execa.command(`git reset HEAD --hard`, { cwd: options.rootPath })])
 }

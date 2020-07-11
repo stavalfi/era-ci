@@ -1,11 +1,11 @@
 import chance from 'chance'
 import execa from 'execa'
 import fse from 'fs-extra'
+import Redis from 'ioredis'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { buildFullDockerImageName, npmRegistryLogin } from '../../src/ci-logic'
-import { ServerInfo } from '../../src/types'
-import { latestNpmPackageDistTags, latestNpmPackageVersion } from './seach-targets'
+import { CacheTypes, ServerInfo } from '../../src/types'
 import { CreateAndManageRepo, MinimalNpmPackage, TargetType, ToActualName } from './types'
 import { getPackagePath, getPackages } from './utils'
 
@@ -16,47 +16,19 @@ export async function commitAllAndPushChanges(repoPath: string, gitRepoAddress: 
 }
 
 export async function removeAllNpmHashTags({
-  npmRegistry,
-  npmRegistryEmail,
-  npmRegistryToken,
-  npmRegistryUsername,
   packageName,
-  repoPath,
-  toActualName,
+  redisServer,
 }: {
   packageName: string
-  npmRegistry: ServerInfo
-  npmRegistryUsername: string
-  npmRegistryToken: string
-  npmRegistryEmail: string
-  repoPath: string
-  toActualName: ToActualName
+  redisServer: ServerInfo
 }): Promise<void> {
-  const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
-
-  const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
-  await npmRegistryLogin({
-    npmRegistry,
-    npmRegistryEmail,
-    npmRegistryToken,
-    npmRegistryUsername,
+  const redisClient = new Redis({
+    host: redisServer.host,
+    port: redisServer.port,
   })
-  const latestVersion = await latestNpmPackageVersion(toActualName(packageName), npmRegistry)
-  const distTags = await latestNpmPackageDistTags(toActualName(packageName), npmRegistry)
-
-  await Promise.all(
-    Object.keys(distTags || {})
-      .filter(key => key.length === 56)
-      .map(key =>
-        execa.command(
-          `npm dist-tag rm ${toActualName(packageName)}@${latestVersion} ${key} --registry ${npmRegistryAddress}`,
-          {
-            stdio: 'pipe',
-            cwd: packagePath,
-          },
-        ),
-      ),
-  )
+  const keys = await redisClient.keys(`${CacheTypes.publish}-${packageName}-${TargetType.npm}-*`)
+  await redisClient.del(...keys)
+  await redisClient.quit()
 }
 
 export async function publishNpmPackageWithoutCi({
@@ -201,7 +173,6 @@ export const installAndRunNpmDependency = async ({
       {
         name: 'b',
         version: '2.0.0',
-        targetType: TargetType.none,
         dependencies: {
           [toActualName(dependencyName)]: `${npmRegistry.protocol}://${npmRegistry.host}:${
             npmRegistry.port

@@ -5,9 +5,8 @@ import ncLog from '@tahini/log'
 import fse from 'fs-extra'
 import path from 'path'
 import os from 'os'
-import { Redis } from 'ioredis'
 
-const log = ncLog('ci:npm-utils')
+const log = ncLog('npm-utils')
 
 export async function npmRegistryLogin({
   npmRegistry,
@@ -39,34 +38,12 @@ export async function npmRegistryLogin({
   }
 }
 
-export async function isNpmHashAlreadyPulished(
-  packageName: string,
-  currentPackageHash: string,
-  npmRegistry: ServerInfo,
-) {
-  const command = `npm view ${packageName}@${currentPackageHash} --json --registry ${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
-  try {
-    const { stdout } = await execa.command(command)
-    return Boolean(stdout) // for some reaosn, if the version is not found, it doesn't throw an error. but the stdout is empty.
-  } catch (e) {
-    if (e.message.includes('code E404')) {
-      return false
-    } else {
-      throw e
-    }
-  }
-}
-
-export async function getNpmLatestVersionInfo(
+export async function getNpmhighestVersionInfo(
   packageName: string,
   npmRegistry: ServerInfo,
-  redisClient: Redis,
 ): Promise<
   | {
-      latestVersion?: string
-      // it can be undefine if the ci failed after publishing the package but before setting this tag remotely.
-      // in this case, the local-hash will be different and we will push again. its ok.
-      latestVersionHash?: string
+      highestVersion?: string
       allVersions: string[]
     }
   | undefined
@@ -78,14 +55,10 @@ export async function getNpmLatestVersionInfo(
     const resultJson = JSON.parse(result.stdout) || {}
     const allVersions: string[] = resultJson['versions'] || []
     const distTags = resultJson['dist-tags'] as { [key: string]: string }
-    const latestVersion = distTags['latest']
-    const latestVersionHashResult = Object.entries(distTags).find(
-      ([key, value]) => value === latestVersion && key.length === 56,
-    )?.[0]
+    const highestVersion = distTags['latest']
 
     const latest = {
-      latestVersionHash: latestVersionHashResult,
-      latestVersion,
+      highestVersion,
       allVersions,
     }
     log('latest tag and hash for "%s" are: "%O"', packageName, latest)
@@ -93,6 +66,28 @@ export async function getNpmLatestVersionInfo(
   } catch (e) {
     if (e.message.includes('code E404')) {
       log(`"%s" weren't published`, packageName)
+    } else {
+      throw e
+    }
+  }
+}
+
+export async function isNpmVersionAlreadyPulished({
+  npmRegistry,
+  packageName,
+  packageVersion,
+}: {
+  packageName: string
+  packageVersion: string
+  npmRegistry: ServerInfo
+}) {
+  const command = `npm view ${packageName}@${packageVersion} --json --registry ${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
+  try {
+    const { stdout } = await execa.command(command)
+    return Boolean(stdout) // for some reaosn, if the version is not found, it doesn't throw an error. but the stdout is empty.
+  } catch (e) {
+    if (e.message.includes('code E404')) {
+      return false
     } else {
       throw e
     }

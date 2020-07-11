@@ -4,7 +4,7 @@ import { ServerInfo } from './types'
 import { getHighestDockerTag } from './versions'
 import isIp from 'is-ip'
 
-const log = ncLog('ci:docker-utils')
+const log = ncLog('docker-utils')
 
 export async function dockerRegistryLogin({
   dockerRegistry,
@@ -51,41 +51,6 @@ export const buildFullDockerImageName = ({
   return `${dockerRegistry.host}${withPort}/${dockerOrganizationName}/${buildDockerImageName(
     packageJsonName,
   )}${withImageTag}`
-}
-
-export async function isDockerHashAlreadyPulished({
-  packageName,
-  currentPackageHash,
-  dockerOrganizationName,
-  dockerRegistry,
-}: {
-  packageName: string
-  currentPackageHash: string
-  dockerRegistry: ServerInfo
-  dockerOrganizationName: string
-}) {
-  const fullImageName = buildFullDockerImageName({
-    dockerOrganizationName,
-    dockerRegistry,
-    packageJsonName: packageName,
-    imageTag: currentPackageHash,
-  })
-  try {
-    await execa.command(
-      `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
-    )
-    return true
-  } catch (e) {
-    if (
-      e.stderr?.includes('manifest unknown') ||
-      e.stderr?.includes('unable to retrieve auth token') ||
-      e.stderr?.includes('invalid status code from registry 404 (Not Found)')
-    ) {
-      return false
-    } else {
-      throw e
-    }
-  }
 }
 
 /*
@@ -161,6 +126,41 @@ export async function getDockerImageLabelsAndTags({
       e.stderr?.includes('invalid status code from registry 404 (Not Found)')
     ) {
       log(`"%s" weren't published before so we can't find this image`, fullImageNameWithoutTag)
+    } else {
+      throw e
+    }
+  }
+}
+
+export async function isDockerVersionAlreadyPulished({
+  packageName,
+  imageTag,
+  dockerOrganizationName,
+  dockerRegistry,
+}: {
+  packageName: string
+  imageTag: string
+  dockerRegistry: ServerInfo
+  dockerOrganizationName: string
+}) {
+  const fullImageName = buildFullDockerImageName({
+    dockerOrganizationName,
+    dockerRegistry,
+    packageJsonName: packageName,
+    imageTag,
+  })
+  try {
+    await execa.command(
+      `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
+    )
+    return true
+  } catch (e) {
+    if (
+      e.stderr?.includes('manifest unknown') ||
+      e.stderr?.includes('unable to retrieve auth token') ||
+      e.stderr?.includes('invalid status code from registry 404 (Not Found)')
+    ) {
+      return false
     } else {
       throw e
     }

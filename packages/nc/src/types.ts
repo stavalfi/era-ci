@@ -35,6 +35,7 @@ export type CiOptions = {
 }
 
 export type PackageName = string
+export type PackageVersion = string
 
 export enum TargetType {
   docker = 'docker',
@@ -46,12 +47,12 @@ export type TargetInfo<TargetTypParam extends TargetType> = { targetType: Target
       needPublish: true
       newVersion: string
       // if we didn't publish this hash yet, it maybe because we modified something or we never published before
-      latestPublishedVersion?: { version?: string; hash?: string }
+      highestPublishedVersion?: { version?: string; hash?: string }
     }
   | {
       needPublish: false
       // even if we already published the same hash, the user could remove the meta-data we saved on the latest-published-version
-      latestPublishedVersion?: { version?: string; hash?: string }
+      highestPublishedVersion?: { version?: string; hash?: string }
     }
 )
 
@@ -80,4 +81,22 @@ export type PublishResult = {
   packagePath: string
   published: boolean
   newVersion?: string
+}
+
+export enum CacheTypes {
+  publish = 'publish',
+}
+
+export type Cache = {
+  publish: {
+    npm: {
+      isPublished: (packageName: string, packageHash: string) => Promise<PackageVersion | false>
+      setAsPublished: (packageName: string, packageHash: string, packageVersion: PackageVersion) => Promise<void>
+    }
+    docker: {
+      isPublished: (packageName: string, packageHash: string) => Promise<PackageVersion | false>
+      setAsPublished: (packageName: string, packageHash: string, packageVersion: PackageVersion) => Promise<void>
+    }
+  }
+  disconnect: () => Promise<unknown>
 }

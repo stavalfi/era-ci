@@ -7,7 +7,7 @@ import { Graph } from './types'
 import ncLog from '@tahini/log'
 import { IPackageJson } from 'package-json-type'
 
-const log = ncLog('ci:packages-hash')
+const log = ncLog('packages-hash')
 
 const isInParent = (parent: string, child: string) => {
   const relative = path.relative(parent, child)

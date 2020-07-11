@@ -1,13 +1,9 @@
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap, IPackageJson } from 'package-json-type'
 import execa, { StdioOption } from 'execa'
-import { ServerInfo } from 'nc/src/types'
+import { ServerInfo, TargetType } from '../../src/types'
 
-export enum TargetType {
-  docker = 'docker',
-  npm = 'npm',
-  none = 'private-npm',
-}
+export { TargetType }
 
 export enum Resource {
   dockerRegistry = 'docker-registry',
@@ -18,7 +14,7 @@ export enum Resource {
 export type Package = {
   name: string
   version: string
-  targetType: TargetType
+  targetType?: TargetType
   'index.js'?: string
   dependencies?: IDependencyMap
   devDependencies?: IDependencyMap
@@ -44,7 +40,7 @@ export type CiOptions = {
 export type PublishedPackageInfo = {
   npm: {
     versions: string[]
-    latestVersion?: string
+    highestVersion?: string
   }
   docker: {
     tags: string[]
