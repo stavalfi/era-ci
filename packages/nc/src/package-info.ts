@@ -1,24 +1,23 @@
 import fs from 'fs-extra'
-import { Redis } from 'ioredis'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
-import { getDockerImageLabelsAndTags, isDockerHashAlreadyPulished } from './docker-utils'
-import { getNpmLatestVersionInfo, isNpmHashAlreadyPulished } from './npm-utils'
-import { PackageInfo, ServerInfo, TargetInfo, TargetType } from './types'
+import { getDockerImageLabelsAndTags } from './docker-utils'
+import { getNpmhighestVersionInfo } from './npm-utils'
+import { Cache, PackageInfo, ServerInfo, TargetInfo, TargetType } from './types'
 import { calculateNewVersion } from './versions'
 
 async function buildNpmTarget({
   packageJson,
   npmRegistry,
-  redisClient,
   packageHash,
   packagePath,
+  cache,
 }: {
   packageJson: IPackageJson
   npmRegistry: ServerInfo
-  redisClient: Redis
   packageHash: string
   packagePath: string
+  cache: Cache
 }): Promise<TargetInfo<TargetType.npm>> {
   if (!packageJson.name) {
     throw new Error(`package.json of: ${packagePath} must have a name property.`)
@@ -26,8 +25,8 @@ async function buildNpmTarget({
   if (!packageJson.version) {
     throw new Error(`package.json of: ${packagePath} must have a version property.`)
   }
-  const needPublish = !(await isNpmHashAlreadyPulished(packageJson.name, packageHash, npmRegistry))
-  const npmLatestVersionInfo = await getNpmLatestVersionInfo(packageJson.name, npmRegistry, redisClient)
+  const needPublish = !(await cache.publish.npm.isPublished(packageJson.name as string, packageHash))
+  const npmhighestVersionInfo = await getNpmhighestVersionInfo(packageJson.name, npmRegistry)
   if (needPublish) {
     return {
       targetType: TargetType.npm,
@@ -35,21 +34,19 @@ async function buildNpmTarget({
       newVersion: calculateNewVersion({
         packagePath,
         packageJsonVersion: packageJson.version,
-        latestPublishedVersion: npmLatestVersionInfo?.latestVersion,
-        allVersions: npmLatestVersionInfo?.allVersions,
+        highestPublishedVersion: npmhighestVersionInfo?.highestVersion,
+        allVersions: npmhighestVersionInfo?.allVersions,
       }),
-      latestPublishedVersion: npmLatestVersionInfo && {
-        version: npmLatestVersionInfo?.latestVersion,
-        hash: npmLatestVersionInfo?.latestVersionHash,
+      highestPublishedVersion: npmhighestVersionInfo && {
+        version: npmhighestVersionInfo?.highestVersion,
       },
     }
   } else {
     return {
       targetType: TargetType.npm,
       needPublish: false,
-      latestPublishedVersion: npmLatestVersionInfo && {
-        version: npmLatestVersionInfo?.latestVersion,
-        hash: npmLatestVersionInfo?.latestVersionHash,
+      highestPublishedVersion: npmhighestVersionInfo && {
+        version: npmhighestVersionInfo?.highestVersion,
       },
     }
   }
@@ -59,16 +56,16 @@ async function buildDockerTarget({
   packageJson,
   dockerOrganizationName,
   dockerRegistry,
-  redisClient,
   packageHash,
   packagePath,
+  cache,
 }: {
   packageJson: IPackageJson
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
-  redisClient: Redis
   packageHash: string
   packagePath: string
+  cache: Cache
 }): Promise<TargetInfo<TargetType.docker>> {
   if (!packageJson.name) {
     throw new Error(`package.json of: ${packagePath} must have a name property.`)
@@ -76,12 +73,7 @@ async function buildDockerTarget({
   if (!packageJson.version) {
     throw new Error(`package.json of: ${packagePath} must have a version property.`)
   }
-  const needPublish = !(await isDockerHashAlreadyPulished({
-    currentPackageHash: packageHash,
-    dockerOrganizationName,
-    dockerRegistry,
-    packageName: packageJson.name,
-  }))
+  const needPublish = !(await cache.publish.docker.isPublished(packageJson.name as string, packageHash))
   const dockerLatestTagInfo = await getDockerImageLabelsAndTags({
     dockerRegistry,
     dockerOrganizationName,
@@ -95,10 +87,10 @@ async function buildDockerTarget({
       newVersion: calculateNewVersion({
         packagePath,
         packageJsonVersion: packageJson.version,
-        latestPublishedVersion: dockerLatestTagInfo?.latestTag,
+        highestPublishedVersion: dockerLatestTagInfo?.latestTag,
         allVersions: dockerLatestTagInfo?.allTags,
       }),
-      latestPublishedVersion: dockerLatestTagInfo && {
+      highestPublishedVersion: dockerLatestTagInfo && {
         version: dockerLatestTagInfo.latestTag,
         hash: dockerLatestTagInfo.latestHash,
       },
@@ -107,7 +99,7 @@ async function buildDockerTarget({
     return {
       targetType: TargetType.docker,
       needPublish: false,
-      latestPublishedVersion: dockerLatestTagInfo && {
+      highestPublishedVersion: dockerLatestTagInfo && {
         version: dockerLatestTagInfo.latestTag,
         hash: dockerLatestTagInfo.latestHash,
       },
@@ -137,7 +129,7 @@ export async function getPackageInfo({
   packageHash,
   packagePath,
   relativePackagePath,
-  redisClient,
+  cache,
   dockerRegistry,
   npmRegistry,
   targetType,
@@ -149,7 +141,7 @@ export async function getPackageInfo({
   npmRegistry: ServerInfo
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
-  redisClient: Redis
+  cache: Cache
 }): Promise<PackageInfo> {
   const packageJson: IPackageJson = await fs.readJson(path.join(packagePath, 'package.json'))
 
@@ -163,7 +155,7 @@ export async function getPackageInfo({
         ? await buildNpmTarget({
             packageHash,
             packagePath,
-            redisClient,
+            cache,
             npmRegistry,
             packageJson,
           })
@@ -171,7 +163,7 @@ export async function getPackageInfo({
         ? await buildDockerTarget({
             packageHash,
             packagePath,
-            redisClient,
+            cache,
             dockerOrganizationName,
             dockerRegistry,
             packageJson,

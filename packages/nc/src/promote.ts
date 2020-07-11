@@ -2,7 +2,7 @@ import execa from 'execa'
 import ncLog from '@tahini/log'
 import { Graph, PackageInfo } from './types'
 
-const log = ncLog('ci:promote')
+const log = ncLog('promote')
 
 export async function promote(orderedGraph: Graph<PackageInfo>): Promise<PackageInfo[]> {
   log('start promoting packages...')
