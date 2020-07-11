@@ -19,7 +19,7 @@ export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndT
 export { npmRegistryLogin } from './npm-utils'
 export { TargetType } from './types'
 
-const log = ncLog('nc')
+const log = ncLog('index')
 
 export async function ci(options: CiOptions) {
   log('starting ci execution. options: %O', options)
@@ -35,17 +35,22 @@ export async function ci(options: CiOptions) {
   }
 
   const packagesPath = await getPackages(options.rootPath)
-  const packagesTargets = await Promise.all(
-    packagesPath.map(async packagePath => ({
-      packagePath,
-      targetType: await getPackageTargetType(packagePath),
-    })),
+  const packagesInfo = await Promise.all(
+    packagesPath.map(async packagePath => {
+      const packageJson: IPackageJson = await fse.readJSON(path.join(packagePath, 'package.json'))
+      return {
+        packagePath,
+        packageJson,
+        packageName: packageJson.name,
+        targetType: await getPackageTargetType(packagePath, packageJson),
+      }
+    }),
   )
 
-  await validatePackages(packagesTargets)
+  await validatePackages(packagesInfo)
 
-  const npmPackages = packagesTargets.filter(({ targetType }) => targetType === TargetType.npm)
-  const dockerPackages = packagesTargets.filter(({ targetType }) => targetType === TargetType.docker)
+  const npmPackages = packagesInfo.filter(({ targetType }) => targetType === TargetType.npm)
+  const dockerPackages = packagesInfo.filter(({ targetType }) => targetType === TargetType.docker)
 
   if (dockerPackages.length > 0) {
     await dockerRegistryLogin({
@@ -72,7 +77,7 @@ export async function ci(options: CiOptions) {
 
   const orderedGraph = await getOrderedGraph({
     rootPath: options.rootPath,
-    packagesTargets,
+    packagesInfo,
     dockerRegistry: options.dockerRegistry,
     dockerOrganizationName: options.dockerOrganizationName,
     npmRegistry: options.npmRegistry,

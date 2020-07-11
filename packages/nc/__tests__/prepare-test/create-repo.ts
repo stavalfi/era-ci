@@ -1,7 +1,7 @@
 import { createFolder } from 'create-folder-structure'
 import execa from 'execa'
 import { GitServer } from './git-server-testkit'
-import { Repo, TargetType, ToActualName } from './types'
+import { Repo, TargetType, ToActualName, Package } from './types'
 import chance from 'chance'
 import path from 'path'
 
@@ -27,6 +27,73 @@ async function initializeGitRepo({
   })
 }
 
+function createPackageJson({
+  packageInfo,
+  toActualName,
+  isFromThisMonorepo,
+}: {
+  packageInfo: Package
+  toActualName: ToActualName
+  isFromThisMonorepo: (depName: string) => boolean
+}) {
+  return {
+    name: toActualName(packageInfo.name),
+    version: packageInfo.version,
+    private: packageInfo.targetType !== TargetType.npm,
+    ...(packageInfo['index.js'] && { main: 'index.js' }),
+    ...(packageInfo.dependencies && {
+      dependencies: Object.fromEntries(
+        Object.entries(packageInfo.dependencies).map(([key, value]) => [
+          isFromThisMonorepo(key) ? toActualName(key) : key,
+          value,
+        ]),
+      ),
+    }),
+    ...(packageInfo.devDependencies && {
+      devDependencies: Object.fromEntries(
+        Object.entries(packageInfo.devDependencies).map(([key, value]) => [
+          isFromThisMonorepo(key) ? toActualName(key) : key,
+          value,
+        ]),
+      ),
+    }),
+  }
+}
+
+function createPackages({ toActualName, repo }: { repo: Repo; toActualName: ToActualName }) {
+  const isFromThisMonorepo = (depName: string) =>
+    Boolean(repo.packages?.some(packageInfo => packageInfo.name === depName))
+
+  return Object.fromEntries(
+    repo.packages?.map(packageInfo => {
+      return [
+        toActualName(packageInfo.name),
+        {
+          'package.json': createPackageJson({
+            packageInfo,
+            isFromThisMonorepo,
+            toActualName,
+          }),
+          ...(packageInfo['index.js'] && { 'index.js': packageInfo['index.js'] }),
+          ...(packageInfo.src && {
+            src: packageInfo.src,
+          }),
+          ...(packageInfo.tests && {
+            tests: packageInfo.tests,
+          }),
+          ...(packageInfo.targetType === TargetType.docker && {
+            Dockerfile: `\
+            FROM alpine
+            CMD ["echo","hello"]
+            `,
+          }),
+          ...packageInfo.additionalFiles,
+        },
+      ]
+    }) || [],
+  )
+}
+
 export async function createRepo({
   toActualName,
   repo,
@@ -40,54 +107,8 @@ export async function createRepo({
   const repoName = `repo-${chance()
     .hash()
     .slice(0, 8)}`
-
-  const isFromThisMonorepo = (depName: string) => repo.packages?.some(packageInfo => packageInfo.name === depName)
   const packagesFolderName = 'packages'
   const subPackagesFolderName = 'more-packages'
-
-  const packages = Object.fromEntries(
-    repo.packages?.map(packageInfo => [
-      toActualName(packageInfo.name),
-      {
-        'package.json': {
-          name: toActualName(packageInfo.name),
-          version: packageInfo.version,
-          private: packageInfo.targetType !== TargetType.npm,
-          ...(packageInfo['index.js'] && { main: 'index.js' }),
-          ...(packageInfo.dependencies && {
-            dependencies: Object.fromEntries(
-              Object.entries(packageInfo.dependencies).map(([key, value]) => [
-                isFromThisMonorepo(key) ? toActualName(key) : key,
-                value,
-              ]),
-            ),
-          }),
-          ...(packageInfo.devDependencies && {
-            devDependencies: Object.fromEntries(
-              Object.entries(packageInfo.devDependencies).map(([key, value]) => [
-                isFromThisMonorepo(key) ? toActualName(key) : key,
-                value,
-              ]),
-            ),
-          }),
-        },
-        ...(packageInfo['index.js'] && { 'index.js': packageInfo['index.js'] }),
-        ...(packageInfo.src && {
-          src: packageInfo.src,
-        }),
-        ...(packageInfo.tests && {
-          tests: packageInfo.tests,
-        }),
-        ...(packageInfo.targetType === TargetType.docker && {
-          Dockerfile: `\
-          FROM alpine
-          CMD ["echo","hello"]
-          `,
-        }),
-        ...packageInfo.additionalFiles,
-      },
-    ]) || [],
-  )
 
   const repoPath = await createFolder({
     'package.json': {
@@ -102,7 +123,10 @@ export async function createRepo({
     '.dockerignore': `node_modules`,
     '.gitignore': 'node_modules',
     packages: {
-      ...packages,
+      ...createPackages({
+        repo,
+        toActualName,
+      }),
       [subPackagesFolderName]: {
         '.gitkeep': '',
       },

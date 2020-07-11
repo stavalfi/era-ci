@@ -7,8 +7,9 @@ import { calculatePackagesHash } from './packages-hash'
 import { Graph, PackageInfo, Protocol, ServerInfo, TargetType } from './types'
 import ncLog from '@tahini/log'
 import _ from 'lodash'
+import { IPackageJson } from 'package-json-type'
 
-const log = ncLog('nc:utils')
+const log = ncLog('utils')
 
 export const isRepoModified = async (rootPath: string) => {
   // todo: fix it. it doesn't work.
@@ -29,7 +30,7 @@ export async function getPackages(rootPath: string): Promise<string[]> {
 }
 
 export async function getOrderedGraph({
-  packagesTargets,
+  packagesInfo,
   rootPath,
   dockerOrganizationName,
   redisClient,
@@ -37,7 +38,12 @@ export async function getOrderedGraph({
   npmRegistry,
 }: {
   rootPath: string
-  packagesTargets: { packagePath: string; packageTarget?: TargetType }[]
+  packagesInfo: {
+    packagePath: string
+    packageJson: IPackageJson
+    packageName: string | undefined
+    targetType: TargetType | undefined
+  }[]
   npmRegistry: ServerInfo
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
@@ -46,7 +52,7 @@ export async function getOrderedGraph({
   log('calculate hash of every package and check which packages changed since their last publish')
   const orderedGraph = await calculatePackagesHash(
     rootPath,
-    packagesTargets.map(({ packagePath }) => packagePath),
+    packagesInfo.map(({ packagePath }) => packagePath),
   )
   const result = await Promise.all(
     orderedGraph.map(async node => ({
@@ -54,8 +60,8 @@ export async function getOrderedGraph({
       data: await getPackageInfo({
         dockerRegistry,
         npmRegistry,
-        targetType: packagesTargets.find(({ packagePath }) => node.data.packagePath === packagePath)
-          ?.packageTarget as TargetType,
+        targetType: packagesInfo.find(({ packagePath }) => node.data.packagePath === packagePath)
+          ?.targetType as TargetType,
         dockerOrganizationName,
         packageHash: node.data.packageHash,
         packagePath: node.data.packagePath,

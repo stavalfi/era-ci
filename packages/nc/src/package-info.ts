@@ -115,8 +115,10 @@ async function buildDockerTarget({
   }
 }
 
-export async function getPackageTargetType(packagePath: string): Promise<TargetType | undefined> {
-  const packageJson: IPackageJson = await fs.readJson(path.join(packagePath, 'package.json'))
+export async function getPackageTargetType(
+  packagePath: string,
+  packageJson: IPackageJson,
+): Promise<TargetType | undefined> {
   const isNpm = !packageJson.private
   // @ts-ignore
   const isDocker: boolean = await fs.exists(path.join(packagePath, 'Dockerfile'))

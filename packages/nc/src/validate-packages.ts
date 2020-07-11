@@ -1,112 +1,112 @@
-import fse from 'fs-extra'
-import { IPackageJson } from 'package-json-type'
-import path from 'path'
-import { PackageName, TargetType } from './types'
 import _ from 'lodash'
+import { IDependencyMap, IPackageJson } from 'package-json-type'
+import { version } from 'punycode'
+import semver from 'semver'
+import { PackageName, TargetType } from './types'
 
 async function validatePackage(
-  packagePath: string,
-  packagesTargetType: Map<
+  packageName: PackageName,
+  packageNameToInfo: Map<
     PackageName,
     {
-      version?: string
-      targetType?: TargetType
+      targetType?: TargetType | undefined
+      packageJson: IPackageJson
+      packagePath: string
     }
   >,
 ): Promise<string[]> {
-  const packageJson: IPackageJson = await fse.readJson(path.join(packagePath, 'package.json'))
+  const currentPackageInfo = packageNameToInfo.get(packageName)
 
-  const hasVersion = () => {
-    if (!packageJson.version) {
-      return `package.json of: ${packagePath} must have a version property.`
-    } else {
-      return ''
+  if (!currentPackageInfo) {
+    throw new Error(`bug: trying to validate a package in monorepo that doesn't exist in the monorepo: ${packageName}`)
+  }
+
+  const problems: string[] = []
+
+  const deps: IDependencyMap = {
+    ...currentPackageInfo.packageJson.dependencies,
+    ...currentPackageInfo.packageJson.devDependencies,
+    ...currentPackageInfo.packageJson.peerDependencies,
+  }
+
+  if (Boolean(currentPackageInfo.targetType) && !version) {
+    problems.push(`the package "${packageName}" must have version property in it's package.json`)
+  }
+
+  const depsProblems = Object.entries(deps).flatMap(([dep, versionRange]) => {
+    const depInMonoRepo = packageNameToInfo.get(dep)
+    if (!depInMonoRepo) {
+      return []
     }
-  }
+    const depVersion = depInMonoRepo.packageJson.version
 
-  if (!packageJson.name) {
-    throw new Error(`package.json of: ${packagePath} must have a name property.`)
-  }
+    const depProblems: string[] = []
 
-  enum Validation {
-    noPrivateNpm = 'noPrivateNpm',
-    noDocker = 'noDocker',
-  }
+    if (depVersion) {
+      const isInRange = semver.satisfies(depVersion, versionRange)
+      if (isInRange) {
+        if (!depInMonoRepo.targetType) {
+          depProblems.push(
+            `the package "${packageName}" can't depend on dependency: "${dep}" in version "${versionRange}" becuase this version represents a private-npm-package`,
+          )
+        }
 
-  const validationsBuilder = (
-    dep: string,
-    targetType: TargetType | undefined,
-    version: string,
-  ): { [validation in Validation]: string | undefined | false } => ({
-    noPrivateNpm:
-      !targetType && `this package can't depend on private npm package inside the monorepo: ${dep}@${version}`,
-    noDocker:
-      targetType === TargetType.docker &&
-      `this package can't depend on docker target inside the monorepo: ${dep}@${version}`,
+        if (depInMonoRepo.targetType === TargetType.docker) {
+          depProblems.push(
+            `the package "${packageName}" can't depend on dependency: "${dep}" in version "${versionRange}" becuase this version represents a docker-package`,
+          )
+        }
+      }
+    }
+    return depProblems
   })
 
-  const validateDependencies = (...validations: Validation[]): string[] => {
-    return Object.entries({
-      ...packageJson.dependencies,
-      ...packageJson.devDependencies,
-      ...packageJson.peerDependencies,
-    })
-      .flatMap(([dep, version]) => {
-        const result = packagesTargetType.get(dep)
-        if (result?.version === version) {
-          const allValidations = validationsBuilder(dep, result.targetType, result.version)
-          return validations.filter(validation => allValidations[validation])
-        } else {
-          return []
-        }
-      })
-      .filter(Boolean)
-  }
+  problems.push(...depsProblems)
 
-  switch (packagesTargetType.get(packageJson.name)?.targetType) {
-    case TargetType.docker:
-    case TargetType.npm: {
-      return [hasVersion(), ...validateDependencies(Validation.noDocker, Validation.noPrivateNpm)].filter(Boolean)
-    }
-    // case TargetType.docker: {
-    //   hasVersion()
-    //   return validateDependencies(Validation.noDocker, Validation.noPrivateNpm)
-    //   if (problems.length > 0) {
-    //     throw new Error(`package: ${packageJson.name} is target: ${TargetType.docker}. it has problems: ${problems}`)
-    //   }
-    //   break
-    // }
-    default: {
-      return [hasVersion()].filter(Boolean)
-    }
-  }
+  return problems
 }
 
 export async function validatePackages(
-  packagesTargets: {
+  packagesInfo: {
     packagePath: string
     targetType?: TargetType
+    packageJson: IPackageJson
   }[],
 ) {
-  const packagePathToTargetAndVersion = new Map(
-    await Promise.all(
-      packagesTargets.map<Promise<[string, { version?: string; targetType?: TargetType }]>>(
-        async ({ packagePath, targetType }) => [
-          packagePath,
-          {
-            version: ((await fse.readJSON(path.join(packagePath, 'package.json'))) as IPackageJson).version,
-            targetType,
-          },
-        ],
-      ),
-    ),
-  )
+  const problems: string[] = []
 
-  const problems = _.flatten(
-    await Promise.all(
-      packagesTargets.map(async ({ packagePath }) => validatePackage(packagePath, packagePathToTargetAndVersion)),
-    ),
-  )
+  const missingNamesProblems = packagesInfo
+    .filter(packageInfo => !packageInfo.packageJson.name)
+    .map(packageInfo => `package: ${packageInfo.packagePath} must have a name property in the package.json`)
+
+  problems.push(...missingNamesProblems)
+
+  if (missingNamesProblems.length > 0) {
+    throw new Error(`problems:\n ${missingNamesProblems.join('\n')}`)
+  } else {
+    const packageNameToInfo = new Map(
+      packagesInfo.map<[string, { targetType?: TargetType; packageJson: IPackageJson; packagePath: string }]>(
+        ({ packageJson, targetType, packagePath }) => {
+          return [
+            packageJson.name as string,
+            {
+              packageJson,
+              targetType,
+              packagePath,
+            },
+          ]
+        },
+      ),
+    )
+
+    const addtionalProblems = _.flatten(
+      await Promise.all(
+        packagesInfo.map(async ({ packageJson }) => validatePackage(packageJson.name as string, packageNameToInfo)),
+      ),
+    )
+
+    problems.push(...addtionalProblems)
+  }
 
   if (problems.length > 0) {
     throw new Error(`problems:\n ${problems.join('\n')}`)

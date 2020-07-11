@@ -80,7 +80,7 @@ describe('npm package depends on.....', () => {
   })
 
   test('npm-package cannot depends on docker-package', async () => {
-    const { runCi } = await createRepo({
+    const { runCi, toActualName } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -105,13 +105,17 @@ describe('npm package depends on.....', () => {
       }),
     ).rejects.toEqual(
       expect.objectContaining({
-        stderr: expect.stringContaining(`npm package can't depend on docker package`),
+        stderr: expect.stringContaining(
+          `the package "${toActualName('b')}" can't depend on dependency: "${toActualName(
+            'a',
+          )}" in version "^1.0.0" becuase this version represents a docker-package`,
+        ),
       }),
     )
   })
 
   test('public npm-package cannot depends on private-npm-package', async () => {
-    const { runCi } = await createRepo({
+    const { runCi, toActualName } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -136,7 +140,11 @@ describe('npm package depends on.....', () => {
       }),
     ).rejects.toEqual(
       expect.objectContaining({
-        stderr: expect.stringContaining(`public npm package can't depend on private npm package`),
+        stderr: expect.stringContaining(
+          `the package "${toActualName('b')}" can't depend on dependency: "${toActualName(
+            'a',
+          )}" in version "^1.0.0" becuase this version represents a private-npm-package`,
+        ),
       }),
     )
   })
@@ -167,7 +175,7 @@ describe('docker-package depends on...', () => {
     })
 
     expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
-    expect(master1.published.get('b')?.npm?.versions).toEqual(['2.0.0'])
+    expect(master1.published.get('b')?.docker?.tags).toEqual(['2.0.0', 'latest'])
 
     await addRandomFileToPackage('a')
 
@@ -177,12 +185,12 @@ describe('docker-package depends on...', () => {
 
     expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
     expect(master2.published.get('a')?.npm?.latestVersion).toEqual('1.0.1')
-    expect(master2.published.get('b')?.npm?.versions).toEqual(['2.0.0', '2.0.1'])
-    expect(master2.published.get('b')?.npm?.latestVersion).toEqual('2.0.1')
+    expect(master2.published.get('b')?.docker?.tags).toEqual(['2.0.0', '2.0.1', 'latest'])
+    expect(master2.published.get('b')?.docker?.latestTag).toEqual('2.0.1')
   })
 
   test('docker-package cannot depends on docker-package', async () => {
-    const { runCi } = await createRepo({
+    const { runCi, toActualName } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -207,13 +215,17 @@ describe('docker-package depends on...', () => {
       }),
     ).rejects.toEqual(
       expect.objectContaining({
-        stderr: expect.stringContaining(`docker package can't depend on docker package`),
+        stderr: expect.stringContaining(
+          `the package "${toActualName('b')}" can't depend on dependency: "${toActualName(
+            'a',
+          )}" in version "^1.0.0" becuase this version represents a docker-package`,
+        ),
       }),
     )
   })
 
   test('docker-package can not depends on private npm package', async () => {
-    const { runCi } = await createRepo({
+    const { runCi, toActualName } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -238,7 +250,11 @@ describe('docker-package depends on...', () => {
       }),
     ).rejects.toEqual(
       expect.objectContaining({
-        stderr: expect.stringContaining(`docker package can't depend on private npm package`),
+        stderr: expect.stringContaining(
+          `the package "${toActualName('b')}" can't depend on dependency: "${toActualName(
+            'a',
+          )}" in version "^1.0.0" becuase this version represents a private-npm-package`,
+        ),
       }),
     )
   })
