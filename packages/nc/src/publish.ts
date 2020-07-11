@@ -67,6 +67,15 @@ async function publishNpm({
 
   await execa.command(
     `npm dist-tag add ${packageInfo.packageJson.name}@${npmTarget.newVersion} ${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
+    {
+      cwd: packageInfo.packagePath,
+      env: {
+        // npm need this env-var for auth - this is needed only for production publishing.
+        // in tests it doesn't do anything and we login manually to npm in tests.
+        NPM_AUTH_TOKEN: auth.npmRegistryToken,
+        NPM_TOKEN: auth.npmRegistryToken,
+      },
+    },
   )
 
   log('published npm target in package: "%s"', packageInfo.packageJson.name)
