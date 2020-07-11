@@ -83,7 +83,7 @@ export const newEnv: NewEnvFunc = () => {
         packagesPaths // todo: need to search in runtime which packages I have NOW
           .map(packagePath => require(path.join(packagePath, 'package.json')).name)
           .map<Promise<[string, PublishedPackageInfo]>>(async (packageName: string) => {
-            const [versions, latestVersion, tags, latestTag] = await Promise.all([
+            const [versions, highestVersion, tags, latestTag] = await Promise.all([
               publishedNpmPackageVersions(packageName, npmRegistry),
               latestNpmPackageVersion(packageName, npmRegistry),
               publishedDockerImageTags(packageName, dockerOrganizationName, dockerRegistry),
@@ -94,7 +94,7 @@ export const newEnv: NewEnvFunc = () => {
               {
                 npm: {
                   versions,
-                  latestVersion,
+                  highestVersion,
                 },
                 docker: {
                   tags,
@@ -106,7 +106,7 @@ export const newEnv: NewEnvFunc = () => {
       )
 
       const published = packages.filter(
-        ([, packageInfo]) => packageInfo.docker.latestTag || packageInfo.npm.latestVersion,
+        ([, packageInfo]) => packageInfo.docker.latestTag || packageInfo.npm.highestVersion,
       )
 
       return {
@@ -160,13 +160,8 @@ export const newEnv: NewEnvFunc = () => {
         }),
       removeAllNpmHashTags: packageName =>
         removeAllNpmHashTags({
-          npmRegistry,
-          npmRegistryEmail: npmRegistry.auth.npmRegistryEmail,
-          npmRegistryToken: npmRegistry.auth.npmRegistryToken,
-          npmRegistryUsername: npmRegistry.auth.npmRegistryUsername,
-          packageName,
-          repoPath,
-          toActualName,
+          redisServer,
+          packageName: toActualName(packageName),
         }),
       modifyPackageJson: (packageName, modification) =>
         modifyPackageJson({

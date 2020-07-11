@@ -1,5 +1,4 @@
 import { newEnv } from './prepare-test'
-import { TargetType } from './prepare-test/types'
 
 const { createRepo } = newEnv()
 
@@ -21,7 +20,6 @@ test('artifacts without targets', async () => {
       {
         name: 'a',
         version: '1.0.0',
-        targetType: TargetType.none,
       },
     ],
   })

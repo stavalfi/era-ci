@@ -11,11 +11,11 @@ export function calculateNewVersion({
   packagePath,
   packageJsonVersion,
   allVersions,
-  latestPublishedVersion,
+  highestPublishedVersion,
 }: {
   packagePath: string
   packageJsonVersion: string
-  latestPublishedVersion?: string
+  highestPublishedVersion?: string
   allVersions?: string[]
 }): string {
   if (!semver.valid(packageJsonVersion)) {
@@ -39,7 +39,7 @@ export function calculateNewVersion({
     return newVersion
   }
 
-  if (!latestPublishedVersion) {
+  if (!highestPublishedVersion) {
     // this is mutable in each registry so if we have versions but this is false, it means that:
     // a. this is the first run of the ci on a target that was already pbulished.
     // b. or, less likely, someone mutated one of the labels that this ci is modifying in every run :(
@@ -50,10 +50,10 @@ export function calculateNewVersion({
       return packageJsonVersion
     }
   } else {
-    if (allValidVersions.includes(latestPublishedVersion)) {
-      const maxVersion = semver.gt(packageJsonVersion, latestPublishedVersion)
+    if (allValidVersions.includes(highestPublishedVersion)) {
+      const maxVersion = semver.gt(packageJsonVersion, highestPublishedVersion)
         ? packageJsonVersion
-        : latestPublishedVersion
+        : highestPublishedVersion
 
       if (allVersions?.includes(maxVersion)) {
         return incVersion(maxVersion)

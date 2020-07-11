@@ -33,9 +33,9 @@ test('multiple packages - all publish again because of modification in root file
   })
 
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
-  expect(master2.published.get('a')?.npm?.latestVersion).toEqual('1.0.1')
+  expect(master2.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')
   expect(master2.published.get('b')?.npm?.versions).toEqual(['2.0.0', '2.0.1'])
-  expect(master2.published.get('b')?.npm?.latestVersion).toEqual('2.0.1')
+  expect(master2.published.get('b')?.npm?.highestVersion).toEqual('2.0.1')
 })
 
 test('multiple packages - all publish again because of modification in each package', async () => {
@@ -69,9 +69,9 @@ test('multiple packages - all publish again because of modification in each pack
   })
 
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
-  expect(master2.published.get('a')?.npm?.latestVersion).toEqual('1.0.1')
+  expect(master2.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')
   expect(master2.published.get('b')?.npm?.versions).toEqual(['2.0.0', '2.0.1'])
-  expect(master2.published.get('b')?.npm?.latestVersion).toEqual('2.0.1')
+  expect(master2.published.get('b')?.npm?.highestVersion).toEqual('2.0.1')
 })
 
 test(`no publish if the package folder name has modified`, async () => {

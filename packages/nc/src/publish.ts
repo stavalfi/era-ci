@@ -3,25 +3,25 @@ import execa from 'execa'
 import isIp from 'is-ip'
 import _ from 'lodash'
 import { buildFullDockerImageName } from './docker-utils'
-import { Auth, Graph, PackageInfo, PublishResult, ServerInfo, TargetInfo, TargetType } from './types'
+import { Auth, Graph, PackageInfo, PublishResult, ServerInfo, TargetInfo, TargetType, Cache } from './types'
 
-const log = ncLog('ci:publish')
+const log = ncLog('publish')
 
 async function publishNpm({
   isDryRun,
   newVersion,
   npmTarget,
   packageInfo,
-  rootPath,
   npmRegistry,
+  cache,
   auth,
 }: {
   packageInfo: PackageInfo
   npmTarget: TargetInfo<TargetType.npm>
   newVersion: string
   isDryRun: boolean
-  rootPath: string
   npmRegistry: ServerInfo
+  cache: Cache
   auth: Auth
 }): Promise<PublishResult> {
   log('publishing npm target in package: "%s"', packageInfo.packageJson.name)
@@ -46,13 +46,22 @@ async function publishNpm({
   const withPort = isIp.v4(npmRegistry.host) || npmRegistry.host === 'localhost' ? `:${npmRegistry.port}` : ''
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}${withPort}`
 
-  if (!packageInfo.packageJson.name) {
-    throw new Error(`package.json of: ${packageInfo.packagePath} must have a name property.`)
-  }
+  // we set in cache that this image was published BEFORE we publish it to ensure that:
+  // - if setAsPublished fails, we don't publish.
+  // - if setAsPublished succeed, we may fail to publish
+  // why? becuase when we check if we need to publish, the algorithm is:
+  // - if cache doesn't know the hash, we can be sure this hash never published.
+  // - else, we check in the registry anyway.
+  // if we call setAsPublished after the publish, using the cache is pointless.
+  await cache.publish.npm.setAsPublished(
+    packageInfo.packageJson.name as string,
+    packageInfo.packageHash,
+    npmTarget.newVersion,
+  )
 
   await execa.command(
     `yarn publish --registry ${npmRegistryAddress} --non-interactive ${
-      packageInfo.packageJson.name.includes('@') ? '--access public' : ''
+      packageInfo.packageJson.name?.includes('@') ? '--access public' : ''
     }`,
     {
       cwd: packageInfo.packagePath,
@@ -63,10 +72,6 @@ async function publishNpm({
         NPM_TOKEN: auth.npmRegistryToken,
       },
     },
-  )
-
-  await execa.command(
-    `npm dist-tag add ${packageInfo.packageJson.name}@${npmTarget.newVersion} ${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
   )
 
   log('published npm target in package: "%s"', packageInfo.packageJson.name)
@@ -82,6 +87,7 @@ async function publishDocker({
   packageInfo,
   dockerOrganizationName,
   dockerRegistry,
+  cache,
 }: {
   packageInfo: PackageInfo
   dockerTarget: TargetInfo<TargetType.docker>
@@ -89,6 +95,7 @@ async function publishDocker({
   dockerOrganizationName: string
   newVersion: string
   isDryRun: boolean
+  cache: Cache
   rootPath: string
 }): Promise<PublishResult> {
   log('publishing docker target in package: "%s"', packageInfo.packageJson.name)
@@ -101,7 +108,7 @@ async function publishDocker({
     )
     return {
       published: true,
-      newVersion: dockerTarget.latestPublishedVersion?.version,
+      newVersion: dockerTarget.highestPublishedVersion?.version,
       packagePath: packageInfo.packagePath,
     }
   }
@@ -123,6 +130,19 @@ async function publishDocker({
     packageJsonName: packageInfo.packageJson.name,
     imageTag: dockerTarget.newVersion,
   })
+
+  // we set in cache that this image was published BEFORE we publish it to ensure that:
+  // - if setAsPublished fails, we don't publish.
+  // - if setAsPublished succeed, we may fail to publish
+  // why? becuase when we check if we need to publish, the algorithm is:
+  // - if cache doesn't know the hash, we can be sure this hash never published.
+  // - else, we check in the registry anyway.
+  // if we call setAsPublished after the publish, using the cache is pointless.
+  await cache.publish.docker.setAsPublished(
+    packageInfo.packageJson.name as string,
+    packageInfo.packageHash,
+    dockerTarget.newVersion,
+  )
 
   log('building docker image "%s" in package: "%s"', fullImageNameNewVersion, packageInfo.packageJson.name)
 
@@ -164,6 +184,7 @@ export async function publish(
     npmRegistry: ServerInfo
     dockerRegistry: ServerInfo
     dockerOrganizationName: string
+    cache: Cache
     auth: Auth
   },
 ) {
@@ -189,9 +210,9 @@ export async function publish(
           npmTarget: node.target as TargetInfo<TargetType.npm>,
           newVersion: (node.target?.needPublish && node.target.newVersion) as string,
           isDryRun: options.isDryRun,
-          rootPath: options.rootPath,
           npmRegistry: options.npmRegistry,
           auth: options.auth,
+          cache: options.cache,
         }),
       ),
     )
@@ -214,6 +235,7 @@ export async function publish(
           isDryRun: options.isDryRun,
           dockerOrganizationName: options.dockerOrganizationName,
           dockerRegistry: options.dockerRegistry,
+          cache: options.cache,
         }),
       ),
     )
