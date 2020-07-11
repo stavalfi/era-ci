@@ -66,7 +66,7 @@ async function publishNpm({
   )
 
   await execa.command(
-    `npm dist-tag add ${packageInfo.packageJson.name}@${npmTarget.newVersion} ${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
+    `yarn tag add ${packageInfo.packageJson.name}@${npmTarget.newVersion} ${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
     {
       cwd: packageInfo.packagePath,
       env: {
