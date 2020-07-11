@@ -1,10 +1,9 @@
-import execa from 'execa'
 import ncLog from '@tahini/log'
+import execa from 'execa'
+import isIp from 'is-ip'
 import _ from 'lodash'
 import { buildFullDockerImageName } from './docker-utils'
-import { npmRegistryLogin } from './npm-utils'
 import { Auth, Graph, PackageInfo, PublishResult, ServerInfo, TargetInfo, TargetType } from './types'
-import isIp from 'is-ip'
 
 const log = ncLog('ci:publish')
 
@@ -61,12 +60,13 @@ async function publishNpm({
         // npm need this env-var for auth - this is needed only for production publishing.
         // in tests it doesn't do anything and we login manually to npm in tests.
         NPM_AUTH_TOKEN: auth.npmRegistryToken,
+        NPM_TOKEN: auth.npmRegistryToken,
       },
     },
   )
 
   await execa.command(
-    `npm dist-tag add ${packageInfo.packageJson.name}@${npmTarget.newVersion} latest-hash--${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
+    `npm dist-tag add ${packageInfo.packageJson.name}@${npmTarget.newVersion} ${packageInfo.packageHash} --registry ${npmRegistryAddress}`,
   )
 
   log('published npm target in package: "%s"', packageInfo.packageJson.name)
@@ -101,7 +101,7 @@ async function publishDocker({
     )
     return {
       published: true,
-      newVersion: dockerTarget.latestPublishedVersion.version,
+      newVersion: dockerTarget.latestPublishedVersion?.version,
       packagePath: packageInfo.packagePath,
     }
   }
@@ -167,6 +167,9 @@ export async function publish(
     auth: Auth
   },
 ) {
+  if (orderedGraph.length === 0) {
+    return log(`all packages are already published from last builds. skipping publish step...`)
+  }
   log('start publishing packages...')
   const toPublish = orderedGraph.map(node => node.data).filter(data => data.target?.needPublish)
 
@@ -178,16 +181,6 @@ export async function publish(
     log(`there is no need to publish anything. all packages that should publish, didn't change.`)
   } else {
     log('publishing the following packages: %s', toPublish.map(node => `"${node.packageJson.name}"`).join(', '))
-    if (!options.isDryRun) {
-      if (npm.length > 0) {
-        await npmRegistryLogin({
-          npmRegistry: options.npmRegistry,
-          npmRegistryUsername: options.auth.npmRegistryUsername,
-          npmRegistryToken: options.auth.npmRegistryToken,
-          npmRegistryEmail: options.auth.npmRegistryEmail,
-        })
-      }
-    }
 
     const npmResult = await Promise.all(
       npm.map(node =>

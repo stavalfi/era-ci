@@ -27,6 +27,8 @@ export type Package = {
   additionalFiles?: FolderStructure
 }
 
+export type MinimalNpmPackage = Pick<Package, 'name' | 'version'> & { targetType: TargetType.npm }
+
 export type Repo = {
   packages?: Package[]
   rootFiles?: FolderStructure
@@ -85,10 +87,11 @@ export type CreateAndManageRepo = (
   publishNpmPackageWithoutCi: (packageName: string) => Promise<void>
   unpublishNpmPackage: (packageName: string, versionToUnpublish: string) => Promise<void>
   removeAllNpmHashTags: (packageName: string) => Promise<void>
-  modifyPackageJson: (
-    packageName: string,
-    modification: (packageJson: IPackageJson) => Promise<IPackageJson>,
-  ) => Promise<void>
+  modifyPackageJson: (packageName: string, modification: (packageJson: IPackageJson) => IPackageJson) => Promise<void>
+  movePackageFolder: (packageName: string) => Promise<string>
+  deletePackage: (packageName: string) => Promise<void>
+  renamePackageFolder: (packageName: string) => Promise<string>
+  createNewPackage: (newNpmPackage: MinimalNpmPackage) => Promise<void>
   runCi: RunCi
 }>
 

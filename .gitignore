@@ -18,3 +18,4 @@ tsconfig-build.tsbuildinfo
 tsconfig.tsbuildinfo
 dist-all
 yarn-error.log
+.history

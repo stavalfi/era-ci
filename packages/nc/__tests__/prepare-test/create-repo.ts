@@ -1,8 +1,9 @@
 import { createFolder } from 'create-folder-structure'
 import execa from 'execa'
 import { GitServer } from './git-server-testkit'
-import { Repo, TargetType, ToActualName } from './types'
+import { Repo, TargetType, ToActualName, Package } from './types'
 import chance from 'chance'
+import path from 'path'
 
 async function initializeGitRepo({
   gitServer,
@@ -26,60 +27,53 @@ async function initializeGitRepo({
   })
 }
 
-export async function createRepo({
+function createPackageJson({
+  packageInfo,
   toActualName,
-  repo,
-  gitServer,
+  isFromThisMonorepo,
 }: {
-  repo: Repo
-  gitServer: GitServer
+  packageInfo: Package
   toActualName: ToActualName
+  isFromThisMonorepo: (depName: string) => boolean
 }) {
-  const repoOrg = toActualName('org')
-  const repoName = `repo-${chance()
-    .hash()
-    .slice(0, 8)}`
+  return {
+    name: toActualName(packageInfo.name),
+    version: packageInfo.version,
+    private: packageInfo.targetType !== TargetType.npm,
+    ...(packageInfo['index.js'] && { main: 'index.js' }),
+    ...(packageInfo.dependencies && {
+      dependencies: Object.fromEntries(
+        Object.entries(packageInfo.dependencies).map(([key, value]) => [
+          isFromThisMonorepo(key) ? toActualName(key) : key,
+          value,
+        ]),
+      ),
+    }),
+    ...(packageInfo.devDependencies && {
+      devDependencies: Object.fromEntries(
+        Object.entries(packageInfo.devDependencies).map(([key, value]) => [
+          isFromThisMonorepo(key) ? toActualName(key) : key,
+          value,
+        ]),
+      ),
+    }),
+  }
+}
 
-  const isFromThisMonorepo = (depName: string) => repo.packages?.some(packageInfo => packageInfo.name === depName)
+function createPackages({ toActualName, repo }: { repo: Repo; toActualName: ToActualName }) {
+  const isFromThisMonorepo = (depName: string) =>
+    Boolean(repo.packages?.some(packageInfo => packageInfo.name === depName))
 
-  const repoPath = await createFolder({
-    'package.json': {
-      name: repoName,
-      version: '1.0.0',
-      private: true,
-      workspaces: ['packages/*'],
-      scripts: {
-        test: 'echo running tests..... no tests to run',
-      },
-    },
-    '.dockerignore': `node_modules`,
-    '.gitignore': 'node_modules',
-    packages: Object.fromEntries(
-      repo.packages?.map(packageInfo => [
+  return Object.fromEntries(
+    repo.packages?.map(packageInfo => {
+      return [
         toActualName(packageInfo.name),
         {
-          'package.json': {
-            name: toActualName(packageInfo.name),
-            version: packageInfo.version,
-            private: packageInfo.targetType !== TargetType.npm,
-            ...(packageInfo['index.js'] && { main: 'index.js' }),
-            ...(packageInfo.dependencies && {
-              dependencies: Object.fromEntries(
-                Object.entries(packageInfo.dependencies).map(([key, value]) => [
-                  isFromThisMonorepo(key) ? toActualName(key) : key,
-                  value,
-                ]),
-              ),
-            }),
-            ...(packageInfo.devDependencies && {
-              devDependencies: Object.fromEntries(
-                Object.entries(packageInfo.devDependencies).map(([key, value]) => [
-                  isFromThisMonorepo(key) ? toActualName(key) : key,
-                  value,
-                ]),
-              ),
-            }),
-          },
+          'package.json': createPackageJson({
+            packageInfo,
+            isFromThisMonorepo,
+            toActualName,
+          }),
           ...(packageInfo['index.js'] && { 'index.js': packageInfo['index.js'] }),
           ...(packageInfo.src && {
             src: packageInfo.src,
@@ -95,10 +89,53 @@ export async function createRepo({
           }),
           ...packageInfo.additionalFiles,
         },
-      ]) || [],
-    ),
+      ]
+    }) || [],
+  )
+}
+
+export async function createRepo({
+  toActualName,
+  repo,
+  gitServer,
+}: {
+  repo: Repo
+  gitServer: GitServer
+  toActualName: ToActualName
+}) {
+  const repoOrg = toActualName('org')
+  const repoName = `repo-${chance()
+    .hash()
+    .slice(0, 8)}`
+  const packagesFolderName = 'packages'
+  const subPackagesFolderName = 'more-packages'
+
+  const repoPath = await createFolder({
+    'package.json': {
+      name: repoName,
+      version: '1.0.0',
+      private: true,
+      workspaces: [`${packagesFolderName}/*`, `${packagesFolderName}/${subPackagesFolderName}/*`],
+      scripts: {
+        test: 'echo running tests... no tests to run',
+      },
+    },
+    '.dockerignore': `node_modules`,
+    '.gitignore': 'node_modules',
+    packages: {
+      ...createPackages({
+        repo,
+        toActualName,
+      }),
+      [subPackagesFolderName]: {
+        '.gitkeep': '',
+      },
+    },
     ...repo.rootFiles,
   })
+
+  const packagesFolderPath = path.join(repoPath, packagesFolderName)
+  const subPackagesFolderPath = path.join(packagesFolderPath, subPackagesFolderName)
 
   await execa.command(`yarn install`, { cwd: repoPath })
 
@@ -113,5 +150,7 @@ export async function createRepo({
     repoPath,
     repoName,
     repoOrg,
+    packagesFolderPath,
+    subPackagesFolderPath,
   }
 }

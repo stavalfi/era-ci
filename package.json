@@ -7,11 +7,13 @@
     "lint:code": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "lint:versions": "syncpack list-mismatches",
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
-    "test": "jest",
+    "test": "DEBUG=nc:* jest --no-cache",
     "clean": "yarn workspace scripts clean",
     "run-ci-pr": "yarn workspace scripts run-ci-pr",
     "run-ci-master": "yarn workspace scripts run-ci-master",
-    "build": "yarn tsc -b tsconfig-build.json && chmod +x packages/nc/dist/src/index.js && chmod +x packages/scripts/dist/src/index.js"
+    "build:tsc": "yarn tsc -b tsconfig-build.json",
+    "build": "yarn build:tsc && chmod +x packages/nc/dist/src/index.js && chmod +x packages/scripts/dist/src/index.js",
+    "build:watch": "yarn build:tsc --watch"
   },
   "repository": {
     "url": "https://github.com/stavalfi/nc"

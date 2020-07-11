@@ -7,7 +7,7 @@ export async function getPackages(rootPath: string): Promise<string[]> {
     cwd: rootPath,
   })
   const workspacesInfo: { location: string }[] = JSON.parse(JSON.parse(result.stdout).data)
-  return Object.values(workspacesInfo)
+  return Object.values(workspacesInfo || {})
     .map(workspaceInfo => workspaceInfo.location)
     .map(relativePackagePath => path.join(rootPath, relativePackagePath))
 }

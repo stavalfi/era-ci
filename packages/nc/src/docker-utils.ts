@@ -53,6 +53,41 @@ export const buildFullDockerImageName = ({
   )}${withImageTag}`
 }
 
+export async function isDockerHashAlreadyPulished({
+  packageName,
+  currentPackageHash,
+  dockerOrganizationName,
+  dockerRegistry,
+}: {
+  packageName: string
+  currentPackageHash: string
+  dockerRegistry: ServerInfo
+  dockerOrganizationName: string
+}) {
+  const fullImageName = buildFullDockerImageName({
+    dockerOrganizationName,
+    dockerRegistry,
+    packageJsonName: packageName,
+    imageTag: currentPackageHash,
+  })
+  try {
+    await execa.command(
+      `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
+    )
+    return true
+  } catch (e) {
+    if (
+      e.stderr?.includes('manifest unknown') ||
+      e.stderr?.includes('unable to retrieve auth token') ||
+      e.stderr?.includes('invalid status code from registry 404 (Not Found)')
+    ) {
+      return false
+    } else {
+      throw e
+    }
+  }
+}
+
 /*
 todo: remove skopeo and use docker v2 api. it's not working when trying to use the following commands with unsecure-local-registry
 
