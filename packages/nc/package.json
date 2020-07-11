@@ -1,6 +1,6 @@
 {
   "name": "@tahini/nc",
-  "version": "1.2.19",
+  "version": "1.2.26",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": false,
@@ -21,6 +21,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@tahini/log": "^1.0.0",
     "ci-info": "^2.0.0",
     "cmd-ts": "^0.6.3",
     "execa": "^4.0.1",
@@ -29,7 +30,6 @@
     "got": "^11.3.0",
     "ioredis": "^4.17.1",
     "is-ip": "^3.1.0",
-    "@tahini/log": "^1.0.0",
     "semver": "^7.3.2"
   }
 }

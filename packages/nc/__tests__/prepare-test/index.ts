@@ -1,7 +1,7 @@
 import chance from 'chance'
+import { runCiCli } from '../../src/ci-node-api'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'
-import { runCiCli } from '../../src/ci-node-api'
 import {
   latestDockerImageTag,
   latestNpmPackageVersion,
@@ -11,15 +11,20 @@ import {
 import {
   addRandomFileToPackage,
   addRandomFileToRoot,
+  createNewPackage,
+  deletePackage,
   installAndRunNpmDependency,
-  publishNpmPackageWithoutCi,
-  unpublishNpmPackage,
-  removeAllNpmHashTags,
   modifyPackageJson,
+  movePackageFolder,
   publishDockerPackageWithoutCi,
+  publishNpmPackageWithoutCi,
+  removeAllNpmHashTags,
+  unpublishNpmPackage,
+  renamePackageFolder,
 } from './test-helpers'
-import { CreateAndManageRepo, NewEnvFunc, PublishedPackageInfo, RunCi } from './types'
-import { getPackagePath } from './utils'
+import { CreateAndManageRepo, MinimalNpmPackage, NewEnvFunc, PublishedPackageInfo, RunCi } from './types'
+import { getPackagePath, getPackages } from './utils'
+import path from 'path'
 
 export { runDockerImage } from './test-helpers'
 
@@ -34,11 +39,13 @@ export const newEnv: NewEnvFunc = () => {
     const toActualName = (name: string) =>
       name.endsWith(`-${resourcesNamesPostfix}`) ? name : `${name}-${resourcesNamesPostfix}`
 
+    const toOriginalName = (name: string) => toActualName(name).replace(`-${resourcesNamesPostfix}`, '')
+
     const dockerOrganizationName = toActualName('repo')
 
     const { dockerRegistry, npmRegistry, gitServer, redisServer } = testResources.get()
 
-    const { repoPath, repoName, repoOrg } = await createRepo({
+    const { repoPath, repoName, repoOrg, subPackagesFolderPath } = await createRepo({
       repo,
       gitServer,
       toActualName,
@@ -70,19 +77,20 @@ export const newEnv: NewEnvFunc = () => {
         stdio,
       )
 
+      // the test can add/remove/modify packages between the creation of the repo until the call of the ci so we need to find all the packages again
+      const packagesPaths = await getPackages(repoPath)
       const packages = await Promise.all(
-        repo.packages
-          ?.map(packageInfo => packageInfo.name)
-          ?.map<Promise<[string, PublishedPackageInfo]>>(async packageName => {
-            const actualName = toActualName(packageName)
+        packagesPaths // todo: need to search in runtime which packages I have NOW
+          .map(packagePath => require(path.join(packagePath, 'package.json')).name)
+          .map<Promise<[string, PublishedPackageInfo]>>(async (packageName: string) => {
             const [versions, latestVersion, tags, latestTag] = await Promise.all([
-              publishedNpmPackageVersions(actualName, npmRegistry),
-              latestNpmPackageVersion(actualName, npmRegistry),
-              publishedDockerImageTags(actualName, dockerOrganizationName, dockerRegistry),
-              latestDockerImageTag(actualName, dockerOrganizationName, dockerRegistry),
+              publishedNpmPackageVersions(packageName, npmRegistry),
+              latestNpmPackageVersion(packageName, npmRegistry),
+              publishedDockerImageTags(packageName, dockerOrganizationName, dockerRegistry),
+              latestDockerImageTag(packageName, dockerOrganizationName, dockerRegistry),
             ])
             return [
-              packageName,
+              toOriginalName(packageName),
               {
                 npm: {
                   versions,
@@ -94,7 +102,7 @@ export const newEnv: NewEnvFunc = () => {
                 },
               },
             ]
-          }) || [],
+          }),
       )
 
       const published = packages.filter(
@@ -177,6 +185,36 @@ export const newEnv: NewEnvFunc = () => {
           dockerOrganizationName,
           dockerRegistry,
           labels,
+        }),
+      createNewPackage: (newNpmPackage: MinimalNpmPackage) =>
+        createNewPackage({
+          createUnderFolderPath: subPackagesFolderPath,
+          gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
+          newNpmPackage,
+          repoPath,
+          toActualName,
+        }),
+      deletePackage: (packageName: string) =>
+        deletePackage({
+          gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
+          repoPath,
+          toActualName,
+          packageName,
+        }),
+      movePackageFolder: (packageName: string) =>
+        movePackageFolder({
+          gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
+          repoPath,
+          toActualName,
+          packageName,
+          newParentDirPath: subPackagesFolderPath,
+        }),
+      renamePackageFolder: (packageName: string) =>
+        renamePackageFolder({
+          gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
+          repoPath,
+          toActualName,
+          packageName,
         }),
     }
   }

@@ -32,7 +32,8 @@ export async function latestNpmPackageVersion(
 export async function publishedNpmPackageVersions(packageName: string, npmRegistry: ServerInfo): Promise<string[]> {
   try {
     const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
-    const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`)
+    const command = `npm view ${packageName} --json --registry ${npmRegistryAddress}`
+    const result = await execa.command(command)
     const resultJson = JSON.parse(result.stdout) || {}
     return resultJson.versions
   } catch (e) {

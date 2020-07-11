@@ -34,6 +34,8 @@ export type CiOptions = {
   auth: Auth
 }
 
+export type PackageName = string
+
 export enum TargetType {
   docker = 'docker',
   npm = 'npm',
@@ -48,7 +50,8 @@ export type TargetInfo<TargetTypParam extends TargetType> = { targetType: Target
     }
   | {
       needPublish: false
-      latestPublishedVersion: { version?: string; hash?: string }
+      // even if we already published the same hash, the user could remove the meta-data we saved on the latest-published-version
+      latestPublishedVersion?: { version?: string; hash?: string }
     }
 )
 
