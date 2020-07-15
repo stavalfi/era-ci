@@ -1,18 +1,38 @@
-import debug from 'debug'
+import winston from 'winston'
+import chalk from 'chalk'
+import randomColor from 'randomcolor'
 
-export default (namespace: string) => debug('nc').extend(namespace)
+const { combine, timestamp, printf } = winston.format
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function minimal(obj: any): object {
-  const copy = { ...obj }
-  delete copy.k8sClient
-  delete copy.watchClient
-  delete copy.podStdio
-  if (obj.podStdio) {
-    copy.podsStdio = {
-      stdout: obj.podStdio.stdout === process.stdout ? 'testProcessStdout' : 'custom-endpoint',
-      stderr: obj.podStdio.stderr === process.stderr ? 'testProcessStderr' : 'custom-endpoint',
-    }
+const moduleToColor = new Map<string, string>()
+
+function randomModuleColor(module: string): string {
+  const color = moduleToColor.get(module)
+  if (color) {
+    return chalk.hex(color)(module)
+  } else {
+    const newColor = randomColor({ luminosity: 'light' })
+    moduleToColor.set(module, newColor)
+    return chalk.hex(newColor)(module)
   }
-  return copy
 }
+
+const consoleTransport = new winston.transports.Console({
+  format: combine(
+    timestamp(),
+    winston.format.colorize(),
+    printf(
+      ({ timestamp, module, level, message }) => `${timestamp} [${randomModuleColor(module)}] ${level}: ${message}`,
+    ),
+  ),
+})
+
+// eslint-disable-next-line no-process-env
+const isNcTestMode = Boolean(process.env.NC_TEST_MODE)
+const mainLogger = winston.createLogger({
+  level: isNcTestMode ? 'debug' : 'info',
+  transports: [consoleTransport],
+  exceptionHandlers: [consoleTransport],
+})
+
+export const logger = (module: string): winston.Logger => mainLogger.child({ module })

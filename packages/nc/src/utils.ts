@@ -1,4 +1,4 @@
-import ncLog from '@tahini/log'
+import { logger } from '@tahini/log'
 import execa from 'execa'
 import isIp from 'is-ip'
 import _ from 'lodash'
@@ -8,7 +8,7 @@ import { getPackageInfo } from './package-info'
 import { calculatePackagesHash } from './packages-hash'
 import { Cache, Graph, PackageInfo, Protocol, ServerInfo, TargetType } from './types'
 
-const log = ncLog('utils')
+const log = logger('utils')
 
 export const isRepoModified = async (rootPath: string) => {
   // todo: fix it. it doesn't work.
@@ -48,7 +48,7 @@ export async function getOrderedGraph({
   dockerOrganizationName: string
   cache: Cache
 }): Promise<Graph<PackageInfo>> {
-  log('calculate hash of every package and check which packages changed since their last publish')
+  log.debug('calculate hash of every package and check which packages changed since their last publish')
   const orderedGraph = await calculatePackagesHash(
     rootPath,
     packagesInfo.map(({ packagePath }) => packagePath),
@@ -69,12 +69,20 @@ export async function getOrderedGraph({
       }),
     })),
   )
-  log('%d packages: %s', orderedGraph.length, orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', '))
+  log.debug(
+    `${orderedGraph.length} packages: ${orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', ')}`,
+  )
   result.forEach(node => {
-    log(`%s (%s): %O`, node.data.relativePackagePath, node.data.packageJson.name, {
-      ..._.omit(node.data, ['packageJson']),
-      packageJsonVersion: node.data.packageJson.version,
-    })
+    log.debug(
+      `${node.data.relativePackagePath} (${node.data.packageJson.name}): ${JSON.stringify(
+        {
+          ..._.omit(node.data, ['packageJson']),
+          packageJsonVersion: node.data.packageJson.version,
+        },
+        null,
+        2,
+      )}`,
+    )
   })
 
   return result

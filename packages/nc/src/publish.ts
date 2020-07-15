@@ -1,11 +1,11 @@
-import ncLog from '@tahini/log'
+import { logger } from '@tahini/log'
 import execa from 'execa'
 import isIp from 'is-ip'
 import _ from 'lodash'
 import { buildFullDockerImageName } from './docker-utils'
 import { Auth, Graph, PackageInfo, PublishResult, ServerInfo, TargetInfo, TargetType, Cache } from './types'
 
-const log = ncLog('publish')
+const log = logger('publish')
 
 async function publishNpm({
   isDryRun,
@@ -24,13 +24,12 @@ async function publishNpm({
   cache: Cache
   auth: Auth
 }): Promise<PublishResult> {
-  log('publishing npm target in package: "%s"', packageInfo.packageJson.name)
+  log.debug(`publishing npm target in package: "${packageInfo.packageJson.name}"`)
 
   if (!npmTarget.needPublish) {
     // it looks like someone manually published the promoted version before the ci publish it. all in all, the res
-    log(
-      'npm target in package: "%s" is already published with the correct hash and version',
-      packageInfo.packageJson.name,
+    log.info(
+      `npm target in package: "${packageInfo.packageJson.name}" is already published with the correct hash and version`,
     )
     return {
       published: true,
@@ -74,7 +73,7 @@ async function publishNpm({
     },
   )
 
-  log('published npm target in package: "%s"', packageInfo.packageJson.name)
+  log.info(`published npm target in package: "${packageInfo.packageJson.name}"`)
 
   return { published: true, newVersion, packagePath: packageInfo.packagePath }
 }
@@ -98,13 +97,12 @@ async function publishDocker({
   cache: Cache
   rootPath: string
 }): Promise<PublishResult> {
-  log('publishing docker target in package: "%s"', packageInfo.packageJson.name)
+  log.debug('publishing docker target in package: "%s"', packageInfo.packageJson.name)
 
   if (!dockerTarget.needPublish) {
     // it looks like someone manually published the promoted version before the ci publish it. all in all, the res
-    log(
-      'npm target in package: "%s" is already published with the correct hash and version',
-      packageInfo.packageJson.name,
+    log.info(
+      `npm target in package: "${packageInfo.packageJson.name}" is already published with the correct hash and version`,
     )
     return {
       published: true,
@@ -144,7 +142,7 @@ async function publishDocker({
     dockerTarget.newVersion,
   )
 
-  log('building docker image "%s" in package: "%s"', fullImageNameNewVersion, packageInfo.packageJson.name)
+  log.info(`building docker image "${fullImageNameNewVersion}" in package: "${packageInfo.packageJson.name}"`)
 
   await execa.command(
     `docker build --label latest-hash=${packageInfo.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameLatest} ${rootPath}`,
@@ -153,14 +151,10 @@ async function publishDocker({
       stdio: 'inherit',
     },
   )
-  log('built docker image "%s" in package: "%s"', fullImageNameNewVersion, packageInfo.packageJson.name)
+  log.info(`built docker image "${fullImageNameNewVersion}" in package: "${packageInfo.packageJson.name}"`)
 
-  log(
-    'creating tags: ["%s", "%s"] to docker image "%s" in package: "%s"',
-    newVersion,
-    packageInfo.packageHash,
-    fullImageNameNewVersion,
-    packageInfo.packageJson.name,
+  log.debug(
+    `creating tags: [${newVersion}", "${packageInfo.packageHash}"] to docker image "${fullImageNameNewVersion}" in package: "${packageInfo.packageJson.name}"`,
   )
   await execa.command(`docker tag ${fullImageNameLatest} ${fullImageNameNewVersion}`, {})
 
@@ -171,7 +165,7 @@ async function publishDocker({
   await execa.command(`docker push ${fullImageNameNewVersion}`)
   await execa.command(`docker push ${fullImageNameLatest}`)
 
-  log('published docker target in package: "%s"', packageInfo.packageJson.name)
+  log.info(`published docker target in package: "${packageInfo.packageJson.name}"`)
 
   return { published: true, newVersion: newVersion, packagePath: packageInfo.packagePath }
 }
@@ -189,9 +183,9 @@ export async function publish(
   },
 ) {
   if (orderedGraph.length === 0) {
-    return log(`all packages are already published from last builds. skipping publish step...`)
+    return log.info(`all packages are already published from last builds. skipping publish step...`)
   }
-  log('start publishing packages...')
+  log.info('start publishing packages...')
   const toPublish = orderedGraph.map(node => node.data).filter(data => data.target?.needPublish)
 
   // todo: optimize it even more - we can run all in parallel but we must make sure that every docker has all it's npm dep already published
@@ -199,9 +193,9 @@ export async function publish(
   const docker = toPublish.filter(data => data.target?.targetType === TargetType.docker)
 
   if (toPublish.length === 0) {
-    log(`there is no need to publish anything. all packages that should publish, didn't change.`)
+    log.info(`there is no need to publish anything. all packages that should publish, didn't change.`)
   } else {
-    log('publishing the following packages: %s', toPublish.map(node => `"${node.packageJson.name}"`).join(', '))
+    log.info(`publishing the following packages: ${toPublish.map(node => `"${node.packageJson.name}"`).join(', ')}`)
 
     const npmResult = await Promise.all(
       npm.map(node =>
@@ -216,13 +210,12 @@ export async function publish(
         }),
       ),
     )
-    log(
-      `npm publish results: %O`,
-      JSON.stringify(
+    log.info(
+      `npm publish results: ${JSON.stringify(
         npmResult.map(node => _.omit(node, ['packageInfo.packageJson'])),
         null,
         2,
-      ),
+      )}`,
     )
 
     const dockerResult = await Promise.all(
@@ -240,13 +233,12 @@ export async function publish(
       ),
     )
 
-    log(
-      `docker publish results: %O`,
-      JSON.stringify(
+    log.info(
+      `docker publish results: ${JSON.stringify(
         dockerResult.map(node => _.omit(node, ['packageInfo.packageJson'])),
         null,
         2,
-      ),
+      )}`,
     )
 
     return { dockerResult }

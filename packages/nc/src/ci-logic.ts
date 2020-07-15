@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 
-import ncLog from '@tahini/log'
+import { logger } from '@tahini/log'
 import execa from 'execa'
 import fse from 'fs-extra'
 import { IPackageJson } from 'package-json-type'
@@ -19,10 +19,10 @@ export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndT
 export { npmRegistryLogin } from './npm-utils'
 export { TargetType } from './types'
 
-const log = ncLog('index')
+const log = logger('index')
 
 export async function ci(options: CiOptions) {
-  log('starting ci execution. options: %O', options)
+  log.debug(`starting ci execution. options: ${JSON.stringify(options, null, 2)}`)
 
   if (await isRepoModified(options.rootPath)) {
     // why: in the ci flow, we mutate and packageJsons and then git-commit-amend the changed, so I don't want to add external changed to the commit

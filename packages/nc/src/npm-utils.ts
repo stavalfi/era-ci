@@ -1,12 +1,12 @@
 import execa from 'execa'
 import { ServerInfo } from './types'
 import isIp from 'is-ip'
-import ncLog from '@tahini/log'
+import { logger } from '@tahini/log'
 import fse from 'fs-extra'
 import path from 'path'
 import os from 'os'
 
-const log = ncLog('npm-utils')
+const log = logger('npm-utils')
 
 export async function npmRegistryLogin({
   npmRegistry,
@@ -27,12 +27,12 @@ export async function npmRegistryLogin({
   // it doesn't use env-var (that the user can use by mistake) or addtional ci-parameter.
   if (npmRegistryEmail === 'root@root.root') {
     const npmLoginPath = require.resolve('.bin/npm-login-noninteractive')
-    log('logging in to npm-registry: "%s"', npmRegistryAddress)
+    log.debug(`logging in to npm-registry: "${npmRegistryAddress}"`)
     // `npm-login-noninteractive` has a node-api but it prints logs so this is ugly workaround to avoid printing the logs
     await execa.command(
       `${npmLoginPath} -u ${npmRegistryUsername} -p ${npmRegistryToken} -e ${npmRegistryEmail} -r ${npmRegistryAddress}`,
     )
-    log('logged in to npm-registry: "%s"', npmRegistryAddress)
+    log.debug(`logged in to npm-registry: "${npmRegistryAddress}"`)
   } else {
     await fse.writeFile(path.join(os.homedir(), '.npmrc'), `//${npmRegistryAddress}/:_authToken=${npmRegistryToken}`)
   }
@@ -50,7 +50,7 @@ export async function getNpmhighestVersionInfo(
 > {
   try {
     const command = `npm view ${packageName} --json --registry ${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
-    log('searching the latest tag and hash: "%s"', command)
+    log.debug(`searching the latest tag and hash: "${command}"`)
     const result = await execa.command(command)
     const resultJson = JSON.parse(result.stdout) || {}
     const allVersions: string[] = resultJson['versions'] || []
@@ -61,11 +61,11 @@ export async function getNpmhighestVersionInfo(
       highestVersion,
       allVersions,
     }
-    log('latest tag and hash for "%s" are: "%O"', packageName, latest)
+    log.debug(`latest tag and hash for "${packageName}" are: "${latest}"`)
     return latest
   } catch (e) {
     if (e.message.includes('code E404')) {
-      log(`"%s" weren't published`, packageName)
+      log.debug(`"${packageName}" weren't published`)
     } else {
       throw e
     }
