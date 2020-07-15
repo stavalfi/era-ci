@@ -1,10 +1,10 @@
 import execa from 'execa'
-import ncLog from '@tahini/log'
+import { logger } from '@tahini/log'
 import { ServerInfo } from './types'
 import { getHighestDockerTag } from './versions'
 import isIp from 'is-ip'
 
-const log = ncLog('docker-utils')
+const log = logger('docker-utils')
 
 export async function dockerRegistryLogin({
   dockerRegistry,
@@ -19,7 +19,7 @@ export async function dockerRegistryLogin({
     const withPort =
       isIp.v4(dockerRegistry.host) || dockerRegistry.host === 'localhost' ? `:${dockerRegistry.port}` : ''
     const dockerRegistryAddress = `${dockerRegistry.protocol}://${dockerRegistry.host}${withPort}`
-    log('logging in to docker-registry: %s', `${dockerRegistryAddress}`)
+    log.debug(`logging in to docker-registry: ${dockerRegistryAddress}`)
     // I need to login to read and push from `dockerRegistryUsername` repository
     await execa.command(
       `docker login --username=${dockerRegistryUsername} --password=${dockerRegistryToken} ${dockerRegistryAddress}`,
@@ -27,7 +27,7 @@ export async function dockerRegistryLogin({
         stdio: 'inherit',
       },
     )
-    log('logged in to docker-registry')
+    log.debug('logged in to docker-registry')
   }
 }
 
@@ -77,7 +77,7 @@ export async function getDockerImageLabelsAndTags({
     packageJsonName,
   })
   try {
-    log('searching for all tags for image: "%s"')
+    log.debug(`searching for all tags for image: "${fullImageNameWithoutTag}"`)
     const { stdout: tagsResult } = await execa.command(
       `skopeo list-tags ${
         dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
@@ -95,7 +95,7 @@ export async function getDockerImageLabelsAndTags({
       imageTag: highestPublishedTag,
     })
 
-    log('searching the latest tag and hash for image "%s"', fullImageName)
+    log.debug(`searching the latest tag and hash for image "${fullImageName}"`)
 
     const { stdout } = await execa.command(
       `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
@@ -103,19 +103,21 @@ export async function getDockerImageLabelsAndTags({
     const LabelsResult = JSON.parse(stdout)
     const labels = LabelsResult.Labels || {}
 
-    log(`labels of image "${fullImageName}": ${labels}`)
+    log.debug(`labels of image "${fullImageName}": ${labels}`)
     const result = {
       latestHash: labels['latest-hash'],
       latestTag: labels['latest-tag'],
       allTags,
     }
 
-    log('latest tag and hash for "%s" are: "%O"', fullImageName, result)
+    log.debug('latest tag and hash for "%s" are: "%O"', fullImageName, result)
     if (!result.latestHash || !result.latestTag) {
-      log(
-        `one of %O is falsy. maybe someone in your team manually did that or we have a bug. anyways we have a fall-back plan - don't worry.`,
-        result,
-        fullImageName,
+      log.debug(
+        `one of ${JSON.stringify(
+          result,
+          null,
+          2,
+        )} is falsy for image "${fullImageName}". maybe someone in your team manually did that or we have a bug. anyways we have a fall-back plan - don't worry.`,
       )
     }
     return result
@@ -125,7 +127,7 @@ export async function getDockerImageLabelsAndTags({
       e.stderr?.includes('unable to retrieve auth token') ||
       e.stderr?.includes('invalid status code from registry 404 (Not Found)')
     ) {
-      log(`"%s" weren't published before so we can't find this image`, fullImageNameWithoutTag)
+      log.debug(`"${fullImageNameWithoutTag}" weren't published before so we can't find this image`)
     } else {
       throw e
     }

@@ -4,10 +4,10 @@ import fs from 'fs-extra'
 import path from 'path'
 import _ from 'lodash'
 import { Graph } from './types'
-import ncLog from '@tahini/log'
+import { logger } from '@tahini/log'
 import { IPackageJson } from 'package-json-type'
 
-const log = ncLog('packages-hash')
+const log = logger('packages-hash')
 
 const isInParent = (parent: string, child: string) => {
   const relative = path.relative(parent, child)
@@ -184,12 +184,12 @@ export async function calculatePackagesHash(
     },
   }))
 
-  log('calculated hashes to every package in the monorepo:')
-  log('root-files -> %s', rootFilesHash)
-  log('%d packages: ', result.length)
+  log.debug('calculated hashes to every package in the monorepo:')
+  log.debug('root-files -> %s', rootFilesHash)
+  log.debug('%d packages: ', result.length)
   result.forEach(node =>
-    log(`%s (%s) -> %s`, node.data.relativePackagePath, node.data.packageJson.name, node.data.packageHash),
+    log.debug(`%s (%s) -> %s`, node.data.relativePackagePath, node.data.packageJson.name, node.data.packageHash),
   )
-  log('---------------------------------------------------')
+  log.debug('---------------------------------------------------')
   return result
 }
