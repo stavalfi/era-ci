@@ -1,11 +1,11 @@
-import ncLog from '@tahini/log'
+import { logger } from '@tahini/log'
 import Redis from 'ioredis'
 import semver from 'semver'
 import { isDockerVersionAlreadyPulished } from './docker-utils'
 import { isNpmVersionAlreadyPulished } from './npm-utils'
 import { Auth, Cache, CacheTypes, PackageVersion, ServerInfo, TargetType } from './types'
 
-const log = ncLog('cache')
+const log = logger('cache')
 
 const DEFAULT_TTL = 1000 * 60 * 24 * 30
 
@@ -51,7 +51,7 @@ export async function intializeCache({
         if (semver.valid(result)) {
           return result
         } else {
-          log(
+          log.debug(
             `hash of package ${packageName} was found but it points to an invalid verison: ${result}. ignoring this record`,
           )
           return false
