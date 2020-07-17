@@ -27,12 +27,12 @@ export async function npmRegistryLogin({
   // it doesn't use env-var (that the user can use by mistake) or addtional ci-parameter.
   if (npmRegistryEmail === 'root@root.root') {
     const npmLoginPath = require.resolve('.bin/npm-login-noninteractive')
-    log.debug(`logging in to npm-registry: "${npmRegistryAddress}"`)
+    log.verbose(`logging in to npm-registry: "${npmRegistryAddress}"`)
     // `npm-login-noninteractive` has a node-api but it prints logs so this is ugly workaround to avoid printing the logs
     await execa.command(
       `${npmLoginPath} -u ${npmRegistryUsername} -p ${npmRegistryToken} -e ${npmRegistryEmail} -r ${npmRegistryAddress}`,
     )
-    log.debug(`logged in to npm-registry: "${npmRegistryAddress}"`)
+    log.verbose(`logged in to npm-registry: "${npmRegistryAddress}"`)
   } else {
     await fse.writeFile(path.join(os.homedir(), '.npmrc'), `//${npmRegistryAddress}/:_authToken=${npmRegistryToken}`)
   }
@@ -50,7 +50,7 @@ export async function getNpmhighestVersionInfo(
 > {
   try {
     const command = `npm view ${packageName} --json --registry ${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
-    log.debug(`searching the latest tag and hash: "${command}"`)
+    log.verbose(`searching the latest tag and hash: "${command}"`)
     const result = await execa.command(command)
     const resultJson = JSON.parse(result.stdout) || {}
     const allVersions: string[] = resultJson['versions'] || []
@@ -61,11 +61,11 @@ export async function getNpmhighestVersionInfo(
       highestVersion,
       allVersions,
     }
-    log.debug(`latest tag and hash for "${packageName}" are: "${latest}"`)
+    log.verbose(`latest tag and hash for "${packageName}" are: "${latest}"`)
     return latest
   } catch (e) {
     if (e.message.includes('code E404')) {
-      log.debug(`"${packageName}" weren't published`)
+      log.verbose(`"${packageName}" weren't published`)
     } else {
       throw e
     }

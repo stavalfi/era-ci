@@ -19,7 +19,7 @@ export async function dockerRegistryLogin({
     const withPort =
       isIp.v4(dockerRegistry.host) || dockerRegistry.host === 'localhost' ? `:${dockerRegistry.port}` : ''
     const dockerRegistryAddress = `${dockerRegistry.protocol}://${dockerRegistry.host}${withPort}`
-    log.debug(`logging in to docker-registry: ${dockerRegistryAddress}`)
+    log.verbose(`logging in to docker-registry: ${dockerRegistryAddress}`)
     // I need to login to read and push from `dockerRegistryUsername` repository
     await execa.command(
       `docker login --username=${dockerRegistryUsername} --password=${dockerRegistryToken} ${dockerRegistryAddress}`,
@@ -27,7 +27,7 @@ export async function dockerRegistryLogin({
         stdio: 'inherit',
       },
     )
-    log.debug('logged in to docker-registry')
+    log.verbose('logged in to docker-registry')
   }
 }
 
@@ -77,7 +77,7 @@ export async function getDockerImageLabelsAndTags({
     packageJsonName,
   })
   try {
-    log.debug(`searching for all tags for image: "${fullImageNameWithoutTag}"`)
+    log.verbose(`searching for all tags for image: "${fullImageNameWithoutTag}"`)
     const { stdout: tagsResult } = await execa.command(
       `skopeo list-tags ${
         dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
@@ -95,7 +95,7 @@ export async function getDockerImageLabelsAndTags({
       imageTag: highestPublishedTag,
     })
 
-    log.debug(`searching the latest tag and hash for image "${fullImageName}"`)
+    log.verbose(`searching the latest tag and hash for image "${fullImageName}"`)
 
     const { stdout } = await execa.command(
       `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
@@ -103,16 +103,16 @@ export async function getDockerImageLabelsAndTags({
     const LabelsResult = JSON.parse(stdout)
     const labels = LabelsResult.Labels || {}
 
-    log.debug(`labels of image "${fullImageName}": ${labels}`)
+    log.verbose(`labels of image "${fullImageName}": ${labels}`)
     const result = {
       latestHash: labels['latest-hash'],
       latestTag: labels['latest-tag'],
       allTags,
     }
 
-    log.debug('latest tag and hash for "%s" are: "%O"', fullImageName, result)
+    log.verbose('latest tag and hash for "%s" are: "%O"', fullImageName, result)
     if (!result.latestHash || !result.latestTag) {
-      log.debug(
+      log.verbose(
         `one of ${JSON.stringify(
           result,
           null,
@@ -127,7 +127,7 @@ export async function getDockerImageLabelsAndTags({
       e.stderr?.includes('unable to retrieve auth token') ||
       e.stderr?.includes('invalid status code from registry 404 (Not Found)')
     ) {
-      log.debug(`"${fullImageNameWithoutTag}" weren't published before so we can't find this image`)
+      log.verbose(`"${fullImageNameWithoutTag}" weren't published before so we can't find this image`)
     } else {
       throw e
     }

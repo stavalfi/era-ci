@@ -25,7 +25,8 @@ async function buildNpmTarget({
   if (!packageJson.version) {
     throw new Error(`package.json of: ${packagePath} must have a version property.`)
   }
-  const needPublish = !(await cache.publish.npm.isPublished(packageJson.name as string, packageHash))
+  const publishedVersion = await cache.publish.npm.isPublished(packageJson.name as string, packageHash)
+  const needPublish = !publishedVersion
   const npmhighestVersionInfo = await getNpmhighestVersionInfo(packageJson.name, npmRegistry)
   if (needPublish) {
     return {
@@ -44,7 +45,11 @@ async function buildNpmTarget({
   } else {
     return {
       targetType: TargetType.npm,
-      needPublish: false,
+      needPublish: {
+        skip: {
+          reason: `this package with the same content was already published as npm package with version: ${publishedVersion}`,
+        },
+      },
       highestPublishedVersion: npmhighestVersionInfo && {
         version: npmhighestVersionInfo?.highestVersion,
       },
@@ -73,7 +78,8 @@ async function buildDockerTarget({
   if (!packageJson.version) {
     throw new Error(`package.json of: ${packagePath} must have a version property.`)
   }
-  const needPublish = !(await cache.publish.docker.isPublished(packageJson.name as string, packageHash))
+  const publishedTag = await cache.publish.docker.isPublished(packageJson.name as string, packageHash)
+  const needPublish = !publishedTag
   const dockerLatestTagInfo = await getDockerImageLabelsAndTags({
     dockerRegistry,
     dockerOrganizationName,
@@ -98,7 +104,11 @@ async function buildDockerTarget({
   } else {
     return {
       targetType: TargetType.docker,
-      needPublish: false,
+      needPublish: {
+        skip: {
+          reason: `this package with the same content was already published as docker package with tag: ${publishedTag}`,
+        },
+      },
       highestPublishedVersion: dockerLatestTagInfo && {
         version: dockerLatestTagInfo.latestTag,
         hash: dockerLatestTagInfo.latestHash,

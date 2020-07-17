@@ -1,4 +1,6 @@
 import chance from 'chance'
+import os from 'os'
+import path from 'path'
 import { runCiCli } from '../../src/ci-node-api'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'
@@ -19,12 +21,13 @@ import {
   publishDockerPackageWithoutCi,
   publishNpmPackageWithoutCi,
   removeAllNpmHashTags,
-  unpublishNpmPackage,
   renamePackageFolder,
+  unpublishNpmPackage,
 } from './test-helpers'
+import fse from 'fs-extra'
+
 import { CreateAndManageRepo, MinimalNpmPackage, NewEnvFunc, PublishedPackageInfo, RunCi } from './types'
 import { getPackagePath, getPackages } from './utils'
-import path from 'path'
 
 export { runDockerImage } from './test-helpers'
 
@@ -51,16 +54,18 @@ export const newEnv: NewEnvFunc = () => {
       toActualName,
     })
 
-    const runCi: RunCi = async ({ isMasterBuild, isDryRun, skipTests, stdio = 'inherit' }) => {
-      await runCiCli(
+    const runCi: RunCi = async ({ isMasterBuild, isDryRun, skipTests, execaOptions }) => {
+      const logFilePath = path.join(os.tmpdir(), `nc-logs-${chance().hash()}.txt`)
+      const ciProcessResult = await runCiCli(
         {
+          logFilePath,
           isMasterBuild,
           skipTests: Boolean(skipTests),
           isDryRun: Boolean(isDryRun),
           dockerOrganizationName,
           gitOrganizationName: repoOrg,
           gitRepositoryName: repoName,
-          rootPath: repoPath,
+          repoPath: repoPath,
           dockerRegistry,
           gitServer: gitServer.getServerInfo(),
           npmRegistry,
@@ -74,7 +79,7 @@ export const newEnv: NewEnvFunc = () => {
             gitServerUsername: gitServer.getUsername(),
           },
         },
-        stdio,
+        { stdio: execaOptions?.stdio, reject: execaOptions?.reject },
       )
 
       // the test can add/remove/modify packages between the creation of the repo until the call of the ci so we need to find all the packages again
@@ -111,6 +116,8 @@ export const newEnv: NewEnvFunc = () => {
 
       return {
         published: new Map(published),
+        ciProcessResult,
+        logs: await fse.readFile(logFilePath, 'utf8'),
       }
     }
 

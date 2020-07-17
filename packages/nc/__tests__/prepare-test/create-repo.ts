@@ -41,6 +41,7 @@ function createPackageJson({
     version: packageInfo.version,
     private: packageInfo.targetType !== TargetType.npm,
     ...(packageInfo['index.js'] && { main: 'index.js' }),
+    ...(packageInfo.scripts && { scripts: packageInfo.scripts }),
     ...(packageInfo.dependencies && {
       dependencies: Object.fromEntries(
         Object.entries(packageInfo.dependencies).map(([key, value]) => [
@@ -116,9 +117,6 @@ export async function createRepo({
       version: '1.0.0',
       private: true,
       workspaces: [`${packagesFolderName}/*`, `${packagesFolderName}/${subPackagesFolderName}/*`],
-      scripts: {
-        test: 'echo running tests... no tests to run',
-      },
     },
     '.dockerignore': `node_modules`,
     '.gitignore': 'node_modules',

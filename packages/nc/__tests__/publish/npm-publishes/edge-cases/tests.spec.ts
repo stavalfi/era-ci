@@ -1,5 +1,5 @@
-import { newEnv } from '../../prepare-test'
-import { TargetType } from '../../prepare-test/types'
+import { newEnv } from '../../../prepare-test'
+import { TargetType } from '../../../prepare-test/types'
 
 const { createRepo } = newEnv()
 
@@ -87,14 +87,12 @@ test('run ci -> change packageJson.version to invalid version -> run ci', async 
 
   await modifyPackageJson('a', packageJson => ({ ...packageJson, version: 'lalalal' }))
 
-  await expect(
-    runCi({
-      isMasterBuild: true,
+  const result = await runCi({
+    isMasterBuild: true,
+    execaOptions: {
       stdio: 'pipe',
-    }),
-  ).rejects.toEqual(
-    expect.objectContaining({
-      stderr: expect.stringContaining('is invalid: lalalal'),
-    }),
-  )
+      reject: false,
+    },
+  })
+  expect(result.ciProcessResult.stderr).toEqual(expect.stringContaining('is invalid: lalalal'))
 })

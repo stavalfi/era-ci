@@ -5,8 +5,11 @@ import path from 'path'
 
 export const getPrCiOptions = (): CiOptions => {
   const redisServer = process.env['REDIS_ENDPOINT']?.split(':') as string[]
+  const repoPath = path.join(__dirname, '../../../../')
+
   return {
-    rootPath: path.join(require.resolve('scripts'), '../../../../../'),
+    logFilePath: path.join('repoPath', 'nc-logs.txt'),
+    repoPath,
     dockerOrganizationName: 'stavalfi',
     dockerRegistry: {
       host: 'registry.hub.docker.com',

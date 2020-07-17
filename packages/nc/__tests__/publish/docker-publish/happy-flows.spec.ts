@@ -1,6 +1,6 @@
 import chance from 'chance'
-import { newEnv, runDockerImage } from '../prepare-test'
-import { TargetType } from '../prepare-test/types'
+import { newEnv, runDockerImage } from '../../prepare-test'
+import { TargetType } from '../../prepare-test/types'
 
 const { createRepo, getTestResources } = newEnv()
 
@@ -18,7 +18,7 @@ test('1 package', async () => {
   const master = await runCi({
     isMasterBuild: true,
   })
-  expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', 'latest'])
+  expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0'])
   expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.0')
 })
 

@@ -8,6 +8,16 @@ import { buildFullDockerImageName, npmRegistryLogin } from '../../src/ci-logic'
 import { CacheTypes, ServerInfo } from '../../src/types'
 import { CreateAndManageRepo, MinimalNpmPackage, TargetType, ToActualName } from './types'
 import { getPackagePath, getPackages } from './utils'
+import { createFile } from 'create-folder-structure'
+
+export async function manageTest() {
+  const filePath = await createFile()
+  return {
+    testScript: `ls ${filePath}`,
+    makeTestsPass: () => fse.createFile(filePath),
+    makeTestsFail: () => fse.remove(filePath),
+  }
+}
 
 export async function commitAllAndPushChanges(repoPath: string, gitRepoAddress: string) {
   await execa.command('git add --all', { cwd: repoPath })
