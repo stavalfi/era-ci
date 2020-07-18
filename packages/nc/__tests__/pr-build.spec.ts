@@ -14,7 +14,7 @@ test('1 package', async () => {
     ],
   })
   const pr = await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
   })
   expect(pr.published).toHaveProperty('size', 0)
 })

@@ -17,7 +17,7 @@ test(`run ci as the first time after there is already an npm publish`, async () 
   await publishNpmPackageWithoutCi('a')
 
   const master = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
   expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
   expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')
@@ -36,13 +36,13 @@ test(`run ci -> unpublish npm while keeping hashes in redis that indicate that w
   })
 
   await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   await unpublishNpmPackage('a', '1.0.0')
 
   const master = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -61,13 +61,13 @@ test(`run ci -> remove all npm hash tags -> run ci`, async () => {
   })
 
   await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   await removeAllNpmHashTags('a')
 
   const master = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
@@ -88,7 +88,7 @@ test('run ci -> change packageJson.version to invalid version -> run ci', async 
   await modifyPackageJson('a', packageJson => ({ ...packageJson, version: 'lalalal' }))
 
   const result = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
     execaOptions: {
       stdio: 'pipe',
       reject: false,

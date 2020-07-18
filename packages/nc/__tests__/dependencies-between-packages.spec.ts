@@ -24,7 +24,7 @@ describe('npm package depends on.....', () => {
     })
 
     const master1 = await runCi({
-      isMasterBuild: true,
+      shouldPublish: true,
     })
 
     expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -33,7 +33,7 @@ describe('npm package depends on.....', () => {
     await addRandomFileToPackage('a')
 
     const master2 = await runCi({
-      isMasterBuild: true,
+      shouldPublish: true,
     })
 
     expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
@@ -62,7 +62,7 @@ describe('npm package depends on.....', () => {
     })
 
     const master1 = await runCi({
-      isMasterBuild: true,
+      shouldPublish: true,
     })
 
     expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -71,7 +71,7 @@ describe('npm package depends on.....', () => {
     await addRandomFileToPackage('b')
 
     const master2 = await runCi({
-      isMasterBuild: true,
+      shouldPublish: true,
     })
 
     expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -100,7 +100,7 @@ describe('npm package depends on.....', () => {
 
     await expect(
       runCi({
-        isMasterBuild: false,
+        shouldPublish: false,
         execaOptions: {
           stdio: 'pipe',
         },
@@ -136,7 +136,7 @@ describe('npm package depends on.....', () => {
 
     await expect(
       runCi({
-        isMasterBuild: false,
+        shouldPublish: false,
         execaOptions: {
           stdio: 'pipe',
         },
@@ -174,7 +174,7 @@ describe('docker-package depends on...', () => {
     })
 
     const master1 = await runCi({
-      isMasterBuild: true,
+      shouldPublish: true,
     })
 
     expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -183,7 +183,7 @@ describe('docker-package depends on...', () => {
     await addRandomFileToPackage('a')
 
     const master2 = await runCi({
-      isMasterBuild: true,
+      shouldPublish: true,
     })
 
     expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
@@ -213,7 +213,7 @@ describe('docker-package depends on...', () => {
 
     await expect(
       runCi({
-        isMasterBuild: false,
+        shouldPublish: false,
         execaOptions: {
           stdio: 'pipe',
         },
@@ -249,7 +249,7 @@ describe('docker-package depends on...', () => {
 
     await expect(
       runCi({
-        isMasterBuild: false,
+        shouldPublish: false,
         execaOptions: {
           stdio: 'pipe',
         },

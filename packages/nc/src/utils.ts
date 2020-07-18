@@ -6,9 +6,37 @@ import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { getPackageInfo } from './package-info'
 import { calculatePackagesHash } from './packages-hash'
-import { Cache, Graph, PackageInfo, Protocol, ServerInfo, TargetType } from './types'
+import { Cache, Graph, PackageInfo, Protocol, ServerInfo, TargetType, TestsResult, PublishResult } from './types'
 
 const log = logger('utils')
+
+export function shouldFailBuild(
+  graph: Graph<PackageInfo & { testsResult: TestsResult; publishResult: PublishResult }>,
+): { failBuild: boolean; reasons: string[] } {
+  const packagesWithFailedTests = graph
+    .filter(node => 'passed' in node.data.testsResult && !node.data.testsResult.passed)
+    .map(node => node.data.packageJson.name)
+
+  const packagesWithFailedPublish = graph
+    .filter(
+      node =>
+        !node.data.publishResult.skipped &&
+        'failed' in node.data.publishResult.published &&
+        node.data.publishResult.published.failed,
+    )
+    .map(node => node.data.packageJson.name)
+
+  const reasons: string[] = []
+  if (packagesWithFailedTests.length > 0) {
+    reasons.push('tests failed')
+  }
+  if (packagesWithFailedPublish.length > 0) {
+    reasons.push('publish failed')
+  }
+  const failBuild = reasons.length > 0
+
+  return { failBuild, reasons }
+}
 
 export const isRepoModified = async (repoPath: string) => {
   // todo: fix it. it doesn't work.

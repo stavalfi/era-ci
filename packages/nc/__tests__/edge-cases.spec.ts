@@ -5,11 +5,11 @@ const { createRepo } = newEnv()
 test('empty repo', async () => {
   const { runCi } = await createRepo()
   const pr = await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
   })
   expect(pr.published).toHaveProperty('size', 0)
   const master = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
   expect(master.published).toHaveProperty('size', 0)
 })
@@ -24,11 +24,11 @@ test('artifacts without targets', async () => {
     ],
   })
   const pr = await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
   })
   expect(pr.published).toHaveProperty('size', 0)
   const master = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
   expect(master.published).toHaveProperty('size', 0)
 })

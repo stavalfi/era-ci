@@ -20,7 +20,7 @@ test('multiple packages - all publish again because of modification in root file
   })
 
   const master1 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -29,7 +29,7 @@ test('multiple packages - all publish again because of modification in root file
   await addRandomFileToRoot()
 
   const master2 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
@@ -55,7 +55,7 @@ test('multiple packages - all publish again because of modification in each pack
   })
 
   const master1 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -65,7 +65,7 @@ test('multiple packages - all publish again because of modification in each pack
   await addRandomFileToPackage('b')
 
   const master2 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
@@ -86,13 +86,13 @@ test(`no publish if the package folder name has modified`, async () => {
   })
 
   await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   await renamePackageFolder('a')
 
   const master2 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -110,13 +110,13 @@ test(`no publish if the package folder moved`, async () => {
   })
 
   await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   await movePackageFolder('a')
 
   const master2 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -139,13 +139,13 @@ test(`no publish of other packags if a package was deleted`, async () => {
   })
 
   await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   await deletePackage('a')
 
   const master2 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   expect(master2.published.get('b')?.npm?.versions).toEqual(['2.0.0'])
@@ -163,7 +163,7 @@ test(`no publish of other packags if addtional package was created`, async () =>
   })
 
   await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   await createNewPackage({
@@ -173,7 +173,7 @@ test(`no publish of other packags if addtional package was created`, async () =>
   })
 
   const master2 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
