@@ -1,5 +1,5 @@
-import { newEnv } from '../../prepare-test'
-import { TargetType } from '../../prepare-test/types'
+import { newEnv } from '../../../prepare-test'
+import { TargetType } from '../../../prepare-test/types'
 
 const { createRepo } = newEnv()
 
@@ -10,7 +10,7 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
         {
           name: 'a',
           version: '1.0.10',
-          targetType: TargetType.npm,
+          targetType: TargetType.docker,
         },
       ],
     })
@@ -25,8 +25,8 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
       isMasterBuild: true,
     })
 
-    expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.10', '1.0.11'])
-    expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.11')
+    expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.10', '1.0.11'])
+    expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.11')
   })
 
   test('to published version', async () => {
@@ -35,7 +35,7 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
         {
           name: 'a',
           version: '1.0.0',
-          targetType: TargetType.npm,
+          targetType: TargetType.docker,
         },
       ],
     })
@@ -62,7 +62,7 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
       isMasterBuild: true,
     })
 
-    expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1', '1.0.2', '1.0.3'])
-    expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.3')
+    expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1', '1.0.2', '1.0.3'])
+    expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.3')
   })
 })

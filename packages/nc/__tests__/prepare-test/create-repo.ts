@@ -16,14 +16,15 @@ async function initializeGitRepo({
   name: string
   gitServer: GitServer
 }) {
-  await execa.command('git init', { cwd: repoPath })
-  await execa.command('git add --all', { cwd: repoPath })
-  await execa.command('git commit -m init', { cwd: repoPath })
+  await execa.command('git init', { cwd: repoPath, stdio: 'pipe' })
+  await execa.command('git add --all', { cwd: repoPath, stdio: 'pipe' })
+  await execa.command('git commit -m init', { cwd: repoPath, stdio: 'pipe' })
 
   await gitServer.createRepository(org, name)
 
   await execa.command(`git push ${gitServer.generateGitRepositoryAddress(org, name)} -u master`, {
     cwd: repoPath,
+    stdio: 'pipe',
   })
 }
 
@@ -41,6 +42,7 @@ function createPackageJson({
     version: packageInfo.version,
     private: packageInfo.targetType !== TargetType.npm,
     ...(packageInfo['index.js'] && { main: 'index.js' }),
+    ...(packageInfo.scripts && { scripts: packageInfo.scripts }),
     ...(packageInfo.dependencies && {
       dependencies: Object.fromEntries(
         Object.entries(packageInfo.dependencies).map(([key, value]) => [
@@ -116,9 +118,6 @@ export async function createRepo({
       version: '1.0.0',
       private: true,
       workspaces: [`${packagesFolderName}/*`, `${packagesFolderName}/${subPackagesFolderName}/*`],
-      scripts: {
-        test: 'echo running tests... no tests to run',
-      },
     },
     '.dockerignore': `node_modules`,
     '.gitignore': 'node_modules',
@@ -137,7 +136,7 @@ export async function createRepo({
   const packagesFolderPath = path.join(repoPath, packagesFolderName)
   const subPackagesFolderPath = path.join(packagesFolderPath, subPackagesFolderName)
 
-  await execa.command(`yarn install`, { cwd: repoPath })
+  await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })
 
   await initializeGitRepo({
     gitServer,

@@ -10,33 +10,33 @@ import { Cache, Graph, PackageInfo, Protocol, ServerInfo, TargetType } from './t
 
 const log = logger('utils')
 
-export const isRepoModified = async (rootPath: string) => {
+export const isRepoModified = async (repoPath: string) => {
   // todo: fix it. it doesn't work.
-  return execa.command('git status --porcelain', { cwd: rootPath }).then(
+  return execa.command('git status --porcelain', { cwd: repoPath }).then(
     () => false,
     () => true,
   )
 }
 
-export async function getPackages(rootPath: string): Promise<string[]> {
+export async function getPackages(repoPath: string): Promise<string[]> {
   const result = await execa.command('yarn workspaces --json info', {
-    cwd: rootPath,
+    cwd: repoPath,
   })
   const workspacesInfo: { location: string }[] = JSON.parse(JSON.parse(result.stdout).data)
   return Object.values(workspacesInfo)
     .map(workspaceInfo => workspaceInfo.location)
-    .map(relativePackagePath => path.join(rootPath, relativePackagePath))
+    .map(relativePackagePath => path.join(repoPath, relativePackagePath))
 }
 
 export async function getOrderedGraph({
   packagesInfo,
-  rootPath,
+  repoPath,
   dockerOrganizationName,
   cache,
   dockerRegistry,
   npmRegistry,
 }: {
-  rootPath: string
+  repoPath: string
   packagesInfo: {
     packagePath: string
     packageJson: IPackageJson
@@ -48,9 +48,9 @@ export async function getOrderedGraph({
   dockerOrganizationName: string
   cache: Cache
 }): Promise<Graph<PackageInfo>> {
-  log.debug('calculate hash of every package and check which packages changed since their last publish')
+  log.verbose('calculate hash of every package and check which packages changed since their last publish')
   const orderedGraph = await calculatePackagesHash(
-    rootPath,
+    repoPath,
     packagesInfo.map(({ packagePath }) => packagePath),
   )
   const result = await Promise.all(
@@ -69,11 +69,11 @@ export async function getOrderedGraph({
       }),
     })),
   )
-  log.debug(
+  log.verbose(
     `${orderedGraph.length} packages: ${orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', ')}`,
   )
   result.forEach(node => {
-    log.debug(
+    log.verbose(
       `${node.data.relativePackagePath} (${node.data.packageJson.name}): ${JSON.stringify(
         {
           ..._.omit(node.data, ['packageJson']),

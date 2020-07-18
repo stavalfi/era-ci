@@ -62,6 +62,8 @@ function createOrderGraph(
       return node
     })
     .map(node => ({
+      // @ts-ignore
+      index: node.index,
       data: {
         relativePackagePath: node.relativePackagePath,
         packageHash: node.packageHash,
@@ -107,24 +109,24 @@ function combineHashes(hashes: string[]): string {
   return Buffer.from(hasher.digest()).toString('hex')
 }
 
-const isRootFile = (rootPath: string, filePath: string) => !filePath.includes(path.join(rootPath, 'packages'))
+const isRootFile = (repoPath: string, filePath: string) => !filePath.includes(path.join(repoPath, 'packages'))
 
 export async function calculatePackagesHash(
-  rootPath: string,
+  repoPath: string,
   packagesPath: string[],
 ): Promise<
   Graph<{ relativePackagePath: string; packagePath: string; packageHash: string; packageJson: IPackageJson }>
 > {
   const repoFilesPathResult = await execa.command('git ls-tree -r --name-only HEAD', {
-    cwd: rootPath,
+    cwd: repoPath,
   })
 
   const repoFilesPath = repoFilesPathResult.stdout
     .split('\n')
-    .map(relativeFilePath => path.join(rootPath, relativeFilePath))
+    .map(relativeFilePath => path.join(repoPath, relativeFilePath))
 
-  const rootFilesInfo = repoFilesPath.filter(filePath => isRootFile(rootPath, filePath))
-  const rootFilesHash = await calculateHashOfPackage(rootPath, rootFilesInfo)
+  const rootFilesInfo = repoFilesPath.filter(filePath => isRootFile(repoPath, filePath))
+  const rootFilesHash = await calculateHashOfPackage(repoPath, rootFilesInfo)
 
   const packagesWithPackageJson = await Promise.all(
     packagesPath.map<Promise<{ packagePath: string; packageJson: IPackageJson }>>(async packagePath => ({
@@ -156,7 +158,7 @@ export async function calculatePackagesHash(
         return [
           packagePath,
           {
-            relativePackagePath: path.relative(rootPath, packagePath),
+            relativePackagePath: path.relative(repoPath, packagePath),
             packagePath,
             packageJson,
             packageHash,
@@ -184,12 +186,12 @@ export async function calculatePackagesHash(
     },
   }))
 
-  log.debug('calculated hashes to every package in the monorepo:')
-  log.debug('root-files -> %s', rootFilesHash)
-  log.debug('%d packages: ', result.length)
+  log.verbose('calculated hashes to every package in the monorepo:')
+  log.verbose(`root-files -> ${rootFilesHash}`)
+  log.verbose(`${result.length} packages:`)
   result.forEach(node =>
-    log.debug(`%s (%s) -> %s`, node.data.relativePackagePath, node.data.packageJson.name, node.data.packageHash),
+    log.verbose(`${node.data.relativePackagePath} (${node.data.packageJson.name}) -> ${node.data.packageHash}`),
   )
-  log.debug('---------------------------------------------------')
+  log.verbose('---------------------------------------------------')
   return result
 }

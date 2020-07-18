@@ -15,10 +15,11 @@
   "types": "dist/src/index.d.ts",
   "scripts": {
     "build": "tsc -b tsconfig-build.json",
-    "test": "jest"
+    "test": "jest --passWithNoTests"
   },
   "dependencies": {
     "chalk": "^4.1.0",
+    "ci-info": "^2.0.0",
     "randomcolor": "^0.6.2",
     "winston": "^3.3.3"
   }

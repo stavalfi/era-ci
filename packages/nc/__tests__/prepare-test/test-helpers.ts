@@ -8,11 +8,21 @@ import { buildFullDockerImageName, npmRegistryLogin } from '../../src/ci-logic'
 import { CacheTypes, ServerInfo } from '../../src/types'
 import { CreateAndManageRepo, MinimalNpmPackage, TargetType, ToActualName } from './types'
 import { getPackagePath, getPackages } from './utils'
+import { createFile } from 'create-folder-structure'
+
+export async function manageTest() {
+  const filePath = await createFile()
+  return {
+    testScript: `ls ${filePath}`,
+    makeTestsPass: () => fse.createFile(filePath),
+    makeTestsFail: () => fse.remove(filePath),
+  }
+}
 
 export async function commitAllAndPushChanges(repoPath: string, gitRepoAddress: string) {
-  await execa.command('git add --all', { cwd: repoPath })
-  await execa.command('git commit -m init', { cwd: repoPath })
-  await execa.command(`git push ${gitRepoAddress}`, { cwd: repoPath })
+  await execa.command('git add --all', { cwd: repoPath, stdio: 'pipe' })
+  await execa.command('git commit -m init', { cwd: repoPath, stdio: 'pipe' })
+  await execa.command(`git push ${gitRepoAddress}`, { cwd: repoPath, stdio: 'pipe' })
 }
 
 export async function removeAllNpmHashTags({
@@ -54,6 +64,7 @@ export async function publishNpmPackageWithoutCi({
     npmRegistryEmail,
     npmRegistryToken,
     npmRegistryUsername,
+    silent: true,
   })
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
   await execa.command(`npm publish --registry ${npmRegistryAddress}`, {
@@ -92,9 +103,10 @@ export async function publishDockerPackageWithoutCi({
       .join(' ') || ''
 
   await execa.command(`docker build ${labelsJoined} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`, {
+    stdio: 'pipe',
     cwd: packagePath,
   })
-  await execa.command(`docker push ${fullImageNameNewVersion}`)
+  await execa.command(`docker push ${fullImageNameNewVersion}`, { stdio: 'pipe' })
 }
 
 export async function unpublishNpmPackage({
@@ -119,10 +131,12 @@ export async function unpublishNpmPackage({
     npmRegistryEmail,
     npmRegistryToken,
     npmRegistryUsername,
+    silent: true,
   })
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
   await execa.command(
     `npm unpublish ${toActualName(packageName)}@${versionToUnpublish} --registry ${npmRegistryAddress}`,
+    { stdio: 'pipe' },
   )
 }
 
@@ -150,11 +164,13 @@ export const addRandomFileToPackage = ({
 export const runDockerImage = async (fullDockerImageName: string): Promise<execa.ExecaChildProcess> => {
   const containerName = `container-${chance().hash()}`
 
-  return execa.command(`docker run --name ${containerName} ${fullDockerImageName}`).finally(async () => {
-    await execa.command(`docker rm ${containerName}`).catch(() => {
-      /**/
+  return execa
+    .command(`docker run --name ${containerName} ${fullDockerImageName}`, { stdio: 'pipe' })
+    .finally(async () => {
+      await execa.command(`docker rm ${containerName}`, { stdio: 'pipe' }).catch(() => {
+        /**/
+      })
     })
-  })
 }
 
 export const installAndRunNpmDependency = async ({
@@ -182,7 +198,7 @@ export const installAndRunNpmDependency = async ({
       },
     ],
   })
-  return execa.node(path.join(await getPackagePath('b'), 'index.js'))
+  return execa.node(path.join(await getPackagePath('b'), 'index.js'), { stdio: 'pipe' })
 }
 
 export const addRandomFileToRoot = async ({
@@ -288,7 +304,7 @@ export const createNewPackage = async ({
       2,
     ),
   )
-  await execa.command(`yarn install`, { cwd: repoPath })
+  await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
 }
 
@@ -305,6 +321,6 @@ export const deletePackage = async ({
 }): Promise<void> => {
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
   await fse.remove(packagePath)
-  await execa.command(`yarn install`, { cwd: repoPath })
+  await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
 }

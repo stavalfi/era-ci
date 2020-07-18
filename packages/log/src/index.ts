@@ -18,6 +18,7 @@ function randomModuleColor(module: string): string {
 }
 
 const consoleTransport = new winston.transports.Console({
+  stderrLevels: ['error'],
   format: combine(
     timestamp(),
     winston.format.colorize(),
@@ -30,9 +31,12 @@ const consoleTransport = new winston.transports.Console({
 // eslint-disable-next-line no-process-env
 const isNcTestMode = Boolean(process.env.NC_TEST_MODE)
 const mainLogger = winston.createLogger({
-  level: isNcTestMode ? 'debug' : 'info',
+  level: isNcTestMode ? 'verbose' : 'info',
   transports: [consoleTransport],
-  exceptionHandlers: [consoleTransport],
 })
+
+export const addLogfile = (logsPath: string): void => {
+  mainLogger.add(new winston.transports.File({ filename: logsPath, level: 'verbose' }))
+}
 
 export const logger = (module: string): winston.Logger => mainLogger.child({ module })

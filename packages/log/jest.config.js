@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
-const baseConfig = require('../../base-jest.config')
-const deepmerge = require('deepmerge')
 const path = require('path')
+const jestConfig = require('../../jest.config')
 
-module.exports = deepmerge(baseConfig, {
+module.exports = {
+  ...jestConfig,
   testMatch: [path.join(__dirname, '__tests__/**/*.spec.ts')],
-})
+}

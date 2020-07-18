@@ -5,6 +5,7 @@
   "main": "dist/src/index.js",
   "private": true,
   "scripts": {
+    "test": "jest --passWithNoTests # of this package",
     "clean": "ts-node src/index.ts clean",
     "run-ci-pr": "yarn --cwd ../.. build && node --unhandled-rejections=strict dist/src/index.js run-ci-pr",
     "run-ci-master": "yarn --cwd ../.. build && node --unhandled-rejections=strict dist/src/index.js run-ci-master"
