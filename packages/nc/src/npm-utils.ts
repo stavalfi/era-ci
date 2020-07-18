@@ -13,7 +13,9 @@ export async function npmRegistryLogin({
   npmRegistryEmail,
   npmRegistryToken,
   npmRegistryUsername,
+  silent,
 }: {
+  silent?: boolean
   npmRegistry: ServerInfo
   npmRegistryUsername: string
   npmRegistryToken: string
@@ -27,12 +29,17 @@ export async function npmRegistryLogin({
   // it doesn't use env-var (that the user can use by mistake) or addtional ci-parameter.
   if (npmRegistryEmail === 'root@root.root') {
     const npmLoginPath = require.resolve('.bin/npm-login-noninteractive')
-    log.verbose(`logging in to npm-registry: "${npmRegistryAddress}"`)
+
+    if (!silent) {
+      log.verbose(`logging in to npm-registry: "${npmRegistryAddress}"`)
+    }
     // `npm-login-noninteractive` has a node-api but it prints logs so this is ugly workaround to avoid printing the logs
     await execa.command(
       `${npmLoginPath} -u ${npmRegistryUsername} -p ${npmRegistryToken} -e ${npmRegistryEmail} -r ${npmRegistryAddress}`,
     )
-    log.verbose(`logged in to npm-registry: "${npmRegistryAddress}"`)
+    if (!silent) {
+      log.verbose(`logged in to npm-registry: "${npmRegistryAddress}"`)
+    }
   } else {
     await fse.writeFile(path.join(os.homedir(), '.npmrc'), `//${npmRegistryAddress}/:_authToken=${npmRegistryToken}`)
   }

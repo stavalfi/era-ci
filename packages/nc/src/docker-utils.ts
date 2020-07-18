@@ -66,10 +66,12 @@ export async function getDockerImageLabelsAndTags({
   packageJsonName,
   dockerOrganizationName,
   dockerRegistry,
+  silent,
 }: {
   packageJsonName: string
   dockerOrganizationName: string
   dockerRegistry: ServerInfo
+  silent?: boolean
 }): Promise<{ latestHash?: string; latestTag?: string; allTags: string[] } | undefined> {
   const fullImageNameWithoutTag = buildFullDockerImageName({
     dockerOrganizationName,
@@ -77,7 +79,9 @@ export async function getDockerImageLabelsAndTags({
     packageJsonName,
   })
   try {
-    log.verbose(`searching for all tags for image: "${fullImageNameWithoutTag}"`)
+    if (!silent) {
+      log.verbose(`searching for all tags for image: "${fullImageNameWithoutTag}"`)
+    }
     const { stdout: tagsResult } = await execa.command(
       `skopeo list-tags ${
         dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
@@ -95,30 +99,35 @@ export async function getDockerImageLabelsAndTags({
       imageTag: highestPublishedTag,
     })
 
-    log.verbose(`searching the latest tag and hash for image "${fullImageName}"`)
-
+    if (!silent) {
+      log.verbose(`searching the latest tag and hash for image "${fullImageName}"`)
+    }
     const { stdout } = await execa.command(
       `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
     )
     const LabelsResult = JSON.parse(stdout)
     const labels = LabelsResult.Labels || {}
 
-    log.verbose(`labels of image "${fullImageName}": ${JSON.stringify(labels, null, 2)}`)
+    if (!silent) {
+      log.verbose(`labels of image "${fullImageName}": ${JSON.stringify(labels, null, 2)}`)
+    }
     const result = {
       latestHash: labels['latest-hash'],
       latestTag: labels['latest-tag'],
       allTags,
     }
 
-    log.verbose(`latest tag and hash for "${fullImageName}" are: "${JSON.stringify(result, null, 2)}"`)
-    if (!result.latestHash || !result.latestTag) {
-      log.verbose(
-        `one of ${JSON.stringify(
-          result,
-          null,
-          2,
-        )} is falsy for image "${fullImageName}". maybe someone in your team manually did that or we have a bug. anyways we have a fall-back plan - don't worry.`,
-      )
+    if (!silent) {
+      log.verbose(`latest tag and hash for "${fullImageName}" are: "${JSON.stringify(result, null, 2)}"`)
+      if (!result.latestHash || !result.latestTag) {
+        log.verbose(
+          `one of ${JSON.stringify(
+            result,
+            null,
+            2,
+          )} is falsy for image "${fullImageName}". maybe someone in your team manually did that or we have a bug. anyways we have a fall-back plan - don't worry.`,
+        )
+      }
     }
     return result
   } catch (e) {
@@ -127,7 +136,9 @@ export async function getDockerImageLabelsAndTags({
       e.stderr?.includes('unable to retrieve auth token') ||
       e.stderr?.includes('invalid status code from registry 404 (Not Found)')
     ) {
-      log.verbose(`"${fullImageNameWithoutTag}" weren't published before so we can't find this image`)
+      if (!silent) {
+        log.verbose(`"${fullImageNameWithoutTag}" weren't published before so we can't find this image`)
+      }
     } else {
       throw e
     }
