@@ -25,6 +25,7 @@ import {
   unpublishNpmPackage,
 } from './test-helpers'
 import fse from 'fs-extra'
+import ciInfo from 'ci-info'
 
 import { CreateAndManageRepo, MinimalNpmPackage, NewEnvFunc, PublishedPackageInfo, RunCi } from './types'
 import { getPackagePath, getPackages } from './utils'
@@ -79,7 +80,7 @@ export const newEnv: NewEnvFunc = () => {
             gitServerUsername: gitServer.getUsername(),
           },
         },
-        { stdio: execaOptions?.stdio, reject: execaOptions?.reject },
+        { stdio: ciInfo.isCI ? 'pipe' : execaOptions?.stdio, reject: execaOptions?.reject },
       )
 
       // the test can add/remove/modify packages between the creation of the repo until the call of the ci so we need to find all the packages again
