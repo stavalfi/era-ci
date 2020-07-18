@@ -10,7 +10,9 @@ export async function latestNpmPackageDistTags(
   try {
     const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
 
-    const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`)
+    const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`, {
+      stdio: 'pipe',
+    })
     const resultJson = JSON.parse(result.stdout) || {}
     const distTags = resultJson['dist-tags'] as { [key: string]: string }
     return distTags
@@ -33,7 +35,7 @@ export async function publishedNpmPackageVersions(packageName: string, npmRegist
   try {
     const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
     const command = `npm view ${packageName} --json --registry ${npmRegistryAddress}`
-    const result = await execa.command(command)
+    const result = await execa.command(command, { stdio: 'pipe' })
     const resultJson = JSON.parse(result.stdout) || {}
     return resultJson.versions
   } catch (e) {

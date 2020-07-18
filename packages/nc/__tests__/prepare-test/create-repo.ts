@@ -16,14 +16,15 @@ async function initializeGitRepo({
   name: string
   gitServer: GitServer
 }) {
-  await execa.command('git init', { cwd: repoPath })
-  await execa.command('git add --all', { cwd: repoPath })
-  await execa.command('git commit -m init', { cwd: repoPath })
+  await execa.command('git init', { cwd: repoPath, stdio: 'pipe' })
+  await execa.command('git add --all', { cwd: repoPath, stdio: 'pipe' })
+  await execa.command('git commit -m init', { cwd: repoPath, stdio: 'pipe' })
 
   await gitServer.createRepository(org, name)
 
   await execa.command(`git push ${gitServer.generateGitRepositoryAddress(org, name)} -u master`, {
     cwd: repoPath,
+    stdio: 'pipe',
   })
 }
 
@@ -135,7 +136,7 @@ export async function createRepo({
   const packagesFolderPath = path.join(repoPath, packagesFolderName)
   const subPackagesFolderPath = path.join(packagesFolderPath, subPackagesFolderName)
 
-  await execa.command(`yarn install`, { cwd: repoPath })
+  await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })
 
   await initializeGitRepo({
     gitServer,
