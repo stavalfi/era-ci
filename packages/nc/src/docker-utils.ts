@@ -103,14 +103,14 @@ export async function getDockerImageLabelsAndTags({
     const LabelsResult = JSON.parse(stdout)
     const labels = LabelsResult.Labels || {}
 
-    log.verbose(`labels of image "${fullImageName}": ${labels}`)
+    log.verbose(`labels of image "${fullImageName}": ${JSON.stringify(labels, null, 2)}`)
     const result = {
       latestHash: labels['latest-hash'],
       latestTag: labels['latest-tag'],
       allTags,
     }
 
-    log.verbose('latest tag and hash for "%s" are: "%O"', fullImageName, result)
+    log.verbose(`latest tag and hash for "${fullImageName}" are: "${JSON.stringify(result, null, 2)}"`)
     if (!result.latestHash || !result.latestTag) {
       log.verbose(
         `one of ${JSON.stringify(
