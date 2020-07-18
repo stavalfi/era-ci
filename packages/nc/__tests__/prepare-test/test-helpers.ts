@@ -64,6 +64,7 @@ export async function publishNpmPackageWithoutCi({
     npmRegistryEmail,
     npmRegistryToken,
     npmRegistryUsername,
+    silent: true,
   })
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
   await execa.command(`npm publish --registry ${npmRegistryAddress}`, {
@@ -130,6 +131,7 @@ export async function unpublishNpmPackage({
     npmRegistryEmail,
     npmRegistryToken,
     npmRegistryUsername,
+    silent: true,
   })
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
   await execa.command(

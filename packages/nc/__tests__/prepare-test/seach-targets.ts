@@ -57,6 +57,7 @@ export async function latestDockerImageTag(
       dockerOrganizationName,
       packageJsonName,
       dockerRegistry,
+      silent: true,
     })
     return result?.latestTag
   } catch (e) {
@@ -78,6 +79,7 @@ export async function publishedDockerImageTags(
       dockerOrganizationName,
       packageJsonName,
       dockerRegistry,
+      silent: true,
     })
     const tags = result?.allTags.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
     const sorted = semver.sort(tags.filter(tag => tag !== 'latest')).concat(tags.includes('latest') ? ['latest'] : [])
