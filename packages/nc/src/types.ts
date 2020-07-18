@@ -20,7 +20,8 @@ export type Auth = {
 }
 
 export type CiOptions = {
-  rootPath: string
+  logFilePath: string
+  repoPath: string
   isMasterBuild: boolean
   isDryRun: boolean
   skipTests: boolean
@@ -50,7 +51,7 @@ export type TargetInfo<TargetTypParam extends TargetType> = { targetType: Target
       highestPublishedVersion?: { version?: string; hash?: string }
     }
   | {
-      needPublish: false
+      needPublish: { skip: { reason: string } }
       // even if we already published the same hash, the user could remove the meta-data we saved on the latest-published-version
       highestPublishedVersion?: { version?: string; hash?: string }
     }
@@ -66,28 +67,23 @@ export type PackageInfo = {
 
 export type Node<T> = {
   data: T
+  index: number
   parentsIndexes: number[]
   childrenIndexes: number[]
 }
 
 export type Graph<T> = Node<T>[]
 
-export type PromoteResult = {
-  packagePath: string
-  newVersion: string
-}
-
-export type PublishResult = {
-  packagePath: string
-  published: boolean
-  newVersion?: string
-}
-
 export enum CacheTypes {
   publish = 'publish',
 }
 
 export type Cache = {
+  test: {
+    isTestsRun: (packageName: string, packageHash: string) => Promise<boolean>
+    isPassed: (packageName: string, packageHash: string) => Promise<boolean>
+    setResult: (packageName: string, packageHash: string, isPassed: boolean) => Promise<void>
+  }
   publish: {
     npm: {
       isPublished: (packageName: string, packageHash: string) => Promise<PackageVersion | false>
@@ -100,3 +96,47 @@ export type Cache = {
   }
   disconnect: () => Promise<unknown>
 }
+
+export type TestsResult =
+  | {
+      skipped: false
+      passed: boolean
+    }
+  | {
+      skipped: {
+        reason: string
+        error?: unknown
+      }
+      passed: boolean
+    }
+  | {
+      skipped: {
+        reason: string
+        error?: unknown
+      }
+    }
+
+export type PublishResult =
+  | {
+      skipped:
+        | false
+        | {
+            reason: string
+            error?: unknown
+          }
+    }
+  | {
+      skipped:
+        | false
+        | {
+            reason: string
+            error?: unknown
+          }
+      published:
+        | {
+            asVersion: string
+          }
+        | {
+            failed: { reason: string; error?: unknown }
+          }
+    }

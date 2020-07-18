@@ -7,6 +7,8 @@ import findProjectRoot from 'find-project-root'
 import { ci } from './ci-logic'
 import { toServerInfo } from './utils'
 import parseGitUrl from 'git-url-parse'
+import path from 'path'
+import { addLogfile } from '@tahini/log'
 
 export { CiOptions, runCiCli } from './ci-node-api'
 
@@ -14,6 +16,12 @@ async function main() {
   const app = command({
     name: 'scripts',
     args: {
+      'log-file': option({
+        type: string,
+        long: 'log-file',
+        description:
+          'log-file path. default to <cwd>/nc-logs.txt. the ci will create the log-file or append data to it',
+      }),
       'dry-run': flag({
         type: boolean,
         long: 'dry-run',
@@ -95,6 +103,7 @@ async function main() {
       }),
     },
     handler: async args => {
+      addLogfile(args['log-file'])
       const dockerRegistry = toServerInfo({
         host: args['docker-registry'],
       })
@@ -114,8 +123,9 @@ async function main() {
         host: args['redis-server'],
       })
       await ci({
+        logFilePath: args['log-file'] || path.join(args.cwd, 'nc-logs.txt'),
         isDryRun: args['dry-run'],
-        rootPath: args.cwd,
+        repoPath: args.cwd,
         isMasterBuild: args['master-build'],
         skipTests: args['skip-tests'],
         gitRepositoryName: name,

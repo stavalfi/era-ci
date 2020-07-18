@@ -7,7 +7,7 @@
     "lint:code": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "lint:versions": "syncpack list-mismatches",
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
-    "test": "DEBUG=nc:* jest --no-cache",
+    "test": "jest --no-cache",
     "clean": "yarn workspace scripts clean",
     "run-ci-pr": "yarn workspace scripts run-ci-pr",
     "run-ci-master": "yarn workspace scripts run-ci-master",

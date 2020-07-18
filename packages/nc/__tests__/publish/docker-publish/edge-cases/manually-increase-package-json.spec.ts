@@ -1,5 +1,5 @@
-import { newEnv } from '../../prepare-test'
-import { TargetType } from '../../prepare-test/types'
+import { newEnv } from '../../../prepare-test'
+import { TargetType } from '../../../prepare-test/types'
 
 const { createRepo } = newEnv()
 
@@ -10,7 +10,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
         {
           name: 'a',
           version: '1.0.0',
-          targetType: TargetType.npm,
+          targetType: TargetType.docker,
         },
       ],
     })
@@ -25,8 +25,8 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       isMasterBuild: true,
     })
 
-    expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0', '2.0.0'])
-    expect(master.published.get('a')?.npm?.highestVersion).toEqual('2.0.0')
+    expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '2.0.0'])
+    expect(master.published.get('a')?.docker?.latestTag).toEqual('2.0.0')
   })
 
   test('run ci -> increase packageJson.version in minor -> run ci', async () => {
@@ -35,7 +35,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
         {
           name: 'a',
           version: '1.0.0',
-          targetType: TargetType.npm,
+          targetType: TargetType.docker,
         },
       ],
     })
@@ -49,8 +49,8 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     const master = await runCi({
       isMasterBuild: true,
     })
-    expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.1.0'])
-    expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.1.0')
+    expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.1.0'])
+    expect(master.published.get('a')?.docker?.latestTag).toEqual('1.1.0')
   })
 
   test('run ci -> increase packageJson.version in patch (should be next version anyway) -> run ci', async () => {
@@ -59,7 +59,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
         {
           name: 'a',
           version: '1.0.0',
-          targetType: TargetType.npm,
+          targetType: TargetType.docker,
         },
       ],
     })
@@ -74,8 +74,8 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       isMasterBuild: true,
     })
 
-    expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
-    expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')
+    expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1'])
+    expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.1')
   })
 
   test('run ci -> increase packageJson.version in patch -> run ci', async () => {
@@ -84,7 +84,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
         {
           name: 'a',
           version: '1.0.0',
-          targetType: TargetType.npm,
+          targetType: TargetType.docker,
         },
       ],
     })
@@ -98,7 +98,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     const master = await runCi({
       isMasterBuild: true,
     })
-    expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.4'])
-    expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.4')
+    expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.4'])
+    expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.4')
   })
 })

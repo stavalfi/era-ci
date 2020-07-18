@@ -4,37 +4,44 @@ import { CiOptions } from './types'
 export { CiOptions }
 
 export const runCiCli = async (
-  options: CiOptions,
-  stdio: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[] = 'inherit',
+  ciOptions: CiOptions,
+  runOptions?: {
+    stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
+    reject?: boolean
+  },
 ): Promise<execa.ExecaChildProcess> => {
   const ciCliPath = require.resolve('@tahini/nc/dist/src/index.js')
 
   const command = `\
   node --unhandled-rejections=strict ${ciCliPath}\
-    --cwd ${options.rootPath} \
-    --master-build=${options.isMasterBuild} \
-    --dry-run=${options.isDryRun} \
-    --skip-tests=${options.skipTests} \
-    --docker-registry ${options.dockerRegistry.protocol}://${options.dockerRegistry.host}:${
-    options.dockerRegistry.port
+    --log-file ${ciOptions.logFilePath} \
+    --cwd ${ciOptions.repoPath} \
+    --master-build=${ciOptions.isMasterBuild} \
+    --dry-run=${ciOptions.isDryRun} \
+    --skip-tests=${ciOptions.skipTests} \
+    --docker-registry ${ciOptions.dockerRegistry.protocol}://${ciOptions.dockerRegistry.host}:${
+    ciOptions.dockerRegistry.port
   } \
-    --npm-registry ${options.npmRegistry.protocol}://${options.npmRegistry.host}:${options.npmRegistry.port} \
-    --git-repo ${options.gitServer.protocol}://${options.gitServer.host}:${options.gitServer.port}/${
-    options.gitOrganizationName
-  }/${options.gitRepositoryName} \
-    --docker-repository ${options.dockerOrganizationName} \
-    ${options.auth.dockerRegistryToken ? `--docker-registry-token ${options.auth.dockerRegistryToken}` : ''} \
-    ${options.auth.dockerRegistryUsername ? `--docker-registry-username ${options.auth.dockerRegistryUsername}` : ''} \
-    --git-server-token ${options.auth.gitServerToken} \
-    --git-server-username ${options.auth.gitServerUsername} \
-    --npm-registry-username ${options.auth.npmRegistryUsername} \
-    --npm-registry-email ${options.auth.npmRegistryEmail} \
-    --npm-registry-token ${options.auth.npmRegistryToken} \
-    ${options.auth.redisPassword ? `--redis-password ${options.auth.redisPassword}` : ''} \
-    --redis-server ${options.redisServer.host}:${options.redisServer.port}
+    --npm-registry ${ciOptions.npmRegistry.protocol}://${ciOptions.npmRegistry.host}:${ciOptions.npmRegistry.port} \
+    --git-repo ${ciOptions.gitServer.protocol}://${ciOptions.gitServer.host}:${ciOptions.gitServer.port}/${
+    ciOptions.gitOrganizationName
+  }/${ciOptions.gitRepositoryName} \
+    --docker-repository ${ciOptions.dockerOrganizationName} \
+    ${ciOptions.auth.dockerRegistryToken ? `--docker-registry-token ${ciOptions.auth.dockerRegistryToken}` : ''} \
+    ${
+      ciOptions.auth.dockerRegistryUsername ? `--docker-registry-username ${ciOptions.auth.dockerRegistryUsername}` : ''
+    } \
+    --git-server-token ${ciOptions.auth.gitServerToken} \
+    --git-server-username ${ciOptions.auth.gitServerUsername} \
+    --npm-registry-username ${ciOptions.auth.npmRegistryUsername} \
+    --npm-registry-email ${ciOptions.auth.npmRegistryEmail} \
+    --npm-registry-token ${ciOptions.auth.npmRegistryToken} \
+    ${ciOptions.auth.redisPassword ? `--redis-password ${ciOptions.auth.redisPassword}` : ''} \
+    --redis-server ${ciOptions.redisServer.host}:${ciOptions.redisServer.port}
   `
 
   return execa.command(command, {
-    stdio: stdio,
+    stdio: runOptions?.stdio || 'inherit',
+    reject: runOptions?.reject ?? true,
   })
 }

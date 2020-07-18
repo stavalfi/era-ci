@@ -21,6 +21,9 @@ export type Package = {
   src?: FolderStructure
   tests?: FolderStructure
   additionalFiles?: FolderStructure
+  scripts?: {
+    test?: string
+  }
 }
 
 export type MinimalNpmPackage = Pick<Package, 'name' | 'version'> & { targetType: TargetType.npm }
@@ -34,7 +37,10 @@ export type CiOptions = {
   isMasterBuild: boolean
   isDryRun?: boolean
   skipTests?: boolean
-  stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
+  execaOptions?: {
+    stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
+    reject?: boolean
+  }
 }
 
 export type PublishedPackageInfo = {
@@ -56,6 +62,8 @@ export type TestResources = {
 }
 
 export type CiResults = {
+  logs: string
+  ciProcessResult: execa.ExecaReturnValue<string>
   published: Map<string, PublishedPackageInfo>
 }
 

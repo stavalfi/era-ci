@@ -101,7 +101,9 @@ describe('npm package depends on.....', () => {
     await expect(
       runCi({
         isMasterBuild: false,
-        stdio: 'pipe',
+        execaOptions: {
+          stdio: 'pipe',
+        },
       }),
     ).rejects.toEqual(
       expect.objectContaining({
@@ -135,7 +137,9 @@ describe('npm package depends on.....', () => {
     await expect(
       runCi({
         isMasterBuild: false,
-        stdio: 'pipe',
+        execaOptions: {
+          stdio: 'pipe',
+        },
       }),
     ).rejects.toEqual(
       expect.objectContaining({
@@ -174,7 +178,7 @@ describe('docker-package depends on...', () => {
     })
 
     expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
-    expect(master1.published.get('b')?.docker?.tags).toEqual(['2.0.0', 'latest'])
+    expect(master1.published.get('b')?.docker?.tags).toEqual(['2.0.0'])
 
     await addRandomFileToPackage('a')
 
@@ -184,7 +188,7 @@ describe('docker-package depends on...', () => {
 
     expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
     expect(master2.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')
-    expect(master2.published.get('b')?.docker?.tags).toEqual(['2.0.0', '2.0.1', 'latest'])
+    expect(master2.published.get('b')?.docker?.tags).toEqual(['2.0.0', '2.0.1'])
     expect(master2.published.get('b')?.docker?.latestTag).toEqual('2.0.1')
   })
 
@@ -210,7 +214,9 @@ describe('docker-package depends on...', () => {
     await expect(
       runCi({
         isMasterBuild: false,
-        stdio: 'pipe',
+        execaOptions: {
+          stdio: 'pipe',
+        },
       }),
     ).rejects.toEqual(
       expect.objectContaining({
@@ -244,7 +250,9 @@ describe('docker-package depends on...', () => {
     await expect(
       runCi({
         isMasterBuild: false,
-        stdio: 'pipe',
+        execaOptions: {
+          stdio: 'pipe',
+        },
       }),
     ).rejects.toEqual(
       expect.objectContaining({
