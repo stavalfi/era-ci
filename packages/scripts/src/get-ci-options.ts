@@ -50,6 +50,5 @@ export const getPrCiOptions = (): CiOptions => {
 }
 export const getMasterCiOptions = (): CiOptions => ({
   ...getPrCiOptions(),
-  skipTests: true,
   shouldPublish: true,
 })
