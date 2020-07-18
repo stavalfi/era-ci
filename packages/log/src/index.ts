@@ -1,7 +1,6 @@
 import winston from 'winston'
 import chalk from 'chalk'
 import randomColor from 'randomcolor'
-import ciInfo from 'ci-info'
 
 const { combine, timestamp, printf } = winston.format
 
@@ -32,7 +31,6 @@ const consoleTransport = new winston.transports.Console({
 // eslint-disable-next-line no-process-env
 const isNcTestMode = Boolean(process.env.NC_TEST_MODE)
 const mainLogger = winston.createLogger({
-  silent: ciInfo.isCI && isNcTestMode,
   level: isNcTestMode ? 'verbose' : 'info',
   transports: [consoleTransport],
 })
