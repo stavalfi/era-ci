@@ -16,7 +16,7 @@ export const runCiCli = async (
   node --unhandled-rejections=strict ${ciCliPath}\
     --log-file ${ciOptions.logFilePath} \
     --cwd ${ciOptions.repoPath} \
-    --master-build=${ciOptions.isMasterBuild} \
+    --should-publish=${ciOptions.shouldPublish} \
     --dry-run=${ciOptions.isDryRun} \
     --skip-tests=${ciOptions.skipTests} \
     --docker-registry ${ciOptions.dockerRegistry.protocol}://${ciOptions.dockerRegistry.host}:${

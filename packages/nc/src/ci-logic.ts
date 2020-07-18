@@ -1,25 +1,26 @@
 /* eslint-disable no-console */
 
-import { logger } from '@tahini/log'
+import { logger, logReport } from '@tahini/log'
 import execa from 'execa'
 import fse from 'fs-extra'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
+import { intializeCache } from './cache'
 import { dockerRegistryLogin } from './docker-utils'
 import { npmRegistryLogin } from './npm-utils'
 import { getPackageTargetType } from './package-info'
 import { publish } from './publish'
-import { CiOptions, TargetType } from './types'
-import { getOrderedGraph, getPackages, isRepoModified } from './utils'
-import { validatePackages } from './validate-packages'
-import { intializeCache } from './cache'
+import { generateReport } from './report'
 import { testPackages } from './test'
+import { CiOptions, TargetType } from './types'
+import { getOrderedGraph, getPackages, isRepoModified, shouldFailBuild } from './utils'
+import { validatePackages } from './validate-packages'
 
 export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
 export { npmRegistryLogin } from './npm-utils'
 export { TargetType } from './types'
 
-const log = logger('index')
+const log = logger('ci-logic')
 
 export async function ci(options: CiOptions) {
   log.verbose(`starting ci execution. options: ${JSON.stringify(options, null, 2)}`)
@@ -104,19 +105,6 @@ export async function ci(options: CiOptions) {
 
   const orderedTestsResult = await testPackages({ orderedGraph, cache, skipTests: options.skipTests })
 
-  if (options.isMasterBuild) {
-    await publish(orderedTestsResult, {
-      isDryRun: options.isDryRun,
-      repoPath: options.repoPath,
-      dockerRegistry: options.dockerRegistry,
-      npmRegistry: options.npmRegistry,
-      dockerOrganizationName: options.dockerOrganizationName,
-      cache,
-      auth: options.auth,
-    })
-  }
-  await Promise.all([cache.disconnect(), execa.command(`git reset HEAD --hard`, { cwd: options.repoPath })])
-
   const packagesWithFailedTests = orderedTestsResult
     .filter(node => 'passed' in node.data.testsResult && !node.data.testsResult.passed)
     .map(node => node.data.packageJson.name)
@@ -125,7 +113,28 @@ export async function ci(options: CiOptions) {
     log.error(`packages with failed tests: ${packagesWithFailedTests.join(', ')}`)
     process.exitCode = 1
   }
-  // jest don't show last two console logs so we add this as a workaround so we can see the actual two last console logs.
-  log.info('---------------------------')
-  log.info('---------------------------')
+
+  const orderedPublishResult = await publish(orderedTestsResult, {
+    shouldPublish: options.shouldPublish,
+    isDryRun: options.isDryRun,
+    repoPath: options.repoPath,
+    dockerRegistry: options.dockerRegistry,
+    npmRegistry: options.npmRegistry,
+    dockerOrganizationName: options.dockerOrganizationName,
+    cache,
+    auth: options.auth,
+  })
+
+  logReport(
+    generateReport({
+      graph: orderedPublishResult,
+      shouldPublish: options.shouldPublish,
+    }),
+  )
+
+  await cache.disconnect()
+
+  if (shouldFailBuild(orderedPublishResult).failBuild) {
+    process.exitCode = 1
+  }
 }

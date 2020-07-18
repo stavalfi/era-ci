@@ -19,7 +19,7 @@ test('do not run tests if skip-tests option is enabled', async () => {
   })
 
   const { ciProcessResult } = await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
     skipTests: true,
     execaOptions: {
       stdio: 'pipe',
@@ -44,7 +44,7 @@ test('make sure tests output is printed', async () => {
   })
 
   const { ciProcessResult } = await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
     execaOptions: {
       stdio: 'pipe',
     },
@@ -68,7 +68,7 @@ test('make sure ci fails if tests fails', async () => {
   })
 
   const result = await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
     execaOptions: {
       stdio: 'pipe',
       reject: false,
@@ -101,7 +101,7 @@ test('multiple packages', async () => {
   })
 
   const result = await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
     execaOptions: {
       stdio: 'pipe',
       reject: false,
@@ -130,13 +130,13 @@ test('skip package with passed tests', async () => {
   await test.makeTestsPass()
 
   await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
   })
 
   await test.makeTestsFail()
 
   const pr = await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
     execaOptions: {
       stdio: 'pipe',
     },
@@ -165,7 +165,7 @@ test('skip package with failed tests', async () => {
   await test.makeTestsFail()
 
   await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
     execaOptions: {
       reject: false,
     },
@@ -174,7 +174,7 @@ test('skip package with failed tests', async () => {
   await test.makeTestsPass()
 
   const pr = await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
     execaOptions: {
       stdio: 'pipe',
       reject: false,
@@ -208,14 +208,14 @@ test('run tests of package after the package changed even if the tests passed at
   await test.makeTestsPass()
 
   await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
   })
 
   await addRandomFileToPackage('a')
   await test.makeTestsFail()
 
   const result = await runCi({
-    isMasterBuild: false,
+    shouldPublish: false,
     execaOptions: {
       stdio: 'pipe',
       reject: false,

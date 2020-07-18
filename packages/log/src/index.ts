@@ -40,3 +40,14 @@ export const addLogfile = (logsPath: string): void => {
 }
 
 export const logger = (module: string): winston.Logger => mainLogger.child({ module })
+
+export const logReport = (report: string) =>
+  winston
+    .createLogger({
+      transports: [
+        new winston.transports.Console({
+          format: combine(printf(({ message }) => message)),
+        }),
+      ],
+    })
+    .info(report)

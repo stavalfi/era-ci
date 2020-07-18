@@ -22,7 +22,7 @@ export type Auth = {
 export type CiOptions = {
   logFilePath: string
   repoPath: string
-  isMasterBuild: boolean
+  shouldPublish: boolean
   isDryRun: boolean
   skipTests: boolean
   npmRegistry: ServerInfo
@@ -118,20 +118,12 @@ export type TestsResult =
 
 export type PublishResult =
   | {
-      skipped:
-        | false
-        | {
-            reason: string
-            error?: unknown
-          }
+      skipped: {
+        reason: string
+      }
     }
   | {
-      skipped:
-        | false
-        | {
-            reason: string
-            error?: unknown
-          }
+      skipped: false
       published:
         | {
             asVersion: string

@@ -68,7 +68,7 @@ export async function getNpmhighestVersionInfo(
       highestVersion,
       allVersions,
     }
-    log.verbose(`latest tag and hash for "${packageName}" are: "${latest}"`)
+    log.verbose(`latest tag and hash for "${packageName}" are: "${JSON.stringify(latest, null, 2)}"`)
     return latest
   } catch (e) {
     if (e.message.includes('code E404')) {
