@@ -53,7 +53,7 @@ test('make sure tests output is printed', async () => {
   expect(ciProcessResult.stdout).toContain('echo running-very-nice-tests')
 })
 
-test('make sure ci fails if tests fails', async () => {
+test.only('make sure ci fails if tests fails', async () => {
   const { runCi } = await createRepo({
     packages: [
       {

@@ -54,7 +54,7 @@ in your package to force the tests will run again',
     }
   }
 
-  const testsResult = await execa.command(`yarn test __tests__/tests.spec.ts -t "make sure ci fails if tests fails"`, {
+  const testsResult = await execa.command(`yarn test __tests__/tests.spec.ts`, {
     cwd: node.data.packagePath,
     stdio: 'inherit',
     reject: false,
