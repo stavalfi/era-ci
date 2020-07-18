@@ -9,6 +9,9 @@ import { toServerInfo } from './utils'
 import parseGitUrl from 'git-url-parse'
 import path from 'path'
 import { addLogfile } from '@tahini/log'
+import { logger } from '@tahini/log'
+
+const log = logger('index')
 
 export { CiOptions, runCiCli } from './ci-node-api'
 
@@ -27,9 +30,9 @@ async function main() {
         long: 'dry-run',
         defaultValue: () => false,
       }),
-      'master-build': flag({
+      'should-publish': flag({
         type: boolean,
-        long: 'master-build',
+        long: 'should-publish',
       }),
       'skip-tests': flag({
         type: boolean,
@@ -126,7 +129,7 @@ async function main() {
         logFilePath: args['log-file'] || path.join(args.cwd, 'nc-logs.txt'),
         isDryRun: args['dry-run'],
         repoPath: args.cwd,
-        isMasterBuild: args['master-build'],
+        shouldPublish: args['should-publish'],
         skipTests: args['skip-tests'],
         gitRepositoryName: name,
         gitOrganizationName: organization,
@@ -154,5 +157,12 @@ async function main() {
 
 if (require.main === module) {
   // eslint-disable-next-line no-floating-promise/no-floating-promise
-  main()
+  main().finally(() => {
+    // eslint-disable-next-line no-process-env
+    if (process.env.NC_TEST_MODE) {
+      // jest don't show last two console logs so we add this as a workaround so we can see the actual two last console logs.
+      log.info('---------------------------')
+      log.info('---------------------------')
+    }
+  })
 }

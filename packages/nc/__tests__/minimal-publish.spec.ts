@@ -3,7 +3,7 @@ import { TargetType } from './prepare-test/types'
 
 const { createRepo } = newEnv()
 
-test('multiple publishes of the same package but packages has no changes in between', async () => {
+test('skip publish of package that did not change from the last publish', async () => {
   const { runCi } = await createRepo({
     packages: [
       {
@@ -15,12 +15,12 @@ test('multiple publishes of the same package but packages has no changes in betw
   })
 
   const master1 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
   expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
 
   const master2 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
 })
@@ -42,7 +42,7 @@ test('multiple packages - publish again only changed package', async () => {
   })
 
   const master1 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -51,7 +51,7 @@ test('multiple packages - publish again only changed package', async () => {
   await addRandomFileToPackage('a')
 
   const master2 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
 
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
@@ -71,7 +71,7 @@ test('no addtional publish of the same package with the exact same content', asy
   })
 
   const master1 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
   expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
 
@@ -81,7 +81,7 @@ test('no addtional publish of the same package with the exact same content', asy
   }))
 
   const master2 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
   expect(master2.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')
@@ -93,7 +93,7 @@ test('no addtional publish of the same package with the exact same content', asy
   })
 
   const master3 = await runCi({
-    isMasterBuild: true,
+    shouldPublish: true,
   })
   expect(master3.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
   expect(master3.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')

@@ -34,7 +34,7 @@ export type Repo = {
 }
 
 export type CiOptions = {
-  isMasterBuild: boolean
+  shouldPublish: boolean
   isDryRun?: boolean
   skipTests?: boolean
   execaOptions?: {

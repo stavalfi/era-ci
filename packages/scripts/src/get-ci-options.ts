@@ -2,10 +2,11 @@
 
 import { CiOptions } from '@tahini/nc'
 import path from 'path'
+import findProjectRoot from 'find-project-root'
 
 export const getPrCiOptions = (): CiOptions => {
   const redisServer = process.env['REDIS_ENDPOINT']?.split(':') as string[]
-  const repoPath = path.join(__dirname, '../../../../')
+  const repoPath = findProjectRoot(__dirname) as string
 
   return {
     logFilePath: path.join('repoPath', 'nc-logs.txt'),
@@ -33,7 +34,7 @@ export const getPrCiOptions = (): CiOptions => {
       port: Number(redisServer[1]),
     },
     isDryRun: false,
-    isMasterBuild: false,
+    shouldPublish: false,
     skipTests: false,
     auth: {
       gitServerToken: process.env['GIT_SERVER_TOKEN'] as string,
@@ -50,5 +51,5 @@ export const getPrCiOptions = (): CiOptions => {
 export const getMasterCiOptions = (): CiOptions => ({
   ...getPrCiOptions(),
   skipTests: true,
-  isMasterBuild: true,
+  shouldPublish: true,
 })

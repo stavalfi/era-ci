@@ -55,12 +55,12 @@ export const newEnv: NewEnvFunc = () => {
       toActualName,
     })
 
-    const runCi: RunCi = async ({ isMasterBuild, isDryRun, skipTests, execaOptions }) => {
+    const runCi: RunCi = async ({ shouldPublish, isDryRun, skipTests, execaOptions }) => {
       const logFilePath = path.join(os.tmpdir(), `nc-logs-${chance().hash()}.txt`)
       const ciProcessResult = await runCiCli(
         {
           logFilePath,
-          isMasterBuild,
+          shouldPublish,
           skipTests: Boolean(skipTests),
           isDryRun: Boolean(isDryRun),
           dockerOrganizationName,
