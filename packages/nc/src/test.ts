@@ -13,12 +13,15 @@ async function testPackage({
   cache: Cache
   skipTests: boolean
 }): Promise<TestsResult> {
+  const startMs = Date.now()
+
   if (skipTests) {
     return {
       ...node.data,
       skipped: {
         reason: 'ci configurations specify to skip tests',
       },
+      durationMs: Date.now() - startMs,
     }
   }
   if (!node.data.packageJson.scripts?.test) {
@@ -27,6 +30,7 @@ async function testPackage({
       skipped: {
         reason: 'no test script',
       },
+      durationMs: Date.now() - startMs,
     }
   }
 
@@ -39,6 +43,7 @@ async function testPackage({
           reason: 'nothing changed and tests already passed in last builds.',
         },
         passed: true,
+        durationMs: Date.now() - startMs,
       }
     } else {
       return {
@@ -50,6 +55,7 @@ if you have falky tests, please fix them or make a small change\
 in your package to force the tests will run again',
         },
         passed: false,
+        durationMs: Date.now() - startMs,
       }
     }
   }
@@ -67,12 +73,14 @@ in your package to force the tests will run again',
       ...node.data,
       skipped: false,
       passed: false,
+      durationMs: Date.now() - startMs,
     }
   } else {
     return {
       ...node.data,
       skipped: false,
       passed: true,
+      durationMs: Date.now() - startMs,
     }
   }
 }

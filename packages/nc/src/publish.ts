@@ -20,23 +20,19 @@ import { IPackageJson } from 'package-json-type'
 
 const log = logger('publish')
 
-async function updateVersionAndPublish(
-  packagePath: string,
-  newVersion: string,
-  between: () => Promise<PublishResult>,
-): Promise<PublishResult> {
-  let packageJson: IPackageJson
-  try {
-    packageJson = await fse.readJSON(path.join(packagePath, 'package.json'))
-  } catch (error) {
-    return {
-      skipped: false,
-      published: {
-        failed: { reason: 'failed to read package.json so we can change it to the new version', error },
-      },
-    }
-  }
-
+async function updateVersionAndPublish({
+  publish,
+  newVersion,
+  packageJson,
+  packagePath,
+  startMs,
+}: {
+  packageJson: IPackageJson
+  packagePath: string
+  newVersion: string
+  publish: () => Promise<PublishResult>
+  startMs: number
+}): Promise<PublishResult> {
   try {
     await fse.writeFile(
       path.join(packagePath, 'package.json'),
@@ -46,16 +42,18 @@ async function updateVersionAndPublish(
     return {
       skipped: false,
       published: { failed: { reason: 'failed to update package.json to the new version', error } },
+      durationMs: Date.now() - startMs,
     }
   }
 
   let result: PublishResult
   try {
-    result = await between()
+    result = await publish()
   } catch (error) {
     return {
       skipped: false,
       published: { failed: { reason: 'failed to publish', error } },
+      durationMs: Date.now() - startMs,
     }
   }
 
@@ -93,11 +91,13 @@ async function publishNpm({
   auth: Auth
   shouldPublish: boolean
 }): Promise<PublishResult> {
+  const startMs = Date.now()
   if (!shouldPublish) {
     return {
       skipped: {
         reason: 'ci is configured to skip publish',
       },
+      durationMs: Date.now() - startMs,
     }
   }
 
@@ -106,6 +106,7 @@ async function publishNpm({
       skipped: {
         reason: 'skipping publish because the tests failed',
       },
+      durationMs: Date.now() - startMs,
     }
   }
 
@@ -125,12 +126,14 @@ async function publishNpm({
           asVersion: publishedVersion,
         },
       }),
+      durationMs: Date.now() - startMs,
     }
   }
 
   if (isDryRun) {
     return {
       skipped: { reason: `skipping publish because we are in dry-run mode` },
+      durationMs: Date.now() - startMs,
     }
   }
 
@@ -152,28 +155,35 @@ async function publishNpm({
     npmTarget.newVersion,
   )
 
-  return updateVersionAndPublish(packageInfo.packagePath, newVersion, async () => {
-    await execa.command(
-      `yarn publish --registry ${npmRegistryAddress} --non-interactive ${
-        packageInfo.packageJson.name?.includes('@') ? '--access public' : ''
-      }`,
-      {
-        cwd: packageInfo.packagePath,
-        env: {
-          // npm need this env-var for auth - this is needed only for production publishing.
-          // in tests it doesn't do anything and we login manually to npm in tests.
-          NPM_AUTH_TOKEN: auth.npmRegistryToken,
-          NPM_TOKEN: auth.npmRegistryToken,
+  return updateVersionAndPublish({
+    startMs,
+    newVersion,
+    packageJson: packageInfo.packageJson,
+    packagePath: packageInfo.packagePath,
+    publish: async () => {
+      await execa.command(
+        `yarn publish --registry ${npmRegistryAddress} --non-interactive ${
+          packageInfo.packageJson.name?.includes('@') ? '--access public' : ''
+        }`,
+        {
+          cwd: packageInfo.packagePath,
+          env: {
+            // npm need this env-var for auth - this is needed only for production publishing.
+            // in tests it doesn't do anything and we login manually to npm in tests.
+            NPM_AUTH_TOKEN: auth.npmRegistryToken,
+            NPM_TOKEN: auth.npmRegistryToken,
+          },
         },
-      },
-    )
-    log.info(`published npm target in package: "${packageInfo.packageJson.name}"`)
-    return {
-      skipped: false,
-      published: {
-        asVersion: newVersion,
-      },
-    }
+      )
+      log.info(`published npm target in package: "${packageInfo.packageJson.name}"`)
+      return {
+        skipped: false,
+        published: {
+          asVersion: newVersion,
+        },
+        durationMs: Date.now() - startMs,
+      }
+    },
   })
 }
 
@@ -200,11 +210,14 @@ async function publishDocker({
   repoPath: string
   shouldPublish: boolean
 }): Promise<PublishResult> {
+  const startMs = Date.now()
+
   if (!shouldPublish) {
     return {
       skipped: {
         reason: 'ci is configured to skip publish',
       },
+      durationMs: Date.now() - startMs,
     }
   }
 
@@ -213,6 +226,7 @@ async function publishDocker({
       skipped: {
         reason: 'skipping publish because the tests failed',
       },
+      durationMs: Date.now() - startMs,
     }
   }
 
@@ -230,6 +244,7 @@ async function publishDocker({
           asVersion: publishedTag,
         },
       }),
+      durationMs: Date.now() - startMs,
     }
   }
 
@@ -256,55 +271,65 @@ async function publishDocker({
   )
 
   // the package.json will probably copied to the image during the docker-build so we want to make sure the new version is in there
-  return updateVersionAndPublish(packageInfo.packagePath, newVersion, async () => {
-    log.info(`building docker image "${fullImageNameNewVersion}" in package: "${packageInfo.packageJson.name}"`)
+  return updateVersionAndPublish({
+    startMs,
+    packageJson: packageInfo.packageJson,
+    packagePath: packageInfo.packagePath,
+    newVersion,
+    publish: async () => {
+      log.info(`building docker image "${fullImageNameNewVersion}" in package: "${packageInfo.packageJson.name}"`)
 
-    try {
-      await execa.command(
-        `docker build --label latest-hash=${packageInfo.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
-        {
-          cwd: packageInfo.packagePath,
-          stdio: 'inherit',
-        },
-      )
-    } catch (error) {
-      return {
-        skipped: false,
-        published: {
-          failed: {
-            reason: 'failed to build the docker-image',
-            error,
+      try {
+        await execa.command(
+          `docker build --label latest-hash=${packageInfo.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
+          {
+            cwd: packageInfo.packagePath,
+            stdio: 'inherit',
           },
-        },
+        )
+      } catch (error) {
+        return {
+          skipped: false,
+          published: {
+            failed: {
+              reason: 'failed to build the docker-image',
+              error,
+            },
+          },
+          durationMs: Date.now() - startMs,
+        }
       }
-    }
-    log.info(`built docker image "${fullImageNameNewVersion}" in package: "${packageInfo.packageJson.name}"`)
+      log.info(`built docker image "${fullImageNameNewVersion}" in package: "${packageInfo.packageJson.name}"`)
 
-    if (isDryRun) {
-      return {
-        skipped: { reason: `skipping publish because we are in dry-run mode` },
+      if (isDryRun) {
+        return {
+          skipped: { reason: `skipping publish because we are in dry-run mode` },
+          durationMs: Date.now() - startMs,
+        }
       }
-    }
 
-    try {
-      await execa.command(`docker push ${fullImageNameNewVersion}`)
-    } catch (error) {
+      try {
+        await execa.command(`docker push ${fullImageNameNewVersion}`)
+      } catch (error) {
+        return {
+          skipped: false,
+          published: {
+            failed: { reason: `failed to push the docker-image`, error },
+          },
+          durationMs: Date.now() - startMs,
+        }
+      }
+
+      log.info(`published docker target in package: "${packageInfo.packageJson.name}"`)
+
       return {
         skipped: false,
         published: {
-          failed: { reason: `failed to push the docker-image`, error },
+          asVersion: newVersion,
         },
+        durationMs: Date.now() - startMs,
       }
-    }
-
-    log.info(`published docker target in package: "${packageInfo.packageJson.name}"`)
-
-    return {
-      skipped: false,
-      published: {
-        asVersion: newVersion,
-      },
-    }
+    },
   })
 }
 
@@ -366,6 +391,7 @@ export async function publish(
               skipped: {
                 reason: 'skipping publish because this is a private-npm-package',
               },
+              durationMs: 0,
             },
           }
       }

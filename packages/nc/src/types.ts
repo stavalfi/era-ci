@@ -97,7 +97,7 @@ export type Cache = {
   disconnect: () => Promise<unknown>
 }
 
-export type TestsResult =
+export type TestsResult = { durationMs: number } & (
   | {
       skipped: false
       passed: boolean
@@ -115,8 +115,9 @@ export type TestsResult =
         error?: unknown
       }
     }
+)
 
-export type PublishResult =
+export type PublishResult = { durationMs: number } & (
   | {
       skipped: {
         reason: string
@@ -132,3 +133,28 @@ export type PublishResult =
             failed: { reason: string; error?: unknown }
           }
     }
+)
+
+export enum Step {
+  install = 'install',
+  build = 'build',
+  test = 'test',
+  publish = 'publish',
+  report = 'report',
+}
+
+export enum StepStatus {
+  ok = 'ok',
+  skipped = 'skipped',
+  failed = 'failed',
+}
+
+export type StepResult = {
+  status: StepStatus
+  durationMs: number
+}
+
+export type StepResultWithStepName<Step, PackageResult = {}> = StepResult & {
+  stepName: Step
+  packagesResult: PackageResult[]
+}
