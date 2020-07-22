@@ -1,0 +1,24 @@
+{
+  "name": "priority-queue",
+  "version": "1.2.26",
+  "license": "UNLICENSED",
+  "main": "dist/src/index.js",
+  "private": true,
+  "files": [
+    "src",
+    "__tests__",
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig-build.json",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "bullmq": "^1.9.0",
+    "ioredis": "^4.17.3"
+  }
+}
