@@ -11,11 +11,18 @@ import { getPackagePath, getPackages } from './utils'
 import { createFile } from 'create-folder-structure'
 
 export async function manageTest() {
-  const filePath = await createFile()
+  const expectedContentInLog = `content-${chance().hash()}`
+  const filePath = await createFile(expectedContentInLog)
+
   return {
-    testScript: `ls ${filePath}`,
-    makeTestsPass: () => fse.createFile(filePath),
-    makeTestsFail: () => fse.remove(filePath),
+    testScript: `cat ${filePath}`,
+    expectedContentInLog,
+    makeTestsPass: async () => {
+      await fse.writeFile(filePath, expectedContentInLog)
+    },
+    makeTestsFail: async () => {
+      await fse.remove(filePath)
+    },
   }
 }
 

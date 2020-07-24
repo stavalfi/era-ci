@@ -1,7 +1,4 @@
-/* eslint-disable no-console */
-
-import { logger, logReport } from '@tahini/log'
-import execa from 'execa'
+import { logger } from '@tahini/log'
 import fse from 'fs-extra'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
@@ -10,10 +7,9 @@ import { dockerRegistryLogin } from './docker-utils'
 import { npmRegistryLogin } from './npm-utils'
 import { getPackageTargetType } from './package-info'
 import { publish } from './publish'
-import { generateReport } from './cli-report'
 import { testPackages } from './test'
 import { CiOptions, TargetType } from './types'
-import { getOrderedGraph, getPackages, isRepoModified, shouldFailBuild } from './utils'
+import { build, exitCi, getOrderedGraph, getPackages, install, shouldFailCi } from './utils'
 import { validatePackages } from './validate-packages'
 
 export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
@@ -23,12 +19,8 @@ export { TargetType } from './types'
 const log = logger('ci-logic')
 
 export async function ci(options: CiOptions) {
+  const startMs = Date.now()
   log.verbose(`starting ci execution. options: ${JSON.stringify(options, null, 2)}`)
-
-  if (await isRepoModified(options.repoPath)) {
-    // why: in the ci flow, we mutate and packageJsons and then git-commit-amend the changed, so I don't want to add external changed to the commit
-    throw new Error(`can't run ci on modified git repository. please commit your changes and run the ci again.`)
-  }
 
   // @ts-ignore
   if (!(await fse.exists(path.join(options.repoPath, 'yarn.lock')))) {
@@ -87,34 +79,42 @@ export async function ci(options: CiOptions) {
     cache,
   })
 
-  log.info(`installing...`)
-  await execa.command('yarn install', {
-    cwd: options.repoPath,
-    stdio: 'inherit',
-  })
+  const installResult = await install({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 0 })
 
-  const rootPackageJson: IPackageJson = await fse.readJson(path.join(options.repoPath, 'package.json'))
+  const shouldFailAfterInstall = shouldFailCi({ install: installResult })
 
-  if (rootPackageJson.scripts && 'build' in rootPackageJson.scripts && rootPackageJson.scripts.build) {
-    log.info(`building...`)
-    await execa.command('yarn build', {
-      cwd: options.repoPath,
-      stdio: 'inherit',
+  if (shouldFailAfterInstall) {
+    return exitCi({
+      cache,
+      graph: orderedGraph,
+      shouldFail: true,
+      startMs,
+      steps: { install: installResult },
     })
   }
 
-  const orderedTestsResult = await testPackages({ orderedGraph, cache, skipTests: options.skipTests })
+  const buildResult = await build({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 1 })
 
-  const packagesWithFailedTests = orderedTestsResult
-    .filter(node => 'passed' in node.data.testsResult && !node.data.testsResult.passed)
-    .map(node => node.data.packageJson.name)
+  const shouldFailAfterBuild = shouldFailCi({ install: installResult, build: buildResult })
 
-  if (packagesWithFailedTests.length > 0) {
-    log.error(`packages with failed tests: ${packagesWithFailedTests.join(', ')}`)
-    process.exitCode = 1
+  if (shouldFailAfterBuild) {
+    return exitCi({
+      cache,
+      graph: orderedGraph,
+      shouldFail: true,
+      startMs,
+      steps: { install: installResult, build: buildResult },
+    })
   }
 
-  const orderedPublishResult = await publish(orderedTestsResult, {
+  const testResult = await testPackages({
+    orderedGraph,
+    cache,
+    skipTests: options.skipTests,
+    executionOrder: 2,
+  })
+
+  const publishResult = await publish(testResult.packagesResult, {
     shouldPublish: options.shouldPublish,
     isDryRun: options.isDryRun,
     repoPath: options.repoPath,
@@ -123,18 +123,21 @@ export async function ci(options: CiOptions) {
     dockerOrganizationName: options.dockerOrganizationName,
     cache,
     auth: options.auth,
+    executionOrder: 3,
   })
 
-  logReport(
-    generateReport({
-      graph: orderedPublishResult,
-      shouldPublish: options.shouldPublish,
-    }),
-  )
+  const shouldFailAfterPublish = shouldFailCi({
+    install: installResult,
+    build: buildResult,
+    test: testResult,
+    publish: publishResult,
+  })
 
-  await cache.disconnect()
-
-  if (shouldFailBuild(orderedPublishResult).failBuild) {
-    process.exitCode = 1
-  }
+  return exitCi({
+    cache,
+    graph: orderedGraph,
+    shouldFail: shouldFailAfterPublish,
+    startMs,
+    steps: { install: installResult, build: buildResult, test: testResult, publish: publishResult },
+  })
 }

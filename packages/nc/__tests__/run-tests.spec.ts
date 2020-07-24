@@ -5,6 +5,8 @@ import { manageTest } from './prepare-test/test-helpers'
 const { createRepo } = newEnv()
 
 test('do not run tests if skip-tests option is enabled', async () => {
+  const test = await manageTest()
+
   const { runCi } = await createRepo({
     packages: [
       {
@@ -12,11 +14,13 @@ test('do not run tests if skip-tests option is enabled', async () => {
         version: '1.0.0',
         targetType: TargetType.npm,
         scripts: {
-          test: 'echo running-very-nice-tests',
+          test: test.testScript,
         },
       },
     ],
   })
+
+  await test.makeTestsPass()
 
   const { ciProcessResult } = await runCi({
     shouldPublish: false,
@@ -26,10 +30,12 @@ test('do not run tests if skip-tests option is enabled', async () => {
     },
   })
 
-  expect(ciProcessResult.stdout).not.toContain('echo running-very-nice-tests')
+  expect(ciProcessResult.stdout).not.toContain(test.expectedContentInLog)
 })
 
 test('make sure tests output is printed', async () => {
+  const test = await manageTest()
+
   const { runCi } = await createRepo({
     packages: [
       {
@@ -37,7 +43,7 @@ test('make sure tests output is printed', async () => {
         version: '1.0.0',
         targetType: TargetType.npm,
         scripts: {
-          test: 'echo running-very-nice-tests',
+          test: test.testScript,
         },
       },
     ],
@@ -50,10 +56,12 @@ test('make sure tests output is printed', async () => {
     },
   })
 
-  expect(ciProcessResult.stdout).toContain('echo running-very-nice-tests')
+  expect(ciProcessResult.stdout).toContain(test.expectedContentInLog)
 })
 
 test('make sure ci fails if tests fails', async () => {
+  const test = await manageTest()
+
   const { runCi } = await createRepo({
     packages: [
       {
@@ -61,24 +69,28 @@ test('make sure ci fails if tests fails', async () => {
         version: '1.0.0',
         targetType: TargetType.npm,
         scripts: {
-          test: 'exit 12345',
+          test: test.testScript,
         },
       },
     ],
   })
 
+  await test.makeTestsFail()
+
   const result = await runCi({
     shouldPublish: false,
     execaOptions: {
-      stdio: 'pipe',
       reject: false,
     },
   })
   expect(result.ciProcessResult.failed).toBeTruthy()
-  expect(result.ciProcessResult.stderr).toMatch(/packages with failed tests: a/)
+  // todo: find a way to check in the report that a-package failed in test-step
 })
 
 test('multiple packages', async () => {
+  const aTest = await manageTest()
+  const bTest = await manageTest()
+
   const { runCi } = await createRepo({
     packages: [
       {
@@ -86,7 +98,7 @@ test('multiple packages', async () => {
         version: '1.0.0',
         targetType: TargetType.npm,
         scripts: {
-          test: 'exit 12345',
+          test: aTest.testScript,
         },
       },
       {
@@ -94,22 +106,24 @@ test('multiple packages', async () => {
         version: '1.0.0',
         targetType: TargetType.npm,
         scripts: {
-          test: 'exit 12345',
+          test: bTest.testScript,
         },
       },
     ],
   })
 
+  await aTest.makeTestsFail()
+  await bTest.makeTestsFail()
+
   const result = await runCi({
     shouldPublish: false,
     execaOptions: {
-      stdio: 'pipe',
       reject: false,
     },
   })
 
   expect(result.ciProcessResult.failed).toBeTruthy()
-  expect(result.ciProcessResult.stderr).toMatch(/packages with failed tests: a.* b.*/)
+  // todo: find a way to check in the report that a-package,b-package failed in test-step
 })
 
 test('skip package with passed tests', async () => {
@@ -135,16 +149,12 @@ test('skip package with passed tests', async () => {
 
   await test.makeTestsFail()
 
-  const pr = await runCi({
-    shouldPublish: false,
-    execaOptions: {
-      stdio: 'pipe',
-    },
-  })
-
-  expect(pr.ciProcessResult.stdout).toEqual(
-    expect.stringContaining('nothing changed and tests already passed in last builds'),
-  )
+  await expect(
+    runCi({
+      shouldPublish: false,
+    }),
+  ).resolves.toBeTruthy()
+  // todo: find a way to check in the report that a-package passed in test-step
 })
 
 test('skip package with failed tests', async () => {
@@ -176,18 +186,12 @@ test('skip package with failed tests', async () => {
   const pr = await runCi({
     shouldPublish: false,
     execaOptions: {
-      stdio: 'pipe',
       reject: false,
     },
   })
 
-  expect(pr.ciProcessResult.stdout).toEqual(
-    expect.stringContaining(
-      'nothing changed and tests already failed in last builds.\
-if you have falky tests, please fix them or make a small change\
-in your package to force the tests will run again',
-    ),
-  )
+  expect(pr.ciProcessResult.failed).toBeTruthy()
+  // todo: find a way to check in the report that a-package failed in test-step
 })
 
 test('run tests of package after the package changed even if the tests passed at the first run', async () => {
@@ -217,10 +221,10 @@ test('run tests of package after the package changed even if the tests passed at
   const result = await runCi({
     shouldPublish: false,
     execaOptions: {
-      stdio: 'pipe',
       reject: false,
     },
   })
 
-  expect(result.ciProcessResult.stderr).toMatch(/packages with failed tests: a/)
+  expect(result.ciProcessResult.failed).toBeTruthy()
+  // todo: find a way to check in the report that a-package failed in test-step
 })

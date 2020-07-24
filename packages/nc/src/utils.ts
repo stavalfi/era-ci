@@ -1,49 +1,51 @@
 import { logger } from '@tahini/log'
 import execa from 'execa'
+import fse from 'fs-extra'
 import isIp from 'is-ip'
 import _ from 'lodash'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { getPackageInfo } from './package-info'
 import { calculatePackagesHash } from './packages-hash'
-import { Cache, Graph, PackageInfo, Protocol, ServerInfo, TargetType, TestsResult, PublishResult } from './types'
+import {
+  Cache,
+  ExecutedSteps,
+  ExecutedStepsWithoutReport,
+  Graph,
+  PackageInfo,
+  PackagesStepResult,
+  Protocol,
+  ServerInfo,
+  StepName,
+  StepStatus,
+  TargetType,
+} from './types'
+import { generateJsonReport } from './report/json-report'
+import { generateCliTableReport } from './report/cli-table-report'
 
 const log = logger('utils')
 
-export function shouldFailBuild(
-  graph: Graph<PackageInfo & { testsResult: TestsResult; publishResult: PublishResult }>,
-): { failBuild: boolean; reasons: string[] } {
-  const packagesWithFailedTests = graph
-    .filter(node => 'passed' in node.data.testsResult && !node.data.testsResult.passed)
-    .map(node => node.data.packageJson.name)
-
-  const packagesWithFailedPublish = graph
-    .filter(
-      node =>
-        !node.data.publishResult.skipped &&
-        'failed' in node.data.publishResult.published &&
-        node.data.publishResult.published.failed,
-    )
-    .map(node => node.data.packageJson.name)
-
-  const reasons: string[] = []
-  if (packagesWithFailedTests.length > 0) {
-    reasons.push('tests failed')
+export function calculateCombinedStatus(statuses: StepStatus[]): StepStatus {
+  if (statuses.length === 0) {
+    return StepStatus.skippedAsPassed
   }
-  if (packagesWithFailedPublish.length > 0) {
-    reasons.push('publish failed')
+  if (statuses.includes(StepStatus.failed)) {
+    return StepStatus.failed
   }
-  const failBuild = reasons.length > 0
-
-  return { failBuild, reasons }
+  if (statuses.includes(StepStatus.skippedAsFailed)) {
+    return StepStatus.skippedAsFailed
+  }
+  if (statuses.includes(StepStatus.skippedAsFailedBecauseLastStepFailed)) {
+    return StepStatus.skippedAsFailedBecauseLastStepFailed
+  }
+  if (statuses.includes(StepStatus.passed)) {
+    return StepStatus.passed
+  }
+  return StepStatus.skippedAsPassed
 }
 
-export const isRepoModified = async (repoPath: string) => {
-  // todo: fix it. it doesn't work.
-  return execa.command('git status --porcelain', { cwd: repoPath }).then(
-    () => false,
-    () => true,
-  )
+export function shouldFailCi(steps: ExecutedStepsWithoutReport | ExecutedSteps): boolean {
+  return Object.values(steps).some(step => [StepStatus.skippedAsFailed, StepStatus.failed].includes(step.status))
 }
 
 export async function getPackages(repoPath: string): Promise<string[]> {
@@ -75,7 +77,7 @@ export async function getOrderedGraph({
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
   cache: Cache
-}): Promise<Graph<PackageInfo>> {
+}): Promise<Graph<{ packageInfo: PackageInfo }>> {
   log.verbose('calculate hash of every package and check which packages changed since their last publish')
   const orderedGraph = await calculatePackagesHash(
     repoPath,
@@ -84,17 +86,19 @@ export async function getOrderedGraph({
   const result = await Promise.all(
     orderedGraph.map(async node => ({
       ...node,
-      data: await getPackageInfo({
-        dockerRegistry,
-        npmRegistry,
-        targetType: packagesInfo.find(({ packagePath }) => node.data.packagePath === packagePath)
-          ?.targetType as TargetType,
-        dockerOrganizationName,
-        packageHash: node.data.packageHash,
-        packagePath: node.data.packagePath,
-        relativePackagePath: node.data.relativePackagePath,
-        cache,
-      }),
+      data: {
+        packageInfo: await getPackageInfo({
+          dockerRegistry,
+          npmRegistry,
+          targetType: packagesInfo.find(({ packagePath }) => node.data.packagePath === packagePath)
+            ?.targetType as TargetType,
+          dockerOrganizationName,
+          packageHash: node.data.packageHash,
+          packagePath: node.data.packagePath,
+          relativePackagePath: node.data.relativePackagePath,
+          cache,
+        }),
+      },
     })),
   )
   log.verbose(
@@ -102,10 +106,10 @@ export async function getOrderedGraph({
   )
   result.forEach(node => {
     log.verbose(
-      `${node.data.relativePackagePath} (${node.data.packageJson.name}): ${JSON.stringify(
+      `${node.data.packageInfo.relativePackagePath} (${node.data.packageInfo.packageJson.name}): ${JSON.stringify(
         {
           ..._.omit(node.data, ['packageJson']),
-          packageJsonVersion: node.data.packageJson.version,
+          packageJsonVersion: node.data.packageInfo.packageJson.version,
         },
         null,
         2,
@@ -145,5 +149,138 @@ export function toServerInfo({ protocol, host, port }: { protocol?: string; host
       host: hostWithoutProtocol,
       port: selectedPort,
     }
+  }
+}
+
+export async function install({
+  executionOrder,
+  repoPath,
+  graph,
+}: {
+  repoPath: string
+  executionOrder: number
+  graph: Graph<{ packageInfo: PackageInfo }>
+}): Promise<PackagesStepResult<StepName.install>> {
+  const startMs = Date.now()
+  log.info(`installing...`)
+
+  const result = await execa.command('yarn install', {
+    cwd: repoPath,
+    stdio: 'inherit',
+    reject: false,
+  })
+
+  const durationMs = Date.now() - startMs
+
+  return {
+    stepName: StepName.install,
+    durationMs,
+    notes: result.failed ? ['failed to install'] : [],
+    status: result.failed ? StepStatus.failed : StepStatus.passed,
+    packagesResult: graph.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        stepResult: {
+          durationMs: durationMs,
+          notes: [],
+          status: result.failed ? StepStatus.failed : StepStatus.passed,
+          stepName: StepName.install,
+        },
+      },
+    })),
+    executionOrder,
+  }
+}
+
+export async function build({
+  executionOrder,
+  repoPath,
+  graph,
+}: {
+  repoPath: string
+  executionOrder: number
+  graph: Graph<{ packageInfo: PackageInfo }>
+}): Promise<PackagesStepResult<StepName.build>> {
+  const startMs = Date.now()
+  log.info(`building...`)
+
+  const rootPackageJson: IPackageJson = await fse.readJson(path.join(repoPath, 'package.json'))
+
+  if (rootPackageJson.scripts && 'build' in rootPackageJson.scripts && rootPackageJson.scripts.build) {
+    const result = await execa.command('yarn build', {
+      cwd: repoPath,
+      stdio: 'inherit',
+      reject: false,
+    })
+
+    const durationMs = Date.now() - startMs
+
+    return {
+      stepName: StepName.build,
+      durationMs,
+      notes: result.failed ? ['failed to run build-script in root package.json'] : [],
+      status: result.failed ? StepStatus.failed : StepStatus.passed,
+      executionOrder,
+      packagesResult: graph.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          stepResult: {
+            durationMs: durationMs,
+            notes: [],
+            status: result.failed ? StepStatus.failed : StepStatus.passed,
+            stepName: StepName.build,
+          },
+        },
+      })),
+    }
+  } else {
+    const durationMs = Date.now() - startMs
+
+    return {
+      stepName: StepName.build,
+      durationMs: Date.now() - startMs,
+      notes: ['no build-script in root package.json'],
+      status: StepStatus.skippedAsPassed,
+      packagesResult: graph.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          stepResult: {
+            durationMs: durationMs,
+            notes: [],
+            status: StepStatus.skippedAsPassed,
+            stepName: StepName.build,
+          },
+        },
+      })),
+      executionOrder,
+    }
+  }
+}
+
+export async function exitCi({
+  startMs,
+  graph,
+  steps,
+  shouldFail,
+  cache,
+}: {
+  startMs: number
+  steps: ExecutedStepsWithoutReport | ExecutedSteps
+  shouldFail: boolean
+  graph: Graph<{ packageInfo: PackageInfo }>
+  cache: Cache
+}): Promise<void> {
+  const report = generateJsonReport({
+    durationUntilNowMs: Date.now() - startMs,
+    steps,
+    graph,
+  })
+  log.info(generateCliTableReport(report))
+  await cache.disconnect()
+  if (shouldFail) {
+    process.exitCode = 1
   }
 }

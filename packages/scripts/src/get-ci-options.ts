@@ -9,7 +9,7 @@ export const getPrCiOptions = (): CiOptions => {
   const repoPath = findProjectRoot(__dirname) as string
 
   return {
-    logFilePath: path.join('repoPath', 'nc-logs.txt'),
+    logFilePath: path.join(repoPath, 'nc-logs.txt'),
     repoPath,
     dockerOrganizationName: 'stavalfi',
     dockerRegistry: {

@@ -47,13 +47,9 @@ export type TargetInfo<TargetTypParam extends TargetType> = { targetType: Target
   | {
       needPublish: true
       newVersion: string
-      // if we didn't publish this hash yet, it maybe because we modified something or we never published before
-      highestPublishedVersion?: { version?: string; hash?: string }
     }
   | {
-      needPublish: { skip: { reason: string } }
-      // even if we already published the same hash, the user could remove the meta-data we saved on the latest-published-version
-      highestPublishedVersion?: { version?: string; hash?: string }
+      needPublish: { alreadyPublishedAsVersion: string }
     }
 )
 
@@ -97,45 +93,7 @@ export type Cache = {
   disconnect: () => Promise<unknown>
 }
 
-export type TestsResult = { durationMs: number } & (
-  | {
-      skipped: false
-      passed: boolean
-    }
-  | {
-      skipped: {
-        reason: string
-        error?: unknown
-      }
-      passed: boolean
-    }
-  | {
-      skipped: {
-        reason: string
-        error?: unknown
-      }
-    }
-)
-
-export type PublishResult = { durationMs: number } & (
-  | {
-      skipped: {
-        reason: string
-      }
-    }
-  | {
-      skipped: false
-      published:
-        | {
-            asVersion: string
-          }
-        | {
-            failed: { reason: string; error?: unknown }
-          }
-    }
-)
-
-export enum Step {
+export enum StepName {
   install = 'install',
   build = 'build',
   test = 'test',
@@ -144,17 +102,84 @@ export enum Step {
 }
 
 export enum StepStatus {
-  ok = 'ok',
-  skipped = 'skipped',
+  passed = 'passed',
+  skippedAsPassed = 'skipped-as-passed',
+  skippedAsFailed = 'skipped-as-failed',
+  skippedAsFailedBecauseLastStepFailed = 'skipped-because-last-step-is-considered-as-failed',
   failed = 'failed',
 }
 
-export type StepResult = {
+export type StepResult<StepNameParam extends StepName> = {
+  stepName: StepNameParam
   status: StepStatus
   durationMs: number
+  notes: string[]
+  error?: unknown
 }
 
-export type StepResultWithStepName<Step, PackageResult = {}> = StepResult & {
-  stepName: Step
-  packagesResult: PackageResult[]
+// it is used as package-summary and as a ci-summary
+export type StepsSummary = {
+  status: StepStatus
+  durationMs: number
+  notes: string[]
+}
+
+export type PackageStepResult = {
+  install: { packageInfo: PackageInfo; stepResult: StepResult<StepName.install> }
+  build: { packageInfo: PackageInfo; stepResult: StepResult<StepName.build> }
+  test: { packageInfo: PackageInfo; stepResult: StepResult<StepName.test> }
+  publish: { packageInfo: PackageInfo; stepResult: StepResult<StepName.publish> & { publishedVersion?: string } }
+  report: { packageInfo: PackageInfo; stepResult: StepResult<StepName.report> }
+}
+
+export type PackagesStepResult<StepNameParam extends StepName> = StepResult<StepNameParam> & {
+  executionOrder: number
+  packagesResult: Graph<PackageStepResult[StepNameParam]>
+}
+
+export type CombinedPackageStepReportResult = { [StepName.report]: PackageStepResult[StepName.report] } & (
+  | {}
+  | { [StepName.install]: PackageStepResult[StepName.install] }
+  | {
+      [StepName.install]: PackageStepResult[StepName.install]
+      [StepName.build]: PackageStepResult[StepName.build]
+    }
+  | {
+      [StepName.install]: PackageStepResult[StepName.install]
+      [StepName.build]: PackageStepResult[StepName.build]
+      [StepName.test]: PackageStepResult[StepName.test]
+    }
+  | {
+      [StepName.install]: PackageStepResult[StepName.install]
+      [StepName.build]: PackageStepResult[StepName.build]
+      [StepName.test]: PackageStepResult[StepName.test]
+      [StepName.publish]: PackageStepResult[StepName.publish]
+    }
+)
+
+export type ExecutedStepsWithoutReport =
+  | {}
+  | { [StepName.install]: PackagesStepResult<StepName.install> }
+  | {
+      [StepName.install]: PackagesStepResult<StepName.install>
+      [StepName.build]: PackagesStepResult<StepName.build>
+    }
+  | {
+      [StepName.install]: PackagesStepResult<StepName.install>
+      [StepName.build]: PackagesStepResult<StepName.build>
+      [StepName.test]: PackagesStepResult<StepName.test>
+    }
+  | {
+      [StepName.install]: PackagesStepResult<StepName.install>
+      [StepName.build]: PackagesStepResult<StepName.build>
+      [StepName.test]: PackagesStepResult<StepName.test>
+      [StepName.publish]: PackagesStepResult<StepName.publish>
+    }
+
+export type ExecutedSteps = ExecutedStepsWithoutReport & { [StepName.report]: PackagesStepResult<StepName.report> }
+
+export type JsonReport = {
+  graph: Graph<{ packageInfo: PackageInfo; stepsResult: CombinedPackageStepReportResult; stepsSummary: StepsSummary }>
+  steps: ExecutedSteps
+  summary: StepsSummary
 }

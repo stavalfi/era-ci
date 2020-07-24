@@ -1,6 +1,8 @@
 import { logger } from '@tahini/log'
 import execa from 'execa'
+import fse from 'fs-extra'
 import isIp from 'is-ip'
+import path from 'path'
 import { buildFullDockerImageName } from './docker-utils'
 import { travelGraph } from './graph'
 import {
@@ -8,59 +10,68 @@ import {
   Cache,
   Graph,
   PackageInfo,
-  PublishResult,
+  PackagesStepResult,
   ServerInfo,
+  StepName,
   TargetInfo,
   TargetType,
-  TestsResult,
+  PackageStepResult,
+  StepStatus,
+  StepResult,
 } from './types'
-import fse from 'fs-extra'
-import path from 'path'
-import { IPackageJson } from 'package-json-type'
+import { calculateCombinedStatus } from './utils'
 
 const log = logger('publish')
 
 async function updateVersionAndPublish({
-  publish,
+  tryPublish,
   newVersion,
-  packageJson,
-  packagePath,
+  packageInfo,
   startMs,
 }: {
-  packageJson: IPackageJson
-  packagePath: string
+  packageInfo: PackageInfo
   newVersion: string
-  publish: () => Promise<PublishResult>
+  tryPublish: () => Promise<PackageStepResult[StepName.publish]>
   startMs: number
-}): Promise<PublishResult> {
+}): Promise<PackageStepResult[StepName.publish]> {
   try {
     await fse.writeFile(
-      path.join(packagePath, 'package.json'),
-      JSON.stringify({ ...packageJson, version: newVersion }, null, 2),
+      path.join(packageInfo.packagePath, 'package.json'),
+      JSON.stringify({ ...packageInfo.packageJson, version: newVersion }, null, 2),
     )
   } catch (error) {
     return {
-      skipped: false,
-      published: { failed: { reason: 'failed to update package.json to the new version', error } },
-      durationMs: Date.now() - startMs,
+      packageInfo,
+      stepResult: {
+        stepName: StepName.publish,
+        durationMs: Date.now() - startMs,
+        status: StepStatus.failed,
+        notes: ['failed to update package.json to the new version'],
+        error,
+      },
     }
   }
 
-  let result: PublishResult
+  let result: PackageStepResult[StepName.publish]
   try {
-    result = await publish()
+    result = await tryPublish()
   } catch (error) {
     return {
-      skipped: false,
-      published: { failed: { reason: 'failed to publish', error } },
-      durationMs: Date.now() - startMs,
+      packageInfo,
+      stepResult: {
+        stepName: StepName.publish,
+        durationMs: Date.now() - startMs,
+        status: StepStatus.failed,
+        notes: [],
+        error,
+      },
     }
   }
 
   await fse
     .writeFile(
-      path.join(packagePath, 'package.json'),
-      JSON.stringify({ ...packageJson, version: packageJson.version }, null, 2),
+      path.join(packageInfo.packagePath, 'package.json'),
+      JSON.stringify({ ...packageInfo.packageJson, version: packageInfo.packageJson.version }, null, 2),
     )
     .catch(error => {
       log.error(`failed to revert package.json back to the old version. error: ${error}`)
@@ -85,55 +96,59 @@ async function publishNpm({
   npmTarget: TargetInfo<TargetType.npm>
   newVersion: string
   isDryRun: boolean
-  testsResult: TestsResult
+  testsResult: StepResult<StepName.test>
   npmRegistry: ServerInfo
   cache: Cache
   auth: Auth
   shouldPublish: boolean
-}): Promise<PublishResult> {
+}): Promise<PackageStepResult[StepName.publish]> {
   const startMs = Date.now()
   if (!shouldPublish) {
     return {
-      skipped: {
-        reason: 'ci is configured to skip publish',
+      packageInfo,
+      stepResult: {
+        stepName: StepName.publish,
+        durationMs: Date.now() - startMs,
+        status: StepStatus.skippedAsPassed,
+        notes: ['ci is configured to skip publish'],
       },
-      durationMs: Date.now() - startMs,
     }
   }
 
-  if ('passed' in testsResult && !testsResult.passed) {
+  if ([StepStatus.failed, StepStatus.skippedAsFailed].includes(testsResult.status)) {
     return {
-      skipped: {
-        reason: 'skipping publish because the tests failed',
+      packageInfo,
+      stepResult: {
+        stepName: StepName.publish,
+        durationMs: Date.now() - startMs,
+        status: StepStatus.skippedAsFailedBecauseLastStepFailed,
+        notes: ['skipping publish because the tests of this package failed'],
       },
-      durationMs: Date.now() - startMs,
     }
   }
 
   if (npmTarget.needPublish !== true) {
-    const publishedVersion = await cache.publish.npm.isPublished(
-      packageInfo.packageJson.name as string,
-      packageInfo.packageHash,
-    )
-
-    // it looks like someone manually published the promoted version before the ci publish it. all in all, the res
     return {
-      skipped: {
-        reason: npmTarget.needPublish.skip.reason,
+      packageInfo,
+      stepResult: {
+        stepName: StepName.publish,
+        durationMs: Date.now() - startMs,
+        status: StepStatus.skippedAsPassed,
+        notes: [`this package was already published with the same content`],
+        publishedVersion: npmTarget.needPublish.alreadyPublishedAsVersion,
       },
-      ...(publishedVersion && {
-        published: {
-          asVersion: publishedVersion,
-        },
-      }),
-      durationMs: Date.now() - startMs,
     }
   }
 
   if (isDryRun) {
     return {
-      skipped: { reason: `skipping publish because we are in dry-run mode` },
-      durationMs: Date.now() - startMs,
+      packageInfo,
+      stepResult: {
+        stepName: StepName.publish,
+        durationMs: Date.now() - startMs,
+        status: StepStatus.skippedAsPassed,
+        notes: [`skipping publish because we are in dry-run mode`],
+      },
     }
   }
 
@@ -158,9 +173,8 @@ async function publishNpm({
   return updateVersionAndPublish({
     startMs,
     newVersion,
-    packageJson: packageInfo.packageJson,
-    packagePath: packageInfo.packagePath,
-    publish: async () => {
+    packageInfo,
+    tryPublish: async () => {
       await execa.command(
         `yarn publish --registry ${npmRegistryAddress} --non-interactive ${
           packageInfo.packageJson.name?.includes('@') ? '--access public' : ''
@@ -177,11 +191,14 @@ async function publishNpm({
       )
       log.info(`published npm target in package: "${packageInfo.packageJson.name}"`)
       return {
-        skipped: false,
-        published: {
-          asVersion: newVersion,
+        packageInfo,
+        stepResult: {
+          stepName: StepName.publish,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.passed,
+          notes: [`published version: ${newVersion}`],
+          publishedVersion: newVersion,
         },
-        durationMs: Date.now() - startMs,
       }
     },
   })
@@ -204,47 +221,48 @@ async function publishDocker({
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
   newVersion: string
-  testsResult: TestsResult
+  testsResult: StepResult<StepName.test>
   isDryRun: boolean
   cache: Cache
   repoPath: string
   shouldPublish: boolean
-}): Promise<PublishResult> {
+}): Promise<PackageStepResult[StepName.publish]> {
   const startMs = Date.now()
 
   if (!shouldPublish) {
     return {
-      skipped: {
-        reason: 'ci is configured to skip publish',
+      packageInfo,
+      stepResult: {
+        stepName: StepName.publish,
+        durationMs: Date.now() - startMs,
+        status: StepStatus.skippedAsPassed,
+        notes: ['ci is configured to skip publish'],
       },
-      durationMs: Date.now() - startMs,
     }
   }
 
-  if ('passed' in testsResult && !testsResult.passed) {
+  if ([StepStatus.failed, StepStatus.skippedAsFailed].includes(testsResult.status)) {
     return {
-      skipped: {
-        reason: 'skipping publish because the tests failed',
+      packageInfo,
+      stepResult: {
+        stepName: StepName.publish,
+        durationMs: Date.now() - startMs,
+        status: StepStatus.skippedAsFailedBecauseLastStepFailed,
+        notes: ['skipping publish because the tests of this package failed'],
       },
-      durationMs: Date.now() - startMs,
     }
   }
 
   if (dockerTarget.needPublish !== true) {
-    const publishedTag = await cache.publish.docker.isPublished(
-      packageInfo.packageJson.name as string,
-      packageInfo.packageHash,
-    )
     return {
-      skipped: {
-        reason: dockerTarget.needPublish.skip.reason,
+      packageInfo,
+      stepResult: {
+        stepName: StepName.publish,
+        durationMs: Date.now() - startMs,
+        status: StepStatus.skippedAsPassed,
+        notes: [`this package was already published with the same content`],
+        publishedVersion: dockerTarget.needPublish.alreadyPublishedAsVersion,
       },
-      ...(publishedTag && {
-        published: {
-          asVersion: publishedTag,
-        },
-      }),
-      durationMs: Date.now() - startMs,
     }
   }
 
@@ -273,10 +291,9 @@ async function publishDocker({
   // the package.json will probably copied to the image during the docker-build so we want to make sure the new version is in there
   return updateVersionAndPublish({
     startMs,
-    packageJson: packageInfo.packageJson,
-    packagePath: packageInfo.packagePath,
+    packageInfo,
     newVersion,
-    publish: async () => {
+    tryPublish: async () => {
       log.info(`building docker image "${fullImageNameNewVersion}" in package: "${packageInfo.packageJson.name}"`)
 
       try {
@@ -289,22 +306,26 @@ async function publishDocker({
         )
       } catch (error) {
         return {
-          skipped: false,
-          published: {
-            failed: {
-              reason: 'failed to build the docker-image',
-              error,
-            },
+          packageInfo,
+          stepResult: {
+            stepName: StepName.publish,
+            durationMs: Date.now() - startMs,
+            status: StepStatus.failed,
+            notes: ['failed to build the docker-image'],
           },
-          durationMs: Date.now() - startMs,
         }
       }
       log.info(`built docker image "${fullImageNameNewVersion}" in package: "${packageInfo.packageJson.name}"`)
 
       if (isDryRun) {
         return {
-          skipped: { reason: `skipping publish because we are in dry-run mode` },
-          durationMs: Date.now() - startMs,
+          packageInfo,
+          stepResult: {
+            stepName: StepName.publish,
+            durationMs: Date.now() - startMs,
+            status: StepStatus.skippedAsPassed,
+            notes: [`skipping publish because we are in dry-run mode`],
+          },
         }
       }
 
@@ -312,29 +333,34 @@ async function publishDocker({
         await execa.command(`docker push ${fullImageNameNewVersion}`)
       } catch (error) {
         return {
-          skipped: false,
-          published: {
-            failed: { reason: `failed to push the docker-image`, error },
+          packageInfo,
+          stepResult: {
+            stepName: StepName.publish,
+            durationMs: Date.now() - startMs,
+            status: StepStatus.failed,
+            notes: [`failed to push the docker-image`],
           },
-          durationMs: Date.now() - startMs,
         }
       }
 
       log.info(`published docker target in package: "${packageInfo.packageJson.name}"`)
 
       return {
-        skipped: false,
-        published: {
-          asVersion: newVersion,
+        packageInfo,
+        stepResult: {
+          stepName: StepName.publish,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.passed,
+          notes: [`published tag: ${newVersion}`],
+          publishedVersion: newVersion,
         },
-        durationMs: Date.now() - startMs,
       }
     },
   })
 }
 
 export async function publish(
-  orderedGraph: Graph<PackageInfo & { testsResult: TestsResult }>,
+  orderedGraph: Graph<PackageStepResult[StepName.test]>,
   options: {
     shouldPublish: boolean
     repoPath: string
@@ -344,64 +370,64 @@ export async function publish(
     dockerOrganizationName: string
     cache: Cache
     auth: Auth
+    executionOrder: number
   },
-): Promise<Graph<PackageInfo & { testsResult: TestsResult; publishResult: PublishResult }>> {
-  log.info('start publishing packages...')
+): Promise<PackagesStepResult<StepName.publish>> {
+  const startMs = Date.now()
 
-  const publishResult = await travelGraph(orderedGraph, {
+  log.info('publishing...')
+
+  const publishResult: Graph<PackageStepResult[StepName.publish]> = await travelGraph(orderedGraph, {
     fromLeafs: true,
     mapData: async node => {
-      switch (node.data.target?.targetType) {
-        case TargetType.npm: {
-          return {
-            ...node.data,
-            publishResult: await publishNpm({
-              shouldPublish: options.shouldPublish,
-              packageInfo: node.data,
-              npmTarget: node.data.target as TargetInfo<TargetType.npm>,
-              newVersion: (node.data.target?.needPublish === true && node.data.target.newVersion) as string,
-              isDryRun: options.isDryRun,
-              testsResult: node.data.testsResult,
-              npmRegistry: options.npmRegistry,
-              auth: options.auth,
-              cache: options.cache,
-            }),
-          }
-        }
+      switch (node.data.packageInfo.target?.targetType) {
+        case TargetType.npm:
+          return publishNpm({
+            shouldPublish: options.shouldPublish,
+            packageInfo: node.data.packageInfo,
+            npmTarget: node.data.packageInfo.target as TargetInfo<TargetType.npm>,
+            newVersion: (node.data.packageInfo.target?.needPublish === true &&
+              node.data.packageInfo.target.newVersion) as string,
+            isDryRun: options.isDryRun,
+            testsResult: node.data.stepResult,
+            npmRegistry: options.npmRegistry,
+            auth: options.auth,
+            cache: options.cache,
+          })
         case TargetType.docker:
-          return {
-            ...node.data,
-            publishResult: await publishDocker({
-              shouldPublish: options.shouldPublish,
-              packageInfo: node.data,
-              dockerTarget: node.data.target as TargetInfo<TargetType.docker>,
-              newVersion: (node.data.target?.needPublish === true && node.data.target.newVersion) as string,
-              repoPath: options.repoPath,
-              isDryRun: options.isDryRun,
-              testsResult: node.data.testsResult,
-              dockerOrganizationName: options.dockerOrganizationName,
-              dockerRegistry: options.dockerRegistry,
-              cache: options.cache,
-            }),
-          }
+          return publishDocker({
+            shouldPublish: options.shouldPublish,
+            packageInfo: node.data.packageInfo,
+            dockerTarget: node.data.packageInfo.target as TargetInfo<TargetType.docker>,
+            newVersion: (node.data.packageInfo.target?.needPublish === true &&
+              node.data.packageInfo.target.newVersion) as string,
+            repoPath: options.repoPath,
+            isDryRun: options.isDryRun,
+            testsResult: node.data.stepResult,
+            dockerOrganizationName: options.dockerOrganizationName,
+            dockerRegistry: options.dockerRegistry,
+            cache: options.cache,
+          })
         default:
           return {
             ...node.data,
-            publishResult: {
-              skipped: {
-                reason: 'skipping publish because this is a private-npm-package',
-              },
+            stepResult: {
+              stepName: StepName.publish,
               durationMs: 0,
+              status: StepStatus.skippedAsPassed,
+              notes: ['skipping publish because this is a private-npm-package'],
             },
           }
       }
     },
   })
 
-  log.info('publish result: ')
-  publishResult.forEach(node =>
-    log.info(`${node.data.packagePath} - ${JSON.stringify(node.data.publishResult, null, 2)}`),
-  )
-
-  return publishResult
+  return {
+    stepName: StepName.publish,
+    durationMs: Date.now() - startMs,
+    executionOrder: options.executionOrder,
+    status: calculateCombinedStatus(publishResult.map(node => node.data.stepResult.status)),
+    packagesResult: publishResult,
+    notes: [],
+  }
 }

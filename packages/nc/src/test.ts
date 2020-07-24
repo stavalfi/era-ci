@@ -1,6 +1,7 @@
 import { logger } from '@tahini/log'
-import { Cache, Graph, Node, PackageInfo, TestsResult } from './types'
 import execa from 'execa'
+import { Cache, Graph, Node, PackageInfo, PackagesStepResult, PackageStepResult, StepName, StepStatus } from './types'
+import { calculateCombinedStatus } from './utils'
 
 const log = logger('test')
 
@@ -9,78 +10,97 @@ async function testPackage({
   node,
   skipTests,
 }: {
-  node: Node<PackageInfo>
+  node: Node<{ packageInfo: PackageInfo }>
   cache: Cache
   skipTests: boolean
-}): Promise<TestsResult> {
+}): Promise<PackageStepResult[StepName.test]> {
   const startMs = Date.now()
 
   if (skipTests) {
     return {
       ...node.data,
-      skipped: {
-        reason: 'ci configurations specify to skip tests',
+      stepResult: {
+        stepName: StepName.test,
+        status: StepStatus.skippedAsPassed,
+        durationMs: Date.now() - startMs,
+        notes: ['ci configurations specify to skip tests'],
       },
-      durationMs: Date.now() - startMs,
-    }
-  }
-  if (!node.data.packageJson.scripts?.test) {
-    return {
-      ...node.data,
-      skipped: {
-        reason: 'no test script',
-      },
-      durationMs: Date.now() - startMs,
     }
   }
 
-  if (await cache.test.isTestsRun(node.data.packageJson.name as string, node.data.packageHash)) {
-    const testsResult = await cache.test.isPassed(node.data.packageJson.name as string, node.data.packageHash)
+  if (!node.data.packageInfo.packageJson.scripts?.test) {
+    return {
+      ...node.data,
+      stepResult: {
+        stepName: StepName.test,
+        status: StepStatus.skippedAsPassed,
+        durationMs: Date.now() - startMs,
+        notes: ['no test script'],
+      },
+    }
+  }
+
+  if (
+    await cache.test.isTestsRun(node.data.packageInfo.packageJson.name as string, node.data.packageInfo.packageHash)
+  ) {
+    const testsResult = await cache.test.isPassed(
+      node.data.packageInfo.packageJson.name as string,
+      node.data.packageInfo.packageHash,
+    )
     if (testsResult) {
       return {
         ...node.data,
-        skipped: {
-          reason: 'nothing changed and tests already passed in last builds.',
+        stepResult: {
+          stepName: StepName.test,
+          status: StepStatus.skippedAsPassed,
+          durationMs: Date.now() - startMs,
+          notes: ['nothing changed and tests already passed in last builds.'],
         },
-        passed: true,
-        durationMs: Date.now() - startMs,
       }
     } else {
       return {
         ...node.data,
-        skipped: {
-          reason:
-            'nothing changed and tests already failed in last builds.\
-if you have falky tests, please fix them or make a small change\
-in your package to force the tests will run again',
+        stepResult: {
+          stepName: StepName.test,
+          status: StepStatus.skippedAsFailed,
+          durationMs: Date.now() - startMs,
+          notes: ['nothing changed and tests already failed in last builds.'],
         },
-        passed: false,
-        durationMs: Date.now() - startMs,
       }
     }
   }
 
   const testsResult = await execa.command(`yarn test`, {
-    cwd: node.data.packagePath,
+    cwd: node.data.packageInfo.packagePath,
     stdio: 'inherit',
     reject: false,
   })
 
-  await cache.test.setResult(node.data.packageJson.name as string, node.data.packageHash, !testsResult.failed)
+  await cache.test.setResult(
+    node.data.packageInfo.packageJson.name as string,
+    node.data.packageInfo.packageHash,
+    !testsResult.failed,
+  )
 
   if (testsResult.failed) {
     return {
       ...node.data,
-      skipped: false,
-      passed: false,
-      durationMs: Date.now() - startMs,
+      stepResult: {
+        stepName: StepName.test,
+        status: StepStatus.failed,
+        durationMs: Date.now() - startMs,
+        notes: [],
+      },
     }
   } else {
     return {
       ...node.data,
-      skipped: false,
-      passed: true,
-      durationMs: Date.now() - startMs,
+      stepResult: {
+        stepName: StepName.test,
+        status: StepStatus.passed,
+        durationMs: Date.now() - startMs,
+        notes: [],
+      },
     }
   }
 }
@@ -89,30 +109,31 @@ export async function testPackages({
   cache,
   orderedGraph,
   skipTests,
+  executionOrder,
 }: {
-  orderedGraph: Graph<PackageInfo>
+  orderedGraph: Graph<{ packageInfo: PackageInfo }>
   cache: Cache
   skipTests: boolean
-}): Promise<Graph<PackageInfo & { testsResult: TestsResult }>> {
+  executionOrder: number
+}): Promise<PackagesStepResult<StepName.test>> {
+  const startMs = Date.now()
   log.info('running tests...')
-  const result = await Promise.all(
+  const packagesResult: Graph<PackageStepResult[StepName.test]> = await Promise.all(
     orderedGraph.map(async node => ({
       ...node,
       data: {
         ...node.data,
-        testsResult: await testPackage({ node, cache, skipTests }),
+        ...(await testPackage({ node, cache, skipTests })),
       },
     })),
   )
-  log.info('tests result: ')
-  result.forEach(node => {
-    const testsResult = node.data.testsResult.skipped
-      ? node.data.testsResult.skipped.reason
-      : node.data.testsResult.passed
-      ? 'passed'
-      : 'failed'
-    log.info(`package: ${node.data.packagePath}: ${testsResult}`)
-  })
 
-  return result
+  return {
+    stepName: StepName.test,
+    durationMs: Date.now() - startMs,
+    executionOrder,
+    status: calculateCombinedStatus(packagesResult.map(node => node.data.stepResult.status)),
+    packagesResult,
+    notes: [],
+  }
 }
