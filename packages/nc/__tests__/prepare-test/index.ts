@@ -1,7 +1,8 @@
 import chance from 'chance'
-import os from 'os'
+import ciInfo from 'ci-info'
+import execa from 'execa'
+import fse from 'fs-extra'
 import path from 'path'
-import { runCiCli } from '../../src/ci-node-api'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'
 import {
@@ -23,12 +24,11 @@ import {
   removeAllNpmHashTags,
   renamePackageFolder,
   unpublishNpmPackage,
+  commitAllAndPushChanges,
 } from './test-helpers'
-import fse from 'fs-extra'
-import ciInfo from 'ci-info'
-
 import { CreateAndManageRepo, MinimalNpmPackage, NewEnvFunc, PublishedPackageInfo, RunCi } from './types'
-import { getPackagePath, getPackages } from './utils'
+import { getPackagePath, getPackages, ignore } from './utils'
+import { ConfigFileOptions } from '@tahini/nc'
 
 export { runDockerImage } from './test-helpers'
 
@@ -55,32 +55,41 @@ export const newEnv: NewEnvFunc = () => {
       toActualName,
     })
 
-    const runCi: RunCi = async ({ shouldPublish, isDryRun, skipTests, execaOptions }) => {
-      const logFilePath = path.join(os.tmpdir(), `nc-logs-${chance().hash()}.txt`)
-      const ciProcessResult = await runCiCli(
-        {
-          logFilePath,
-          shouldPublish,
-          skipTests: Boolean(skipTests),
-          isDryRun: Boolean(isDryRun),
-          dockerOrganizationName,
-          gitOrganizationName: repoOrg,
-          gitRepositoryName: repoName,
-          repoPath: repoPath,
-          dockerRegistry,
-          gitServer: gitServer.getServerInfo(),
-          npmRegistry,
-          redisServer: {
-            host: redisServer.host,
-            port: redisServer.port,
-          },
-          auth: {
-            ...npmRegistry.auth,
-            gitServerToken: gitServer.getToken(),
-            gitServerUsername: gitServer.getUsername(),
-          },
+    const runCi: RunCi = async ({ shouldPublish, execaOptions }) => {
+      const configFilePath = path.join(repoPath, 'nc.config.ts')
+      const configurations: ConfigFileOptions = {
+        shouldPublish,
+        dockerOrganizationName,
+        gitOrganizationName: repoOrg,
+        gitRepositoryName: repoName,
+        dockerRegistry,
+        gitServer: gitServer.getServerInfo(),
+        npmRegistry,
+        redisServer: {
+          host: redisServer.host,
+          port: redisServer.port,
         },
-        { stdio: ciInfo.isCI ? 'pipe' : execaOptions?.stdio, reject: execaOptions?.reject },
+        auth: {
+          ...npmRegistry.auth,
+          gitServerToken: gitServer.getToken(),
+          gitServerUsername: gitServer.getUsername(),
+        },
+      }
+
+      await fse.remove(configFilePath).catch(ignore)
+      await fse.writeFile(
+        configFilePath,
+        `export default async () => (${JSON.stringify(configurations, null, 2)})`,
+        'utf-8',
+      )
+      await commitAllAndPushChanges(repoPath, gitServer.generateGitRepositoryAddress(repoOrg, repoName))
+
+      const ciProcessResult = await execa.command(
+        `${path.join(__dirname, '../../dist/src/index.js')} --config-file ${configFilePath} --repo-path ${repoPath}`,
+        {
+          stdio: ciInfo.isCI ? 'pipe' : execaOptions?.stdio || 'inherit',
+          reject: execaOptions?.reject !== undefined ? execaOptions?.reject : true,
+        },
       )
 
       // the test can add/remove/modify packages between the creation of the repo until the call of the ci so we need to find all the packages again
@@ -118,7 +127,6 @@ export const newEnv: NewEnvFunc = () => {
       return {
         published: new Map(published),
         ciProcessResult,
-        logs: await fse.readFile(logFilePath, 'utf8'),
       }
     }
 

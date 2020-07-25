@@ -8,25 +8,11 @@ const log = logger('test')
 async function testPackage({
   cache,
   node,
-  skipTests,
 }: {
   node: Node<{ packageInfo: PackageInfo }>
   cache: Cache
-  skipTests: boolean
 }): Promise<PackageStepResult[StepName.test]> {
   const startMs = Date.now()
-
-  if (skipTests) {
-    return {
-      ...node.data,
-      stepResult: {
-        stepName: StepName.test,
-        status: StepStatus.skippedAsPassed,
-        durationMs: Date.now() - startMs,
-        notes: ['ci configurations specify to skip tests'],
-      },
-    }
-  }
 
   if (!node.data.packageInfo.packageJson.scripts?.test) {
     return {
@@ -108,12 +94,10 @@ async function testPackage({
 export async function testPackages({
   cache,
   orderedGraph,
-  skipTests,
   executionOrder,
 }: {
   orderedGraph: Graph<{ packageInfo: PackageInfo }>
   cache: Cache
-  skipTests: boolean
   executionOrder: number
 }): Promise<PackagesStepResult<StepName.test>> {
   const startMs = Date.now()
@@ -123,7 +107,7 @@ export async function testPackages({
       ...node,
       data: {
         ...node.data,
-        ...(await testPackage({ node, cache, skipTests })),
+        ...(await testPackage({ node, cache })),
       },
     })),
   )

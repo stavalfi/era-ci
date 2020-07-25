@@ -82,7 +82,6 @@ async function updateVersionAndPublish({
 }
 
 async function publishNpm({
-  isDryRun,
   newVersion,
   npmTarget,
   packageInfo,
@@ -95,7 +94,6 @@ async function publishNpm({
   packageInfo: PackageInfo
   npmTarget: TargetInfo<TargetType.npm>
   newVersion: string
-  isDryRun: boolean
   testsResult: StepResult<StepName.test>
   npmRegistry: ServerInfo
   cache: Cache
@@ -136,18 +134,6 @@ async function publishNpm({
         status: StepStatus.skippedAsPassed,
         notes: [`this package was already published with the same content`],
         publishedVersion: npmTarget.needPublish.alreadyPublishedAsVersion,
-      },
-    }
-  }
-
-  if (isDryRun) {
-    return {
-      packageInfo,
-      stepResult: {
-        stepName: StepName.publish,
-        durationMs: Date.now() - startMs,
-        status: StepStatus.skippedAsPassed,
-        notes: [`skipping publish because we are in dry-run mode`],
       },
     }
   }
@@ -206,7 +192,6 @@ async function publishNpm({
 
 async function publishDocker({
   repoPath,
-  isDryRun,
   newVersion,
   dockerTarget,
   packageInfo,
@@ -222,7 +207,6 @@ async function publishDocker({
   dockerOrganizationName: string
   newVersion: string
   testsResult: StepResult<StepName.test>
-  isDryRun: boolean
   cache: Cache
   repoPath: string
   shouldPublish: boolean
@@ -312,22 +296,11 @@ async function publishDocker({
             durationMs: Date.now() - startMs,
             status: StepStatus.failed,
             notes: ['failed to build the docker-image'],
+            error,
           },
         }
       }
       log.info(`built docker image "${fullImageNameNewVersion}" in package: "${packageInfo.packageJson.name}"`)
-
-      if (isDryRun) {
-        return {
-          packageInfo,
-          stepResult: {
-            stepName: StepName.publish,
-            durationMs: Date.now() - startMs,
-            status: StepStatus.skippedAsPassed,
-            notes: [`skipping publish because we are in dry-run mode`],
-          },
-        }
-      }
 
       try {
         await execa.command(`docker push ${fullImageNameNewVersion}`)
@@ -339,6 +312,7 @@ async function publishDocker({
             durationMs: Date.now() - startMs,
             status: StepStatus.failed,
             notes: [`failed to push the docker-image`],
+            error,
           },
         }
       }
@@ -364,7 +338,6 @@ export async function publish(
   options: {
     shouldPublish: boolean
     repoPath: string
-    isDryRun: boolean
     npmRegistry: ServerInfo
     dockerRegistry: ServerInfo
     dockerOrganizationName: string
@@ -388,7 +361,6 @@ export async function publish(
             npmTarget: node.data.packageInfo.target as TargetInfo<TargetType.npm>,
             newVersion: (node.data.packageInfo.target?.needPublish === true &&
               node.data.packageInfo.target.newVersion) as string,
-            isDryRun: options.isDryRun,
             testsResult: node.data.stepResult,
             npmRegistry: options.npmRegistry,
             auth: options.auth,
@@ -402,7 +374,6 @@ export async function publish(
             newVersion: (node.data.packageInfo.target?.needPublish === true &&
               node.data.packageInfo.target.newVersion) as string,
             repoPath: options.repoPath,
-            isDryRun: options.isDryRun,
             testsResult: node.data.stepResult,
             dockerOrganizationName: options.dockerOrganizationName,
             dockerRegistry: options.dockerRegistry,
@@ -421,6 +392,19 @@ export async function publish(
       }
     },
   })
+
+  const withError = publishResult.filter(result => result.data.stepResult.error)
+  if (withError.length > 0) {
+    log.error(
+      `the following packages had an error while publishing: ${withError
+        .map(result => result.data.packageInfo.packageJson.name)
+        .join(', ')}`,
+    )
+    withError.forEach(result => {
+      log.error(`${result.data.packageInfo.packageJson.name}: `)
+      log.error(result.data.stepResult.error)
+    })
+  }
 
   return {
     stepName: StepName.publish,

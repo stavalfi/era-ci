@@ -4,35 +4,6 @@ import { manageTest } from './prepare-test/test-helpers'
 
 const { createRepo } = newEnv()
 
-test('do not run tests if skip-tests option is enabled', async () => {
-  const test = await manageTest()
-
-  const { runCi } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-        targetType: TargetType.npm,
-        scripts: {
-          test: test.testScript,
-        },
-      },
-    ],
-  })
-
-  await test.makeTestsPass()
-
-  const { ciProcessResult } = await runCi({
-    shouldPublish: false,
-    skipTests: true,
-    execaOptions: {
-      stdio: 'pipe',
-    },
-  })
-
-  expect(ciProcessResult.stdout).not.toContain(test.expectedContentInLog)
-})
-
 test('make sure tests output is printed', async () => {
   const test = await manageTest()
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env node --unhandled-rejections=strict
+#!/usr/bin/env node --unhandled-rejections=strict -r ts-node/register
 
 /* eslint-disable no-process-env */
 
@@ -20,16 +20,6 @@ const app = subcommands({
         }),
       },
       handler: clean,
-    }),
-    'run-ci-pr': command({
-      name: 'run-ci-pr',
-      args: {},
-      handler: () => require('@tahini/nc').runCiCli(require('./get-ci-options').getPrCiOptions(), 'inherit'),
-    }),
-    'run-ci-master': command({
-      name: 'run-ci-master',
-      args: {},
-      handler: () => require('@tahini/nc').runCiCli(require('./get-ci-options').getMasterCiOptions(), 'inherit'),
     }),
   },
 })

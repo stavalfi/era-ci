@@ -1,4 +1,6 @@
 #!/usr/bin/env node --unhandled-rejections=strict
+/* eslint-disable no-process-env */
+/* eslint-disable no-floating-promise/no-floating-promise */
 
 /// <reference path="../../../declarations.d.ts" />
 
@@ -6,18 +8,17 @@
 require('source-map-support').install()
 //
 import { logger } from '@tahini/log'
-import { startCli } from './cli'
+import { startCli } from './configuration/cli'
 
-export { CiOptions, runCiCli } from './ci-node-api'
+export { ConfigFileOptions, ServerInfo, Auth } from './types'
 
 const log = logger('index')
 
 if (require.main === module) {
-  // eslint-disable-next-line no-floating-promise/no-floating-promise
-  startCli().finally(() => {
-    // eslint-disable-next-line no-process-env
+  startCli(process.argv).finally(() => {
     if (process.env.NC_TEST_MODE) {
-      // jest don't show last two console logs so we add this as a workaround so we can see the actual two last console logs.
+      // jest don't show last two console logs so we add this as a workaround
+      // so we can see the *actual* two last console logs.
       log.info('---------------------------')
       log.info('---------------------------')
     }

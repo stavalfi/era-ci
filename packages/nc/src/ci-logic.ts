@@ -110,13 +110,11 @@ export async function ci(options: CiOptions) {
   const testResult = await testPackages({
     orderedGraph,
     cache,
-    skipTests: options.skipTests,
     executionOrder: 2,
   })
 
   const publishResult = await publish(testResult.packagesResult, {
     shouldPublish: options.shouldPublish,
-    isDryRun: options.isDryRun,
     repoPath: options.repoPath,
     dockerRegistry: options.dockerRegistry,
     npmRegistry: options.npmRegistry,

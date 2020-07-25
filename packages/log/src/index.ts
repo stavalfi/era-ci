@@ -35,10 +35,6 @@ const mainLogger = winston.createLogger({
   transports: [consoleTransport],
 })
 
-export const addLogfile = (logsPath: string): void => {
-  mainLogger.add(new winston.transports.File({ filename: logsPath, level: 'verbose' }))
-}
-
 export const logger = (module: string): winston.Logger => mainLogger.child({ module })
 
 export const logReport = (report: string) =>

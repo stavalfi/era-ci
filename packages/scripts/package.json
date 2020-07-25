@@ -2,20 +2,17 @@
   "name": "scripts",
   "version": "1.0.0",
   "license": "UNLICENSED",
-  "main": "dist/src/index.js",
+  "main": "src/index.ts",
   "private": true,
   "scripts": {
     "test": "jest --passWithNoTests # of this package",
-    "clean": "ts-node src/index.ts clean",
-    "run-ci-pr": "yarn --cwd ../.. build && node --unhandled-rejections=strict dist/src/index.js run-ci-pr",
-    "run-ci-master": "yarn --cwd ../.. build && node --unhandled-rejections=strict dist/src/index.js run-ci-master"
+    "clean": "src/index.ts clean"
   },
   "dependencies": {
-    "ci-info": "^2.0.0",
+    "fs-extra": "^9.0.0",
+    "fast-glob": "^3.2.2",
     "cmd-ts": "^0.6.3",
-    "execa": "^4.0.1",
     "find-project-root": "^1.1.1",
-    "semver": "^7.3.2",
     "@tahini/log": "^1.0.0",
     "@tahini/nc": "^1.0.0"
   }

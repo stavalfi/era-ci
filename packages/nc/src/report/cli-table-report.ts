@@ -4,6 +4,8 @@ import randomColor from 'randomcolor'
 import { JsonReport, StepName, StepStatus } from '../types'
 import prettyMs from 'pretty-ms'
 
+// todo: this file is not tested (or can't be tested). modify with caution!!!
+
 type TableRow = Table.HorizontalTableRow | Table.VerticalTableRow | Table.CrossTableRow
 
 const DEFAULT_CHART = {
@@ -144,5 +146,5 @@ export function generateCliTableReport(jsonReport: JsonReport): string {
 
   const summaryReport = generateSummaryReport(jsonReport)
 
-  return `\n${packagesStatusReport}\n${summaryReport}`
+  return `${packagesStatusReport}\n${summaryReport}`
 }

@@ -20,11 +20,8 @@ export type Auth = {
 }
 
 export type CiOptions = {
-  logFilePath: string
   repoPath: string
   shouldPublish: boolean
-  isDryRun: boolean
-  skipTests: boolean
   npmRegistry: ServerInfo
   dockerRegistry: ServerInfo
   gitServer: ServerInfo
@@ -34,6 +31,8 @@ export type CiOptions = {
   gitOrganizationName: string
   auth: Auth
 }
+
+export type ConfigFileOptions = Omit<CiOptions, 'repoPath'>
 
 export type PackageName = string
 export type PackageVersion = string

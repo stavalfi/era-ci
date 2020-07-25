@@ -1,4 +1,4 @@
-import { logger } from '@tahini/log'
+import { logger, logReport } from '@tahini/log'
 import execa from 'execa'
 import fse from 'fs-extra'
 import isIp from 'is-ip'
@@ -278,7 +278,7 @@ export async function exitCi({
     steps,
     graph,
   })
-  log.info(generateCliTableReport(report))
+  logReport(generateCliTableReport(report))
   await cache.disconnect()
   if (shouldFail) {
     process.exitCode = 1
