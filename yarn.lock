@@ -1706,6 +1706,11 @@ chardet@^0.7.0:
   resolved "https://registry.yarnpkg.com/chardet/-/chardet-0.7.0.tgz#90094849f0937f2eedc2425d0d28a9e5f0cbad9e"
   integrity sha512-mT8iDcrh03qDGRRmoA2hmBJnxpllMR+0/0qlzjqZES6NdiWDcZkCNAk4rPFZ9Q85r27unkiNNg8ZOiwZXBHwcA==
 
+ci-env@^1.16.0:
+  version "1.16.0"
+  resolved "https://registry.yarnpkg.com/ci-env/-/ci-env-1.16.0.tgz#e97f3b5001a8daf7da6e46f418bc6892a238704d"
+  integrity sha512-ucF9caQEX5wQlY449KZBIJPx91+kRg9tJ3tWSc4+KzrvC5KNiPm/3g1noP8VhdI3046+Vw3jLmKAD0fjCRJTmw==
+
 ci-info@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/ci-info/-/ci-info-2.0.0.tgz#67a9e964be31a51e15e5010d58e6f12834002f46"
@@ -3676,6 +3681,30 @@ jest-changed-files@^26.1.0:
   dependencies:
     "@jest/types" "^26.1.0"
     execa "^4.0.0"
+    throat "^5.0.0"
+
+jest-circus@^26.1.0:
+  version "26.1.0"
+  resolved "https://registry.yarnpkg.com/jest-circus/-/jest-circus-26.1.0.tgz#3c6ef8669eb3b7a83eac27b6b7bec874d697b15f"
+  integrity sha512-V5h5XJLPf0XXwP92GIOx8n0Q6vdPDcFPBuEVQ9/OPzpsx3gquL8fdxaJGZ5TsvkU3zWM7mDWULAKYJMRkA2e+g==
+  dependencies:
+    "@babel/traverse" "^7.1.0"
+    "@jest/environment" "^26.1.0"
+    "@jest/test-result" "^26.1.0"
+    "@jest/types" "^26.1.0"
+    chalk "^4.0.0"
+    co "^4.6.0"
+    dedent "^0.7.0"
+    expect "^26.1.0"
+    is-generator-fn "^2.0.0"
+    jest-each "^26.1.0"
+    jest-matcher-utils "^26.1.0"
+    jest-message-util "^26.1.0"
+    jest-runtime "^26.1.0"
+    jest-snapshot "^26.1.0"
+    jest-util "^26.1.0"
+    pretty-format "^26.1.0"
+    stack-utils "^2.0.2"
     throat "^5.0.0"
 
 jest-cli@^26.1.0:

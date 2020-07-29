@@ -15,6 +15,7 @@ export { ConfigFileOptions, ServerInfo, Auth } from './types'
 const log = logger('index')
 
 if (require.main === module) {
+  log.info(`Loading CI CLI...`)
   startCli(process.argv).finally(() => {
     if (process.env.NC_TEST_MODE) {
       // jest don't show last two console logs so we add this as a workaround

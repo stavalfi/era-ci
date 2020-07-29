@@ -44,7 +44,11 @@ async function validateConfiguration(configuration: unknown): Promise<ConfigFile
 export async function readNcConfigurationFile(ciConfigFilePath: string): Promise<ConfigFileOptions> {
   const outputFilePath = path.join(__dirname, `nc.config.js`)
   const swcConfigFile = path.join(__dirname, '../../../.swcrc')
-  await execa.command(`swc ${ciConfigFilePath} -o ${outputFilePath} --config-file ${swcConfigFile}`)
+  const swcPath = require.resolve('.bin/swc')
+  const command = `${swcPath} ${ciConfigFilePath} -o ${outputFilePath} --config-file ${swcConfigFile}`
+  await execa.command(command, {
+    stdio: 'inherit',
+  })
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const configGeneratorFunction = require(outputFilePath)

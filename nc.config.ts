@@ -1,7 +1,7 @@
 /* eslint-disable no-process-env */
 
 import { ConfigFileOptions } from './packages/nc/src/index'
-import ciInfo from 'ci-info'
+import * as ciEnv from 'ci-env'
 
 export default async (): Promise<ConfigFileOptions> => {
   const redisServer = process.env['REDIS_ENDPOINT']?.split(':') as string[]
@@ -29,7 +29,7 @@ export default async (): Promise<ConfigFileOptions> => {
       host: redisServer[0],
       port: Number(redisServer[1]),
     },
-    shouldPublish: ciInfo.isCI && !ciInfo.isPR,
+    shouldPublish: Boolean(ciEnv.ci && ciEnv.pull_request_number === undefined),
     auth: {
       gitServerToken: process.env['GIT_SERVER_TOKEN'] as string,
       gitServerUsername: process.env['GIT_SERVER_USERNAME'] as string,

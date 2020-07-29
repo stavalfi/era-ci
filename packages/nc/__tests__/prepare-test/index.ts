@@ -85,7 +85,10 @@ export const newEnv: NewEnvFunc = () => {
       await commitAllAndPushChanges(repoPath, gitServer.generateGitRepositoryAddress(repoOrg, repoName))
 
       const ciProcessResult = await execa.command(
-        `${path.join(__dirname, '../../dist/src/index.js')} --config-file ${configFilePath} --repo-path ${repoPath}`,
+        `node --unhandled-rejections=strict ${path.join(
+          __dirname,
+          '../../dist/src/index.js',
+        )} --config-file ${configFilePath} --repo-path ${repoPath}`,
         {
           stdio: ciInfo.isCI ? 'pipe' : execaOptions?.stdio || 'inherit',
           reject: execaOptions?.reject !== undefined ? execaOptions?.reject : true,

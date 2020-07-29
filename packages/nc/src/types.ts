@@ -1,5 +1,7 @@
 import { IPackageJson } from 'package-json-type'
 
+export type Cleanup = () => Promise<unknown>
+
 export type Protocol = 'http' | 'https'
 
 export type ServerInfo = {
@@ -89,7 +91,7 @@ export type Cache = {
       setAsPublished: (packageName: string, packageHash: string, packageVersion: PackageVersion) => Promise<void>
     }
   }
-  disconnect: () => Promise<unknown>
+  cleanup: () => Promise<unknown>
 }
 
 export enum StepName {
@@ -121,6 +123,7 @@ export type StepsSummary = {
   status: StepStatus
   durationMs: number
   notes: string[]
+  error?: unknown
 }
 
 export type PackageStepResult = {

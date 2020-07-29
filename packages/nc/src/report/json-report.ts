@@ -26,7 +26,7 @@ export function generateJsonReport({
   steps: ExecutedStepsWithoutReport
 }): JsonReport {
   const reportDurationMs = 0
-  log.info(`start to generate json-report`)
+  log.verbose(`start to generate json-report`)
 
   const reportResult: PackagesStepResult<StepName.report> = {
     stepName: StepName.report,
@@ -100,7 +100,7 @@ export function generateJsonReport({
     status: shouldFailAfterInstall ? StepStatus.failed : StepStatus.passed,
   }
 
-  log.info(`generated the json-report`)
+  log.verbose(`generated the json-report`)
 
   return {
     graph: finalGraph,

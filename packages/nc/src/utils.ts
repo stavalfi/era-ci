@@ -19,6 +19,7 @@ import {
   StepName,
   StepStatus,
   TargetType,
+  Cleanup,
 } from './types'
 import { generateJsonReport } from './report/json-report'
 import { generateCliTableReport } from './report/cli-table-report'
@@ -260,18 +261,25 @@ export async function build({
   }
 }
 
-export async function exitCi({
+export async function exitCi({ shouldFail, cleanups }: { shouldFail: boolean; cleanups: Cleanup[] }): Promise<void> {
+  await Promise.all(cleanups.map(func => func().catch(() => {})))
+  if (shouldFail) {
+    process.exitCode = 1
+  }
+}
+
+export async function reportAndExitCi({
   startMs,
   graph,
   steps,
   shouldFail,
-  cache,
+  cleanups,
 }: {
   startMs: number
   steps: ExecutedStepsWithoutReport | ExecutedSteps
   shouldFail: boolean
   graph: Graph<{ packageInfo: PackageInfo }>
-  cache: Cache
+  cleanups: Cleanup[]
 }): Promise<void> {
   const report = generateJsonReport({
     durationUntilNowMs: Date.now() - startMs,
@@ -279,8 +287,5 @@ export async function exitCi({
     graph,
   })
   logReport(generateCliTableReport(report))
-  await cache.disconnect()
-  if (shouldFail) {
-    process.exitCode = 1
-  }
+  await exitCi({ shouldFail, cleanups })
 }

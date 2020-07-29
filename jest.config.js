@@ -20,6 +20,7 @@ const packagesAliases = Object.values(workspacesInfo)
 
 module.exports = {
   preset: 'ts-jest',
+  testRunner: 'jest-circus/runner',
   moduleNameMapper: packagesAliases,
   setupFilesAfterEnv: [path.join(__dirname, 'jest.setup.js')],
   globals: {
