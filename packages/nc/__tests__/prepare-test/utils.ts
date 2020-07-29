@@ -22,3 +22,7 @@ export const getPackagePath = (repoPath: string, toActualName: ToActualName) => 
   }
   return packagePath
 }
+
+export const ignore = () => {
+  // ignore
+}

@@ -2,8 +2,9 @@
 import glob from 'fast-glob'
 import fs from 'fs-extra'
 import path from 'path'
+import findProjectRoot from 'find-project-root'
 
-const BASE_PATH = path.join(__dirname, '../../..')
+const BASE_PATH = findProjectRoot(__dirname) as string
 const GLOBS_TO_REMOVE = ['dist', '*.tsbuildinfo', '*.d.ts', 'yarn-error.log'].map(entry => `**/${entry}`)
 const EXPECT = ['declarations.d.ts']
 

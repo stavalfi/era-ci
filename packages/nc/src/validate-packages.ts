@@ -45,7 +45,10 @@ async function validatePackage(
     if (depVersion) {
       const isInRange = semver.satisfies(depVersion, versionRange)
       if (isInRange) {
-        if (!depInMonoRepo.targetType) {
+        if (
+          (!currentPackageInfo.targetType || currentPackageInfo.targetType === TargetType.npm) &&
+          !depInMonoRepo.targetType
+        ) {
           depProblems.push(
             `the package "${packageName}" can't depend on dependency: "${dep}" in version "${versionRange}" becuase this version represents a private-npm-package`,
           )

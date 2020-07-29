@@ -3,7 +3,8 @@ name: pull-request-build
 on: [pull_request]
 
 jobs:
-  test:
+  publish:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
 
     strategy:
@@ -21,6 +22,4 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
       - run: yarn build
-      - run: yarn run-ci-pr
-        env:
-          DEBUG: nc:*
+      - run: yarn run-ci

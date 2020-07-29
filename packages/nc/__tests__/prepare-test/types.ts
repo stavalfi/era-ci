@@ -33,10 +33,8 @@ export type Repo = {
   rootFiles?: FolderStructure
 }
 
-export type CiOptions = {
+export type TestCiOptions = {
   shouldPublish: boolean
-  isDryRun?: boolean
-  skipTests?: boolean
   execaOptions?: {
     stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
     reject?: boolean
@@ -62,14 +60,13 @@ export type TestResources = {
 }
 
 export type CiResults = {
-  logs: string
   ciProcessResult: execa.ExecaReturnValue<string>
   published: Map<string, PublishedPackageInfo>
 }
 
 export type ToActualName = (name: string) => string
 
-export type RunCi = (options: CiOptions) => Promise<CiResults>
+export type RunCi = (options: TestCiOptions) => Promise<CiResults>
 export type AddRandomFileToPackage = (packageName: string) => Promise<string>
 export type AddRandomFileToRoot = () => Promise<string>
 

@@ -5,9 +5,10 @@
   "main": "dist/src/index.js",
   "private": false,
   "files": [
+    "dist",
     "src",
     "__tests__",
-    "dist"
+    ".swcrc"
   ],
   "bin": {
     "nc-ci": "./dist/src/index.js"
@@ -17,13 +18,13 @@
   },
   "types": "dist/src/index.d.ts",
   "scripts": {
-    "build": "tsc -b tsconfig-build.json",
     "test": "jest"
   },
   "dependencies": {
-    "chalk": "^4.1.0",
-    "randomcolor": "^0.6.2",
+    "@swc/cli": "^0.1.26",
+    "@swc/core": "^1.2.9",
     "@tahini/log": "^1.0.0",
+    "chalk": "^4.1.0",
     "ci-info": "^2.0.0",
     "cli-table3": "^0.6.0",
     "cmd-ts": "^0.6.3",
@@ -34,6 +35,10 @@
     "ioredis": "^4.17.1",
     "is-ip": "^3.1.0",
     "node-cache": "^5.1.2",
-    "semver": "^7.3.2"
+    "pretty-ms": "^7.0.0",
+    "randomcolor": "^0.6.2",
+    "semver": "^7.3.2",
+    "source-map-support": "^0.5.19",
+    "ts-node": "^8.10.2"
   }
 }

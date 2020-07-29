@@ -1,16 +1,12 @@
 /* eslint-disable no-process-env */
 
-import { CiOptions } from '@tahini/nc'
-import path from 'path'
-import findProjectRoot from 'find-project-root'
+import { ConfigFileOptions } from './packages/nc/src/index'
+import * as ciEnv from 'ci-env'
 
-export const getPrCiOptions = (): CiOptions => {
+export default async (): Promise<ConfigFileOptions> => {
   const redisServer = process.env['REDIS_ENDPOINT']?.split(':') as string[]
-  const repoPath = findProjectRoot(__dirname) as string
 
   return {
-    logFilePath: path.join('repoPath', 'nc-logs.txt'),
-    repoPath,
     dockerOrganizationName: 'stavalfi',
     dockerRegistry: {
       host: 'registry.hub.docker.com',
@@ -33,9 +29,7 @@ export const getPrCiOptions = (): CiOptions => {
       host: redisServer[0],
       port: Number(redisServer[1]),
     },
-    isDryRun: false,
-    shouldPublish: false,
-    skipTests: false,
+    shouldPublish: Boolean(ciEnv.ci && ciEnv.pull_request_number === undefined),
     auth: {
       gitServerToken: process.env['GIT_SERVER_TOKEN'] as string,
       gitServerUsername: process.env['GIT_SERVER_USERNAME'] as string,
@@ -48,7 +42,3 @@ export const getPrCiOptions = (): CiOptions => {
     },
   }
 }
-export const getMasterCiOptions = (): CiOptions => ({
-  ...getPrCiOptions(),
-  shouldPublish: true,
-})
