@@ -229,8 +229,8 @@ describe('docker-package depends on...', () => {
     )
   })
 
-  test('docker-package can not depends on private npm package', async () => {
-    const { runCi, toActualName } = await createRepo({
+  test('docker-package can depend on private npm package', async () => {
+    const { runCi } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -243,25 +243,26 @@ describe('docker-package depends on...', () => {
           dependencies: {
             a: '^1.0.0',
           },
+          additionalFiles: {
+            Dockerfile: `\
+FROM node
+
+WORKDIR /usr/repo
+
+COPY yarn.lock package.json ./
+COPY packages/ ./packages/
+
+RUN yarn install --frozen-lockfile --production\
+            `,
+          },
         },
       ],
     })
 
-    await expect(
-      runCi({
-        shouldPublish: false,
-        execaOptions: {
-          stdio: 'pipe',
-        },
-      }),
-    ).rejects.toEqual(
-      expect.objectContaining({
-        stderr: expect.stringContaining(
-          `the package "${toActualName('b')}" can't depend on dependency: "${toActualName(
-            'a',
-          )}" in version "^1.0.0" becuase this version represents a private-npm-package`,
-        ),
-      }),
-    )
+    const master1 = await runCi({
+      shouldPublish: true,
+    })
+
+    expect(master1.published.get('b')?.docker?.tags).toEqual(['2.0.0'])
   })
 })

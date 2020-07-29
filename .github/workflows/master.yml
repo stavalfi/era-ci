@@ -6,7 +6,8 @@ on:
       - master
 
 jobs:
-  deploy:
+  test:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
 
     strategy:
@@ -24,6 +25,4 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
       - run: yarn build
-      - run: yarn run-ci-master
-        env:
-          DEBUG: nc:*
+      - run: yarn run-ci

@@ -1,5 +1,15 @@
+/* eslint-disable @typescript-eslint/camelcase */
+
 declare module 'object-deep-contain' {
   export default function(bigObject: unknown, smallerObject: unknown): boolean
+}
+
+declare module 'ci-env' {
+  export const branch: string | boolean | undefined
+  export const pull_request_number: string | boolean | undefined
+  export const pull_request_target_branch: string | boolean | undefined
+  export const ci: string | boolean | undefined
+  export const platform: string | boolean | undefined
 }
 
 declare module '@hutson/set-npm-auth-token-for-ci' {

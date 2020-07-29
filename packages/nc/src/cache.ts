@@ -182,6 +182,6 @@ export async function intializeCache({
         }),
       },
     },
-    disconnect: () => Promise.all([redisClient.quit(), nodeCache.close()]),
+    cleanup: () => Promise.all([redisClient.quit(), nodeCache.close()]),
   }
 }

@@ -26,9 +26,8 @@ async function buildNpmTarget({
     throw new Error(`package.json of: ${packagePath} must have a version property.`)
   }
   const publishedVersion = await cache.publish.npm.isPublished(packageJson.name as string, packageHash)
-  const needPublish = !publishedVersion
   const npmhighestVersionInfo = await getNpmhighestVersionInfo(packageJson.name, npmRegistry)
-  if (needPublish) {
+  if (!publishedVersion) {
     return {
       targetType: TargetType.npm,
       needPublish: true,
@@ -38,20 +37,12 @@ async function buildNpmTarget({
         highestPublishedVersion: npmhighestVersionInfo?.highestVersion,
         allVersions: npmhighestVersionInfo?.allVersions,
       }),
-      highestPublishedVersion: npmhighestVersionInfo && {
-        version: npmhighestVersionInfo?.highestVersion,
-      },
     }
   } else {
     return {
       targetType: TargetType.npm,
       needPublish: {
-        skip: {
-          reason: `this package with the same content was already published as npm package with version: ${publishedVersion}`,
-        },
-      },
-      highestPublishedVersion: npmhighestVersionInfo && {
-        version: npmhighestVersionInfo?.highestVersion,
+        alreadyPublishedAsVersion: publishedVersion,
       },
     }
   }
@@ -79,14 +70,13 @@ async function buildDockerTarget({
     throw new Error(`package.json of: ${packagePath} must have a version property.`)
   }
   const publishedTag = await cache.publish.docker.isPublished(packageJson.name as string, packageHash)
-  const needPublish = !publishedTag
   const dockerLatestTagInfo = await getDockerImageLabelsAndTags({
     dockerRegistry,
     dockerOrganizationName,
     packageJsonName: packageJson.name,
   })
 
-  if (needPublish) {
+  if (!publishedTag) {
     return {
       targetType: TargetType.docker,
       needPublish: true,
@@ -96,22 +86,12 @@ async function buildDockerTarget({
         highestPublishedVersion: dockerLatestTagInfo?.latestTag,
         allVersions: dockerLatestTagInfo?.allTags,
       }),
-      highestPublishedVersion: dockerLatestTagInfo && {
-        version: dockerLatestTagInfo.latestTag,
-        hash: dockerLatestTagInfo.latestHash,
-      },
     }
   } else {
     return {
       targetType: TargetType.docker,
       needPublish: {
-        skip: {
-          reason: `this package with the same content was already published as docker package with tag: ${publishedTag}`,
-        },
-      },
-      highestPublishedVersion: dockerLatestTagInfo && {
-        version: dockerLatestTagInfo.latestTag,
-        hash: dockerLatestTagInfo.latestHash,
+        alreadyPublishedAsVersion: publishedTag,
       },
     }
   }

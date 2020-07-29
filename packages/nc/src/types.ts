@@ -1,5 +1,7 @@
 import { IPackageJson } from 'package-json-type'
 
+export type Cleanup = () => Promise<unknown>
+
 export type Protocol = 'http' | 'https'
 
 export type ServerInfo = {
@@ -20,11 +22,8 @@ export type Auth = {
 }
 
 export type CiOptions = {
-  logFilePath: string
   repoPath: string
   shouldPublish: boolean
-  isDryRun: boolean
-  skipTests: boolean
   npmRegistry: ServerInfo
   dockerRegistry: ServerInfo
   gitServer: ServerInfo
@@ -34,6 +33,8 @@ export type CiOptions = {
   gitOrganizationName: string
   auth: Auth
 }
+
+export type ConfigFileOptions = Omit<CiOptions, 'repoPath'>
 
 export type PackageName = string
 export type PackageVersion = string
@@ -47,13 +48,9 @@ export type TargetInfo<TargetTypParam extends TargetType> = { targetType: Target
   | {
       needPublish: true
       newVersion: string
-      // if we didn't publish this hash yet, it maybe because we modified something or we never published before
-      highestPublishedVersion?: { version?: string; hash?: string }
     }
   | {
-      needPublish: { skip: { reason: string } }
-      // even if we already published the same hash, the user could remove the meta-data we saved on the latest-published-version
-      highestPublishedVersion?: { version?: string; hash?: string }
+      needPublish: { alreadyPublishedAsVersion: string }
     }
 )
 
@@ -94,41 +91,97 @@ export type Cache = {
       setAsPublished: (packageName: string, packageHash: string, packageVersion: PackageVersion) => Promise<void>
     }
   }
-  disconnect: () => Promise<unknown>
+  cleanup: () => Promise<unknown>
 }
 
-export type TestsResult =
+export enum StepName {
+  install = 'install',
+  build = 'build',
+  test = 'test',
+  publish = 'publish',
+  report = 'report',
+}
+
+export enum StepStatus {
+  passed = 'passed',
+  skippedAsPassed = 'skipped-as-passed',
+  skippedAsFailed = 'skipped-as-failed',
+  skippedAsFailedBecauseLastStepFailed = 'skipped-because-last-step-is-considered-as-failed',
+  failed = 'failed',
+}
+
+export type StepResult<StepNameParam extends StepName> = {
+  stepName: StepNameParam
+  status: StepStatus
+  durationMs: number
+  notes: string[]
+  error?: unknown
+}
+
+// it is used as package-summary and as a ci-summary
+export type StepsSummary = {
+  status: StepStatus
+  durationMs: number
+  notes: string[]
+  error?: unknown
+}
+
+export type PackageStepResult = {
+  install: { packageInfo: PackageInfo; stepResult: StepResult<StepName.install> }
+  build: { packageInfo: PackageInfo; stepResult: StepResult<StepName.build> }
+  test: { packageInfo: PackageInfo; stepResult: StepResult<StepName.test> }
+  publish: { packageInfo: PackageInfo; stepResult: StepResult<StepName.publish> & { publishedVersion?: string } }
+  report: { packageInfo: PackageInfo; stepResult: StepResult<StepName.report> }
+}
+
+export type PackagesStepResult<StepNameParam extends StepName> = StepResult<StepNameParam> & {
+  executionOrder: number
+  packagesResult: Graph<PackageStepResult[StepNameParam]>
+}
+
+export type CombinedPackageStepReportResult = { [StepName.report]: PackageStepResult[StepName.report] } & (
+  | {}
+  | { [StepName.install]: PackageStepResult[StepName.install] }
   | {
-      skipped: false
-      passed: boolean
+      [StepName.install]: PackageStepResult[StepName.install]
+      [StepName.build]: PackageStepResult[StepName.build]
     }
   | {
-      skipped: {
-        reason: string
-        error?: unknown
-      }
-      passed: boolean
+      [StepName.install]: PackageStepResult[StepName.install]
+      [StepName.build]: PackageStepResult[StepName.build]
+      [StepName.test]: PackageStepResult[StepName.test]
     }
   | {
-      skipped: {
-        reason: string
-        error?: unknown
-      }
+      [StepName.install]: PackageStepResult[StepName.install]
+      [StepName.build]: PackageStepResult[StepName.build]
+      [StepName.test]: PackageStepResult[StepName.test]
+      [StepName.publish]: PackageStepResult[StepName.publish]
+    }
+)
+
+export type ExecutedStepsWithoutReport =
+  | {}
+  | { [StepName.install]: PackagesStepResult<StepName.install> }
+  | {
+      [StepName.install]: PackagesStepResult<StepName.install>
+      [StepName.build]: PackagesStepResult<StepName.build>
+    }
+  | {
+      [StepName.install]: PackagesStepResult<StepName.install>
+      [StepName.build]: PackagesStepResult<StepName.build>
+      [StepName.test]: PackagesStepResult<StepName.test>
+    }
+  | {
+      [StepName.install]: PackagesStepResult<StepName.install>
+      [StepName.build]: PackagesStepResult<StepName.build>
+      [StepName.test]: PackagesStepResult<StepName.test>
+      [StepName.publish]: PackagesStepResult<StepName.publish>
     }
 
-export type PublishResult =
-  | {
-      skipped: {
-        reason: string
-      }
-    }
-  | {
-      skipped: false
-      published:
-        | {
-            asVersion: string
-          }
-        | {
-            failed: { reason: string; error?: unknown }
-          }
-    }
+export type ExecutedSteps = ExecutedStepsWithoutReport & { [StepName.report]: PackagesStepResult<StepName.report> }
+
+export type JsonReport = {
+  graph: Graph<{ packageInfo: PackageInfo; stepsResult: CombinedPackageStepReportResult; stepsSummary: StepsSummary }>
+  steps: ExecutedSteps
+  summary: StepsSummary
+}

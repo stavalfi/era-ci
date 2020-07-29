@@ -7,21 +7,28 @@ import path from 'path'
 import { buildFullDockerImageName, npmRegistryLogin } from '../../src/ci-logic'
 import { CacheTypes, ServerInfo } from '../../src/types'
 import { CreateAndManageRepo, MinimalNpmPackage, TargetType, ToActualName } from './types'
-import { getPackagePath, getPackages } from './utils'
+import { getPackagePath, getPackages, ignore } from './utils'
 import { createFile } from 'create-folder-structure'
 
 export async function manageTest() {
-  const filePath = await createFile()
+  const expectedContentInLog = `content-${chance().hash()}`
+  const filePath = await createFile(expectedContentInLog)
+
   return {
-    testScript: `ls ${filePath}`,
-    makeTestsPass: () => fse.createFile(filePath),
-    makeTestsFail: () => fse.remove(filePath),
+    testScript: `cat ${filePath}`,
+    expectedContentInLog,
+    makeTestsPass: async () => {
+      await fse.writeFile(filePath, expectedContentInLog)
+    },
+    makeTestsFail: async () => {
+      await fse.remove(filePath)
+    },
   }
 }
 
 export async function commitAllAndPushChanges(repoPath: string, gitRepoAddress: string) {
   await execa.command('git add --all', { cwd: repoPath, stdio: 'pipe' })
-  await execa.command('git commit -m init', { cwd: repoPath, stdio: 'pipe' })
+  await execa.command('git commit -m init', { cwd: repoPath, stdio: 'pipe' }).catch(ignore) // incase nothing was changed from the last commit, git will throw error
   await execa.command(`git push ${gitRepoAddress}`, { cwd: repoPath, stdio: 'pipe' })
 }
 
