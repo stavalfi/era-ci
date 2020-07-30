@@ -19,7 +19,7 @@
   },
   "workspaces": [
     "packages/*",
-    "packages/tests/*"
+    "packages/micro-services/*"
   ],
   "husky": {
     "hooks": {
@@ -41,6 +41,7 @@
     "@types/node": "^14.0.13",
     "@types/randomcolor": "^0.5.5",
     "@types/semver": "^7.2.0",
+    "@types/url-parse": "^1.4.3",
     "@typescript-eslint/eslint-plugin": "^2.14.0",
     "@typescript-eslint/parser": "^2.14.0",
     "chance": "^1.1.5",
@@ -70,7 +71,7 @@
     "syncpack": "^5.0.1",
     "ts-jest": "^26.1.1",
     "ts-node": "^8.10.2",
-    "typescript": "^3.7.5"
+    "typescript": "^3.9.7"
   },
   "engines": {
     "node": ">=12.0.0"

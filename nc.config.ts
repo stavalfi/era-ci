@@ -1,50 +1,25 @@
 /* eslint-disable no-process-env */
 
-import { CiOptions } from './packages/nc/src/index'
+import { ConfigFileOptions } from './packages/nc/src/index'
 import ciInfo from 'ci-info'
 
-export default async (): Promise<CiOptions> => {
-  const redisServer = process.env['REDIS_ENDPOINT']?.split(':') as string[]
+export default async (): Promise<ConfigFileOptions<number>> => {
+  const { DOCKER_HUB_USERNAME, DOCKER_HUB_TOKEN, NPM_USERNAME, NPM_TOKEN, REDIS_PASSWORD, REDIS_ENDPOINT } = process.env
+
+  const isMasterBuild = Boolean(ciInfo.isCI && !ciInfo.isPR)
 
   return {
+    shouldPublish: isMasterBuild,
+    shouldDeploy: isMasterBuild,
     dockerOrganizationName: 'stavalfi',
-    dockerRegistry: {
-      host: 'registry.hub.docker.com',
-      port: 443,
-      protocol: 'https',
-    },
-    gitOrganizationName: 'stavalfi',
-    gitRepositoryName: 'nc',
-    gitServer: {
-      host: 'github.com',
-      port: 443,
-      protocol: 'https',
-    },
-    npmRegistry: {
-      host: 'registry.npmjs.com',
-      port: 443,
-      protocol: 'https',
-    },
-    redisServer: {
-      host: redisServer[0],
-      port: Number(redisServer[1]),
-    },
-    shouldPublish: Boolean(ciInfo.isCI && !ciInfo.isPR),
-    auth: {
-      gitServerToken: process.env['GIT_SERVER_TOKEN'] as string,
-      gitServerUsername: process.env['GIT_SERVER_USERNAME'] as string,
-      npmRegistryEmail: 'stavalfi@gmail.com',
-      npmRegistryToken: process.env['NPM_TOKEN'] as string,
-      npmRegistryUsername: process.env['NPM_USERNAME'] as string,
-      dockerRegistryToken: process.env['DOCKER_HUB_TOKEN'] as string,
-      dockerRegistryUsername: process.env['DOCKER_HUB_USERNAME'] as string,
-      redisPassword: process.env['REDIS_PASSWORD'] as string,
-    },
-    shouldDeploy: false,
+    dockerRegistryUrl: `https://${DOCKER_HUB_USERNAME}:${DOCKER_HUB_TOKEN}@registry.hub.docker.com/`,
+    redisServerUrl: `redis://:${REDIS_PASSWORD}@${REDIS_ENDPOINT}/`,
+    npmRegistryEmail: 'stavalfi@gmail.com',
+    npmRegistryUrl: `https://${NPM_USERNAME}:${NPM_TOKEN}@registry.npmjs.com/`,
     deployment: {
       npm: {
         initializeDeploymentClient: async () => 2,
-        deploy: async () => Promise.resolve(),
+        deploy: async ({ artifactToDeploy, deploymentClient }) => Promise.resolve(),
         destroyDeploymentClient: async () => Promise.resolve(),
       },
       docker: {

@@ -20,7 +20,10 @@ export type ArtifactToDeploy = {
   packageJson: IPackageJson
 }
 
-export type Protocol = 'http' | 'https'
+export enum Protocol {
+  http = 'http',
+  https = 'https',
+}
 
 export type ServerInfo = {
   host: string
@@ -55,18 +58,31 @@ export type DeployTarget<DeploymentClient> = {
 export type Deployment<DeploymentClient> = {
   [Target in TargetType]?: DeployTarget<DeploymentClient>
 }
-
-export type CiOptions<DeploymentClient = never> = {
+export type CiOptions<DeploymentClient> = {
+  repoPath: string
   shouldPublish: boolean
   npmRegistry: ServerInfo
   dockerRegistry: ServerInfo
-  gitServer: ServerInfo
   redisServer: ServerInfo
+  gitRepoUrl: string
   dockerOrganizationName: string
   gitRepositoryName: string
   gitOrganizationName: string
+  shouldDeploy: boolean
+  deployment?: Deployment<DeploymentClient>
   auth: Auth
-} & ({} | { shouldDeploy: boolean; deployment: Deployment<DeploymentClient> })
+}
+
+export type ConfigFileOptions<DeploymentClient = never> = Pick<
+  CiOptions<DeploymentClient>,
+  'shouldPublish' | 'shouldDeploy' | 'deployment'
+> & {
+  npmRegistryEmail: string
+  npmRegistryUrl: string
+  redisServerUrl: string
+  dockerRegistryUrl: string
+  dockerOrganizationName: string
+}
 
 export type PackageName = string
 export type PackageVersion = string

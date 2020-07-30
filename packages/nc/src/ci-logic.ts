@@ -19,7 +19,7 @@ export { TargetType } from './types'
 
 const log = logger('ci-logic')
 
-export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient> & { repoPath: string }) {
+export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>) {
   const cleanups: Cleanup[] = []
 
   try {
@@ -114,7 +114,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient> 
       {
         stopPipelineOnFailure: false,
         runStep: stepsResultUntilNow =>
-          'deployment' in options &&
+          options.deployment &&
           deploy<DeploymentClient>(stepsResultUntilNow.publish!.packagesResult, {
             shouldDeploy: options.shouldDeploy,
             repoPath: options.repoPath,

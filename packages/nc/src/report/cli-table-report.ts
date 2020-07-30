@@ -41,7 +41,7 @@ const STATUSES = {
 }
 
 function generatePackagesStatusReport(jsonReport: JsonReport): string {
-  const orderedSteps = [StepName.install, StepName.build, StepName.test, StepName.publish].filter(
+  const orderedSteps = [StepName.install, StepName.build, StepName.test, StepName.publish, StepName.deployment].filter(
     // @ts-ignore - ts can't handle the basics :S
     stepName => jsonReport.steps[stepName],
   )
@@ -107,8 +107,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
 }
 
 function generateSummaryReport(jsonReport: JsonReport): string {
-  const formattedReasons = jsonReport.summary.notes.map(reason => `* ${reason}`)
-
+  const formattedReasons = jsonReport.summary.notes
   const columns: TableRow[] = [
     [
       {

@@ -1,7 +1,7 @@
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap, IPackageJson } from 'package-json-type'
 import execa, { StdioOption } from 'execa'
-import { ServerInfo, TargetType } from '../../src/types'
+import { ServerInfo, TargetType } from '../../src/index'
 
 export { TargetType }
 
@@ -33,22 +33,23 @@ export type Repo = {
   rootFiles?: FolderStructure
 }
 
-export type TestCiOptions = {
-  shouldPublish: boolean
+export type TestOptions = {
+  shouldPublish?: boolean
+  shouldDeploy?: boolean
+  deploymentStrigifiedSection?: string
   execaOptions?: {
     stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
     reject?: boolean
   }
 }
 
-export type PublishedPackageInfo = {
+export type ResultingArtifact = {
   npm: {
     versions: string[]
     highestVersion?: string
   }
   docker: {
     tags: string[]
-    latestTag?: string
   }
 }
 
@@ -61,18 +62,17 @@ export type TestResources = {
 
 export type CiResults = {
   ciProcessResult: execa.ExecaReturnValue<string>
-  published: Map<string, PublishedPackageInfo>
+  published: Map<string, ResultingArtifact>
+  // deployed: Map<string, ResultingArtifact>
 }
 
 export type ToActualName = (name: string) => string
 
-export type RunCi = (options: TestCiOptions) => Promise<CiResults>
+export type RunCi = (options: TestOptions) => Promise<CiResults>
 export type AddRandomFileToPackage = (packageName: string) => Promise<string>
 export type AddRandomFileToRoot = () => Promise<string>
 
-export type CreateAndManageRepo = (
-  repo?: Repo,
-) => Promise<{
+export type ManageRepoResult = {
   repoPath: string
   toActualName: ToActualName
   dockerOrganizationName: string
@@ -94,9 +94,11 @@ export type CreateAndManageRepo = (
   renamePackageFolder: (packageName: string) => Promise<string>
   createNewPackage: (newNpmPackage: MinimalNpmPackage) => Promise<void>
   runCi: RunCi
-}>
+}
 
-export type NewEnvFunc = () => {
+export type CreateAndManageRepo = (repo?: Repo) => Promise<ManageRepoResult>
+
+export type NewEnv = () => {
   createRepo: CreateAndManageRepo
   getTestResources: () => TestResources
 }

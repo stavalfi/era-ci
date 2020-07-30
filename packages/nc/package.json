@@ -37,8 +37,10 @@
     "node-cache": "^5.1.2",
     "pretty-ms": "^7.0.0",
     "randomcolor": "^0.6.2",
+    "redis-url-parse": "^2.0.0",
     "semver": "^7.3.2",
     "source-map-support": "^0.5.19",
-    "ts-node": "^8.10.2"
+    "ts-node": "^8.10.2",
+    "url-parse": "^1.4.7"
   }
 }

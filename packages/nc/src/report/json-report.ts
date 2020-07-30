@@ -70,7 +70,9 @@ export function generateJsonReport({
       durationMs: Object.values(packageSteps)
         .map(stepResult => stepResult.durationMs)
         .reduce((acc, d) => acc + d, 0),
-      notes: [],
+      notes: Object.values(allSteps)
+        .filter(step => step)
+        .flatMap(step => step!.notes.map(note => `${step?.stepName} - ${note}`)),
       status: calculateCombinedStatus(Object.values(packageSteps).map(step => step.status)),
     }
 

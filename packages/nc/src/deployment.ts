@@ -174,7 +174,9 @@ export async function deploy<DeploymentClient>(
             const deploymentClient = await options.delpoyment[targetType]!.initializeDeploymentClient()
             return [targetType, deploymentClient]
           } else {
-            throw new Error(`typescript is not perfect`)
+            throw new Error(
+              `typescript is forcing me to throw this error - we shouldn't be here - but with my luck, we will probably be here every run :P`,
+            )
           }
         }),
     ),
@@ -202,6 +204,17 @@ export async function deploy<DeploymentClient>(
             stepResult: await prepare.deploymentResult(),
           },
         }
+      }
+    }),
+  )
+
+  await Promise.all(
+    [...targetsToDeploy.entries()].map(async ([targetType, deploymentClient]) => {
+      const destroyDeploymentClient = options.delpoyment[targetType]?.destroyDeploymentClient
+      if (!destroyDeploymentClient) {
+        throw new Error(`destroyDeploymentClient function is missing under deployment.${targetType} section`)
+      } else {
+        await destroyDeploymentClient({ deploymentClient })
       }
     }),
   )
