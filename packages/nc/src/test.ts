@@ -1,6 +1,6 @@
 import { logger } from '@tahini/log'
 import execa from 'execa'
-import { Cache, Graph, Node, PackageInfo, PackagesStepResult, PackageStepResult, StepName, StepStatus } from './types'
+import { Cache, Graph, Node, Artifact, PackagesStepResult, PackageStepResult, StepName, StepStatus } from './types'
 import { calculateCombinedStatus } from './utils'
 
 const log = logger('test')
@@ -9,12 +9,12 @@ async function testPackage({
   cache,
   node,
 }: {
-  node: Node<{ packageInfo: PackageInfo }>
+  node: Node<{ artifact: Artifact }>
   cache: Cache
 }): Promise<PackageStepResult[StepName.test]> {
   const startMs = Date.now()
 
-  if (!node.data.packageInfo.packageJson.scripts?.test) {
+  if (!node.data.artifact.packageJson.scripts?.test) {
     return {
       ...node.data,
       stepResult: {
@@ -26,12 +26,10 @@ async function testPackage({
     }
   }
 
-  if (
-    await cache.test.isTestsRun(node.data.packageInfo.packageJson.name as string, node.data.packageInfo.packageHash)
-  ) {
+  if (await cache.test.isTestsRun(node.data.artifact.packageJson.name as string, node.data.artifact.packageHash)) {
     const testsResult = await cache.test.isPassed(
-      node.data.packageInfo.packageJson.name as string,
-      node.data.packageInfo.packageHash,
+      node.data.artifact.packageJson.name as string,
+      node.data.artifact.packageHash,
     )
     if (testsResult) {
       return {
@@ -57,14 +55,14 @@ async function testPackage({
   }
 
   const testsResult = await execa.command(`yarn test`, {
-    cwd: node.data.packageInfo.packagePath,
+    cwd: node.data.artifact.packagePath,
     stdio: 'inherit',
     reject: false,
   })
 
   await cache.test.setResult(
-    node.data.packageInfo.packageJson.name as string,
-    node.data.packageInfo.packageHash,
+    node.data.artifact.packageJson.name as string,
+    node.data.artifact.packageHash,
     !testsResult.failed,
   )
 
@@ -96,7 +94,7 @@ export async function testPackages({
   orderedGraph,
   executionOrder,
 }: {
-  orderedGraph: Graph<{ packageInfo: PackageInfo }>
+  orderedGraph: Graph<{ artifact: Artifact }>
   cache: Cache
   executionOrder: number
 }): Promise<PackagesStepResult<StepName.test>> {

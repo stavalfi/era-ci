@@ -53,7 +53,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
         .map(([stepName, { stepResult }]) => [stepName, STATUSES[stepResult.status]]),
     )
     return {
-      packageName: node.data.packageInfo.packageJson.name as string,
+      packageName: node.data.artifact.packageJson.name as string,
       stepsStatusOrdered: orderedSteps.map(stepName => stepsStatus[stepName]),
       summaryStatus: STATUSES[node.data.stepsSummary.status],
       duration: prettyMs(node.data.stepsSummary.durationMs),

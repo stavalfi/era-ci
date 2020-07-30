@@ -1,7 +1,7 @@
 import {
   ExecutedStepsWithoutReport,
   Graph,
-  PackageInfo,
+  Artifact,
   PackagesStepResult,
   JsonReport,
   StepName,
@@ -22,7 +22,7 @@ export function generateJsonReport({
   steps,
 }: {
   durationUntilNowMs: number
-  graph: Graph<{ packageInfo: PackageInfo }>
+  graph: Graph<{ artifact: Artifact }>
   steps: ExecutedStepsWithoutReport
 }): JsonReport {
   const reportDurationMs = 0
@@ -73,7 +73,7 @@ export function generateJsonReport({
     }
 
     const data: {
-      packageInfo: PackageInfo
+      artifact: Artifact
       stepsResult: CombinedPackageStepReportResult
       stepsSummary: StepsSummary
     } = {

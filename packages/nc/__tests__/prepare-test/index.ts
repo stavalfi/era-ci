@@ -123,9 +123,7 @@ export const newEnv: NewEnvFunc = () => {
           }),
       )
 
-      const published = packages.filter(
-        ([, packageInfo]) => packageInfo.docker.latestTag || packageInfo.npm.highestVersion,
-      )
+      const published = packages.filter(([, artifact]) => artifact.docker.latestTag || artifact.npm.highestVersion)
 
       return {
         published: new Map(published),

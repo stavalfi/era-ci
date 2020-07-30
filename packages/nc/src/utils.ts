@@ -12,7 +12,7 @@ import {
   ExecutedSteps,
   ExecutedStepsWithoutReport,
   Graph,
-  PackageInfo,
+  Artifact,
   PackagesStepResult,
   Protocol,
   ServerInfo,
@@ -60,7 +60,7 @@ export async function getPackages(repoPath: string): Promise<string[]> {
 }
 
 export async function getOrderedGraph({
-  packagesInfo,
+  artifacts,
   repoPath,
   dockerOrganizationName,
   cache,
@@ -68,7 +68,7 @@ export async function getOrderedGraph({
   npmRegistry,
 }: {
   repoPath: string
-  packagesInfo: {
+  artifacts: {
     packagePath: string
     packageJson: IPackageJson
     packageName: string | undefined
@@ -78,20 +78,20 @@ export async function getOrderedGraph({
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
   cache: Cache
-}): Promise<Graph<{ packageInfo: PackageInfo }>> {
+}): Promise<Graph<{ artifact: Artifact }>> {
   log.verbose('calculate hash of every package and check which packages changed since their last publish')
   const orderedGraph = await calculatePackagesHash(
     repoPath,
-    packagesInfo.map(({ packagePath }) => packagePath),
+    artifacts.map(({ packagePath }) => packagePath),
   )
   const result = await Promise.all(
     orderedGraph.map(async node => ({
       ...node,
       data: {
-        packageInfo: await getPackageInfo({
+        artifact: await getPackageInfo({
           dockerRegistry,
           npmRegistry,
-          targetType: packagesInfo.find(({ packagePath }) => node.data.packagePath === packagePath)
+          targetType: artifacts.find(({ packagePath }) => node.data.packagePath === packagePath)
             ?.targetType as TargetType,
           dockerOrganizationName,
           packageHash: node.data.packageHash,
@@ -107,10 +107,10 @@ export async function getOrderedGraph({
   )
   result.forEach(node => {
     log.verbose(
-      `${node.data.packageInfo.relativePackagePath} (${node.data.packageInfo.packageJson.name}): ${JSON.stringify(
+      `${node.data.artifact.relativePackagePath} (${node.data.artifact.packageJson.name}): ${JSON.stringify(
         {
           ..._.omit(node.data, ['packageJson']),
-          packageJsonVersion: node.data.packageInfo.packageJson.version,
+          packageJsonVersion: node.data.artifact.packageJson.version,
         },
         null,
         2,
@@ -160,10 +160,34 @@ export async function install({
 }: {
   repoPath: string
   executionOrder: number
-  graph: Graph<{ packageInfo: PackageInfo }>
+  graph: Graph<{ artifact: Artifact }>
 }): Promise<PackagesStepResult<StepName.install>> {
   const startMs = Date.now()
   log.info(`installing...`)
+
+  // @ts-ignore
+  if (!(await fse.exists(path.join(repoPath, 'yarn.lock')))) {
+    const durationMs = Date.now() - startMs
+    return {
+      stepName: StepName.install,
+      durationMs,
+      notes: [`project must have yarn.lock file in the root folder of the repository`],
+      status: StepStatus.failed,
+      packagesResult: graph.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          stepResult: {
+            durationMs: durationMs,
+            notes: [],
+            status: StepStatus.failed,
+            stepName: StepName.install,
+          },
+        },
+      })),
+      executionOrder,
+    }
+  }
 
   const result = await execa.command('yarn install', {
     cwd: repoPath,
@@ -201,7 +225,7 @@ export async function build({
 }: {
   repoPath: string
   executionOrder: number
-  graph: Graph<{ packageInfo: PackageInfo }>
+  graph: Graph<{ artifact: Artifact }>
 }): Promise<PackagesStepResult<StepName.build>> {
   const startMs = Date.now()
   log.info(`building...`)
@@ -278,7 +302,7 @@ export async function reportAndExitCi({
   startMs: number
   steps: ExecutedStepsWithoutReport | ExecutedSteps
   shouldFail: boolean
-  graph: Graph<{ packageInfo: PackageInfo }>
+  graph: Graph<{ artifact: Artifact }>
   cleanups: Cleanup[]
 }): Promise<void> {
   const report = generateJsonReport({

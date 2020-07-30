@@ -29,31 +29,31 @@ async function initializeGitRepo({
 }
 
 function createPackageJson({
-  packageInfo,
+  artifact,
   toActualName,
   isFromThisMonorepo,
 }: {
-  packageInfo: Package
+  artifact: Package
   toActualName: ToActualName
   isFromThisMonorepo: (depName: string) => boolean
 }) {
   return {
-    name: toActualName(packageInfo.name),
-    version: packageInfo.version,
-    private: packageInfo.targetType !== TargetType.npm,
-    ...(packageInfo['index.js'] && { main: 'index.js' }),
-    ...(packageInfo.scripts && { scripts: packageInfo.scripts }),
-    ...(packageInfo.dependencies && {
+    name: toActualName(artifact.name),
+    version: artifact.version,
+    private: artifact.targetType !== TargetType.npm,
+    ...(artifact['index.js'] && { main: 'index.js' }),
+    ...(artifact.scripts && { scripts: artifact.scripts }),
+    ...(artifact.dependencies && {
       dependencies: Object.fromEntries(
-        Object.entries(packageInfo.dependencies).map(([key, value]) => [
+        Object.entries(artifact.dependencies).map(([key, value]) => [
           isFromThisMonorepo(key) ? toActualName(key) : key,
           value,
         ]),
       ),
     }),
-    ...(packageInfo.devDependencies && {
+    ...(artifact.devDependencies && {
       devDependencies: Object.fromEntries(
-        Object.entries(packageInfo.devDependencies).map(([key, value]) => [
+        Object.entries(artifact.devDependencies).map(([key, value]) => [
           isFromThisMonorepo(key) ? toActualName(key) : key,
           value,
         ]),
@@ -63,33 +63,32 @@ function createPackageJson({
 }
 
 function createPackages({ toActualName, repo }: { repo: Repo; toActualName: ToActualName }) {
-  const isFromThisMonorepo = (depName: string) =>
-    Boolean(repo.packages?.some(packageInfo => packageInfo.name === depName))
+  const isFromThisMonorepo = (depName: string) => Boolean(repo.packages?.some(artifact => artifact.name === depName))
 
   return Object.fromEntries(
-    repo.packages?.map(packageInfo => {
+    repo.packages?.map(artifact => {
       return [
-        toActualName(packageInfo.name),
+        toActualName(artifact.name),
         {
           'package.json': createPackageJson({
-            packageInfo,
+            artifact,
             isFromThisMonorepo,
             toActualName,
           }),
-          ...(packageInfo['index.js'] && { 'index.js': packageInfo['index.js'] }),
-          ...(packageInfo.src && {
-            src: packageInfo.src,
+          ...(artifact['index.js'] && { 'index.js': artifact['index.js'] }),
+          ...(artifact.src && {
+            src: artifact.src,
           }),
-          ...(packageInfo.tests && {
-            tests: packageInfo.tests,
+          ...(artifact.tests && {
+            tests: artifact.tests,
           }),
-          ...(packageInfo.targetType === TargetType.docker && {
+          ...(artifact.targetType === TargetType.docker && {
             Dockerfile: `\
             FROM alpine
             CMD ["echo","hello"]
             `,
           }),
-          ...packageInfo.additionalFiles,
+          ...artifact.additionalFiles,
         },
       ]
     }) || [],
