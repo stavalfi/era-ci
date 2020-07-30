@@ -1,7 +1,7 @@
 /* eslint-disable no-process-env */
 
 import { ConfigFileOptions } from './packages/nc/src/index'
-import * as ciInfo from 'ci-info'
+import ciInfo from 'ci-info'
 
 export default async (): Promise<ConfigFileOptions> => {
   const redisServer = process.env['REDIS_ENDPOINT']?.split(':') as string[]
