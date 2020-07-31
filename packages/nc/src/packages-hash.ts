@@ -141,7 +141,7 @@ export async function calculatePackagesHash(
       .filter(Boolean)
       .map(p => p?.packagePath as string)
 
-  type PackageInfo = {
+  type Artifact = {
     relativePackagePath: string
     packagePath: string
     packageJson: IPackageJson
@@ -152,7 +152,7 @@ export async function calculatePackagesHash(
 
   const packageHashInfoByPath: Map<string, PackageHashInfo> = new Map(
     await Promise.all(
-      packagesWithPackageJson.map<Promise<[string, PackageInfo]>>(async ({ packagePath, packageJson }) => {
+      packagesWithPackageJson.map<Promise<[string, Artifact]>>(async ({ packagePath, packageJson }) => {
         const packageFiles = repoFilesPath.filter(filePath => isInParent(packagePath, filePath))
         const packageHash = await calculateHashOfPackage(packagePath, packageFiles, rootFilesHash)
         return [

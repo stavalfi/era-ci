@@ -3,13 +3,14 @@ import fse from 'fs-extra'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { intializeCache } from './cache'
+import { deploy } from './deployment'
 import { dockerRegistryLogin } from './docker-utils'
 import { npmRegistryLogin } from './npm-utils'
 import { getPackageTargetType } from './package-info'
 import { publish } from './publish'
 import { testPackages } from './test'
-import { CiOptions, TargetType, Cleanup } from './types'
-import { build, reportAndExitCi, getOrderedGraph, getPackages, install, shouldFailCi, exitCi } from './utils'
+import { CiOptions, Cleanup, TargetType } from './types'
+import { build, getOrderedGraph, getPackages, install, reportAndExitCi, runSteps, cleanup } from './utils'
 import { validatePackages } from './validate-packages'
 
 export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
@@ -18,20 +19,15 @@ export { TargetType } from './types'
 
 const log = logger('ci-logic')
 
-export async function ci(options: CiOptions) {
+export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient> & { repoPath: string }) {
   const cleanups: Cleanup[] = []
 
   try {
     const startMs = Date.now()
     log.verbose(`starting ci execution. options: ${JSON.stringify(options, null, 2)}`)
 
-    // @ts-ignore
-    if (!(await fse.exists(path.join(options.repoPath, 'yarn.lock')))) {
-      throw new Error(`project must have yarn.lock file in the root folder of the repository`)
-    }
-
     const packagesPath = await getPackages(options.repoPath)
-    const packagesInfo = await Promise.all(
+    const artifacts = await Promise.all(
       packagesPath.map(async packagePath => {
         const packageJson: IPackageJson = await fse.readJSON(path.join(packagePath, 'package.json'))
         return {
@@ -43,10 +39,10 @@ export async function ci(options: CiOptions) {
       }),
     )
 
-    await validatePackages(packagesInfo)
+    await validatePackages(artifacts)
 
-    const npmPackages = packagesInfo.filter(({ targetType }) => targetType === TargetType.npm)
-    const dockerPackages = packagesInfo.filter(({ targetType }) => targetType === TargetType.docker)
+    const npmPackages = artifacts.filter(({ targetType }) => targetType === TargetType.npm)
+    const dockerPackages = artifacts.filter(({ targetType }) => targetType === TargetType.docker)
 
     if (dockerPackages.length > 0) {
       await dockerRegistryLogin({
@@ -76,78 +72,67 @@ export async function ci(options: CiOptions) {
 
     const orderedGraph = await getOrderedGraph({
       repoPath: options.repoPath,
-      packagesInfo,
+      artifacts,
       dockerRegistry: options.dockerRegistry,
       dockerOrganizationName: options.dockerOrganizationName,
       npmRegistry: options.npmRegistry,
       cache,
     })
 
-    const installResult = await install({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 0 })
+    const jsonReport = await runSteps(startMs, orderedGraph, [
+      {
+        stopPipelineOnFailure: true,
+        runStep: () => install({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 0 }),
+      },
+      {
+        stopPipelineOnFailure: true,
+        runStep: () => build({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 1 }),
+      },
+      {
+        stopPipelineOnFailure: false,
+        runStep: () =>
+          testPackages({
+            orderedGraph,
+            cache,
+            executionOrder: 2,
+          }),
+      },
+      {
+        stopPipelineOnFailure: false,
+        runStep: stepsResultUntilNow =>
+          publish(stepsResultUntilNow.test!.packagesResult, {
+            shouldPublish: options.shouldPublish,
+            repoPath: options.repoPath,
+            dockerRegistry: options.dockerRegistry,
+            npmRegistry: options.npmRegistry,
+            dockerOrganizationName: options.dockerOrganizationName,
+            cache,
+            auth: options.auth,
+            executionOrder: 3,
+          }),
+      },
+      {
+        stopPipelineOnFailure: false,
+        runStep: stepsResultUntilNow =>
+          'deployment' in options &&
+          deploy<DeploymentClient>(stepsResultUntilNow.publish!.packagesResult, {
+            shouldDeploy: options.shouldDeploy,
+            repoPath: options.repoPath,
+            dockerRegistry: options.dockerRegistry,
+            npmRegistry: options.npmRegistry,
+            dockerOrganizationName: options.dockerOrganizationName,
+            cache,
+            auth: options.auth,
+            delpoyment: options.deployment,
+            executionOrder: 4,
+          }),
+      },
+    ])
 
-    const shouldFailAfterInstall = shouldFailCi({ install: installResult })
-
-    if (shouldFailAfterInstall) {
-      return reportAndExitCi({
-        cleanups,
-        graph: orderedGraph,
-        shouldFail: true,
-        startMs,
-        steps: { install: installResult },
-      })
-    }
-
-    const buildResult = await build({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 1 })
-
-    const shouldFailAfterBuild = shouldFailCi({ install: installResult, build: buildResult })
-
-    if (shouldFailAfterBuild) {
-      return reportAndExitCi({
-        cleanups,
-        graph: orderedGraph,
-        shouldFail: true,
-        startMs,
-        steps: { install: installResult, build: buildResult },
-      })
-    }
-
-    const testResult = await testPackages({
-      orderedGraph,
-      cache,
-      executionOrder: 2,
-    })
-
-    const publishResult = await publish(testResult.packagesResult, {
-      shouldPublish: options.shouldPublish,
-      repoPath: options.repoPath,
-      dockerRegistry: options.dockerRegistry,
-      npmRegistry: options.npmRegistry,
-      dockerOrganizationName: options.dockerOrganizationName,
-      cache,
-      auth: options.auth,
-      executionOrder: 3,
-    })
-
-    const shouldFailAfterPublish = shouldFailCi({
-      install: installResult,
-      build: buildResult,
-      test: testResult,
-      publish: publishResult,
-    })
-
-    return reportAndExitCi({
-      cleanups,
-      graph: orderedGraph,
-      shouldFail: shouldFailAfterPublish,
-      startMs,
-      steps: { install: installResult, build: buildResult, test: testResult, publish: publishResult },
-    })
+    await reportAndExitCi(jsonReport, cleanups)
   } catch (error) {
-    log.error(`CI failed unexpectedly. error:`)
-    log.error(error)
-    return exitCi({
-      cleanups,
-      shouldFail: true,
-    })
+    log.error(`CI failed unexpectedly`, error)
+    await cleanup(cleanups)
+    process.exitCode = 1
   }
 }

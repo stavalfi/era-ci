@@ -1,9 +1,9 @@
 /* eslint-disable no-process-env */
 
-import { ConfigFileOptions } from './packages/nc/src/index'
-import * as ciInfo from 'ci-info'
+import { CiOptions } from './packages/nc/src/index'
+import ciInfo from 'ci-info'
 
-export default async (): Promise<ConfigFileOptions> => {
+export default async (): Promise<CiOptions> => {
   const redisServer = process.env['REDIS_ENDPOINT']?.split(':') as string[]
 
   return {
@@ -39,6 +39,19 @@ export default async (): Promise<ConfigFileOptions> => {
       dockerRegistryToken: process.env['DOCKER_HUB_TOKEN'] as string,
       dockerRegistryUsername: process.env['DOCKER_HUB_USERNAME'] as string,
       redisPassword: process.env['REDIS_PASSWORD'] as string,
+    },
+    shouldDeploy: false,
+    deployment: {
+      npm: {
+        initializeDeploymentClient: async () => 2,
+        deploy: async () => Promise.resolve(),
+        destroyDeploymentClient: async () => Promise.resolve(),
+      },
+      docker: {
+        initializeDeploymentClient: async () => 2,
+        deploy: async () => Promise.resolve(),
+        destroyDeploymentClient: async () => Promise.resolve(),
+      },
     },
   }
 }

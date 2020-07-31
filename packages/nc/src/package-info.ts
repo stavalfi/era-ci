@@ -3,7 +3,7 @@ import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { getDockerImageLabelsAndTags } from './docker-utils'
 import { getNpmhighestVersionInfo } from './npm-utils'
-import { Cache, PackageInfo, ServerInfo, TargetInfo, TargetType } from './types'
+import { Cache, Artifact, ServerInfo, TargetToPublish, TargetType } from './types'
 import { calculateNewVersion } from './versions'
 
 async function buildNpmTarget({
@@ -18,7 +18,7 @@ async function buildNpmTarget({
   packageHash: string
   packagePath: string
   cache: Cache
-}): Promise<TargetInfo<TargetType.npm>> {
+}): Promise<TargetToPublish<TargetType.npm>> {
   if (!packageJson.name) {
     throw new Error(`package.json of: ${packagePath} must have a name property.`)
   }
@@ -62,7 +62,7 @@ async function buildDockerTarget({
   packageHash: string
   packagePath: string
   cache: Cache
-}): Promise<TargetInfo<TargetType.docker>> {
+}): Promise<TargetToPublish<TargetType.docker>> {
   if (!packageJson.name) {
     throw new Error(`package.json of: ${packagePath} must have a name property.`)
   }
@@ -132,7 +132,7 @@ export async function getPackageInfo({
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
   cache: Cache
-}): Promise<PackageInfo> {
+}): Promise<Artifact> {
   const packageJson: IPackageJson = await fs.readJson(path.join(packagePath, 'package.json'))
 
   return {

@@ -2,7 +2,7 @@ import winston from 'winston'
 import chalk from 'chalk'
 import randomColor from 'randomcolor'
 
-const { combine, timestamp, printf } = winston.format
+const { combine, timestamp, printf, errors } = winston.format
 
 const moduleToColor = new Map<string, string>()
 
@@ -22,9 +22,20 @@ const consoleTransport = new winston.transports.Console({
   format: combine(
     timestamp(),
     winston.format.colorize(),
-    printf(
-      ({ timestamp, module, level, message }) => `${timestamp} [${randomModuleColor(module)}] ${level}: ${message}`,
-    ),
+    printf(log => {
+      const base = `${log.timestamp} [${randomModuleColor(log.module)}] ${log.level}`
+      if (log.stack) {
+        // workaround to print error with stacktrace: https://github.com/winstonjs/winston/issues/1338#issuecomment-643473267
+        let returnLog = `${base}: ${log.message.replace(log.stack.split('\n')[0].substr(7), '')}`
+        returnLog += '\n'
+        returnLog += '[' + log.level + '] '
+        returnLog += log.stack.replace(/\n/g, `\n[${log.level}]\t`)
+        return `${returnLog}: `
+      } else {
+        return `${base}: ${log.message}`
+      }
+    }),
+    errors({ stack: true }), // <-- use errors format
   ),
 })
 
@@ -35,7 +46,26 @@ const mainLogger = winston.createLogger({
   transports: [consoleTransport],
 })
 
-export const logger = (module: string): winston.Logger => mainLogger.child({ module })
+export type Log = {
+  error: (message: string, error?: unknown) => void
+  info: (message: string) => void
+  verbose: (message: string) => void
+}
+
+export const logger = (module: string): Log => {
+  const log = mainLogger.child({ module })
+  return {
+    error: (message, error) => {
+      log.error(message, error)
+    },
+    info: message => {
+      log.info(message)
+    },
+    verbose: message => {
+      log.verbose(message)
+    },
+  }
+}
 
 export const logReport = (report: string) =>
   winston

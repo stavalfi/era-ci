@@ -28,7 +28,7 @@ import {
 } from './test-helpers'
 import { CreateAndManageRepo, MinimalNpmPackage, NewEnvFunc, PublishedPackageInfo, RunCi } from './types'
 import { getPackagePath, getPackages, ignore } from './utils'
-import { ConfigFileOptions } from '@tahini/nc'
+import { CiOptions } from '@tahini/nc'
 
 export { runDockerImage } from './test-helpers'
 
@@ -57,7 +57,7 @@ export const newEnv: NewEnvFunc = () => {
 
     const runCi: RunCi = async ({ shouldPublish, execaOptions }) => {
       const configFilePath = path.join(repoPath, 'nc.config.ts')
-      const configurations: ConfigFileOptions = {
+      const configurations: CiOptions = {
         shouldPublish,
         dockerOrganizationName,
         gitOrganizationName: repoOrg,
@@ -123,9 +123,7 @@ export const newEnv: NewEnvFunc = () => {
           }),
       )
 
-      const published = packages.filter(
-        ([, packageInfo]) => packageInfo.docker.latestTag || packageInfo.npm.highestVersion,
-      )
+      const published = packages.filter(([, artifact]) => artifact.docker.latestTag || artifact.npm.highestVersion)
 
       return {
         published: new Map(published),
