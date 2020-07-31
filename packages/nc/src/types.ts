@@ -56,7 +56,7 @@ export type Deployment<DeploymentClient> = {
   [Target in TargetType]?: DeployTarget<DeploymentClient>
 }
 
-export type CiOptions<DeploymentClient> = {
+export type CiOptions<DeploymentClient = never> = {
   shouldPublish: boolean
   npmRegistry: ServerInfo
   dockerRegistry: ServerInfo
@@ -149,70 +149,27 @@ export type StepsSummary = {
 }
 
 export type PackageStepResult = {
-  install: { artifact: Artifact; stepResult: StepResult<StepName.install> }
-  build: { artifact: Artifact; stepResult: StepResult<StepName.build> }
-  test: { artifact: Artifact; stepResult: StepResult<StepName.test> }
-  publish: { artifact: Artifact; stepResult: StepResult<StepName.publish> & { publishedVersion?: string } }
-  deployment: { artifact: Artifact; stepResult: StepResult<StepName.deployment> }
-  report: { artifact: Artifact; stepResult: StepResult<StepName.report> }
+  install: StepResult<StepName.install>
+  build: StepResult<StepName.build>
+  test: StepResult<StepName.test>
+  publish: StepResult<StepName.publish> & { publishedVersion?: string }
+  deployment: StepResult<StepName.deployment>
+  report: StepResult<StepName.report>
 }
 
 export type PackagesStepResult<StepNameParam extends StepName> = StepResult<StepNameParam> & {
   executionOrder: number
-  packagesResult: Graph<PackageStepResult[StepNameParam]>
+  packagesResult: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepNameParam] }>
 }
 
-export type CombinedPackageStepReportResult = { [StepName.report]: PackageStepResult[StepName.report] } & (
-  | {}
-  | { [StepName.install]: PackageStepResult[StepName.install] }
-  | {
-      [StepName.install]: PackageStepResult[StepName.install]
-      [StepName.build]: PackageStepResult[StepName.build]
-    }
-  | {
-      [StepName.install]: PackageStepResult[StepName.install]
-      [StepName.build]: PackageStepResult[StepName.build]
-      [StepName.test]: PackageStepResult[StepName.test]
-    }
-  | {
-      [StepName.install]: PackageStepResult[StepName.install]
-      [StepName.build]: PackageStepResult[StepName.build]
-      [StepName.test]: PackageStepResult[StepName.test]
-      [StepName.publish]: PackageStepResult[StepName.publish]
-    }
-  | {
-      [StepName.install]: PackageStepResult[StepName.install]
-      [StepName.build]: PackageStepResult[StepName.build]
-      [StepName.test]: PackageStepResult[StepName.test]
-      [StepName.publish]: PackageStepResult[StepName.publish]
-      [StepName.deployment]: PackageStepResult[StepName.deployment]
-    }
-)
-
-export type ExecutedStepsWithoutReport =
-  | {}
-  | { [StepName.install]: PackagesStepResult<StepName.install> }
-  | {
-      [StepName.install]: PackagesStepResult<StepName.install>
-      [StepName.build]: PackagesStepResult<StepName.build>
-    }
-  | {
-      [StepName.install]: PackagesStepResult<StepName.install>
-      [StepName.build]: PackagesStepResult<StepName.build>
-      [StepName.test]: PackagesStepResult<StepName.test>
-    }
-  | {
-      [StepName.install]: PackagesStepResult<StepName.install>
-      [StepName.build]: PackagesStepResult<StepName.build>
-      [StepName.test]: PackagesStepResult<StepName.test>
-      [StepName.publish]: PackagesStepResult<StepName.publish>
-      [StepName.deployment]: PackagesStepResult<StepName.deployment>
-    }
-
-export type ExecutedSteps = ExecutedStepsWithoutReport & { [StepName.report]: PackagesStepResult<StepName.report> }
-
 export type JsonReport = {
-  graph: Graph<{ artifact: Artifact; stepsResult: CombinedPackageStepReportResult; stepsSummary: StepsSummary }>
-  steps: ExecutedSteps
+  graph: Graph<{
+    artifact: Artifact
+    stepsResult: { [stepName in StepName]?: PackageStepResult[stepName] }
+    stepsSummary: StepsSummary
+  }>
+  steps: {
+    [stepName in StepName]?: PackagesStepResult<stepName>
+  }
   summary: StepsSummary
 }

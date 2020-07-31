@@ -3,9 +3,6 @@ import findProjectRoot from 'find-project-root'
 import path from 'path'
 import { readNcConfigurationFile } from './config-file'
 import { ci } from '../ci-logic'
-import { logger } from '@tahini/log'
-
-const log = logger('cli')
 
 export async function startCli(processArgv: string[]) {
   const app = command({
@@ -29,9 +26,6 @@ export async function startCli(processArgv: string[]) {
       await ci({
         ...configurations,
         repoPath: args['repo-path'],
-      }).catch(e => {
-        log.error(e)
-        process.exitCode = 1
       })
     },
   })

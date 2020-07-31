@@ -9,8 +9,6 @@ import { getPackageInfo } from './package-info'
 import { calculatePackagesHash } from './packages-hash'
 import {
   Cache,
-  ExecutedSteps,
-  ExecutedStepsWithoutReport,
   Graph,
   Artifact,
   PackagesStepResult,
@@ -20,6 +18,7 @@ import {
   StepStatus,
   TargetType,
   Cleanup,
+  JsonReport,
 } from './types'
 import { generateJsonReport } from './report/json-report'
 import { generateCliTableReport } from './report/cli-table-report'
@@ -45,8 +44,14 @@ export function calculateCombinedStatus(statuses: StepStatus[]): StepStatus {
   return StepStatus.skippedAsPassed
 }
 
-export function shouldFailCi(steps: ExecutedStepsWithoutReport | ExecutedSteps): boolean {
-  return Object.values(steps).some(step => [StepStatus.skippedAsFailed, StepStatus.failed].includes(step.status))
+export function shouldFailCi(
+  steps: {
+    [stepName in StepName]?: PackagesStepResult<stepName>
+  },
+): boolean {
+  return Object.values(steps)
+    .filter(step => step)
+    .some(step => [StepStatus.skippedAsFailed, StepStatus.failed].includes(step!.status))
 }
 
 export async function getPackages(repoPath: string): Promise<string[]> {
@@ -285,31 +290,73 @@ export async function build({
   }
 }
 
-export async function exitCi({ shouldFail, cleanups }: { shouldFail: boolean; cleanups: Cleanup[] }): Promise<void> {
-  await Promise.all(cleanups.map(func => func().catch(() => {})))
-  if (shouldFail) {
+export async function cleanup(cleanups: Cleanup[]): Promise<void> {
+  await Promise.all(
+    cleanups.map(func =>
+      func().catch(() => {
+        // ignore errors
+      }),
+    ),
+  )
+}
+
+export async function reportAndExitCi(jsonReport: JsonReport, cleanups: Cleanup[]): Promise<void> {
+  logReport(generateCliTableReport(jsonReport))
+  await cleanup(cleanups)
+  if (
+    [StepStatus.failed, StepStatus.skippedAsFailed, StepStatus.skippedAsFailedBecauseLastStepFailed].includes(
+      jsonReport.summary.status,
+    )
+  ) {
     process.exitCode = 1
   }
 }
 
-export async function reportAndExitCi({
-  startMs,
-  graph,
-  steps,
-  shouldFail,
-  cleanups,
-}: {
-  startMs: number
-  steps: ExecutedStepsWithoutReport | ExecutedSteps
-  shouldFail: boolean
-  graph: Graph<{ artifact: Artifact }>
-  cleanups: Cleanup[]
-}): Promise<void> {
+type RunStep = (
+  stepsResults: {
+    [stepName in StepName]?: stepName extends StepName.report ? never : PackagesStepResult<stepName>
+  },
+) => false | Promise<false | PackagesStepResult<StepName>>
+
+export async function runSteps(
+  startMs: number,
+  graph: Graph<{ artifact: Artifact }>,
+  runSteps: { stopPipelineOnFailure: boolean; runStep: RunStep }[],
+): Promise<JsonReport> {
+  const result = await runSteps.reduce(
+    async (accPromise, { runStep, stopPipelineOnFailure }) => {
+      const { stepsResultUntilNow, exit } = await accPromise
+      if (exit) {
+        return accPromise
+      } else {
+        const stepResult = await runStep(stepsResultUntilNow)
+        if (!stepResult) {
+          return {
+            stepsResultUntilNow,
+            exit: true,
+          }
+        }
+        const updated = {
+          ...stepsResultUntilNow,
+          [stepResult.stepName]: stepResult,
+        }
+        return {
+          stepsResultUntilNow: updated,
+          exit: stopPipelineOnFailure ? shouldFailCi(updated) : false,
+        }
+      }
+    },
+    Promise.resolve({
+      stepsResultUntilNow: {},
+      exit: false,
+    }),
+  )
+
   const report = generateJsonReport({
     durationUntilNowMs: Date.now() - startMs,
-    steps,
+    steps: result.stepsResultUntilNow,
     graph,
   })
-  logReport(generateCliTableReport(report))
-  await exitCi({ shouldFail, cleanups })
+
+  return report
 }

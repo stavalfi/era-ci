@@ -3,15 +3,15 @@ import fse from 'fs-extra'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { intializeCache } from './cache'
+import { deploy } from './deployment'
 import { dockerRegistryLogin } from './docker-utils'
 import { npmRegistryLogin } from './npm-utils'
 import { getPackageTargetType } from './package-info'
 import { publish } from './publish'
 import { testPackages } from './test'
-import { CiOptions, TargetType, Cleanup, PackagesStepResult, StepName } from './types'
-import { build, reportAndExitCi, getOrderedGraph, getPackages, install, shouldFailCi, exitCi } from './utils'
+import { CiOptions, Cleanup, TargetType } from './types'
+import { build, getOrderedGraph, getPackages, install, reportAndExitCi, runSteps, cleanup } from './utils'
 import { validatePackages } from './validate-packages'
-import { deploy } from './deployment'
 
 export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
 export { npmRegistryLogin } from './npm-utils'
@@ -79,113 +79,60 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient> 
       cache,
     })
 
-    const installResult = await install({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 0 })
-
-    const shouldFailAfterInstall = shouldFailCi({ install: installResult })
-
-    if (shouldFailAfterInstall) {
-      return reportAndExitCi({
-        cleanups,
-        graph: orderedGraph,
-        shouldFail: true,
-        startMs,
-        steps: { install: installResult },
-      })
-    }
-
-    const buildResult = await build({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 1 })
-
-    const shouldFailAfterBuild = shouldFailCi({ install: installResult, build: buildResult })
-
-    if (shouldFailAfterBuild) {
-      return reportAndExitCi({
-        cleanups,
-        graph: orderedGraph,
-        shouldFail: true,
-        startMs,
-        steps: { install: installResult, build: buildResult },
-      })
-    }
-
-    const testResult = await testPackages({
-      orderedGraph,
-      cache,
-      executionOrder: 2,
-    })
-
-    const publishResult = await publish(testResult.packagesResult, {
-      shouldPublish: options.shouldPublish,
-      repoPath: options.repoPath,
-      dockerRegistry: options.dockerRegistry,
-      npmRegistry: options.npmRegistry,
-      dockerOrganizationName: options.dockerOrganizationName,
-      cache,
-      auth: options.auth,
-      executionOrder: 3,
-    })
-
-    const shouldFailAfterPublish = shouldFailCi({
-      install: installResult,
-      build: buildResult,
-      test: testResult,
-      publish: publishResult,
-    })
-
-    if (shouldFailAfterPublish) {
-      return reportAndExitCi({
-        cleanups,
-        graph: orderedGraph,
-        shouldFail: true,
-        startMs,
-        steps: { install: installResult, build: buildResult, test: testResult, publish: publishResult },
-      })
-    }
-
-    let shouldFail: boolean
-    let deploymentResult: PackagesStepResult<StepName.deployment> | undefined
-    if ('deployment' in options) {
-      deploymentResult = await deploy<DeploymentClient>(publishResult.packagesResult, {
-        shouldDeploy: options.shouldDeploy,
-        repoPath: options.repoPath,
-        dockerRegistry: options.dockerRegistry,
-        npmRegistry: options.npmRegistry,
-        dockerOrganizationName: options.dockerOrganizationName,
-        cache,
-        auth: options.auth,
-        delpoyment: options.deployment,
-        executionOrder: 4,
-      })
-
-      const shouldFailAfterDeployment = shouldFailCi({
-        install: installResult,
-        build: buildResult,
-        test: testResult,
-        publish: publishResult,
-      })
-      shouldFail = shouldFailAfterDeployment
-    } else {
-      shouldFail = shouldFailAfterPublish
-    }
-
-    return reportAndExitCi({
-      cleanups,
-      graph: orderedGraph,
-      shouldFail,
-      startMs,
-      steps: {
-        install: installResult,
-        build: buildResult,
-        test: testResult,
-        publish: publishResult,
-        deployment: deploymentResult,
+    const jsonReport = await runSteps(startMs, orderedGraph, [
+      {
+        stopPipelineOnFailure: true,
+        runStep: () => install({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 0 }),
       },
-    })
+      {
+        stopPipelineOnFailure: true,
+        runStep: () => build({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 1 }),
+      },
+      {
+        stopPipelineOnFailure: false,
+        runStep: () =>
+          testPackages({
+            orderedGraph,
+            cache,
+            executionOrder: 2,
+          }),
+      },
+      {
+        stopPipelineOnFailure: false,
+        runStep: stepsResultUntilNow =>
+          publish(stepsResultUntilNow.test!.packagesResult, {
+            shouldPublish: options.shouldPublish,
+            repoPath: options.repoPath,
+            dockerRegistry: options.dockerRegistry,
+            npmRegistry: options.npmRegistry,
+            dockerOrganizationName: options.dockerOrganizationName,
+            cache,
+            auth: options.auth,
+            executionOrder: 3,
+          }),
+      },
+      {
+        stopPipelineOnFailure: false,
+        runStep: stepsResultUntilNow =>
+          'deployment' in options &&
+          deploy<DeploymentClient>(stepsResultUntilNow.publish!.packagesResult, {
+            shouldDeploy: options.shouldDeploy,
+            repoPath: options.repoPath,
+            dockerRegistry: options.dockerRegistry,
+            npmRegistry: options.npmRegistry,
+            dockerOrganizationName: options.dockerOrganizationName,
+            cache,
+            auth: options.auth,
+            delpoyment: options.deployment,
+            executionOrder: 4,
+          }),
+      },
+    ])
+
+    await reportAndExitCi(jsonReport, cleanups)
   } catch (error) {
-    log.error(`CI failed unexpectedly. error:`)
-    log.error(error)
-    return exitCi({
-      cleanups,
-      shouldFail: true,
-    })
+    log.error(`CI failed unexpectedly`, error)
+    await cleanup(cleanups)
+    process.exitCode = 1
   }
 }

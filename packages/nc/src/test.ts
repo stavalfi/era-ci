@@ -16,13 +16,10 @@ async function testPackage({
 
   if (!node.data.artifact.packageJson.scripts?.test) {
     return {
-      ...node.data,
-      stepResult: {
-        stepName: StepName.test,
-        status: StepStatus.skippedAsPassed,
-        durationMs: Date.now() - startMs,
-        notes: ['no test script'],
-      },
+      stepName: StepName.test,
+      status: StepStatus.skippedAsPassed,
+      durationMs: Date.now() - startMs,
+      notes: ['no test script'],
     }
   }
 
@@ -33,23 +30,17 @@ async function testPackage({
     )
     if (testsResult) {
       return {
-        ...node.data,
-        stepResult: {
-          stepName: StepName.test,
-          status: StepStatus.skippedAsPassed,
-          durationMs: Date.now() - startMs,
-          notes: ['nothing changed and tests already passed in last builds.'],
-        },
+        stepName: StepName.test,
+        status: StepStatus.skippedAsPassed,
+        durationMs: Date.now() - startMs,
+        notes: ['nothing changed and tests already passed in last builds.'],
       }
     } else {
       return {
-        ...node.data,
-        stepResult: {
-          stepName: StepName.test,
-          status: StepStatus.skippedAsFailed,
-          durationMs: Date.now() - startMs,
-          notes: ['nothing changed and tests already failed in last builds.'],
-        },
+        stepName: StepName.test,
+        status: StepStatus.skippedAsFailed,
+        durationMs: Date.now() - startMs,
+        notes: ['nothing changed and tests already failed in last builds.'],
       }
     }
   }
@@ -68,23 +59,17 @@ async function testPackage({
 
   if (testsResult.failed) {
     return {
-      ...node.data,
-      stepResult: {
-        stepName: StepName.test,
-        status: StepStatus.failed,
-        durationMs: Date.now() - startMs,
-        notes: [],
-      },
+      stepName: StepName.test,
+      status: StepStatus.failed,
+      durationMs: Date.now() - startMs,
+      notes: [],
     }
   } else {
     return {
-      ...node.data,
-      stepResult: {
-        stepName: StepName.test,
-        status: StepStatus.passed,
-        durationMs: Date.now() - startMs,
-        notes: [],
-      },
+      stepName: StepName.test,
+      status: StepStatus.passed,
+      durationMs: Date.now() - startMs,
+      notes: [],
     }
   }
 }
@@ -100,12 +85,12 @@ export async function testPackages({
 }): Promise<PackagesStepResult<StepName.test>> {
   const startMs = Date.now()
   log.info('running tests...')
-  const packagesResult: Graph<PackageStepResult[StepName.test]> = await Promise.all(
+  const packagesResult: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.test] }> = await Promise.all(
     orderedGraph.map(async node => ({
       ...node,
       data: {
-        ...node.data,
-        ...(await testPackage({ node, cache })),
+        artifact: node.data.artifact,
+        stepResult: await testPackage({ node, cache }),
       },
     })),
   )

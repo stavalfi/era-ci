@@ -11,51 +11,46 @@ import {
   StepName,
   StepStatus,
   TargetType,
+  Artifact,
 } from './types'
 import { calculateCombinedStatus } from './utils'
 
 const log = logger('deployment')
 
-type PrepareDeployment<DeploymentClient> = { node: Node<PackageStepResult[StepName.publish]> } & (
+type PrepareDeployment<DeploymentClient> = { node: Node<Artifact> } & (
   | {
       deployable: true
       targetType: TargetType
-      deploymentResult: (deploymentClient: DeploymentClient) => Promise<Node<PackageStepResult[StepName.deployment]>>
+      deploymentResult: (deploymentClient: DeploymentClient) => Promise<PackageStepResult[StepName.deployment]>
     }
   | {
       deployable: false
       targetType?: TargetType
-      deploymentResult: () => Promise<Node<PackageStepResult[StepName.deployment]>>
+      deploymentResult: () => Promise<PackageStepResult[StepName.deployment]>
     }
 )
 
 function prepareDeployments<DeploymentClient>({
   startMs,
   delpoyment,
-  orderedGraph,
+  graph,
 }: {
-  orderedGraph: Graph<PackageStepResult[StepName.publish]>
+  graph: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.publish] }>
   startMs: number
   delpoyment: Deployment<DeploymentClient>
 }): PrepareDeployment<DeploymentClient>[] {
-  return orderedGraph.map(node => {
+  return graph.map(node => {
     const targetType = node.data.artifact.target?.targetType
     if (!targetType) {
       return {
-        node,
+        node: { ...node, data: node.data.artifact },
         deployable: false,
         targetType,
         deploymentResult: async () => ({
-          ...node,
-          data: {
-            artifact: node.data.artifact,
-            stepResult: {
-              stepName: StepName.deployment,
-              durationMs: Date.now() - startMs,
-              status: StepStatus.skippedAsPassed,
-              notes: ['skipping deployment because this is a private-npm-package'],
-            },
-          },
+          stepName: StepName.deployment,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.skippedAsPassed,
+          notes: ['skipping deployment because this is a private-npm-package'],
         }),
       }
     }
@@ -65,45 +60,33 @@ function prepareDeployments<DeploymentClient>({
       )
     ) {
       return {
-        node,
+        node: { ...node, data: node.data.artifact },
         deployable: false,
         targetType,
         deploymentResult: async () => ({
-          ...node,
-          data: {
-            artifact: node.data.artifact,
-            stepResult: {
-              stepName: StepName.deployment,
-              durationMs: Date.now() - startMs,
-              status: StepStatus.skippedAsFailedBecauseLastStepFailed,
-              notes: ['skipping deploy because the publish of this package failed'],
-            },
-          },
+          stepName: StepName.deployment,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.skippedAsFailedBecauseLastStepFailed,
+          notes: ['skipping deploy because the publish of this package failed'],
         }),
       }
     }
     const deployFunction = delpoyment[targetType]?.deploy
     if (!deployFunction) {
       return {
-        node,
+        node: { ...node, data: node.data.artifact },
         deployable: false,
         targetType,
         deploymentResult: async () => ({
-          ...node,
-          data: {
-            artifact: node.data.artifact,
-            stepResult: {
-              stepName: StepName.deployment,
-              durationMs: Date.now() - startMs,
-              status: StepStatus.skippedAsFailedBecauseLastStepFailed,
-              notes: [`no deployment function was provided for target: ${targetType}`],
-            },
-          },
+          stepName: StepName.deployment,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.skippedAsFailedBecauseLastStepFailed,
+          notes: [`no deployment function was provided for target: ${targetType}`],
         }),
       }
     }
     return {
-      node,
+      node: { ...node, data: node.data.artifact },
       deployable: true,
       targetType,
       deploymentResult: async (deploymentClient: DeploymentClient) => {
@@ -116,30 +99,18 @@ function prepareDeployments<DeploymentClient>({
             },
           })
           return {
-            ...node,
-            data: {
-              artifact: node.data.artifact,
-              stepResult: {
-                stepName: StepName.deployment,
-                durationMs: Date.now() - startMs,
-                status: StepStatus.passed,
-                notes: [],
-              },
-            },
+            stepName: StepName.deployment,
+            durationMs: Date.now() - startMs,
+            status: StepStatus.passed,
+            notes: [],
           }
         } catch (error) {
           return {
-            ...node,
-            data: {
-              artifact: node.data.artifact,
-              stepResult: {
-                stepName: StepName.deployment,
-                durationMs: Date.now() - startMs,
-                status: StepStatus.failed,
-                notes: [],
-                error,
-              },
-            },
+            stepName: StepName.deployment,
+            durationMs: Date.now() - startMs,
+            status: StepStatus.failed,
+            notes: [],
+            error,
           }
         }
       },
@@ -148,7 +119,7 @@ function prepareDeployments<DeploymentClient>({
 }
 
 export async function deploy<DeploymentClient>(
-  orderedGraph: Graph<PackageStepResult[StepName.publish]>,
+  graph: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.publish] }>,
   options: {
     repoPath: string
     npmRegistry: ServerInfo
@@ -169,7 +140,7 @@ export async function deploy<DeploymentClient>(
       durationMs: Date.now() - startMs,
       executionOrder: options.executionOrder,
       status: StepStatus.skippedAsPassed,
-      packagesResult: orderedGraph.map(node => ({
+      packagesResult: graph.map(node => ({
         ...node,
         data: {
           artifact: node.data.artifact,
@@ -189,7 +160,7 @@ export async function deploy<DeploymentClient>(
 
   // const deploymentClient = await options.delpoyment.
 
-  const prepares = prepareDeployments({ orderedGraph, startMs, delpoyment: options.delpoyment })
+  const prepares = prepareDeployments({ graph, startMs, delpoyment: options.delpoyment })
 
   const targetsToDeploy = new Map(
     await Promise.all(
@@ -209,13 +180,28 @@ export async function deploy<DeploymentClient>(
     ),
   )
 
-  const deploymentResults = await Promise.all(
+  const deploymentResults: Graph<{
+    artifact: Artifact
+    stepResult: PackageStepResult[StepName.deployment]
+  }> = await Promise.all(
     prepares.map(async prepare => {
       if (prepare.targetType && prepare.deployable) {
         const deploymentClient = targetsToDeploy.get(prepare.targetType)!
-        return prepare.deploymentResult(deploymentClient)
+        return {
+          ...prepare.node,
+          data: {
+            artifact: prepare.node.data,
+            stepResult: await prepare.deploymentResult(deploymentClient),
+          },
+        }
       } else {
-        return prepare.deploymentResult()
+        return {
+          ...prepare.node,
+          data: {
+            artifact: prepare.node.data,
+            stepResult: await prepare.deploymentResult(),
+          },
+        }
       }
     }),
   )
@@ -228,8 +214,7 @@ export async function deploy<DeploymentClient>(
         .join(', ')}`,
     )
     withError.forEach(result => {
-      log.error(`${result.data.artifact.packageJson.name}: `)
-      log.error(result.data.stepResult.error)
+      log.error(`${result.data.artifact.packageJson.name}: `, result.data.stepResult.error)
     })
   }
 

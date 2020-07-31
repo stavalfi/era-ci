@@ -1,10 +1,10 @@
 import execa from 'execa'
 import path from 'path'
-import { ConfigFileOptions } from '../types'
+import { CiOptions } from '../types'
 
-async function validateConfiguration(configuration: unknown): Promise<ConfigFileOptions> {
+async function validateConfiguration(configuration: unknown): Promise<CiOptions<unknown>> {
   const error = new Error(
-    `nc-configuration file default-export must be a function of type: "() => Promise<ConfigFileOptions>". after invoking the function, the result was: ${configuration}`,
+    `nc-configuration file default-export must be a function of type: "() => Promise<CiOptions>". after invoking the function, the result was: ${configuration}`,
   )
   if (typeof configuration !== 'object') {
     throw error
@@ -27,21 +27,23 @@ async function validateConfiguration(configuration: unknown): Promise<ConfigFile
     'shouldPublish',
     'isDryRun',
     'skipTests',
+    'shouldDeploy',
+    'deployment',
   ]
 
   const invalidOptions = Object.keys(configuration).filter(option => !allowedOptions.includes(option))
   if (invalidOptions.length > 0) {
     throw new Error(
-      `you returned invalid nc-configurations-keys: ${invalidOptions.join(
+      `you returned invalid nc-configurations-keys: "${invalidOptions.join(
         ', ',
-      )}. allowed options are: "${allowedOptions.join(', ')}"`,
+      )}". allowed options are: "${allowedOptions.join(', ')}"`,
     )
   }
 
-  return configuration as ConfigFileOptions // todo: validate type
+  return configuration as CiOptions<unknown> // todo: validate type
 }
 
-export async function readNcConfigurationFile(ciConfigFilePath: string): Promise<ConfigFileOptions> {
+export async function readNcConfigurationFile(ciConfigFilePath: string): Promise<CiOptions<unknown>> {
   const outputFilePath = path.join(__dirname, `nc.config.js`)
   const swcConfigFile = path.join(__dirname, '../../../.swcrc')
   const swcPath = require.resolve('.bin/swc')

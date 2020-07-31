@@ -3,7 +3,7 @@
 import { CiOptions } from './packages/nc/src/index'
 import ciInfo from 'ci-info'
 
-export default async (): Promise<CiOptions<number>> => {
+export default async (): Promise<CiOptions> => {
   const redisServer = process.env['REDIS_ENDPOINT']?.split(':') as string[]
 
   return {
