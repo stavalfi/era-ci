@@ -70,7 +70,7 @@ async function validatePackage(
 }
 
 export async function validatePackages(
-  packagesInfo: {
+  artifacts: {
     packagePath: string
     targetType?: TargetType
     packageJson: IPackageJson
@@ -78,9 +78,9 @@ export async function validatePackages(
 ) {
   const problems: string[] = []
 
-  const missingNamesProblems = packagesInfo
-    .filter(packageInfo => !packageInfo.packageJson.name)
-    .map(packageInfo => `package: ${packageInfo.packagePath} must have a name property in the package.json`)
+  const missingNamesProblems = artifacts
+    .filter(artifact => !artifact.packageJson.name)
+    .map(artifact => `package: ${artifact.packagePath} must have a name property in the package.json`)
 
   problems.push(...missingNamesProblems)
 
@@ -88,7 +88,7 @@ export async function validatePackages(
     throw new Error(`problems:\n ${missingNamesProblems.join('\n')}`)
   } else {
     const packageNameToInfo = new Map(
-      packagesInfo.map<[string, { targetType?: TargetType; packageJson: IPackageJson; packagePath: string }]>(
+      artifacts.map<[string, { targetType?: TargetType; packageJson: IPackageJson; packagePath: string }]>(
         ({ packageJson, targetType, packagePath }) => {
           return [
             packageJson.name as string,
@@ -104,7 +104,7 @@ export async function validatePackages(
 
     const addtionalProblems = _.flatten(
       await Promise.all(
-        packagesInfo.map(async ({ packageJson }) => validatePackage(packageJson.name as string, packageNameToInfo)),
+        artifacts.map(async ({ packageJson }) => validatePackage(packageJson.name as string, packageNameToInfo)),
       ),
     )
 

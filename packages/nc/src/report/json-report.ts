@@ -1,18 +1,16 @@
-import {
-  ExecutedStepsWithoutReport,
-  Graph,
-  PackageInfo,
-  PackagesStepResult,
-  JsonReport,
-  StepName,
-  StepStatus,
-  Node,
-  CombinedPackageStepReportResult,
-  ExecutedSteps,
-  StepsSummary,
-} from '../types'
-import { shouldFailCi, calculateCombinedStatus } from '../utils'
 import { logger } from '@tahini/log'
+import {
+  Artifact,
+  Graph,
+  JsonReport,
+  Node,
+  PackagesStepResult,
+  StepName,
+  StepsSummary,
+  StepStatus,
+  PackageStepResult,
+} from '../types'
+import { calculateCombinedStatus, shouldFailCi } from '../utils'
 
 const log = logger('json-report')
 
@@ -22,8 +20,10 @@ export function generateJsonReport({
   steps,
 }: {
   durationUntilNowMs: number
-  graph: Graph<{ packageInfo: PackageInfo }>
-  steps: ExecutedStepsWithoutReport
+  graph: Graph<{ artifact: Artifact }>
+  steps: {
+    [stepName in StepName]?: stepName extends StepName.report ? never : PackagesStepResult<stepName>
+  }
 }): JsonReport {
   const reportDurationMs = 0
   log.verbose(`start to generate json-report`)
@@ -34,7 +34,7 @@ export function generateJsonReport({
     packagesResult: graph.map(node => ({
       ...node,
       data: {
-        ...node.data,
+        artifact: node.data.artifact,
         stepResult: {
           durationMs: reportDurationMs,
           notes: [],
@@ -48,33 +48,35 @@ export function generateJsonReport({
     executionOrder: Object.keys(steps).length,
   }
 
-  const allSteps: ExecutedSteps = { ...steps, [StepName.report]: reportResult }
+  const allSteps = { ...steps, [StepName.report]: reportResult }
 
   // make sure all the graphs are orders the same as `graph`
   Object.values(allSteps).forEach(value =>
-    value.packagesResult
+    value?.packagesResult
       .slice()
       .sort((a: Node<{}>, b: Node<{}>) => (a.index < b.index ? -1 : a.index > b.index ? 1 : 0)),
   )
 
   const finalGraph: JsonReport['graph'] = graph.map(node => {
     //@ts-ignore - typescript can't understand `key` is `StepName`
-    const packageSteps: CombinedPackageStepReportResult = Object.fromEntries(
-      Object.entries(allSteps).map(([key, stepResult]) => {
-        return [key, stepResult.packagesResult[node.index].data]
-      }),
+    const packageSteps = Object.fromEntries(
+      Object.entries(allSteps)
+        .filter(([, stepResult]) => stepResult)
+        .map(([key, stepResult]) => {
+          return [key, stepResult!.packagesResult[node.index].data.stepResult]
+        }),
     )
     const stepsSummary: StepsSummary = {
       durationMs: Object.values(packageSteps)
-        .map(stepResult => stepResult.stepResult.durationMs)
+        .map(stepResult => stepResult.durationMs)
         .reduce((acc, d) => acc + d, 0),
       notes: [],
-      status: calculateCombinedStatus(Object.values(packageSteps).map(step => step.stepResult.status)),
+      status: calculateCombinedStatus(Object.values(packageSteps).map(step => step.status)),
     }
 
     const data: {
-      packageInfo: PackageInfo
-      stepsResult: CombinedPackageStepReportResult
+      artifact: Artifact
+      stepsResult: { [stepName in StepName]?: PackageStepResult[stepName] }
       stepsSummary: StepsSummary
     } = {
       ...node.data,
@@ -91,7 +93,8 @@ export function generateJsonReport({
   const shouldFailAfterInstall = shouldFailCi(allSteps)
 
   const summaryNotes = Object.entries(allSteps)
-    .filter(([, stepsResult]) => [StepStatus.failed, StepStatus.skippedAsFailed].includes(stepsResult.status))
+    .filter(([, stepResult]) => stepResult)
+    .filter(([, stepsResult]) => [StepStatus.failed, StepStatus.skippedAsFailed].includes(stepsResult!.status))
     .map(([stepName]) => `${stepName} - failed`)
 
   const summary: JsonReport['summary'] = {
@@ -101,7 +104,6 @@ export function generateJsonReport({
   }
 
   log.verbose(`generated the json-report`)
-
   return {
     graph: finalGraph,
     steps: allSteps,

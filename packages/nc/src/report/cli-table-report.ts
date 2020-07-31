@@ -49,17 +49,17 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
   const rows = jsonReport.graph.map(node => {
     const stepsStatus = Object.fromEntries(
       Object.entries(node.data.stepsResult)
-        .filter(([stepName]) => stepName !== StepName.report)
-        .map(([stepName, { stepResult }]) => [stepName, STATUSES[stepResult.status]]),
+        .filter(([stepName, stepResult]) => stepName !== StepName.report && stepResult)
+        .map(([stepName, stepResult]) => [stepName, STATUSES[stepResult!.status]]),
     )
     return {
-      packageName: node.data.packageInfo.packageJson.name as string,
+      packageName: node.data.artifact.packageJson.name as string,
       stepsStatusOrdered: orderedSteps.map(stepName => stepsStatus[stepName]),
       summaryStatus: STATUSES[node.data.stepsSummary.status],
       duration: prettyMs(node.data.stepsSummary.durationMs),
-      notes: Object.entries(node.data.stepsResult).flatMap(([stepName, { stepResult }]) =>
-        stepResult.notes.map(node => `${stepName} - ${node}`),
-      ),
+      notes: Object.entries(node.data.stepsResult)
+        .filter(([, stepResult]) => stepResult)
+        .flatMap(([stepName, stepResult]) => stepResult!.notes.map(node => `${stepName} - ${node}`)),
     }
   })
 

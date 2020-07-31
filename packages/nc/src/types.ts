@@ -2,6 +2,24 @@ import { IPackageJson } from 'package-json-type'
 
 export type Cleanup = () => Promise<unknown>
 
+export enum TargetType {
+  docker = 'docker',
+  npm = 'npm',
+}
+
+export type Artifact = {
+  relativePackagePath: string
+  packagePath: string
+  packageHash: string
+  packageJson: IPackageJson
+  target?: TargetToPublish<TargetType.npm> | TargetToPublish<TargetType.docker>
+}
+
+export type ArtifactToDeploy = {
+  packagePath: string
+  packageJson: IPackageJson
+}
+
 export type Protocol = 'http' | 'https'
 
 export type ServerInfo = {
@@ -21,8 +39,24 @@ export type Auth = {
   dockerRegistryToken?: string
 }
 
-export type CiOptions = {
-  repoPath: string
+type DeployOptions<DeploymentClient> = {
+  deploymentClient: DeploymentClient
+  artifactToDeploy: ArtifactToDeploy
+}
+
+export type Deploy<DeploymentClient> = (options: DeployOptions<DeploymentClient>) => Promise<void>
+
+export type DeployTarget<DeploymentClient> = {
+  initializeDeploymentClient: () => Promise<DeploymentClient>
+  deploy: Deploy<DeploymentClient>
+  destroyDeploymentClient: (options: { deploymentClient: DeploymentClient }) => Promise<void>
+}
+
+export type Deployment<DeploymentClient> = {
+  [Target in TargetType]?: DeployTarget<DeploymentClient>
+}
+
+export type CiOptions<DeploymentClient = never> = {
   shouldPublish: boolean
   npmRegistry: ServerInfo
   dockerRegistry: ServerInfo
@@ -32,19 +66,12 @@ export type CiOptions = {
   gitRepositoryName: string
   gitOrganizationName: string
   auth: Auth
-}
-
-export type ConfigFileOptions = Omit<CiOptions, 'repoPath'>
+} & ({} | { shouldDeploy: boolean; deployment: Deployment<DeploymentClient> })
 
 export type PackageName = string
 export type PackageVersion = string
 
-export enum TargetType {
-  docker = 'docker',
-  npm = 'npm',
-}
-
-export type TargetInfo<TargetTypParam extends TargetType> = { targetType: TargetTypParam } & (
+export type TargetToPublish<TargetTypParam extends TargetType> = { targetType: TargetTypParam } & (
   | {
       needPublish: true
       newVersion: string
@@ -54,13 +81,7 @@ export type TargetInfo<TargetTypParam extends TargetType> = { targetType: Target
     }
 )
 
-export type PackageInfo = {
-  relativePackagePath: string
-  packagePath: string
-  packageHash: string
-  packageJson: IPackageJson
-  target?: TargetInfo<TargetType.npm> | TargetInfo<TargetType.docker>
-}
+export type TargetToDeploy<TargetTypParam extends TargetType> = { targetType: TargetTypParam; publishedVersion: string }
 
 export type Node<T> = {
   data: T
@@ -99,6 +120,7 @@ export enum StepName {
   build = 'build',
   test = 'test',
   publish = 'publish',
+  deployment = 'deployment',
   report = 'report',
 }
 
@@ -127,61 +149,27 @@ export type StepsSummary = {
 }
 
 export type PackageStepResult = {
-  install: { packageInfo: PackageInfo; stepResult: StepResult<StepName.install> }
-  build: { packageInfo: PackageInfo; stepResult: StepResult<StepName.build> }
-  test: { packageInfo: PackageInfo; stepResult: StepResult<StepName.test> }
-  publish: { packageInfo: PackageInfo; stepResult: StepResult<StepName.publish> & { publishedVersion?: string } }
-  report: { packageInfo: PackageInfo; stepResult: StepResult<StepName.report> }
+  install: StepResult<StepName.install>
+  build: StepResult<StepName.build>
+  test: StepResult<StepName.test>
+  publish: StepResult<StepName.publish> & { publishedVersion?: string }
+  deployment: StepResult<StepName.deployment>
+  report: StepResult<StepName.report>
 }
 
 export type PackagesStepResult<StepNameParam extends StepName> = StepResult<StepNameParam> & {
   executionOrder: number
-  packagesResult: Graph<PackageStepResult[StepNameParam]>
+  packagesResult: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepNameParam] }>
 }
 
-export type CombinedPackageStepReportResult = { [StepName.report]: PackageStepResult[StepName.report] } & (
-  | {}
-  | { [StepName.install]: PackageStepResult[StepName.install] }
-  | {
-      [StepName.install]: PackageStepResult[StepName.install]
-      [StepName.build]: PackageStepResult[StepName.build]
-    }
-  | {
-      [StepName.install]: PackageStepResult[StepName.install]
-      [StepName.build]: PackageStepResult[StepName.build]
-      [StepName.test]: PackageStepResult[StepName.test]
-    }
-  | {
-      [StepName.install]: PackageStepResult[StepName.install]
-      [StepName.build]: PackageStepResult[StepName.build]
-      [StepName.test]: PackageStepResult[StepName.test]
-      [StepName.publish]: PackageStepResult[StepName.publish]
-    }
-)
-
-export type ExecutedStepsWithoutReport =
-  | {}
-  | { [StepName.install]: PackagesStepResult<StepName.install> }
-  | {
-      [StepName.install]: PackagesStepResult<StepName.install>
-      [StepName.build]: PackagesStepResult<StepName.build>
-    }
-  | {
-      [StepName.install]: PackagesStepResult<StepName.install>
-      [StepName.build]: PackagesStepResult<StepName.build>
-      [StepName.test]: PackagesStepResult<StepName.test>
-    }
-  | {
-      [StepName.install]: PackagesStepResult<StepName.install>
-      [StepName.build]: PackagesStepResult<StepName.build>
-      [StepName.test]: PackagesStepResult<StepName.test>
-      [StepName.publish]: PackagesStepResult<StepName.publish>
-    }
-
-export type ExecutedSteps = ExecutedStepsWithoutReport & { [StepName.report]: PackagesStepResult<StepName.report> }
-
 export type JsonReport = {
-  graph: Graph<{ packageInfo: PackageInfo; stepsResult: CombinedPackageStepReportResult; stepsSummary: StepsSummary }>
-  steps: ExecutedSteps
+  graph: Graph<{
+    artifact: Artifact
+    stepsResult: { [stepName in StepName]?: PackageStepResult[stepName] }
+    stepsSummary: StepsSummary
+  }>
+  steps: {
+    [stepName in StepName]?: PackagesStepResult<stepName>
+  }
   summary: StepsSummary
 }

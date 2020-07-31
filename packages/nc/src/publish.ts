@@ -9,11 +9,11 @@ import {
   Auth,
   Cache,
   Graph,
-  PackageInfo,
+  Artifact,
   PackagesStepResult,
   ServerInfo,
   StepName,
-  TargetInfo,
+  TargetToPublish,
   TargetType,
   PackageStepResult,
   StepStatus,
@@ -26,29 +26,26 @@ const log = logger('publish')
 async function updateVersionAndPublish({
   tryPublish,
   newVersion,
-  packageInfo,
+  artifact,
   startMs,
 }: {
-  packageInfo: PackageInfo
+  artifact: Artifact
   newVersion: string
   tryPublish: () => Promise<PackageStepResult[StepName.publish]>
   startMs: number
 }): Promise<PackageStepResult[StepName.publish]> {
   try {
     await fse.writeFile(
-      path.join(packageInfo.packagePath, 'package.json'),
-      JSON.stringify({ ...packageInfo.packageJson, version: newVersion }, null, 2),
+      path.join(artifact.packagePath, 'package.json'),
+      JSON.stringify({ ...artifact.packageJson, version: newVersion }, null, 2),
     )
   } catch (error) {
     return {
-      packageInfo,
-      stepResult: {
-        stepName: StepName.publish,
-        durationMs: Date.now() - startMs,
-        status: StepStatus.failed,
-        notes: ['failed to update package.json to the new version'],
-        error,
-      },
+      stepName: StepName.publish,
+      durationMs: Date.now() - startMs,
+      status: StepStatus.failed,
+      notes: ['failed to update package.json to the new version'],
+      error,
     }
   }
 
@@ -57,24 +54,21 @@ async function updateVersionAndPublish({
     result = await tryPublish()
   } catch (error) {
     return {
-      packageInfo,
-      stepResult: {
-        stepName: StepName.publish,
-        durationMs: Date.now() - startMs,
-        status: StepStatus.failed,
-        notes: [],
-        error,
-      },
+      stepName: StepName.publish,
+      durationMs: Date.now() - startMs,
+      status: StepStatus.failed,
+      notes: [],
+      error,
     }
   }
 
   await fse
     .writeFile(
-      path.join(packageInfo.packagePath, 'package.json'),
-      JSON.stringify({ ...packageInfo.packageJson, version: packageInfo.packageJson.version }, null, 2),
+      path.join(artifact.packagePath, 'package.json'),
+      JSON.stringify({ ...artifact.packageJson, version: artifact.packageJson.version }, null, 2),
     )
     .catch(error => {
-      log.error(`failed to revert package.json back to the old version. error: ${error}`)
+      log.error(`failed to revert package.json back to the old version`, error)
       // log and ignore this error.
     })
 
@@ -84,15 +78,15 @@ async function updateVersionAndPublish({
 async function publishNpm({
   newVersion,
   npmTarget,
-  packageInfo,
+  artifact,
   testsResult,
   npmRegistry,
   cache,
   auth,
   shouldPublish,
 }: {
-  packageInfo: PackageInfo
-  npmTarget: TargetInfo<TargetType.npm>
+  artifact: Artifact
+  npmTarget: TargetToPublish<TargetType.npm>
   newVersion: string
   testsResult: StepResult<StepName.test>
   npmRegistry: ServerInfo
@@ -103,42 +97,33 @@ async function publishNpm({
   const startMs = Date.now()
   if (!shouldPublish) {
     return {
-      packageInfo,
-      stepResult: {
-        stepName: StepName.publish,
-        durationMs: Date.now() - startMs,
-        status: StepStatus.skippedAsPassed,
-        notes: ['ci is configured to skip publish'],
-      },
+      stepName: StepName.publish,
+      durationMs: Date.now() - startMs,
+      status: StepStatus.skippedAsPassed,
+      notes: ['ci is configured to skip publish'],
     }
   }
 
   if ([StepStatus.failed, StepStatus.skippedAsFailed].includes(testsResult.status)) {
     return {
-      packageInfo,
-      stepResult: {
-        stepName: StepName.publish,
-        durationMs: Date.now() - startMs,
-        status: StepStatus.skippedAsFailedBecauseLastStepFailed,
-        notes: ['skipping publish because the tests of this package failed'],
-      },
+      stepName: StepName.publish,
+      durationMs: Date.now() - startMs,
+      status: StepStatus.skippedAsFailedBecauseLastStepFailed,
+      notes: ['skipping publish because the tests of this package failed'],
     }
   }
 
   if (npmTarget.needPublish !== true) {
     return {
-      packageInfo,
-      stepResult: {
-        stepName: StepName.publish,
-        durationMs: Date.now() - startMs,
-        status: StepStatus.skippedAsPassed,
-        notes: [`this package was already published with the same content`],
-        publishedVersion: npmTarget.needPublish.alreadyPublishedAsVersion,
-      },
+      stepName: StepName.publish,
+      durationMs: Date.now() - startMs,
+      status: StepStatus.skippedAsPassed,
+      notes: [`this package was already published with the same content`],
+      publishedVersion: npmTarget.needPublish.alreadyPublishedAsVersion,
     }
   }
 
-  log.verbose(`publishing npm target in package: "${packageInfo.packageJson.name}"`)
+  log.verbose(`publishing npm target in package: "${artifact.packageJson.name}"`)
 
   const withPort = isIp.v4(npmRegistry.host) || npmRegistry.host === 'localhost' ? `:${npmRegistry.port}` : ''
   const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}${withPort}`
@@ -151,22 +136,22 @@ async function publishNpm({
   // - else, we check in the registry anyway.
   // if we call setAsPublished after the publish, using the cache is pointless.
   await cache.publish.npm.setAsPublished(
-    packageInfo.packageJson.name as string,
-    packageInfo.packageHash,
+    artifact.packageJson.name as string,
+    artifact.packageHash,
     npmTarget.newVersion,
   )
 
   return updateVersionAndPublish({
     startMs,
     newVersion,
-    packageInfo,
+    artifact,
     tryPublish: async () => {
       await execa.command(
         `yarn publish --registry ${npmRegistryAddress} --non-interactive ${
-          packageInfo.packageJson.name?.includes('@') ? '--access public' : ''
+          artifact.packageJson.name?.includes('@') ? '--access public' : ''
         }`,
         {
-          cwd: packageInfo.packagePath,
+          cwd: artifact.packagePath,
           env: {
             // npm need this env-var for auth - this is needed only for production publishing.
             // in tests it doesn't do anything and we login manually to npm in tests.
@@ -175,16 +160,13 @@ async function publishNpm({
           },
         },
       )
-      log.info(`published npm target in package: "${packageInfo.packageJson.name}"`)
+      log.info(`published npm target in package: "${artifact.packageJson.name}"`)
       return {
-        packageInfo,
-        stepResult: {
-          stepName: StepName.publish,
-          durationMs: Date.now() - startMs,
-          status: StepStatus.passed,
-          notes: [`published version: ${newVersion}`],
-          publishedVersion: newVersion,
-        },
+        stepName: StepName.publish,
+        durationMs: Date.now() - startMs,
+        status: StepStatus.passed,
+        notes: [`published version: ${newVersion}`],
+        publishedVersion: newVersion,
       }
     },
   })
@@ -194,15 +176,15 @@ async function publishDocker({
   repoPath,
   newVersion,
   dockerTarget,
-  packageInfo,
+  artifact,
   testsResult,
   dockerOrganizationName,
   dockerRegistry,
   cache,
   shouldPublish,
 }: {
-  packageInfo: PackageInfo
-  dockerTarget: TargetInfo<TargetType.docker>
+  artifact: Artifact
+  dockerTarget: TargetToPublish<TargetType.docker>
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
   newVersion: string
@@ -215,47 +197,38 @@ async function publishDocker({
 
   if (!shouldPublish) {
     return {
-      packageInfo,
-      stepResult: {
-        stepName: StepName.publish,
-        durationMs: Date.now() - startMs,
-        status: StepStatus.skippedAsPassed,
-        notes: ['ci is configured to skip publish'],
-      },
+      stepName: StepName.publish,
+      durationMs: Date.now() - startMs,
+      status: StepStatus.skippedAsPassed,
+      notes: ['ci is configured to skip publish'],
     }
   }
 
   if ([StepStatus.failed, StepStatus.skippedAsFailed].includes(testsResult.status)) {
     return {
-      packageInfo,
-      stepResult: {
-        stepName: StepName.publish,
-        durationMs: Date.now() - startMs,
-        status: StepStatus.skippedAsFailedBecauseLastStepFailed,
-        notes: ['skipping publish because the tests of this package failed'],
-      },
+      stepName: StepName.publish,
+      durationMs: Date.now() - startMs,
+      status: StepStatus.skippedAsFailedBecauseLastStepFailed,
+      notes: ['skipping publish because the tests of this package failed'],
     }
   }
 
   if (dockerTarget.needPublish !== true) {
     return {
-      packageInfo,
-      stepResult: {
-        stepName: StepName.publish,
-        durationMs: Date.now() - startMs,
-        status: StepStatus.skippedAsPassed,
-        notes: [`this package was already published with the same content`],
-        publishedVersion: dockerTarget.needPublish.alreadyPublishedAsVersion,
-      },
+      stepName: StepName.publish,
+      durationMs: Date.now() - startMs,
+      status: StepStatus.skippedAsPassed,
+      notes: [`this package was already published with the same content`],
+      publishedVersion: dockerTarget.needPublish.alreadyPublishedAsVersion,
     }
   }
 
-  log.verbose('publishing docker target in package: "%s"', packageInfo.packageJson.name)
+  log.verbose(`publishing docker target in package: "${artifact.packageJson.name}"`)
 
   const fullImageNameNewVersion = buildFullDockerImageName({
     dockerOrganizationName,
     dockerRegistry,
-    packageJsonName: packageInfo.packageJson.name as string,
+    packageJsonName: artifact.packageJson.name as string,
     imageTag: dockerTarget.newVersion,
   })
 
@@ -267,74 +240,65 @@ async function publishDocker({
   // - else, we check in the registry anyway.
   // if we call setAsPublished after the publish, using the cache is pointless.
   await cache.publish.docker.setAsPublished(
-    packageInfo.packageJson.name as string,
-    packageInfo.packageHash,
+    artifact.packageJson.name as string,
+    artifact.packageHash,
     dockerTarget.newVersion,
   )
 
   // the package.json will probably copied to the image during the docker-build so we want to make sure the new version is in there
   return updateVersionAndPublish({
     startMs,
-    packageInfo,
+    artifact,
     newVersion,
     tryPublish: async () => {
-      log.info(`building docker image "${fullImageNameNewVersion}" in package: "${packageInfo.packageJson.name}"`)
+      log.info(`building docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}"`)
 
       try {
         await execa.command(
-          `docker build --label latest-hash=${packageInfo.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
+          `docker build --label latest-hash=${artifact.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
           {
-            cwd: packageInfo.packagePath,
+            cwd: artifact.packagePath,
             stdio: 'inherit',
           },
         )
       } catch (error) {
         return {
-          packageInfo,
-          stepResult: {
-            stepName: StepName.publish,
-            durationMs: Date.now() - startMs,
-            status: StepStatus.failed,
-            notes: ['failed to build the docker-image'],
-            error,
-          },
+          stepName: StepName.publish,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.failed,
+          notes: ['failed to build the docker-image'],
+          error,
         }
       }
-      log.info(`built docker image "${fullImageNameNewVersion}" in package: "${packageInfo.packageJson.name}"`)
+      log.info(`built docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}"`)
 
       try {
         await execa.command(`docker push ${fullImageNameNewVersion}`)
       } catch (error) {
         return {
-          packageInfo,
-          stepResult: {
-            stepName: StepName.publish,
-            durationMs: Date.now() - startMs,
-            status: StepStatus.failed,
-            notes: [`failed to push the docker-image`],
-            error,
-          },
+          stepName: StepName.publish,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.failed,
+          notes: [`failed to push the docker-image`],
+          error,
         }
       }
 
-      log.info(`published docker target in package: "${packageInfo.packageJson.name}"`)
+      log.info(`published docker target in package: "${artifact.packageJson.name}"`)
 
       return {
-        packageInfo,
-        stepResult: {
-          stepName: StepName.publish,
-          durationMs: Date.now() - startMs,
-          status: StepStatus.passed,
-          notes: [`published tag: ${newVersion}`],
-          publishedVersion: newVersion,
-        },
+        stepName: StepName.publish,
+        durationMs: Date.now() - startMs,
+        status: StepStatus.passed,
+        notes: [`published tag: ${newVersion}`],
+        publishedVersion: newVersion,
       }
     },
   })
 }
 
 export async function publish(
-  orderedGraph: Graph<PackageStepResult[StepName.test]>,
+  orderedGraph: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.test] }>,
   options: {
     shouldPublish: boolean
     repoPath: string
@@ -350,38 +314,51 @@ export async function publish(
 
   log.info('publishing...')
 
-  const publishResult: Graph<PackageStepResult[StepName.publish]> = await travelGraph(orderedGraph, {
+  const publishResult: Graph<{
+    artifact: Artifact
+    stepResult: PackageStepResult[StepName.publish]
+  }> = await travelGraph(orderedGraph, {
     fromLeafs: true,
     mapData: async node => {
-      switch (node.data.packageInfo.target?.targetType) {
-        case TargetType.npm:
-          return publishNpm({
+      switch (node.data.artifact.target?.targetType) {
+        case TargetType.npm: {
+          const publishResult = await publishNpm({
             shouldPublish: options.shouldPublish,
-            packageInfo: node.data.packageInfo,
-            npmTarget: node.data.packageInfo.target as TargetInfo<TargetType.npm>,
-            newVersion: (node.data.packageInfo.target?.needPublish === true &&
-              node.data.packageInfo.target.newVersion) as string,
+            artifact: node.data.artifact,
+            npmTarget: node.data.artifact.target as TargetToPublish<TargetType.npm>,
+            newVersion: (node.data.artifact.target?.needPublish === true &&
+              node.data.artifact.target.newVersion) as string,
             testsResult: node.data.stepResult,
             npmRegistry: options.npmRegistry,
             auth: options.auth,
             cache: options.cache,
           })
-        case TargetType.docker:
-          return publishDocker({
+          return {
+            artifact: node.data.artifact,
+            stepResult: publishResult,
+          }
+        }
+        case TargetType.docker: {
+          const publishResult = await publishDocker({
             shouldPublish: options.shouldPublish,
-            packageInfo: node.data.packageInfo,
-            dockerTarget: node.data.packageInfo.target as TargetInfo<TargetType.docker>,
-            newVersion: (node.data.packageInfo.target?.needPublish === true &&
-              node.data.packageInfo.target.newVersion) as string,
+            artifact: node.data.artifact,
+            dockerTarget: node.data.artifact.target as TargetToPublish<TargetType.docker>,
+            newVersion: (node.data.artifact.target?.needPublish === true &&
+              node.data.artifact.target.newVersion) as string,
             repoPath: options.repoPath,
             testsResult: node.data.stepResult,
             dockerOrganizationName: options.dockerOrganizationName,
             dockerRegistry: options.dockerRegistry,
             cache: options.cache,
           })
+          return {
+            artifact: node.data.artifact,
+            stepResult: publishResult,
+          }
+        }
         default:
           return {
-            ...node.data,
+            artifact: node.data.artifact,
             stepResult: {
               stepName: StepName.publish,
               durationMs: 0,
@@ -397,12 +374,11 @@ export async function publish(
   if (withError.length > 0) {
     log.error(
       `the following packages had an error while publishing: ${withError
-        .map(result => result.data.packageInfo.packageJson.name)
+        .map(result => result.data.artifact.packageJson.name)
         .join(', ')}`,
     )
     withError.forEach(result => {
-      log.error(`${result.data.packageInfo.packageJson.name}: `)
-      log.error(result.data.stepResult.error)
+      log.error(`${result.data.artifact.packageJson.name}: `, result.data.stepResult.error)
     })
   }
 
