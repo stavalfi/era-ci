@@ -8,6 +8,10 @@ function isProtocolSupported(url: string, protocol: string): protocol is Protoco
   return Object.values(Protocol).includes(protocol as Protocol)
 }
 
+function getPort(procotol: Protocol, port: number | string): number {
+  return Number(port) || (procotol === Protocol.http ? 80 : 443)
+}
+
 export async function combineOptions<DeploymentClient>({
   cliOptions,
   configFileOptions,
@@ -47,7 +51,7 @@ export async function combineOptions<DeploymentClient>({
     dockerOrganizationName: configFileOptions.dockerOrganizationName,
     dockerRegistry: {
       host: parsedDockerRegistry.hostname,
-      port: Number(parsedDockerRegistry.port),
+      port: getPort(dockerProtocol, parsedDockerRegistry.port),
       protocol: dockerProtocol,
     },
     redisServer: {
@@ -56,7 +60,7 @@ export async function combineOptions<DeploymentClient>({
     },
     npmRegistry: {
       host: parsedNpmRegistry.hostname,
-      port: Number(parsedNpmRegistry.port),
+      port: getPort(npmProtocol, parsedNpmRegistry.port),
       protocol: npmProtocol,
     },
     gitRepoUrl: gitUrl,
