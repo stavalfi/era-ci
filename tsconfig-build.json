@@ -10,6 +10,12 @@
     },
     {
       "path": "packages/log/tsconfig-build.json"
+    },
+    {
+      "path": "packages/micro-services/service1/tsconfig-build.json"
+    },
+    {
+      "path": "packages/micro-services/service2/tsconfig-build.json"
     }
   ]
 }

@@ -24,7 +24,7 @@ export async function dockerRegistryLogin({
     await execa.command(
       `docker login --username=${dockerRegistryUsername} --password=${dockerRegistryToken} ${dockerRegistryAddress}`,
       {
-        stdio: 'inherit',
+        stdio: 'pipe',
       },
     )
     log.verbose('logged in to docker-registry')

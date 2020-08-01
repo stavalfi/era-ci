@@ -105,12 +105,11 @@ export async function getPackageTargetType(
   // @ts-ignore
   const isDocker: boolean = await fs.exists(path.join(packagePath, 'Dockerfile'))
 
+  if (isDocker) {
+    return TargetType.docker
+  }
   if (isNpm) {
     return TargetType.npm
-  } else {
-    if (isDocker) {
-      return TargetType.docker
-    }
   }
 }
 

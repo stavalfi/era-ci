@@ -63,13 +63,14 @@ export function generateJsonReport({
         .filter(([, stepResult]) => stepResult)
         .map(([key, stepResult]) => [key, stepResult!.packagesResult[node.index].data.stepResult]),
     )
+
     const stepsSummary: StepsSummary = {
       durationMs: Object.values(packageSteps)
         .map(stepResult => stepResult.durationMs)
         .reduce((acc, d) => acc + d, 0),
-      notes: Object.values(allSteps)
+      notes: Object.values(packageSteps)
         .filter(step => step)
-        .flatMap(step => step!.notes.map(note => `${step?.stepName} - ${note}`)),
+        .flatMap(step => step!.notes.map(note => `${step!.stepName} - ${note}`)),
       status: calculateCombinedStatus(Object.values(packageSteps).map(step => step.status)),
     }
 
@@ -93,8 +94,7 @@ export function generateJsonReport({
 
   const summaryNotes = Object.entries(allSteps)
     .filter(([, stepResult]) => stepResult)
-    .filter(([, stepsResult]) => [StepStatus.failed, StepStatus.skippedAsFailed].includes(stepsResult!.status))
-    .map(([stepName]) => `${stepName} - failed`)
+    .flatMap(([stepName, stepResult]) => stepResult!.notes.map(note => `${stepName} - ${note}`))
 
   const summary: JsonReport['summary'] = {
     durationMs: durationUntilNowMs + reportDurationMs,

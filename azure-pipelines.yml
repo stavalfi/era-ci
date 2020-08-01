@@ -1,0 +1,31 @@
+trigger:
+  - master
+
+strategy:
+  matrix:
+    linux_node_14:
+      imageName: 'ubuntu-latest'
+      node_version: 14.x
+
+pool:
+  vmImage: $(imageName)
+
+variables:
+  - group: nc-project # i need this to get the SECRETHUB_TOKEN
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: $(node_version)
+    displayName: 'Installing Node.js'
+
+  # install secrethub.io
+  - script: curl https://apt.secrethub.io | sudo bash && mkdir $HOME/.secrethub && echo $(SECRETHUB_TOKEN) > $HOME/.secrethub/credential
+    displayName: 'Installing Secrethub.io'
+
+  - script: yarn install
+    displayName: 'yarn install'
+  - script: yarn build
+    displayName: 'yarn build'
+  - script: secrethub run -- yarn run-ci
+    displayName: 'run ci'
