@@ -9,7 +9,7 @@ async function getPackageJson(): Promise<IPackageJson> {
   })
 
   if (!packageJsonPath) {
-    throw new Error(`can't find package.json of this project`)
+    throw new Error(`can't find package.json of this project `)
   }
 
   return fse.readJson(packageJsonPath)
