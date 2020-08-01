@@ -19,8 +19,12 @@ export async function combineOptions<DeploymentClient>({
   configFileOptions: ConfigFileOptions<DeploymentClient>
   cliOptions: { repoPath: string }
 }): Promise<CiOptions<DeploymentClient>> {
-  const { stdout: gitUrl } = await execa.command(`git config --get remote.origin.url`, { stdio: 'pipe' })
+  const { stdout: gitUrl } = await execa.command(`git config --get remote.origin.url`, {
+    stdio: 'pipe',
+    cwd: cliOptions.repoPath,
+  })
   const parsedGitUrl = parseGitUrl(gitUrl)
+  const [gitUsername, gitToken] = parsedGitUrl.user.split(':')
   const parsedNpmRegistry = urlParse(configFileOptions.npmRegistryUrl)
   const parsedRedisServer = redisUrlParse(configFileOptions.redisServerUrl)
   const parsedDockerRegistry = urlParse(configFileOptions.dockerRegistryUrl)
@@ -67,8 +71,8 @@ export async function combineOptions<DeploymentClient>({
     gitOrganizationName: parsedGitUrl.organization,
     gitRepositoryName: parsedGitUrl.name,
     auth: {
-      gitServerToken: parsedGitUrl.token,
-      gitServerUsername: parsedGitUrl.user,
+      gitServerToken: gitToken,
+      gitServerUsername: gitUsername,
       npmRegistryEmail: configFileOptions.npmRegistryEmail,
       npmRegistryUsername: parsedNpmRegistry.username,
       npmRegistryToken: parsedNpmRegistry.password,

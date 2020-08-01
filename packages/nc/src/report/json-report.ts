@@ -58,13 +58,10 @@ export function generateJsonReport({
   )
 
   const finalGraph: JsonReport['graph'] = graph.map(node => {
-    //@ts-ignore - typescript can't understand `key` is `StepName`
     const packageSteps = Object.fromEntries(
       Object.entries(allSteps)
         .filter(([, stepResult]) => stepResult)
-        .map(([key, stepResult]) => {
-          return [key, stepResult!.packagesResult[node.index].data.stepResult]
-        }),
+        .map(([key, stepResult]) => [key, stepResult!.packagesResult[node.index].data.stepResult]),
     )
     const stepsSummary: StepsSummary = {
       durationMs: Object.values(packageSteps)

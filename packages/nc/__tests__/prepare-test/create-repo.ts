@@ -22,6 +22,10 @@ async function initializeGitRepo({
 
   await gitServer.createRepository(org, name)
 
+  await execa.command(`git remote add origin ${gitServer.generateGitRepositoryAddress(org, name)}`, {
+    cwd: repoPath,
+    stdio: 'pipe',
+  })
   await execa.command(`git push ${gitServer.generateGitRepositoryAddress(org, name)} -u master`, {
     cwd: repoPath,
     stdio: 'pipe',
