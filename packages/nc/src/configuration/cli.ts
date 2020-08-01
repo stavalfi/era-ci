@@ -3,6 +3,7 @@ import findProjectRoot from 'find-project-root'
 import path from 'path'
 import { readNcConfigurationFile } from './config-file'
 import { ci } from '../ci-logic'
+import { combineOptions } from './combine-options'
 
 export async function startCli(processArgv: string[]) {
   const app = command({
@@ -21,12 +22,11 @@ export async function startCli(processArgv: string[]) {
       }),
     },
     handler: async args => {
-      const configFilePath = args['config-file'] || path.join(args['repo-path'], 'nc.config.ts')
-      const configurations = await readNcConfigurationFile(configFilePath)
-      await ci({
-        ...configurations,
-        repoPath: args['repo-path'],
-      })
+      const repoPath = args['repo-path']
+      const configFilePath = args['config-file'] || path.join(repoPath, 'nc.config.ts')
+      const configFileOptions = await readNcConfigurationFile(configFilePath)
+      const ciOptions = await combineOptions({ configFileOptions, cliOptions: { repoPath } })
+      await ci(ciOptions)
     },
   })
 

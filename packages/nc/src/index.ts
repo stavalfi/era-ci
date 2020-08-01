@@ -10,7 +10,7 @@ require('source-map-support').install()
 import { logger } from '@tahini/log'
 import { startCli } from './configuration/cli'
 
-export { CiOptions, ServerInfo, Auth } from './types'
+export { ConfigFileOptions, ServerInfo, Auth, TargetType, Protocol } from './types'
 
 const log = logger('index')
 

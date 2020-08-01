@@ -2,18 +2,15 @@ import chance from 'chance'
 import ciInfo from 'ci-info'
 import execa from 'execa'
 import fse from 'fs-extra'
+import { ConfigFileOptions } from 'nc/src/types'
 import path from 'path'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'
-import {
-  latestDockerImageTag,
-  latestNpmPackageVersion,
-  publishedDockerImageTags,
-  publishedNpmPackageVersions,
-} from './seach-targets'
+import { latestNpmPackageVersion, publishedDockerImageTags, publishedNpmPackageVersions } from './seach-targets'
 import {
   addRandomFileToPackage,
   addRandomFileToRoot,
+  commitAllAndPushChanges,
   createNewPackage,
   deletePackage,
   installAndRunNpmDependency,
@@ -24,15 +21,13 @@ import {
   removeAllNpmHashTags,
   renamePackageFolder,
   unpublishNpmPackage,
-  commitAllAndPushChanges,
 } from './test-helpers'
-import { CreateAndManageRepo, MinimalNpmPackage, NewEnvFunc, PublishedPackageInfo, RunCi } from './types'
+import { CreateAndManageRepo, MinimalNpmPackage, NewEnv, ResultingArtifact, RunCi } from './types'
 import { getPackagePath, getPackages, ignore } from './utils'
-import { CiOptions } from '@tahini/nc'
 
 export { runDockerImage } from './test-helpers'
 
-export const newEnv: NewEnvFunc = () => {
+export const newEnv: NewEnv = () => {
   const testResources = prepareTestResources()
 
   const createAndManageReo: CreateAndManageRepo = async (repo = {}) => {
@@ -55,33 +50,29 @@ export const newEnv: NewEnvFunc = () => {
       toActualName,
     })
 
-    const runCi: RunCi = async ({ shouldPublish, execaOptions }) => {
+    const runCi: RunCi = async ({ shouldPublish, execaOptions, shouldDeploy, deploymentStrigifiedSection }) => {
       const configFilePath = path.join(repoPath, 'nc.config.ts')
-      const configurations: CiOptions = {
-        shouldPublish,
+      const configurations: ConfigFileOptions<unknown> = {
+        shouldPublish: Boolean(shouldPublish),
+        shouldDeploy: Boolean(shouldDeploy),
+        npmRegistryEmail: npmRegistry.auth.npmRegistryEmail,
+        npmRegistryUrl: `${npmRegistry.protocol}://${npmRegistry.auth.npmRegistryUsername}:${npmRegistry.auth.npmRegistryToken}@${npmRegistry.host}:${npmRegistry.port}`,
+        redisServerUrl: `redis://${redisServer.host}:${redisServer.port}/`,
+        dockerRegistryUrl: `${dockerRegistry.protocol}://${dockerRegistry.host}:${dockerRegistry.port}`,
         dockerOrganizationName,
-        gitOrganizationName: repoOrg,
-        gitRepositoryName: repoName,
-        dockerRegistry,
-        gitServer: gitServer.getServerInfo(),
-        npmRegistry,
-        redisServer: {
-          host: redisServer.host,
-          port: redisServer.port,
-        },
-        auth: {
-          ...npmRegistry.auth,
-          gitServerToken: gitServer.getToken(),
-          gitServerUsername: gitServer.getUsername(),
-        },
+      }
+
+      let finalString: string
+      if (deploymentStrigifiedSection) {
+        const hash = chance().hash()
+        const asString = JSON.stringify({ ...configurations, deployment: hash }, null, 2)
+        finalString = `export default async () => (${asString.replace(`"${hash}"`, deploymentStrigifiedSection)})`
+      } else {
+        finalString = `export default async () => (${JSON.stringify(configurations, null, 2)})`
       }
 
       await fse.remove(configFilePath).catch(ignore)
-      await fse.writeFile(
-        configFilePath,
-        `export default async () => (${JSON.stringify(configurations, null, 2)})`,
-        'utf-8',
-      )
+      await fse.writeFile(configFilePath, finalString, 'utf-8')
       await commitAllAndPushChanges(repoPath, gitServer.generateGitRepositoryAddress(repoOrg, repoName))
 
       const ciProcessResult = await execa.command(
@@ -100,12 +91,11 @@ export const newEnv: NewEnvFunc = () => {
       const packages = await Promise.all(
         packagesPaths // todo: need to search in runtime which packages I have NOW
           .map(packagePath => require(path.join(packagePath, 'package.json')).name)
-          .map<Promise<[string, PublishedPackageInfo]>>(async (packageName: string) => {
-            const [versions, highestVersion, tags, latestTag] = await Promise.all([
+          .map<Promise<[string, ResultingArtifact]>>(async (packageName: string) => {
+            const [versions, highestVersion, tags] = await Promise.all([
               publishedNpmPackageVersions(packageName, npmRegistry),
               latestNpmPackageVersion(packageName, npmRegistry),
               publishedDockerImageTags(packageName, dockerOrganizationName, dockerRegistry),
-              latestDockerImageTag(packageName, dockerOrganizationName, dockerRegistry),
             ])
             return [
               toOriginalName(packageName),
@@ -116,14 +106,16 @@ export const newEnv: NewEnvFunc = () => {
                 },
                 docker: {
                   tags,
-                  latestTag,
                 },
               },
             ]
           }),
       )
 
-      const published = packages.filter(([, artifact]) => artifact.docker.latestTag || artifact.npm.highestVersion)
+      const published = packages.filter(
+        ([, artifact]) =>
+          artifact.docker.tags.length > 0 || artifact.npm.versions.length > 0 || artifact.npm.highestVersion,
+      )
 
       return {
         published: new Map(published),

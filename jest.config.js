@@ -1,27 +1,13 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 const path = require('path')
-const execa = require('execa')
-
-const result = execa.sync('yarn', 'workspaces --json info'.split(' '))
-
-const workspacesInfo = JSON.parse(JSON.parse(result.stdout).data)
-const packagesAliases = Object.values(workspacesInfo)
-  .map(workspaceInfo => workspaceInfo.location)
-  .map(packagePath => ({
-    [`^${require(path.join(__dirname, packagePath, 'package.json')).name}$`]: path.join(
-      __dirname,
-      packagePath,
-      'src',
-      'index.ts',
-    ),
-  }))
-  .reduce((acc, obj) => ({ ...acc, ...obj }), {})
+const { pathsToModuleNameMapper } = require('ts-jest/utils')
+const { compilerOptions } = require('./tsconfig.json')
 
 module.exports = {
   preset: 'ts-jest',
   testRunner: 'jest-circus/runner',
-  moduleNameMapper: packagesAliases,
+  moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: path.join(__dirname, 'packages/') }),
   setupFilesAfterEnv: [path.join(__dirname, 'jest.setup.js')],
   globals: {
     'ts-jest': {

@@ -20,7 +20,6 @@ test(`run ci as the first time after there is already a docker publish`, async (
     shouldPublish: true,
   })
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1'])
-  expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.1')
 })
 
 test(`run ci -> override all labels in registry with empty values -> run ci`, async () => {
@@ -50,7 +49,6 @@ test(`run ci -> override all labels in registry with empty values -> run ci`, as
   })
 
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1'])
-  expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.1')
 })
 
 test(`run ci -> override all labels in registry with invalid values -> run ci and ensure we can recover from that`, async () => {
@@ -80,7 +78,6 @@ test(`run ci -> override all labels in registry with invalid values -> run ci an
   })
 
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1', '1.0.2'])
-  expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.2')
 })
 
 test(`run ci -> override latest-hash label in registry with empty value -> run ci`, async () => {
@@ -109,7 +106,6 @@ test(`run ci -> override latest-hash label in registry with empty value -> run c
   })
 
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1'])
-  expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.1')
 })
 
 test(`run ci -> override latest-tag label in registry with empty value -> run ci`, async () => {
@@ -138,7 +134,6 @@ test(`run ci -> override latest-tag label in registry with empty value -> run ci
   })
 
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1'])
-  expect(master.published.get('a')?.docker?.latestTag).toEqual('1.0.1')
 })
 
 test('run ci -> change packageJson.version to invalid version -> run ci', async () => {

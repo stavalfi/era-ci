@@ -58,19 +58,19 @@ export function generateJsonReport({
   )
 
   const finalGraph: JsonReport['graph'] = graph.map(node => {
-    //@ts-ignore - typescript can't understand `key` is `StepName`
     const packageSteps = Object.fromEntries(
       Object.entries(allSteps)
         .filter(([, stepResult]) => stepResult)
-        .map(([key, stepResult]) => {
-          return [key, stepResult!.packagesResult[node.index].data.stepResult]
-        }),
+        .map(([key, stepResult]) => [key, stepResult!.packagesResult[node.index].data.stepResult]),
     )
+
     const stepsSummary: StepsSummary = {
       durationMs: Object.values(packageSteps)
         .map(stepResult => stepResult.durationMs)
         .reduce((acc, d) => acc + d, 0),
-      notes: [],
+      notes: Object.values(packageSteps)
+        .filter(step => step)
+        .flatMap(step => step!.notes.map(note => `${step!.stepName} - ${note}`)),
       status: calculateCombinedStatus(Object.values(packageSteps).map(step => step.status)),
     }
 
@@ -94,8 +94,7 @@ export function generateJsonReport({
 
   const summaryNotes = Object.entries(allSteps)
     .filter(([, stepResult]) => stepResult)
-    .filter(([, stepsResult]) => [StepStatus.failed, StepStatus.skippedAsFailed].includes(stepsResult!.status))
-    .map(([stepName]) => `${stepName} - failed`)
+    .flatMap(([stepName, stepResult]) => stepResult!.notes.map(note => `${stepName} - ${note}`))
 
   const summary: JsonReport['summary'] = {
     durationMs: durationUntilNowMs + reportDurationMs,
