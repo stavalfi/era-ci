@@ -316,7 +316,7 @@ type RunStep = (
   stepsResults: {
     [stepName in StepName]?: stepName extends StepName.report ? never : PackagesStepResult<stepName>
   },
-) => false | Promise<false | PackagesStepResult<StepName>>
+) => false | undefined | Promise<false | undefined | PackagesStepResult<StepName>>
 
 export async function runSteps(
   startMs: number,

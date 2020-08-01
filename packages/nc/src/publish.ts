@@ -83,7 +83,6 @@ async function publishNpm({
   npmRegistry,
   cache,
   auth,
-  shouldPublish,
 }: {
   artifact: Artifact
   npmTarget: TargetToPublish<TargetType.npm>
@@ -92,19 +91,14 @@ async function publishNpm({
   npmRegistry: ServerInfo
   cache: Cache
   auth: Auth
-  shouldPublish: boolean
 }): Promise<PackageStepResult[StepName.publish]> {
   const startMs = Date.now()
-  if (!shouldPublish) {
-    return {
-      stepName: StepName.publish,
-      durationMs: Date.now() - startMs,
-      status: StepStatus.skippedAsPassed,
-      notes: ['ci is configured to skip publish'],
-    }
-  }
 
-  if ([StepStatus.failed, StepStatus.skippedAsFailed].includes(testsResult.status)) {
+  if (
+    [StepStatus.failed, StepStatus.skippedAsFailed, StepStatus.skippedAsFailedBecauseLastStepFailed].includes(
+      testsResult.status,
+    )
+  ) {
     return {
       stepName: StepName.publish,
       durationMs: Date.now() - startMs,
@@ -181,7 +175,6 @@ async function publishDocker({
   dockerOrganizationName,
   dockerRegistry,
   cache,
-  shouldPublish,
 }: {
   artifact: Artifact
   dockerTarget: TargetToPublish<TargetType.docker>
@@ -191,20 +184,14 @@ async function publishDocker({
   testsResult: StepResult<StepName.test>
   cache: Cache
   repoPath: string
-  shouldPublish: boolean
 }): Promise<PackageStepResult[StepName.publish]> {
   const startMs = Date.now()
 
-  if (!shouldPublish) {
-    return {
-      stepName: StepName.publish,
-      durationMs: Date.now() - startMs,
-      status: StepStatus.skippedAsPassed,
-      notes: ['ci is configured to skip publish'],
-    }
-  }
-
-  if ([StepStatus.failed, StepStatus.skippedAsFailed].includes(testsResult.status)) {
+  if (
+    [StepStatus.failed, StepStatus.skippedAsFailed, StepStatus.skippedAsFailedBecauseLastStepFailed].includes(
+      testsResult.status,
+    )
+  ) {
     return {
       stepName: StepName.publish,
       durationMs: Date.now() - startMs,
@@ -314,6 +301,29 @@ export async function publish(
 
   log.info('publishing...')
 
+  if (!options.shouldPublish) {
+    const durationMs = Date.now() - startMs
+    return {
+      stepName: StepName.publish,
+      durationMs,
+      executionOrder: options.executionOrder,
+      status: StepStatus.skippedAsPassed,
+      packagesResult: orderedGraph.map(node => ({
+        ...node,
+        data: {
+          artifact: node.data.artifact,
+          stepResult: {
+            stepName: StepName.publish,
+            durationMs,
+            status: StepStatus.skippedAsPassed,
+            notes: [],
+          },
+        },
+      })),
+      notes: ['ci is configured to skip publish'],
+    }
+  }
+
   const publishResult: Graph<{
     artifact: Artifact
     stepResult: PackageStepResult[StepName.publish]
@@ -323,7 +333,6 @@ export async function publish(
       switch (node.data.artifact.target?.targetType) {
         case TargetType.npm: {
           const publishResult = await publishNpm({
-            shouldPublish: options.shouldPublish,
             artifact: node.data.artifact,
             npmTarget: node.data.artifact.target as TargetToPublish<TargetType.npm>,
             newVersion: (node.data.artifact.target?.needPublish === true &&
@@ -340,7 +349,6 @@ export async function publish(
         }
         case TargetType.docker: {
           const publishResult = await publishDocker({
-            shouldPublish: options.shouldPublish,
             artifact: node.data.artifact,
             dockerTarget: node.data.artifact.target as TargetToPublish<TargetType.docker>,
             newVersion: (node.data.artifact.target?.needPublish === true &&

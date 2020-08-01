@@ -107,3 +107,35 @@ test('1 package - validate publish content', async () => {
     }),
   )
 })
+
+test('reproduce bug in travelGraph function', async () => {
+  const { runCi } = await createRepo({
+    packages: [
+      {
+        name: 'a',
+        version: '1.0.0',
+        targetType: TargetType.npm,
+      },
+      {
+        name: 'b',
+        version: '2.0.0',
+        targetType: TargetType.npm,
+      },
+      {
+        name: 'c',
+        version: '3.0.0',
+        targetType: TargetType.npm,
+        dependencies: {
+          a: '^1.0.0',
+        },
+      },
+    ],
+  })
+
+  const master = await runCi({
+    shouldPublish: true,
+  })
+  expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
+  expect(master.published.get('b')?.npm?.versions).toEqual(['2.0.0'])
+  expect(master.published.get('c')?.npm?.versions).toEqual(['3.0.0'])
+})

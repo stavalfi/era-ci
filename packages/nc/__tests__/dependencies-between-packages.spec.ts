@@ -189,7 +189,6 @@ describe('docker-package depends on...', () => {
     expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
     expect(master2.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')
     expect(master2.published.get('b')?.docker?.tags).toEqual(['2.0.0', '2.0.1'])
-    expect(master2.published.get('b')?.docker?.latestTag).toEqual('2.0.1')
   })
 
   test('docker-package cannot depends on docker-package', async () => {

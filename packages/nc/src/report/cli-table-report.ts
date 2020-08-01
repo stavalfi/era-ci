@@ -41,7 +41,7 @@ const STATUSES = {
 }
 
 function generatePackagesStatusReport(jsonReport: JsonReport): string {
-  const orderedSteps = [StepName.install, StepName.build, StepName.test, StepName.publish].filter(
+  const orderedSteps = [StepName.install, StepName.build, StepName.test, StepName.publish, StepName.deployment].filter(
     // @ts-ignore - ts can't handle the basics :S
     stepName => jsonReport.steps[stepName],
   )
@@ -107,31 +107,30 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
 }
 
 function generateSummaryReport(jsonReport: JsonReport): string {
-  const formattedReasons = jsonReport.summary.notes.map(reason => `* ${reason}`)
-
+  const notes = jsonReport.summary.notes
   const columns: TableRow[] = [
     [
       {
-        rowSpan: formattedReasons?.length || 1,
+        rowSpan: notes.length || 1,
         vAlign: 'center',
         hAlign: 'center',
         content: 'CI Summary',
       },
       {
-        rowSpan: formattedReasons?.length || 1,
+        rowSpan: notes.length || 1,
         vAlign: 'center',
         hAlign: 'center',
         content: STATUSES[jsonReport.summary.status],
       },
       {
-        rowSpan: formattedReasons?.length || 1,
+        rowSpan: notes.length || 1,
         vAlign: 'center',
         hAlign: 'center',
         content: prettyMs(jsonReport.summary.durationMs),
       },
-      ...formattedReasons.slice(0, 1),
+      ...notes.slice(0, 1),
     ],
-    ...formattedReasons.slice(1).map(reason => [reason]),
+    ...notes.slice(1).map(note => [note]),
   ]
 
   const ciTable = new Table({

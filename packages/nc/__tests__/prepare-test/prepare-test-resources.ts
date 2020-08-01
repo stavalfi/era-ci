@@ -1,5 +1,5 @@
 import execa from 'execa'
-import { ServerInfo } from '../../src/types'
+import { ServerInfo, Protocol } from '../../src/types'
 import { GitServer, starGittServer } from './git-server-testkit'
 
 type Deployment = { serverInfo: ServerInfo; cleanup: () => Promise<unknown> }
@@ -23,7 +23,7 @@ async function startDockerImage(fullDockerImageName: string, port: number): Prom
         () => Promise.resolve(),
       ),
     serverInfo: {
-      protocol: 'http',
+      protocol: Protocol.http,
       port: Number(dockerRegistryPort),
       host: 'localhost',
     },
