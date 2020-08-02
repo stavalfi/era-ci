@@ -121,7 +121,7 @@ function prepareDeployments<DeploymentClient>({
             stepName: StepName.deployment,
             durationMs: Date.now() - startMs,
             status: StepStatus.passed,
-            notes: [],
+            notes: [`deployed version ${publishedVersion}`],
           }
         } catch (error) {
           return {
