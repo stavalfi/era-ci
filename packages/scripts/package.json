@@ -13,7 +13,6 @@
     "fast-glob": "^3.2.2",
     "cmd-ts": "^0.6.3",
     "find-project-root": "^1.1.1",
-    "@tahini/log": "^1.0.0",
-    "@tahini/nc": "^1.0.0"
-  }
+    "@tahini/log": "^1.0.0"
+    }
 }

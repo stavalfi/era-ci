@@ -1,8 +1,7 @@
-import chalk from 'chalk'
 import Table, { CellOptions } from 'cli-table3'
-import randomColor from 'randomcolor'
-import { JsonReport, StepName, StepStatus } from '../types'
+import colors from 'colors/safe'
 import prettyMs from 'pretty-ms'
+import { JsonReport, StepName, StepStatus } from '../types'
 
 // todo: this file is not tested (or can't be tested). modify with caution!!!
 
@@ -26,11 +25,8 @@ const DEFAULT_CHART = {
   middle: '│',
 }
 
-const goodColor = randomColor({ hue: 'green', luminosity: 'light' })
-const badColor = randomColor({ hue: 'red', luminosity: 'bright' })
-
-const good = (word: string) => chalk.hex(goodColor)(word)
-const bad = (word: string) => chalk.hex(badColor)(word)
+const good = (word: string) => colors.green(word)
+const bad = (word: string) => colors.red(word)
 
 const STATUSES = {
   [StepStatus.passed]: good('Passed'),
@@ -63,11 +59,15 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
     }
   })
 
-  const colums: TableRow = ['', ...orderedSteps, 'duration', 'summary', 'notes'].map(content => ({
-    vAlign: 'center',
-    hAlign: 'center',
-    content,
-  }))
+  const hasNotes = rows.some(row => row.notes.length > 0)
+
+  const colums: TableRow = ['', ...orderedSteps, 'duration', 'summary']
+    .concat(hasNotes ? ['notes'] : [])
+    .map(content => ({
+      vAlign: 'center',
+      hAlign: 'center',
+      content,
+    }))
 
   const rowsInTableFormat = rows.flatMap(row => {
     return [

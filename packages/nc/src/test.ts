@@ -62,7 +62,7 @@ async function testPackage({
       stepName: StepName.test,
       status: StepStatus.failed,
       durationMs: Date.now() - startMs,
-      notes: [],
+      notes: [`tests failed`],
     }
   } else {
     return {
