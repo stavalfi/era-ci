@@ -21,7 +21,7 @@ async function main() {
   const serviceInfo = `${packageJson.name}@${packageJson.version}`
 
   express()
-    .get('/', (_req, res) => res.end(`alive - ${serviceInfo}`))
+    .get('/', (_req, res) => res.end(`alive1 - ${serviceInfo}`))
     .listen(80)
 }
 
