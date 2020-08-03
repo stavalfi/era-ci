@@ -85,7 +85,7 @@ function prepareDeployments<DeploymentClient>({
         deploymentResult: async () => ({
           stepName: StepName.deployment,
           durationMs: Date.now() - startMs,
-          status: StepStatus.skippedAsFailedBecauseLastStepFailed,
+          status: StepStatus.skippedAsPassed,
           notes: [`no deployment function was provided for target: ${targetType}`],
         }),
       }
