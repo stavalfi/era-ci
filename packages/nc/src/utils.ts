@@ -38,10 +38,10 @@ export function calculateCombinedStatus(statuses: StepStatus[]): StepStatus {
   if (statuses.includes(StepStatus.skippedAsFailedBecauseLastStepFailed)) {
     return StepStatus.skippedAsFailedBecauseLastStepFailed
   }
-  if (statuses.includes(StepStatus.passed)) {
-    return StepStatus.passed
+  if (statuses.includes(StepStatus.skippedAsPassed)) {
+    return StepStatus.skippedAsPassed
   }
-  return StepStatus.skippedAsPassed
+  return StepStatus.passed
 }
 
 export function shouldFailCi(
