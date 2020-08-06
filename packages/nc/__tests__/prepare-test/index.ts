@@ -2,7 +2,7 @@ import chance from 'chance'
 import ciInfo from 'ci-info'
 import execa from 'execa'
 import fse from 'fs-extra'
-import { ConfigFileOptions } from 'nc/src/types'
+import { ConfigFileOptions, TargetType, DeployTarget } from 'nc/src/types'
 import path from 'path'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'
@@ -50,25 +50,68 @@ export const newEnv: NewEnv = () => {
       toActualName,
     })
 
-    const runCi: RunCi = async ({ shouldPublish, execaOptions, shouldDeploy, deploymentStrigifiedSection }) => {
+    const runCi: RunCi = async ({ targetsInfo, execaOptions }) => {
       const configFilePath = path.join(repoPath, 'nc.config.ts')
+      const [npmDeploymentLogic, dockerDeploymentLogic]: [
+        DeployTarget<unknown, TargetType.npm>,
+        DeployTarget<unknown, TargetType.docker>,
+        // @ts-expect-error
+      ] = [chance().hash(), chance().hash()]
       const configurations: ConfigFileOptions<unknown> = {
-        shouldPublish: Boolean(shouldPublish),
-        shouldDeploy: Boolean(shouldDeploy),
-        npmRegistryEmail: npmRegistry.auth.npmRegistryEmail,
-        npmRegistryUrl: `${npmRegistry.protocol}://${npmRegistry.auth.npmRegistryUsername}:${npmRegistry.auth.npmRegistryToken}@${npmRegistry.host}:${npmRegistry.port}`,
-        redisServerUrl: `redis://${redisServer.host}:${redisServer.port}/`,
-        dockerRegistryUrl: `${dockerRegistry.protocol}://${dockerRegistry.host}:${dockerRegistry.port}`,
-        dockerOrganizationName,
+        targetsInfo: {
+          npm: targetsInfo.npm && {
+            shouldPublish: targetsInfo.npm.shouldPublish,
+            registry: `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`,
+            publishAuth: npmRegistry.auth,
+            ...(targetsInfo.npm.shouldDeploy
+              ? {
+                  shouldDeploy: true,
+                  deployment: npmDeploymentLogic,
+                }
+              : {
+                  shouldDeploy: false,
+                }),
+          },
+          docker: targetsInfo.docker && {
+            shouldPublish: targetsInfo.docker.shouldPublish,
+            registry: `${dockerRegistry.protocol}://${dockerRegistry.host}:${dockerRegistry.port}`,
+            publishAuth: {
+              dockerRegistryToken: '',
+              dockerRegistryUsername: '',
+            },
+            dockerOrganizationName,
+            ...(targetsInfo.docker.shouldDeploy
+              ? {
+                  shouldDeploy: true,
+                  deployment: dockerDeploymentLogic,
+                }
+              : {
+                  shouldDeploy: false,
+                }),
+          },
+        },
+        redis: {
+          redisServer: `redis://${redisServer.host}:${redisServer.port}/`,
+          auth: {
+            redisPassword: '',
+          },
+        },
+        git: {
+          auth: {
+            gitServerUsername: gitServer.getUsername(),
+            gitServerToken: gitServer.getToken(),
+          },
+        },
       }
 
-      let finalString: string
-      if (deploymentStrigifiedSection) {
-        const hash = chance().hash()
-        const asString = JSON.stringify({ ...configurations, deployment: hash }, null, 2)
-        finalString = `export default async () => (${asString.replace(`"${hash}"`, deploymentStrigifiedSection)})`
-      } else {
-        finalString = `export default async () => (${JSON.stringify(configurations, null, 2)})`
+      const asString = JSON.stringify(configurations, null, 2)
+      let finalString = `export default async () => (${asString})`
+
+      if (targetsInfo.npm?.shouldDeploy) {
+        finalString = finalString.replace(`"${npmDeploymentLogic}"`, targetsInfo.npm.deploymentStrigifiedSection)
+      }
+      if (targetsInfo.docker?.shouldDeploy) {
+        finalString = finalString.replace(`"${dockerDeploymentLogic}"`, targetsInfo.docker.deploymentStrigifiedSection)
       }
 
       await fse.remove(configFilePath).catch(ignore)

@@ -7,12 +7,23 @@ export enum TargetType {
   npm = 'npm',
 }
 
+export type TargetToPublish<TargetTypParam extends TargetType> = { targetType: TargetTypParam } & (
+  | {
+      needPublish: true
+      newVersion: string
+    }
+  | {
+      needPublish: { alreadyPublishedAsVersion: string }
+    }
+)
+
 export type Artifact = {
   relativePackagePath: string
   packagePath: string
   packageHash: string
   packageJson: IPackageJson
-  target?: TargetToPublish<TargetType.npm> | TargetToPublish<TargetType.docker>
+  targetType?: TargetType
+  publishInfo?: TargetToPublish<TargetType> // if this property is undefined, it means that the user didn't specify publish configurations for this `targetType`
 }
 
 export type ArtifactToDeploy<Target extends TargetType> = {
@@ -36,17 +47,6 @@ export type ServerInfo = {
   protocol?: Protocol
 }
 
-export type Auth = {
-  npmRegistryUsername: string
-  npmRegistryEmail: string
-  npmRegistryToken: string
-  gitServerUsername: string
-  gitServerToken: string
-  redisPassword?: string
-  dockerRegistryUsername?: string
-  dockerRegistryToken?: string
-}
-
 type DeployOptions<DeploymentClient, Target extends TargetType> = {
   deploymentClient: DeploymentClient
   artifactToDeploy: ArtifactToDeploy<Target>
@@ -62,47 +62,67 @@ export type DeployTarget<DeploymentClient, Target extends TargetType> = {
   destroyDeploymentClient: (options: { deploymentClient: DeploymentClient }) => Promise<void>
 }
 
-export type Deployment<DeploymentClient> = {
-  [Target in TargetType]?: DeployTarget<DeploymentClient, Target>
-}
-export type CiOptions<DeploymentClient> = {
-  repoPath: string
-  shouldPublish: boolean
-  npmRegistry: ServerInfo
-  dockerRegistry: ServerInfo
-  redisServer: ServerInfo
-  gitRepoUrl: string
-  dockerOrganizationName: string
-  gitRepositoryName: string
-  gitOrganizationName: string
-  shouldDeploy: boolean
-  deployment?: Deployment<DeploymentClient>
-  auth: Auth
+export type TargetsPublishAuth = {
+  [TargetType.npm]: {
+    npmRegistryUsername: string
+    npmRegistryEmail: string
+    npmRegistryToken: string
+  }
+  [TargetType.docker]: {
+    dockerRegistryUsername?: string
+    dockerRegistryToken?: string
+  }
 }
 
-export type ConfigFileOptions<DeploymentClient = never> = Pick<
-  CiOptions<DeploymentClient>,
-  'shouldPublish' | 'shouldDeploy' | 'deployment'
+export type TargetInfo<Target extends TargetType, DeploymentClient, ServerInfoType = ServerInfo> = {
+  shouldPublish: boolean
+  registry: ServerInfoType
+  publishAuth: TargetsPublishAuth[Target]
+} & (
+  | { shouldDeploy: false; deployment?: DeployTarget<DeploymentClient, Target> }
+  | { shouldDeploy: true; deployment: DeployTarget<DeploymentClient, Target> }
+) &
+  (Target extends TargetType.docker
+    ? {
+        dockerOrganizationName: string
+      }
+    : {})
+
+export type TargetsInfo<DeploymentClient, ServerInfoType = ServerInfo> = {
+  [Target in TargetType]?: TargetInfo<Target, DeploymentClient, ServerInfoType>
+}
+
+export type CiOptions<DeploymentClient, ServerInfoType = ServerInfo> = {
+  repoPath: string
+  targetsInfo: TargetsInfo<DeploymentClient, ServerInfoType>
+  redis: {
+    redisServer: ServerInfoType
+    auth: {
+      redisPassword?: string
+    }
+  }
+  git: {
+    gitRepoUrl: string
+    gitRepositoryName: string
+    gitOrganizationName: string
+    auth: {
+      gitServerUsername: string
+      gitServerToken: string
+    }
+  }
+}
+
+export type ConfigFileOptions<DeploymentClient = never> = Omit<
+  CiOptions<DeploymentClient, string>,
+  'repoPath' | 'git'
 > & {
-  npmRegistryEmail: string
-  npmRegistryUrl: string
-  redisServerUrl: string
-  dockerRegistryUrl: string
-  dockerOrganizationName: string
+  git: {
+    auth: CiOptions<DeploymentClient, string>['git']['auth']
+  }
 }
 
 export type PackageName = string
 export type PackageVersion = string
-
-export type TargetToPublish<TargetTypParam extends TargetType> = { targetType: TargetTypParam } & (
-  | {
-      needPublish: true
-      newVersion: string
-    }
-  | {
-      needPublish: { alreadyPublishedAsVersion: string }
-    }
-)
 
 export type TargetToDeploy<TargetTypParam extends TargetType> = { targetType: TargetTypParam; publishedVersion: string }
 
@@ -119,6 +139,11 @@ export enum CacheTypes {
   publish = 'publish',
 }
 
+export type PublishCache = {
+  isPublished: (packageName: string, packageHash: string) => Promise<PackageVersion | false>
+  setAsPublished: (packageName: string, packageHash: string, packageVersion: PackageVersion) => Promise<void>
+}
+
 export type Cache = {
   test: {
     isTestsRun: (packageName: string, packageHash: string) => Promise<boolean>
@@ -126,14 +151,7 @@ export type Cache = {
     setResult: (packageName: string, packageHash: string, isPassed: boolean) => Promise<void>
   }
   publish: {
-    npm: {
-      isPublished: (packageName: string, packageHash: string) => Promise<PackageVersion | false>
-      setAsPublished: (packageName: string, packageHash: string, packageVersion: PackageVersion) => Promise<void>
-    }
-    docker: {
-      isPublished: (packageName: string, packageHash: string) => Promise<PackageVersion | false>
-      setAsPublished: (packageName: string, packageHash: string, packageVersion: PackageVersion) => Promise<void>
-    }
+    [Target in TargetType]?: PublishCache
   }
   cleanup: () => Promise<unknown>
 }
@@ -175,7 +193,9 @@ export type PackageStepResult = {
   install: StepResult<StepName.install>
   build: StepResult<StepName.build>
   test: StepResult<StepName.test>
-  publish: StepResult<StepName.publish> & { publishedVersion?: string }
+  publish: StepResult<StepName.publish> & {
+    publishedVersion?: string
+  }
   deployment: StepResult<StepName.deployment>
   report: StepResult<StepName.report>
 }

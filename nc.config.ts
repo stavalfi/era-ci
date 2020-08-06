@@ -12,6 +12,8 @@ export default async (): Promise<ConfigFileOptions<void>> => {
     REDIS_PASSWORD,
     REDIS_ENDPOINT,
     K8S_CLUSTER_TOKEN,
+    GIT_SERVER_USERNAME,
+    GIT_SERVER_TOKEN,
     // eslint-disable-next-line no-process-env
   } = process.env
 
@@ -24,37 +26,67 @@ export default async (): Promise<ConfigFileOptions<void>> => {
   const packageNameToDeploymentName = (packageName: string) => packageName
   const packageNameToContainerName = (packageName: string) => packageName
 
+  const shouldPublish = isMasterBuild
+  const shouldDeploy = false
+
   return {
-    shouldPublish: isMasterBuild,
-    shouldDeploy: isMasterBuild,
-    dockerOrganizationName: 'stavalfi',
-    dockerRegistryUrl: `https://${DOCKER_HUB_USERNAME}:${DOCKER_HUB_TOKEN}@registry.hub.docker.com/`,
-    redisServerUrl: `redis://:${REDIS_PASSWORD}@${REDIS_ENDPOINT}/`,
-    npmRegistryEmail: 'stavalfi@gmail.com',
-    npmRegistryUrl: `https://${NPM_USERNAME}:${NPM_TOKEN}@registry.npmjs.com/`,
-    deployment: {
+    git: {
+      auth: {
+        gitServerUsername: GIT_SERVER_USERNAME!,
+        gitServerToken: GIT_SERVER_TOKEN!,
+      },
+    },
+    redis: {
+      redisServer: `redis://${REDIS_ENDPOINT}/`,
+      auth: {
+        redisPassword: REDIS_PASSWORD!,
+      },
+    },
+    targets: {
+      npm: {
+        shouldPublish,
+        registry: `https://registry.npmjs.com/`,
+        publishAuth: {
+          npmRegistryEmail: 'stavalfi@gmail.com',
+          npmRegistryUsername: NPM_USERNAME!,
+          npmRegistryToken: NPM_TOKEN!,
+        },
+        shouldDeploy,
+      },
       docker: {
-        initializeDeploymentClient: async () => {
-          const { stdout: keyContent } = await execa.command(`echo ${K8S_CLUSTER_TOKEN} | base64 -d`, {
-            stdio: 'pipe',
-            shell: true,
-          })
-          const k8sKeyPath = await createFile(keyContent)
-          await execa.command(`gcloud auth activate-service-account --key-file=${k8sKeyPath} --project ${k8sProjectId}`)
-          await execa.command(
-            `gcloud container clusters get-credentials ${k8sClusterName} --zone ${k8sClusterZoneName} --project ${k8sProjectId}`,
-          )
+        shouldPublish,
+        registry: `https://registry.hub.docker.com/`,
+        publishAuth: {
+          dockerRegistryUsername: DOCKER_HUB_USERNAME!,
+          dockerRegistryToken: DOCKER_HUB_TOKEN!,
         },
-        deploy: async ({ artifactToDeploy }) => {
-          const packageName = artifactToDeploy.packageJson.name!
-          const deploymentName = packageNameToDeploymentName(packageName)
-          const containerName = packageNameToContainerName(packageName)
-          const fullImageName = artifactToDeploy.fullImageName
-          await execa.command(
-            `kubectl set image deployment/${deploymentName} ${containerName}=${fullImageName} --record`,
-          )
+        dockerOrganizationName: 'stavalfi',
+        shouldDeploy,
+        deployment: {
+          initializeDeploymentClient: async () => {
+            const { stdout: keyContent } = await execa.command(`echo ${K8S_CLUSTER_TOKEN} | base64 -d`, {
+              stdio: 'pipe',
+              shell: true,
+            })
+            const k8sKeyPath = await createFile(keyContent)
+            await execa.command(
+              `gcloud auth activate-service-account --key-file=${k8sKeyPath} --project ${k8sProjectId}`,
+            )
+            await execa.command(
+              `gcloud container clusters get-credentials ${k8sClusterName} --zone ${k8sClusterZoneName} --project ${k8sProjectId}`,
+            )
+          },
+          deploy: async ({ artifactToDeploy }) => {
+            const packageName = artifactToDeploy.packageJson.name!
+            const deploymentName = packageNameToDeploymentName(packageName)
+            const containerName = packageNameToContainerName(packageName)
+            const fullImageName = artifactToDeploy.fullImageName
+            await execa.command(
+              `kubectl set image deployment/${deploymentName} ${containerName}=${fullImageName} --record`,
+            )
+          },
+          destroyDeploymentClient: async () => Promise.resolve(),
         },
-        destroyDeploymentClient: async () => Promise.resolve(),
       },
     },
   }

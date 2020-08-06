@@ -7,23 +7,34 @@ import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { getPackageInfo } from './package-info'
 import { calculatePackagesHash } from './packages-hash'
+import { generateCliTableReport } from './report/cli-table-report'
+import { generateJsonReport } from './report/json-report'
 import {
-  Cache,
-  Graph,
   Artifact,
+  Cache,
+  Cleanup,
+  Graph,
+  JsonReport,
   PackagesStepResult,
   Protocol,
   ServerInfo,
   StepName,
   StepStatus,
   TargetType,
-  Cleanup,
-  JsonReport,
+  TargetsInfo,
 } from './types'
-import { generateJsonReport } from './report/json-report'
-import { generateCliTableReport } from './report/cli-table-report'
 
 const log = logger('utils')
+
+export function getTargetTypeByKey(targetTypeKey: string): TargetType {
+  switch (targetTypeKey) {
+    case 'npm':
+      return TargetType.npm
+    case 'docker':
+      return TargetType.docker
+  }
+  throw new Error(`unsupported target: ${targetTypeKey}`)
+}
 
 export function calculateCombinedStatus(statuses: StepStatus[]): StepStatus {
   if (statuses.length === 0) {
@@ -64,13 +75,11 @@ export async function getPackages(repoPath: string): Promise<string[]> {
     .map(relativePackagePath => path.join(repoPath, relativePackagePath))
 }
 
-export async function getOrderedGraph({
+export async function getOrderedGraph<DeploymentClient>({
   artifacts,
   repoPath,
-  dockerOrganizationName,
-  cache,
-  dockerRegistry,
-  npmRegistry,
+  publishCache,
+  targetsInfo,
 }: {
   repoPath: string
   artifacts: {
@@ -79,10 +88,8 @@ export async function getOrderedGraph({
     packageName: string | undefined
     targetType: TargetType | undefined
   }[]
-  npmRegistry: ServerInfo
-  dockerRegistry: ServerInfo
-  dockerOrganizationName: string
-  cache: Cache
+  publishCache: Cache['publish']
+  targetsInfo: TargetsInfo<DeploymentClient>
 }): Promise<Graph<{ artifact: Artifact }>> {
   log.verbose('calculate hash of every package and check which packages changed since their last publish')
   const orderedGraph = await calculatePackagesHash(
@@ -94,15 +101,14 @@ export async function getOrderedGraph({
       ...node,
       data: {
         artifact: await getPackageInfo({
-          dockerRegistry,
-          npmRegistry,
           targetType: artifacts.find(({ packagePath }) => node.data.packagePath === packagePath)
             ?.targetType as TargetType,
-          dockerOrganizationName,
           packageHash: node.data.packageHash,
           packagePath: node.data.packagePath,
+          packageJson: node.data.packageJson,
           relativePackagePath: node.data.relativePackagePath,
-          cache,
+          publishCache,
+          targetsInfo,
         }),
       },
     })),

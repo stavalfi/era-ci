@@ -10,12 +10,8 @@ import { getPackageTargetType } from './package-info'
 import { publish } from './publish'
 import { testPackages } from './test'
 import { CiOptions, Cleanup, TargetType } from './types'
-import { build, getOrderedGraph, getPackages, install, reportAndExitCi, runSteps, cleanup } from './utils'
+import { build, cleanup, getOrderedGraph, getPackages, install, reportAndExitCi, runSteps } from './utils'
 import { validatePackages } from './validate-packages'
-
-export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
-export { npmRegistryLogin } from './npm-utils'
-export { TargetType } from './types'
 
 const log = logger('ci-logic')
 
@@ -44,39 +40,35 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
     const npmPackages = artifacts.filter(({ targetType }) => targetType === TargetType.npm)
     const dockerPackages = artifacts.filter(({ targetType }) => targetType === TargetType.docker)
 
-    if (dockerPackages.length > 0) {
+    if (dockerPackages.length > 0 && options.targetsInfo.docker) {
       await dockerRegistryLogin({
-        dockerRegistry: options.dockerRegistry,
-        dockerRegistryToken: options.auth.dockerRegistryToken,
-        dockerRegistryUsername: options.auth.dockerRegistryUsername,
+        dockerRegistry: options.targetsInfo.docker.registry,
+        dockerRegistryUsername: options.targetsInfo.docker.publishAuth.dockerRegistryUsername,
+        dockerRegistryToken: options.targetsInfo.docker.publishAuth.dockerRegistryToken,
       })
     }
 
-    if (npmPackages.length > 0) {
+    if (npmPackages.length > 0 && options.targetsInfo.npm) {
       await npmRegistryLogin({
-        npmRegistry: options.npmRegistry,
-        npmRegistryUsername: options.auth.npmRegistryUsername,
-        npmRegistryToken: options.auth.npmRegistryToken,
-        npmRegistryEmail: options.auth.npmRegistryEmail,
+        npmRegistry: options.targetsInfo.npm.registry,
+        npmRegistryUsername: options.targetsInfo.npm.publishAuth.npmRegistryUsername,
+        npmRegistryToken: options.targetsInfo.npm.publishAuth.npmRegistryToken,
+        npmRegistryEmail: options.targetsInfo.npm.publishAuth.npmRegistryEmail,
       })
     }
 
     const cache = await intializeCache({
-      auth: options.auth,
-      dockerOrganizationName: options.dockerOrganizationName,
-      dockerRegistry: options.dockerRegistry,
-      npmRegistry: options.npmRegistry,
-      redisServer: options.redisServer,
+      redis: options.redis,
+      targetsInfo: options.targetsInfo,
     })
+
     cleanups.push(cache.cleanup)
 
     const orderedGraph = await getOrderedGraph({
       repoPath: options.repoPath,
       artifacts,
-      dockerRegistry: options.dockerRegistry,
-      dockerOrganizationName: options.dockerOrganizationName,
-      npmRegistry: options.npmRegistry,
-      cache,
+      publishCache: cache.publish,
+      targetsInfo: options.targetsInfo,
     })
 
     const jsonReport = await runSteps(startMs, orderedGraph, [
@@ -101,30 +93,19 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
         stopPipelineOnFailure: false,
         runStep: stepsResultUntilNow =>
           publish(stepsResultUntilNow.test!.packagesResult, {
-            shouldPublish: options.shouldPublish,
             repoPath: options.repoPath,
-            dockerRegistry: options.dockerRegistry,
-            npmRegistry: options.npmRegistry,
-            dockerOrganizationName: options.dockerOrganizationName,
             cache,
-            auth: options.auth,
+            targetsInfo: options.targetsInfo,
             executionOrder: 3,
           }),
       },
       {
         stopPipelineOnFailure: false,
         runStep: stepsResultUntilNow =>
-          options.deployment &&
           deploy<DeploymentClient>(stepsResultUntilNow.publish!.packagesResult, {
-            shouldDeploy: options.shouldDeploy,
             repoPath: options.repoPath,
-            dockerRegistry: options.dockerRegistry,
-            npmRegistry: options.npmRegistry,
-            dockerOrganizationName: options.dockerOrganizationName,
-            cache,
-            auth: options.auth,
-            delpoyment: options.deployment,
             executionOrder: 4,
+            targetsInfo: options.targetsInfo,
           }),
       },
     ])

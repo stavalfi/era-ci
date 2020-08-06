@@ -1,4 +1,4 @@
-import { ConfigFileOptions, CiOptions, Protocol } from '../types'
+import { ConfigFileOptions, CiOptions, Protocol, TargetType, ServerInfo, TargetInfo } from '../types'
 import urlParse from 'url-parse'
 import execa from 'execa'
 import parseGitUrl from 'git-url-parse'
@@ -9,7 +9,34 @@ function isProtocolSupported(url: string, protocol: string): protocol is Protoco
 }
 
 function getPort(procotol: Protocol, port: number | string): number {
+  if (port === 0) {
+    return port
+  }
   return Number(port) || (procotol === Protocol.http ? 80 : 443)
+}
+
+function getServerInfoFromTarget<Target extends TargetType, DeploymentClient>(
+  targetInfo?: TargetInfo<Target, DeploymentClient, string>,
+): ServerInfo | false {
+  if (!targetInfo?.shouldPublish) {
+    return false
+  }
+  const parsed = targetInfo.shouldPublish && urlParse(targetInfo.registry)
+  const protocol = parsed.protocol.replace(':', '')
+  const protocolError = (url: string, protocol: string) => {
+    const allowedProtocols = Object.values(Protocol).join(' or ')
+    return new Error(
+      `url must contain protocol: "${allowedProtocols}". received protocol: "${protocol}" -->> ${targetInfo.registry}`,
+    )
+  }
+  if (!isProtocolSupported(targetInfo.registry, protocol)) {
+    throw protocolError(targetInfo.registry, protocol)
+  }
+  return {
+    host: parsed.hostname,
+    port: getPort(protocol, parsed.port),
+    protocol: protocol,
+  }
 }
 
 export async function combineOptions<DeploymentClient>({
@@ -24,61 +51,48 @@ export async function combineOptions<DeploymentClient>({
     cwd: cliOptions.repoPath,
   })
   const parsedGitUrl = parseGitUrl(gitUrl)
-  const [gitUsername, gitToken] = parsedGitUrl.user.split(':')
-  const parsedNpmRegistry = urlParse(configFileOptions.npmRegistryUrl)
-  const parsedRedisServer = redisUrlParse(configFileOptions.redisServerUrl)
-  const parsedDockerRegistry = urlParse(configFileOptions.dockerRegistryUrl)
-
-  const dockerProtocol = parsedDockerRegistry.protocol.replace(':', '')
-  const npmProtocol = parsedNpmRegistry.protocol.replace(':', '')
-  const protocolError = (url: string, protocol: string) => {
-    const allowedProtocols = Object.values(Protocol).join(' or ')
-    return new Error(
-      `url must contain protocol: "${allowedProtocols}". received protocol: "${dockerProtocol}" -->> ${configFileOptions.dockerRegistryUrl}`,
-    )
-  }
-  if (!isProtocolSupported(configFileOptions.dockerRegistryUrl, dockerProtocol)) {
-    throw protocolError(configFileOptions.dockerRegistryUrl, dockerProtocol)
-  }
-  if (!isProtocolSupported(configFileOptions.npmRegistryUrl, npmProtocol)) {
-    throw protocolError(configFileOptions.npmRegistryUrl, npmProtocol)
-  }
+  const parsedRedisServer = redisUrlParse(configFileOptions.redis.redisServer)
 
   return {
     repoPath: cliOptions.repoPath,
-    shouldDeploy: configFileOptions.shouldDeploy,
-    ...('deployment' in configFileOptions && {
-      shouldDeploy: configFileOptions.shouldDeploy,
-      deployment: configFileOptions.deployment,
-    }),
-    shouldPublish: configFileOptions.shouldPublish,
-    dockerOrganizationName: configFileOptions.dockerOrganizationName,
-    dockerRegistry: {
-      host: parsedDockerRegistry.hostname,
-      port: getPort(dockerProtocol, parsedDockerRegistry.port),
-      protocol: dockerProtocol,
+    git: {
+      gitRepoUrl: gitUrl,
+      gitOrganizationName: parsedGitUrl.organization,
+      gitRepositoryName: parsedGitUrl.name,
+      auth: {
+        gitServerToken: configFileOptions.git.auth.gitServerToken,
+        gitServerUsername: configFileOptions.git.auth.gitServerUsername,
+      },
     },
-    redisServer: {
-      host: parsedRedisServer.host,
-      port: parsedRedisServer.port,
+    redis: {
+      redisServer: {
+        host: parsedRedisServer.host,
+        port: parsedRedisServer.port,
+      },
+      auth: {
+        redisPassword: configFileOptions.redis.auth.redisPassword,
+      },
     },
-    npmRegistry: {
-      host: parsedNpmRegistry.hostname,
-      port: getPort(npmProtocol, parsedNpmRegistry.port),
-      protocol: npmProtocol,
-    },
-    gitRepoUrl: gitUrl,
-    gitOrganizationName: parsedGitUrl.organization,
-    gitRepositoryName: parsedGitUrl.name,
-    auth: {
-      gitServerToken: gitToken,
-      gitServerUsername: gitUsername,
-      npmRegistryEmail: configFileOptions.npmRegistryEmail,
-      npmRegistryUsername: parsedNpmRegistry.username,
-      npmRegistryToken: parsedNpmRegistry.password,
-      dockerRegistryUsername: parsedDockerRegistry.username,
-      dockerRegistryToken: parsedDockerRegistry.password,
-      redisPassword: parsedRedisServer.password,
-    },
+    targetsInfo: Object.fromEntries(
+      Object.entries(configFileOptions.targetsInfo)
+        .filter(([targetType, info]) => targetType && info)
+        .map(([targetType, info]) => {
+          const registry = getServerInfoFromTarget(info)
+          if (!registry) {
+            throw new Error(`can't parse url: ${info?.registry}. can't extract protocol, host and port`)
+          }
+          return [
+            targetType,
+            {
+              ...info!,
+              shouldPublish: info!.shouldPublish,
+              registry,
+              publishAuth: info!.publishAuth,
+              shouldDeploy: info!.shouldDeploy,
+              deployment: info!.deployment,
+            },
+          ]
+        }),
+    ),
   }
 }

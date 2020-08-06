@@ -34,9 +34,13 @@ export type Repo = {
 }
 
 export type TestOptions = {
-  shouldPublish?: boolean
-  shouldDeploy?: boolean
-  deploymentStrigifiedSection?: string
+  targetsInfo: {
+    [target in TargetType]?: {
+      shouldPublish: boolean
+      shouldDeploy: boolean
+      deploymentStrigifiedSection: string
+    }
+  }
   execaOptions?: {
     stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
     reject?: boolean

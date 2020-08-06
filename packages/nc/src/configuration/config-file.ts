@@ -15,16 +15,7 @@ async function validateConfiguration(configuration: unknown): Promise<ConfigFile
     throw error
   }
 
-  const allowedOptions = [
-    'shouldPublish',
-    'shouldDeploy',
-    'deployment',
-    'npmRegistryUrl',
-    'redisServerUrl',
-    'npmRegistryEmail',
-    'dockerRegistryUrl',
-    'dockerOrganizationName',
-  ]
+  const allowedOptions = ['targets', 'redis', 'git']
 
   const invalidOptions = Object.keys(configuration).filter(option => !allowedOptions.includes(option))
   if (invalidOptions.length > 0) {
