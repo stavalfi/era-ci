@@ -16,13 +16,23 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     })
 
     await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '2.0.0' }))
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '2.0.0'])
@@ -40,13 +50,23 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     })
 
     await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.1.0' }))
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
     expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.1.0'])
   })
@@ -63,13 +83,23 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     })
 
     await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.1' }))
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1'])
@@ -87,13 +117,23 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     })
 
     await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.4' }))
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
     expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.4'])
   })

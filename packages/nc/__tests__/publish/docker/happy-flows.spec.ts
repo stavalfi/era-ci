@@ -1,6 +1,7 @@
 import chance from 'chance'
-import { newEnv, runDockerImage } from '../../prepare-test'
+import { newEnv } from '../../prepare-test'
 import { TargetType } from '../../prepare-test/types'
+import { runDockerImage } from '../../prepare-test/test-helpers'
 
 const { createRepo, getTestResources } = newEnv()
 
@@ -16,7 +17,12 @@ test('1 package', async () => {
   })
 
   const master = await runCi({
-    shouldPublish: true,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
   })
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0'])
 })
@@ -38,7 +44,12 @@ test('ensure the image is working', async () => {
   })
 
   await runCi({
-    shouldPublish: true,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
   })
 
   await expect(

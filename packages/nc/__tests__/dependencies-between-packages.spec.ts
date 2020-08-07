@@ -24,7 +24,12 @@ describe('npm package depends on.....', () => {
     })
 
     const master1 = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -33,7 +38,12 @@ describe('npm package depends on.....', () => {
     await addRandomFileToPackage('a')
 
     const master2 = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
@@ -62,7 +72,12 @@ describe('npm package depends on.....', () => {
     })
 
     const master1 = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -71,7 +86,12 @@ describe('npm package depends on.....', () => {
     await addRandomFileToPackage('b')
 
     const master2 = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -100,7 +120,16 @@ describe('npm package depends on.....', () => {
 
     await expect(
       runCi({
-        shouldPublish: false,
+        targetsInfo: {
+          npm: {
+            shouldPublish: false,
+            shouldDeploy: false,
+          },
+          docker: {
+            shouldPublish: false,
+            shouldDeploy: false,
+          },
+        },
         execaOptions: {
           stdio: 'pipe',
         },
@@ -136,7 +165,12 @@ describe('npm package depends on.....', () => {
 
     await expect(
       runCi({
-        shouldPublish: false,
+        targetsInfo: {
+          npm: {
+            shouldPublish: false,
+            shouldDeploy: false,
+          },
+        },
         execaOptions: {
           stdio: 'pipe',
         },
@@ -174,7 +208,16 @@ describe('docker-package depends on...', () => {
     })
 
     const master1 = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -183,7 +226,16 @@ describe('docker-package depends on...', () => {
     await addRandomFileToPackage('a')
 
     const master2 = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
@@ -212,7 +264,12 @@ describe('docker-package depends on...', () => {
 
     await expect(
       runCi({
-        shouldPublish: false,
+        targetsInfo: {
+          docker: {
+            shouldPublish: true,
+            shouldDeploy: false,
+          },
+        },
         execaOptions: {
           stdio: 'pipe',
         },
@@ -259,7 +316,12 @@ RUN yarn install --frozen-lockfile --production\
     })
 
     const master1 = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master1.published.get('b')?.docker?.tags).toEqual(['2.0.0'])

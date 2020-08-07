@@ -16,13 +16,23 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     })
 
     await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '2.0.0' }))
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0', '2.0.0'])
@@ -41,13 +51,23 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     })
 
     await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.1.0' }))
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
     expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.1.0'])
     expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.1.0')
@@ -65,13 +85,23 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     })
 
     await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.1' }))
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
@@ -90,13 +120,23 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     })
 
     await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.4' }))
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
     expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.4'])
     expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.4')

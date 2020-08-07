@@ -32,7 +32,11 @@ const consoleTransport = new winston.transports.Console({
         returnLog += log.stack.replace(/\n/g, `\n[${log.level}]\t`)
         return `${returnLog}: `
       } else {
-        return `${base}: ${log.message}`
+        if (log.unknownErrorType) {
+          return `${base}: ${log.message} - ${log.unknownErrorType}`
+        } else {
+          return `${base}: ${log.message}`
+        }
       }
     }),
     errors({ stack: true }), // <-- use errors format
@@ -56,7 +60,11 @@ export const logger = (module: string): Log => {
   const log = mainLogger.child({ module })
   return {
     error: (message, error) => {
-      log.error(message, error)
+      if (error === null || undefined) {
+        log.error(message)
+      } else {
+        log.error(message, error instanceof Error ? error : { unknownErrorType: error })
+      }
     },
     info: message => {
       log.info(message)

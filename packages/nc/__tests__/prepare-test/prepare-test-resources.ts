@@ -38,9 +38,9 @@ export function prepareTestResources() {
 
   // verdaccio allow us to login as any user & password & email
   const verdaccioCardentials = {
-    npmRegistryUsername: 'root',
-    npmRegistryToken: 'root',
-    npmRegistryEmail: 'root@root.root',
+    username: 'root',
+    token: 'root',
+    email: 'root@root.root',
   }
 
   beforeAll(async () => {

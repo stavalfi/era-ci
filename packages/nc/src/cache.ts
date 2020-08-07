@@ -1,10 +1,11 @@
+/* eslint-disable no-console */
 import { logger } from '@tahini/log'
 import Redis from 'ioredis'
+import NodeCache from 'node-cache'
 import semver from 'semver'
 import { isDockerVersionAlreadyPulished } from './docker-utils'
 import { isNpmVersionAlreadyPulished } from './npm-utils'
-import { Auth, Cache, CacheTypes, PackageVersion, ServerInfo, TargetType } from './types'
-import NodeCache from 'node-cache'
+import { Cache, CacheTypes, PackageVersion, ServerInfo, TargetsInfo, TargetType, CiOptions } from './types'
 
 const log = logger('cache')
 
@@ -19,56 +20,68 @@ type Get = (key: string) => Promise<string | null>
 type Has = (key: string) => Promise<boolean>
 type Set = (key: string, value: string | number) => Promise<void>
 
-const isPublished = ({
-  npmRegistry,
+async function checkIfPublishedInCache({
   get,
-  dockerOrganizationName,
-  dockerRegistry,
+  packageHash,
+  packageName,
   targetType,
 }: {
   get: Get
-  npmRegistry: ServerInfo
-  dockerRegistry: ServerInfo
-  dockerOrganizationName: string
+  packageName: string
+  packageHash: string
   targetType: TargetType
-}) => async (packageName: string, packageHash: string): Promise<PackageVersion | false> => {
-  async function checkInCache() {
-    const result = await get(toPublishKey(packageName, targetType, packageHash))
-    if (!result) {
-      return false
+}) {
+  const result = await get(toPublishKey(packageName, targetType, packageHash))
+  if (!result) {
+    return false
+  } else {
+    if (semver.valid(result)) {
+      return result
     } else {
-      if (semver.valid(result)) {
-        return result
-      } else {
-        log.verbose(
-          `hash of package ${packageName} was found but it points to an invalid verison: ${result}. ignoring this record`,
-        )
-        return false
-      }
+      log.verbose(
+        `hash of package ${packageName} was found but it points to an invalid verison: ${result}. ignoring this record`,
+      )
+      return false
     }
   }
+}
 
-  const inCache = await checkInCache()
+const isNpmPublished = ({ npmRegistry, get }: { get: Get; npmRegistry: ServerInfo }) => async (
+  packageName: string,
+  packageHash: string,
+): Promise<PackageVersion | false> => {
+  const inCache = await checkIfPublishedInCache({ get, packageHash, packageName, targetType: TargetType.npm })
 
   if (!inCache) {
     return false
   }
 
-  switch (targetType) {
-    case TargetType.npm: {
-      const inRegistry = await isNpmVersionAlreadyPulished({ packageName, packageVersion: inCache, npmRegistry })
-      return inRegistry ? inCache : false
-    }
-    case TargetType.docker: {
-      const inRegistry = await isDockerVersionAlreadyPulished({
-        dockerOrganizationName,
-        dockerRegistry,
-        imageTag: inCache,
-        packageName,
-      })
-      return inRegistry ? inCache : false
-    }
+  const inRegistry = await isNpmVersionAlreadyPulished({ packageName, packageVersion: inCache, npmRegistry })
+  return inRegistry ? inCache : false
+}
+
+const isDockerPublished = ({
+  get,
+  dockerOrganizationName,
+  dockerRegistry,
+}: {
+  get: Get
+  dockerRegistry: ServerInfo
+  dockerOrganizationName: string
+}) => async (packageName: string, packageHash: string): Promise<PackageVersion | false> => {
+  const inCache = await checkIfPublishedInCache({ get, packageHash, packageName, targetType: TargetType.docker })
+
+  if (!inCache) {
+    return false
   }
+
+  const inRegistry = await isDockerVersionAlreadyPulished({
+    dockerOrganizationName,
+    dockerRegistry,
+    imageTag: inCache,
+    packageName,
+  })
+  return inRegistry ? inCache : false
 }
 
 const setAsPublished = ({ set, targetType }: { set: Set; targetType: TargetType }) => async (
@@ -93,25 +106,21 @@ const isPassed = (get: Get) => async (packageName: string, packageHash: string) 
 const setResult = (set: Set) => (packageName: string, packageHash: string, isPassed: boolean) =>
   set(toTestKey(packageName, packageHash), isPassed ? TestsResult.passed : TestsResult.failed)
 
-export async function intializeCache({
-  auth,
-  redisServer,
-  dockerOrganizationName,
-  dockerRegistry,
-  npmRegistry,
-}: {
-  redisServer: ServerInfo
-  auth: Pick<Auth, 'redisPassword'>
-  npmRegistry: ServerInfo
-  dockerRegistry: ServerInfo
-  dockerOrganizationName: string
-}): Promise<Cache> {
+type IntializeCacheOptions<DeploymentClient> = {
+  redis: CiOptions<DeploymentClient>['redis']
+  targetsInfo?: TargetsInfo<DeploymentClient>
+}
+
+export async function intializeCache<DeploymentClient>({
+  redis,
+  targetsInfo,
+}: IntializeCacheOptions<DeploymentClient>): Promise<Cache> {
   const nodeCache = new NodeCache()
 
   const redisClient = new Redis({
-    host: redisServer.host,
-    port: redisServer.port,
-    ...(auth.redisPassword && { password: auth.redisPassword }),
+    host: redis.redisServer.host,
+    port: redis.redisServer.port,
+    ...(redis.auth.password && { password: redis.auth.password }),
   })
 
   async function set(key: string, value: string | number): Promise<void> {
@@ -148,40 +157,41 @@ export async function intializeCache({
     }
   }
 
+  const publish: Cache['publish'] = {
+    ...(targetsInfo?.npm && {
+      npm: {
+        isPublished: isNpmPublished({
+          get,
+          npmRegistry: targetsInfo.npm.registry,
+        }),
+        setAsPublished: setAsPublished({
+          set,
+          targetType: TargetType.npm,
+        }),
+      },
+    }),
+    ...(targetsInfo?.docker && {
+      docker: {
+        isPublished: isDockerPublished({
+          get,
+          dockerRegistry: targetsInfo.docker.registry,
+          dockerOrganizationName: targetsInfo.docker.dockerOrganizationName,
+        }),
+        setAsPublished: setAsPublished({
+          set,
+          targetType: TargetType.docker,
+        }),
+      },
+    }),
+  }
+
   return {
     test: {
       isTestsRun: isTestsRun(has),
       isPassed: isPassed(get),
       setResult: setResult(set),
     },
-    publish: {
-      npm: {
-        isPublished: isPublished({
-          dockerOrganizationName,
-          dockerRegistry,
-          get,
-          npmRegistry,
-          targetType: TargetType.npm,
-        }),
-        setAsPublished: setAsPublished({
-          set,
-          targetType: TargetType.npm,
-        }),
-      },
-      docker: {
-        isPublished: isPublished({
-          dockerOrganizationName,
-          dockerRegistry,
-          get,
-          npmRegistry,
-          targetType: TargetType.docker,
-        }),
-        setAsPublished: setAsPublished({
-          set,
-          targetType: TargetType.docker,
-        }),
-      },
-    },
+    publish,
     cleanup: () => Promise.all([redisClient.quit(), nodeCache.close()]),
   }
 }

@@ -1,7 +1,7 @@
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap, IPackageJson } from 'package-json-type'
 import execa, { StdioOption } from 'execa'
-import { ServerInfo, TargetType } from '../../src/index'
+import { ServerInfo, TargetType, ConfigFileOptions } from '../../src/index'
 
 export { TargetType }
 
@@ -33,14 +33,25 @@ export type Repo = {
   rootFiles?: FolderStructure
 }
 
+export type EditConfig = (config: ConfigFileOptions<unknown>) => ConfigFileOptions<unknown>
+
 export type TestOptions = {
-  shouldPublish?: boolean
-  shouldDeploy?: boolean
-  deploymentStrigifiedSection?: string
+  targetsInfo?: {
+    [target in TargetType]?: {
+      shouldPublish: boolean
+    } & (
+      | {
+          shouldDeploy: true
+          deploymentStrigifiedSection: string
+        }
+      | { shouldDeploy: false; deploymentStrigifiedSection?: string }
+    )
+  }
   execaOptions?: {
     stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
     reject?: boolean
   }
+  editConfig?: EditConfig
 }
 
 export type ResultingArtifact = {
@@ -68,7 +79,7 @@ export type CiResults = {
 
 export type ToActualName = (name: string) => string
 
-export type RunCi = (options: TestOptions) => Promise<CiResults>
+export type RunCi = (options?: TestOptions) => Promise<CiResults>
 export type AddRandomFileToPackage = (packageName: string) => Promise<string>
 export type AddRandomFileToRoot = () => Promise<string>
 

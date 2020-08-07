@@ -16,13 +16,23 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
     })
 
     await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.8' }))
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.10', '1.0.11'])
@@ -41,25 +51,45 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
     })
 
     await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     await addRandomFileToPackage('a')
 
     await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     await addRandomFileToPackage('a')
 
     await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.1' }))
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1', '1.0.2', '1.0.3'])

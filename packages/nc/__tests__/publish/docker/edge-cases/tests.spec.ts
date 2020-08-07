@@ -17,7 +17,12 @@ test(`run ci as the first time after there is already a docker publish`, async (
   await publishDockerPackageWithoutCi('a', '1.0.0')
 
   const master = await runCi({
-    shouldPublish: true,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
   })
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1'])
 })
@@ -34,7 +39,12 @@ test(`run ci -> override all labels in registry with empty values -> run ci`, as
   })
 
   await runCi({
-    shouldPublish: true,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
   })
 
   await publishDockerPackageWithoutCi('a', '1.0.0', {
@@ -45,7 +55,12 @@ test(`run ci -> override all labels in registry with empty values -> run ci`, as
   await addRandomFileToPackage('a')
 
   const master = await runCi({
-    shouldPublish: true,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
   })
 
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1'])
@@ -63,7 +78,12 @@ test(`run ci -> override all labels in registry with invalid values -> run ci an
   })
 
   await runCi({
-    shouldPublish: true,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
   })
 
   await publishDockerPackageWithoutCi('a', '1.0.1', {
@@ -74,7 +94,12 @@ test(`run ci -> override all labels in registry with invalid values -> run ci an
   await addRandomFileToPackage('a')
 
   const master = await runCi({
-    shouldPublish: true,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
   })
 
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1', '1.0.2'])
@@ -92,7 +117,12 @@ test(`run ci -> override latest-hash label in registry with empty value -> run c
   })
 
   await runCi({
-    shouldPublish: true,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
   })
 
   await publishDockerPackageWithoutCi('a', '1.0.1', {
@@ -102,7 +132,12 @@ test(`run ci -> override latest-hash label in registry with empty value -> run c
   await addRandomFileToPackage('a')
 
   const master = await runCi({
-    shouldPublish: true,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
   })
 
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1'])
@@ -120,7 +155,12 @@ test(`run ci -> override latest-tag label in registry with empty value -> run ci
   })
 
   await runCi({
-    shouldPublish: true,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
   })
 
   await publishDockerPackageWithoutCi('a', '1.0.1', {
@@ -130,7 +170,12 @@ test(`run ci -> override latest-tag label in registry with empty value -> run ci
   await addRandomFileToPackage('a')
 
   const master = await runCi({
-    shouldPublish: true,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
   })
 
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1'])
@@ -150,7 +195,12 @@ test('run ci -> change packageJson.version to invalid version -> run ci', async 
   await modifyPackageJson('a', packageJson => ({ ...packageJson, version: 'lalalal' }))
 
   const result = await runCi({
-    shouldPublish: true,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
     execaOptions: {
       stdio: 'pipe',
       reject: false,
