@@ -9,7 +9,6 @@ import {
   StepsSummary,
   StepStatus,
   PackageStepResult,
-  TargetType,
 } from '../types'
 import { calculateCombinedStatus, shouldFailCi } from '../utils'
 

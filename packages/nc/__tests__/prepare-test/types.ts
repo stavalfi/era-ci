@@ -34,12 +34,16 @@ export type Repo = {
 }
 
 export type TestOptions = {
-  targetsInfo: {
+  targetsInfo?: {
     [target in TargetType]?: {
       shouldPublish: boolean
-      shouldDeploy: boolean
-      deploymentStrigifiedSection: string
-    }
+    } & (
+      | {
+          shouldDeploy: true
+          deploymentStrigifiedSection: string
+        }
+      | { shouldDeploy: false; deploymentStrigifiedSection?: string }
+    )
   }
   execaOptions?: {
     stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
@@ -72,7 +76,7 @@ export type CiResults = {
 
 export type ToActualName = (name: string) => string
 
-export type RunCi = (options: TestOptions) => Promise<CiResults>
+export type RunCi = (options?: TestOptions) => Promise<CiResults>
 export type AddRandomFileToPackage = (packageName: string) => Promise<string>
 export type AddRandomFileToRoot = () => Promise<string>
 

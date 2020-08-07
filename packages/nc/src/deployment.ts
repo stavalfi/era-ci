@@ -117,7 +117,21 @@ function prepareDeployments<DeploymentClient>({
           stepName: StepName.deployment,
           durationMs: Date.now() - startMs,
           status: StepStatus.skippedAsPassed,
-          notes: [`there isn't any deployment configuration for ${targetType} target`],
+          notes: [`there isn't any deployment configuration for ${targetType} targets`],
+        }),
+      }
+    }
+
+    if (!targetInfo.shouldDeploy) {
+      return {
+        node: { ...node, data: node.data.artifact },
+        deployable: false,
+        targetType,
+        deploymentResult: async () => ({
+          stepName: StepName.deployment,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.skippedAsPassed,
+          notes: [`ci is configured to skip deployment for ${targetType} targets`],
         }),
       }
     }

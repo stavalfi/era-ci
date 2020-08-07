@@ -15,7 +15,7 @@ async function validateConfiguration(configuration: unknown): Promise<ConfigFile
     throw error
   }
 
-  const allowedOptions = ['targets', 'redis', 'git']
+  const allowedOptions = ['targetsInfo', 'redis', 'git']
 
   const invalidOptions = Object.keys(configuration).filter(option => !allowedOptions.includes(option))
   if (invalidOptions.length > 0) {

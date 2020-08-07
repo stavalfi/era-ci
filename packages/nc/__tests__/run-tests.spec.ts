@@ -21,7 +21,6 @@ test('make sure tests output is printed', async () => {
   })
 
   const { ciProcessResult } = await runCi({
-    shouldPublish: false,
     execaOptions: {
       stdio: 'pipe',
     },
@@ -49,7 +48,6 @@ test('make sure ci fails if tests fails', async () => {
   await test.makeTestsFail()
 
   const result = await runCi({
-    shouldPublish: false,
     execaOptions: {
       reject: false,
     },
@@ -87,7 +85,6 @@ test('multiple packages', async () => {
   await bTest.makeTestsFail()
 
   const result = await runCi({
-    shouldPublish: false,
     execaOptions: {
       reject: false,
     },
@@ -114,17 +111,11 @@ test('skip package with passed tests', async () => {
 
   await test.makeTestsPass()
 
-  await runCi({
-    shouldPublish: false,
-  })
+  await runCi({})
 
   await test.makeTestsFail()
 
-  await expect(
-    runCi({
-      shouldPublish: false,
-    }),
-  ).resolves.toBeTruthy()
+  await expect(runCi({})).resolves.toBeTruthy()
   // todo: find a way to check in the report that a-package passed in test-step
 })
 
@@ -146,7 +137,6 @@ test('skip package with failed tests', async () => {
   await test.makeTestsFail()
 
   await runCi({
-    shouldPublish: false,
     execaOptions: {
       reject: false,
     },
@@ -155,7 +145,6 @@ test('skip package with failed tests', async () => {
   await test.makeTestsPass()
 
   const pr = await runCi({
-    shouldPublish: false,
     execaOptions: {
       reject: false,
     },
@@ -182,15 +171,12 @@ test('run tests of package after the package changed even if the tests passed at
 
   await test.makeTestsPass()
 
-  await runCi({
-    shouldPublish: false,
-  })
+  await runCi({})
 
   await addRandomFileToPackage('a')
   await test.makeTestsFail()
 
   const result = await runCi({
-    shouldPublish: false,
     execaOptions: {
       reject: false,
     },

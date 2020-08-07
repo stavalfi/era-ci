@@ -16,21 +16,18 @@ function getPort(procotol: Protocol, port: number | string): number {
 }
 
 function getServerInfoFromTarget<Target extends TargetType, DeploymentClient>(
-  targetInfo?: TargetInfo<Target, DeploymentClient, string>,
-): ServerInfo | false {
-  if (!targetInfo?.shouldPublish) {
-    return false
-  }
-  const parsed = targetInfo.shouldPublish && urlParse(targetInfo.registry)
+  targetInfo: TargetInfo<Target, DeploymentClient, string>,
+): ServerInfo {
+  const parsed = urlParse(targetInfo.registry)
   const protocol = parsed.protocol.replace(':', '')
-  const protocolError = (url: string, protocol: string) => {
+  const protocolError = (protocol: string) => {
     const allowedProtocols = Object.values(Protocol).join(' or ')
     return new Error(
-      `url must contain protocol: "${allowedProtocols}". received protocol: "${protocol}" -->> ${targetInfo.registry}`,
+      `url must contain protocol: "${allowedProtocols}". received protocol: "${protocol}" -->> "${targetInfo.registry}"`,
     )
   }
   if (!isProtocolSupported(targetInfo.registry, protocol)) {
-    throw protocolError(targetInfo.registry, protocol)
+    throw protocolError(protocol)
   }
   return {
     host: parsed.hostname,
@@ -77,9 +74,9 @@ export async function combineOptions<DeploymentClient>({
       Object.entries(configFileOptions.targetsInfo)
         .filter(([targetType, info]) => targetType && info)
         .map(([targetType, info]) => {
-          const registry = getServerInfoFromTarget(info)
+          const registry = getServerInfoFromTarget(info!)
           if (!registry) {
-            throw new Error(`can't parse url: ${info?.registry}. can't extract protocol, host and port`)
+            throw new Error(`can't parse url: "${info?.registry}". can't extract protocol, host and port`)
           }
           return [
             targetType,

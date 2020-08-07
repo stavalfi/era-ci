@@ -17,8 +17,12 @@ test('1 package - make sure that app dont crush when we skip deployment', async 
   })
 
   const master = await runCi({
-    shouldPublish: true,
-    shouldDeploy: false,
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: false,
+      },
+    },
   })
 
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0'])
@@ -37,20 +41,25 @@ test('1 package - make sure we skip deployment', async () => {
 
   await expect(
     runCi({
-      shouldPublish: true,
-      deploymentStrigifiedSection: `\
-      {
+      targetsInfo: {
         docker: {
-          initializeDeploymentClient: async () => Promise.reject('error'),
-          deploy: async () => Promise.reject('error'),
-          destroyDeploymentClient: async () => Promise.reject('error'),
+          shouldPublish: true,
+          shouldDeploy: true,
+          deploymentStrigifiedSection: `\
+          {
+            docker: {
+              initializeDeploymentClient: async () => Promise.reject('error'),
+              deploy: async () => Promise.reject('error'),
+              destroyDeploymentClient: async () => Promise.reject('error'),
+            },
+            npm: {
+              initializeDeploymentClient: async () => Promise.reject('error'),
+              deploy: async () => Promise.reject('error'),
+              destroyDeploymentClient: async () => Promise.reject('error'),
+            }
+          }`,
         },
-        npm: {
-          initializeDeploymentClient: async () => Promise.reject('error'),
-          deploy: async () => Promise.reject('error'),
-          destroyDeploymentClient: async () => Promise.reject('error'),
-        }
-      }`,
+      },
     }),
   ).resolves.toBeTruthy()
 })
@@ -69,9 +78,11 @@ test('1 package - ensure deploymentClient is passed to other functions', async (
   const expectedDeploymentClient = chance().hash()
 
   const result = await runCi({
-    shouldPublish: true,
-    shouldDeploy: true,
-    deploymentStrigifiedSection: `\
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: true,
+        deploymentStrigifiedSection: `\
   {
     docker: {
       initializeDeploymentClient: async () => "${expectedDeploymentClient}",
@@ -79,6 +90,8 @@ test('1 package - ensure deploymentClient is passed to other functions', async (
       destroyDeploymentClient: async ({ deploymentClient }) => console.log("destroyDeploymentClient-${expectedDeploymentClient}"),
     },
   }`,
+      },
+    },
     execaOptions: { stdio: 'pipe' },
   })
 
@@ -117,9 +130,11 @@ test('1 package - ensure only published packages are passed to deploy-function',
   await bTest.makeTestsFail()
 
   const result = await runCi({
-    shouldPublish: true,
-    shouldDeploy: true,
-    deploymentStrigifiedSection: `\
+    targetsInfo: {
+      docker: {
+        shouldPublish: true,
+        shouldDeploy: true,
+        deploymentStrigifiedSection: `\
     {
       docker: {
         initializeDeploymentClient: async () => Promise.resolve(),
@@ -132,6 +147,8 @@ test('1 package - ensure only published packages are passed to deploy-function',
         destroyDeploymentClient: async ({ deploymentClient }) => Promise.resolve(),
       },
     }`,
+      },
+    },
     execaOptions: {
       stdio: 'pipe',
       reject: false, // tests  of package-b will fail so the ci will fail

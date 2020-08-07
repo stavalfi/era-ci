@@ -50,7 +50,7 @@ export const newEnv: NewEnv = () => {
       toActualName,
     })
 
-    const runCi: RunCi = async ({ targetsInfo, execaOptions }) => {
+    const runCi: RunCi = async ({ targetsInfo, execaOptions } = {}) => {
       const configFilePath = path.join(repoPath, 'nc.config.ts')
       const [npmDeploymentLogic, dockerDeploymentLogic]: [
         DeployTarget<unknown, TargetType.npm>,
@@ -59,7 +59,7 @@ export const newEnv: NewEnv = () => {
       ] = [chance().hash(), chance().hash()]
       const configurations: ConfigFileOptions<unknown> = {
         targetsInfo: {
-          npm: targetsInfo.npm && {
+          npm: targetsInfo?.npm && {
             shouldPublish: targetsInfo.npm.shouldPublish,
             registry: `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`,
             publishAuth: npmRegistry.auth,
@@ -72,7 +72,7 @@ export const newEnv: NewEnv = () => {
                   shouldDeploy: false,
                 }),
           },
-          docker: targetsInfo.docker && {
+          docker: targetsInfo?.docker && {
             shouldPublish: targetsInfo.docker.shouldPublish,
             registry: `${dockerRegistry.protocol}://${dockerRegistry.host}:${dockerRegistry.port}`,
             publishAuth: {
@@ -107,10 +107,10 @@ export const newEnv: NewEnv = () => {
       const asString = JSON.stringify(configurations, null, 2)
       let finalString = `export default async () => (${asString})`
 
-      if (targetsInfo.npm?.shouldDeploy) {
+      if (targetsInfo?.npm?.shouldDeploy) {
         finalString = finalString.replace(`"${npmDeploymentLogic}"`, targetsInfo.npm.deploymentStrigifiedSection)
       }
-      if (targetsInfo.docker?.shouldDeploy) {
+      if (targetsInfo?.docker?.shouldDeploy) {
         finalString = finalString.replace(`"${dockerDeploymentLogic}"`, targetsInfo.docker.deploymentStrigifiedSection)
       }
 

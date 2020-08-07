@@ -276,6 +276,18 @@ export async function publish<DeploymentClient>(
         }
       }
 
+      if (!options.targetsInfo[targetType]?.shouldPublish) {
+        return {
+          artifact: node.data.artifact,
+          stepResult: {
+            stepName: StepName.publish,
+            durationMs: Date.now() - startMs,
+            status: StepStatus.skippedAsPassed,
+            notes: [`ci is configured to skip publish for ${targetType} targets`],
+          },
+        }
+      }
+
       if (!node.data.artifact.publishInfo) {
         return {
           artifact: node.data.artifact,
@@ -283,7 +295,7 @@ export async function publish<DeploymentClient>(
             stepName: StepName.publish,
             durationMs: Date.now() - startMs,
             status: StepStatus.skippedAsPassed,
-            notes: [`there isn't any publish configuration for ${targetType} target`],
+            notes: [`there isn't any publish configuration for ${targetType} targets`],
           },
         }
       }
