@@ -196,25 +196,31 @@ function prepareDeployments<DeploymentClient>({
   })
 }
 
-export async function deploy<DeploymentClient>(
-  graph: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.publish] }>,
-  options: {
-    repoPath: string
-    targetsInfo: TargetsInfo<DeploymentClient>
-    executionOrder: number
-  },
-): Promise<PackagesStepResult<StepName.deployment>> {
+export async function deploy<DeploymentClient>({
+  repoPath,
+  executionOrder,
+  graph,
+  targetsInfo,
+}: {
+  graph: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.publish] }>
+  repoPath: string
+  targetsInfo?: TargetsInfo<DeploymentClient>
+  executionOrder: number
+}): Promise<PackagesStepResult<StepName.deployment>> {
   const startMs = Date.now()
 
+  log.info('deploying...')
+
   if (
-    Object.values(options.targetsInfo)
+    !targetsInfo ||
+    Object.values(targetsInfo)
       .filter(Boolean)
       .map(targetInfo => targetInfo?.shouldDeploy).length === 0
   ) {
     return {
       stepName: StepName.deployment,
       durationMs: Date.now() - startMs,
-      executionOrder: options.executionOrder,
+      executionOrder,
       status: StepStatus.skippedAsPassed,
       packagesResult: graph.map(node => ({
         ...node,
@@ -232,9 +238,7 @@ export async function deploy<DeploymentClient>(
     }
   }
 
-  log.info('deploying...')
-
-  const deploymentsInfo = Object.entries(options.targetsInfo).reduce(
+  const deploymentsInfo = Object.entries(targetsInfo).reduce(
     (acc: { [targetTypeKey: string]: DeployTarget<DeploymentClient, TargetType> }, [key, value]) => {
       if (value?.shouldDeploy) {
         return {
@@ -248,19 +252,71 @@ export async function deploy<DeploymentClient>(
     {},
   )
 
-  const deploymentClientsByTargetType = Object.fromEntries(
+  const deploymentClientsOrErrorByTargetType = Object.fromEntries(
     await Promise.all(
-      Object.entries(deploymentsInfo).map<Promise<[string, DeploymentClient]>>(async ([key, value]) => [
+      Object.entries(deploymentsInfo).map<
+        Promise<[string, { deploymentClient: DeploymentClient } | { error: unknown }]>
+      >(async ([key, value]) => [
         key,
-        await value.initializeDeploymentClient(),
+        await value.initializeDeploymentClient().then(
+          deploymentClient => ({ deploymentClient }),
+          error => ({ error }),
+        ),
       ]),
     ),
+  )
+
+  const initializeWithErrors = Object.entries(deploymentClientsOrErrorByTargetType).flatMap<[string, unknown]>(
+    ([key, value]) => {
+      if ('error' in value) {
+        return [[key, value.error]]
+      } else {
+        return []
+      }
+    },
+  )
+
+  if (initializeWithErrors.length > 0) {
+    log.error(
+      `the following target-types had an error while calling to "initializeDeploymentClient" (inside nc.config file): ${initializeWithErrors
+        .map(result => result[0])
+        .join(', ')}`,
+    )
+    initializeWithErrors.forEach(([targetType, error]) => {
+      log.error(targetType, error)
+    })
+    return {
+      stepName: StepName.deployment,
+      durationMs: Date.now() - startMs,
+      executionOrder,
+      status: StepStatus.failed,
+      packagesResult: graph.map(node => ({
+        ...node,
+        data: {
+          artifact: node.data.artifact,
+          stepResult: {
+            stepName: StepName.deployment,
+            durationMs: Date.now() - startMs,
+            status: StepStatus.skippedAsFailed,
+            notes: [],
+          },
+        },
+      })),
+      notes: ['"initializeDeploymentClient" function threw an error (inside nc.config file)'],
+    }
+  }
+
+  const deploymentClientsByTargetType = Object.fromEntries(
+    Object.entries(deploymentClientsOrErrorByTargetType).map(([key, value]) => [
+      key,
+      ('deploymentClient' in value && value.deploymentClient) as DeploymentClient,
+    ]),
   )
 
   const prepares = prepareDeployments({
     graph,
     startMs,
-    targetsInfo: options.targetsInfo,
+    targetsInfo: targetsInfo,
   })
 
   const deploymentResults: Graph<{
@@ -289,28 +345,62 @@ export async function deploy<DeploymentClient>(
     }),
   )
 
-  await Promise.all(
-    Object.entries(deploymentsInfo).map(([targetType, value]) =>
-      value.destroyDeploymentClient({ deploymentClient: deploymentClientsByTargetType[targetType] }),
-    ),
-  )
-
-  const withError = deploymentResults.filter(result => result.data.stepResult.error)
-  if (withError.length > 0) {
+  const deployWithError = deploymentResults.filter(result => result.data.stepResult.error)
+  if (deployWithError.length > 0) {
     log.error(
-      `the following packages had an error while deploying: ${withError
+      `the following packages had an error while deploying: ${deployWithError
         .map(result => result.data.artifact.packageJson.name)
         .join(', ')}`,
     )
-    withError.forEach(result => {
+    deployWithError.forEach(result => {
       log.error(`${result.data.artifact.packageJson.name}: `, result.data.stepResult.error)
     })
+  }
+
+  const destroyErrors = Object.entries(
+    (
+      await Promise.all(
+        Object.entries(deploymentsInfo).map(async ([targetType, value]) => {
+          const error: null | unknown = await value
+            .destroyDeploymentClient({ deploymentClient: deploymentClientsByTargetType[targetType] })
+            .then(
+              () => null,
+              error => error,
+            )
+          if (error) {
+            return { [targetType]: error }
+          } else {
+            return {}
+          }
+        }),
+      )
+    ).reduce((acc, r) => ({ ...acc, ...r }), {}),
+  )
+
+  if (destroyErrors.length > 0) {
+    log.error(
+      `the following target-types had an error while calling "destroyDeploymentClient" (inside nc.config file): ${destroyErrors
+        .map(result => result[0])
+        .join(', ')}`,
+    )
+    destroyErrors.forEach(([targetType, error]) => {
+      log.error(targetType, error)
+    })
+
+    return {
+      stepName: StepName.deployment,
+      durationMs: Date.now() - startMs,
+      executionOrder,
+      status: StepStatus.failed,
+      packagesResult: deploymentResults,
+      notes: ['"destroyDeploymentClient" function threw an error (inside nc.config file)'],
+    }
   }
 
   return {
     stepName: StepName.deployment,
     durationMs: Date.now() - startMs,
-    executionOrder: options.executionOrder,
+    executionOrder,
     status: calculateCombinedStatus(deploymentResults.map(node => node.data.stepResult.status)),
     packagesResult: deploymentResults,
     notes: [],

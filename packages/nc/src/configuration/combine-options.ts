@@ -4,7 +4,7 @@ import execa from 'execa'
 import parseGitUrl from 'git-url-parse'
 import redisUrlParse from 'redis-url-parse'
 
-function isProtocolSupported(url: string, protocol: string): protocol is Protocol {
+function isProtocolSupported(protocol: string): protocol is Protocol {
   return Object.values(Protocol).includes(protocol as Protocol)
 }
 
@@ -26,7 +26,7 @@ function getServerInfoFromTarget<Target extends TargetType, DeploymentClient>(
       `url must contain protocol: "${allowedProtocols}". received protocol: "${protocol}" -->> "${targetInfo.registry}"`,
     )
   }
-  if (!isProtocolSupported(targetInfo.registry, protocol)) {
+  if (!isProtocolSupported(protocol)) {
     throw protocolError(protocol)
   }
   return {
@@ -57,8 +57,8 @@ export async function combineOptions<DeploymentClient>({
       gitOrganizationName: parsedGitUrl.organization,
       gitRepositoryName: parsedGitUrl.name,
       auth: {
-        gitServerToken: configFileOptions.git.auth.gitServerToken,
-        gitServerUsername: configFileOptions.git.auth.gitServerUsername,
+        token: configFileOptions.git.auth.token,
+        username: configFileOptions.git.auth.username,
       },
     },
     redis: {
@@ -67,29 +67,31 @@ export async function combineOptions<DeploymentClient>({
         port: parsedRedisServer.port,
       },
       auth: {
-        redisPassword: configFileOptions.redis.auth.redisPassword,
+        password: configFileOptions.redis.auth.password,
       },
     },
-    targetsInfo: Object.fromEntries(
-      Object.entries(configFileOptions.targetsInfo)
-        .filter(([targetType, info]) => targetType && info)
-        .map(([targetType, info]) => {
-          const registry = getServerInfoFromTarget(info!)
-          if (!registry) {
-            throw new Error(`can't parse url: "${info?.registry}". can't extract protocol, host and port`)
-          }
-          return [
-            targetType,
-            {
-              ...info!,
-              shouldPublish: info!.shouldPublish,
-              registry,
-              publishAuth: info!.publishAuth,
-              shouldDeploy: info!.shouldDeploy,
-              deployment: info!.deployment,
-            },
-          ]
-        }),
-    ),
+    targetsInfo:
+      configFileOptions.targetsInfo &&
+      Object.fromEntries(
+        Object.entries(configFileOptions.targetsInfo)
+          .filter(([targetType, info]) => targetType && info)
+          .map(([targetType, info]) => {
+            const registry = getServerInfoFromTarget(info!)
+            if (!registry) {
+              throw new Error(`can't parse url: "${info?.registry}". can't extract protocol, host and port`)
+            }
+            return [
+              targetType,
+              {
+                ...info!,
+                shouldPublish: info!.shouldPublish,
+                registry,
+                publishAuth: info!.publishAuth,
+                shouldDeploy: info!.shouldDeploy,
+                deployment: info!.deployment,
+              },
+            ]
+          }),
+      ),
   }
 }

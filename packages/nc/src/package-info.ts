@@ -120,7 +120,7 @@ type GetPackageInfoOptions<DeploymentClient> = {
   packageJson: IPackageJson
   publishCache: Cache['publish']
   targetType?: TargetType
-  targetsInfo: TargetsInfo<DeploymentClient>
+  targetsInfo?: TargetsInfo<DeploymentClient>
 }
 
 export async function getPackageInfo<DeploymentClient>({
@@ -144,7 +144,7 @@ export async function getPackageInfo<DeploymentClient>({
   }
   switch (targetType) {
     case TargetType.npm:
-      if (targetsInfo.npm) {
+      if (targetsInfo?.npm) {
         return {
           ...base,
           publishInfo: await buildNpmTarget({
@@ -159,7 +159,7 @@ export async function getPackageInfo<DeploymentClient>({
         return base
       }
     case TargetType.docker:
-      if (targetsInfo.docker) {
+      if (targetsInfo?.docker) {
         return {
           ...base,
           publishInfo: await buildDockerTarget({

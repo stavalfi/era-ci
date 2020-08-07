@@ -23,6 +23,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
     log.verbose(`starting ci execution. options: ${JSON.stringify(options, null, 2)}`)
 
     const packagesPath = await getPackages(options.repoPath)
+
     const artifacts = await Promise.all(
       packagesPath.map(async packagePath => {
         const packageJson: IPackageJson = await fse.readJSON(path.join(packagePath, 'package.json'))
@@ -40,20 +41,20 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
     const npmPackages = artifacts.filter(({ targetType }) => targetType === TargetType.npm)
     const dockerPackages = artifacts.filter(({ targetType }) => targetType === TargetType.docker)
 
-    if (dockerPackages.length > 0 && options.targetsInfo.docker) {
+    if (dockerPackages.length > 0 && options.targetsInfo?.docker) {
       await dockerRegistryLogin({
         dockerRegistry: options.targetsInfo.docker.registry,
-        dockerRegistryUsername: options.targetsInfo.docker.publishAuth.dockerRegistryUsername,
-        dockerRegistryToken: options.targetsInfo.docker.publishAuth.dockerRegistryToken,
+        dockerRegistryUsername: options.targetsInfo.docker.publishAuth.username,
+        dockerRegistryToken: options.targetsInfo.docker.publishAuth.token,
       })
     }
 
-    if (npmPackages.length > 0 && options.targetsInfo.npm) {
+    if (npmPackages.length > 0 && options.targetsInfo?.npm) {
       await npmRegistryLogin({
         npmRegistry: options.targetsInfo.npm.registry,
-        npmRegistryUsername: options.targetsInfo.npm.publishAuth.npmRegistryUsername,
-        npmRegistryToken: options.targetsInfo.npm.publishAuth.npmRegistryToken,
-        npmRegistryEmail: options.targetsInfo.npm.publishAuth.npmRegistryEmail,
+        npmRegistryUsername: options.targetsInfo.npm.publishAuth.username,
+        npmRegistryToken: options.targetsInfo.npm.publishAuth.token,
+        npmRegistryEmail: options.targetsInfo.npm.publishAuth.email,
       })
     }
 
@@ -92,7 +93,8 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
       {
         stopPipelineOnFailure: false,
         runStep: stepsResultUntilNow =>
-          publish(stepsResultUntilNow.test!.packagesResult, {
+          publish({
+            orderedGraph: stepsResultUntilNow.test!.packagesResult,
             repoPath: options.repoPath,
             cache,
             targetsInfo: options.targetsInfo,
@@ -102,7 +104,8 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
       {
         stopPipelineOnFailure: false,
         runStep: stepsResultUntilNow =>
-          deploy<DeploymentClient>(stepsResultUntilNow.publish!.packagesResult, {
+          deploy<DeploymentClient>({
+            graph: stepsResultUntilNow.publish!.packagesResult,
             repoPath: options.repoPath,
             executionOrder: 4,
             targetsInfo: options.targetsInfo,

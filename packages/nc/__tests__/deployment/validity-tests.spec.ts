@@ -44,19 +44,12 @@ test('1 package - make sure we skip deployment', async () => {
       targetsInfo: {
         docker: {
           shouldPublish: true,
-          shouldDeploy: true,
+          shouldDeploy: false,
           deploymentStrigifiedSection: `\
           {
-            docker: {
-              initializeDeploymentClient: async () => Promise.reject('error'),
-              deploy: async () => Promise.reject('error'),
-              destroyDeploymentClient: async () => Promise.reject('error'),
-            },
-            npm: {
-              initializeDeploymentClient: async () => Promise.reject('error'),
-              deploy: async () => Promise.reject('error'),
-              destroyDeploymentClient: async () => Promise.reject('error'),
-            }
+            initializeDeploymentClient: async () => Promise.reject('error1'),
+            deploy: async () => Promise.reject('error2'),
+            destroyDeploymentClient: async () => Promise.reject('error3'),
           }`,
         },
       },
@@ -84,11 +77,9 @@ test('1 package - ensure deploymentClient is passed to other functions', async (
         shouldDeploy: true,
         deploymentStrigifiedSection: `\
   {
-    docker: {
-      initializeDeploymentClient: async () => "${expectedDeploymentClient}",
-      deploy: async ({ deploymentClient }) => console.log("deploy-${expectedDeploymentClient}"),
-      destroyDeploymentClient: async ({ deploymentClient }) => console.log("destroyDeploymentClient-${expectedDeploymentClient}"),
-    },
+    initializeDeploymentClient: async () => "${expectedDeploymentClient}",
+    deploy: async ({ deploymentClient }) => console.log("deploy-${expectedDeploymentClient}"),
+    destroyDeploymentClient: async ({ deploymentClient }) => console.log("destroyDeploymentClient-${expectedDeploymentClient}"),
   }`,
       },
     },
@@ -131,27 +122,30 @@ test('1 package - ensure only published packages are passed to deploy-function',
 
   const result = await runCi({
     targetsInfo: {
+      npm: {
+        shouldPublish: true,
+        shouldDeploy: true,
+        deploymentStrigifiedSection: `\
+    {
+      initializeDeploymentClient: async () => Promise.resolve(),
+      deploy: async ({ artifactToDeploy }) => console.log("deploy-"+artifactToDeploy.packageJson?.name),
+      destroyDeploymentClient: async ({ deploymentClient }) => Promise.resolve(),
+    }`,
+      },
       docker: {
         shouldPublish: true,
         shouldDeploy: true,
         deploymentStrigifiedSection: `\
     {
-      docker: {
-        initializeDeploymentClient: async () => Promise.resolve(),
-        deploy: async ({ artifactToDeploy }) => console.log("deploy-"+artifactToDeploy.packageJson?.name),
-        destroyDeploymentClient: async ({ deploymentClient }) => Promise.resolve(),
-      },
-      npm: {
-        initializeDeploymentClient: async () => Promise.resolve(),
-        deploy: async ({ artifactToDeploy }) => console.log("deploy-"+artifactToDeploy.packageJson?.name),
-        destroyDeploymentClient: async ({ deploymentClient }) => Promise.resolve(),
-      },
+      initializeDeploymentClient: async () => Promise.resolve(),
+      deploy: async ({ artifactToDeploy }) => console.log("deploy-"+artifactToDeploy.packageJson?.name),
+      destroyDeploymentClient: async ({ deploymentClient }) => Promise.resolve(),
     }`,
       },
     },
     execaOptions: {
       stdio: 'pipe',
-      reject: false, // tests  of package-b will fail so the ci will fail
+      reject: false, // tests of package-b will fail so the ci will fail
     },
   })
 

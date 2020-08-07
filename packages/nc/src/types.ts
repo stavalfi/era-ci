@@ -64,13 +64,13 @@ export type DeployTarget<DeploymentClient, Target extends TargetType> = {
 
 export type TargetsPublishAuth = {
   [TargetType.npm]: {
-    npmRegistryUsername: string
-    npmRegistryEmail: string
-    npmRegistryToken: string
+    username: string
+    email: string
+    token: string
   }
   [TargetType.docker]: {
-    dockerRegistryUsername?: string
-    dockerRegistryToken?: string
+    username?: string
+    token?: string
   }
 }
 
@@ -94,11 +94,10 @@ export type TargetsInfo<DeploymentClient, ServerInfoType = ServerInfo> = {
 
 export type CiOptions<DeploymentClient, ServerInfoType = ServerInfo> = {
   repoPath: string
-  targetsInfo: TargetsInfo<DeploymentClient, ServerInfoType>
   redis: {
     redisServer: ServerInfoType
     auth: {
-      redisPassword?: string
+      password?: string
     }
   }
   git: {
@@ -106,10 +105,11 @@ export type CiOptions<DeploymentClient, ServerInfoType = ServerInfo> = {
     gitRepositoryName: string
     gitOrganizationName: string
     auth: {
-      gitServerUsername: string
-      gitServerToken: string
+      username: string
+      token: string
     }
   }
+  targetsInfo?: TargetsInfo<DeploymentClient, ServerInfoType>
 }
 
 export type ConfigFileOptions<DeploymentClient = never> = Omit<

@@ -118,8 +118,8 @@ async function publishNpm<DeploymentClient>({
           env: {
             // npm need this env-var for auth - this is needed only for production publishing.
             // in tests it doesn't do anything and we login manually to npm in tests.
-            NPM_AUTH_TOKEN: targetPublishInfo.publishAuth.npmRegistryToken,
-            NPM_TOKEN: targetPublishInfo.publishAuth.npmRegistryToken,
+            NPM_AUTH_TOKEN: targetPublishInfo.publishAuth.token,
+            NPM_TOKEN: targetPublishInfo.publishAuth.token,
           },
         },
       )
@@ -220,25 +220,29 @@ async function publishDocker<DeploymentClient>({
   })
 }
 
-export async function publish<DeploymentClient>(
-  orderedGraph: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.test] }>,
-  options: {
-    targetsInfo: TargetsInfo<DeploymentClient>
-    repoPath: string
-    cache: Cache
-    executionOrder: number
-  },
-): Promise<PackagesStepResult<StepName.publish>> {
+export async function publish<DeploymentClient>({
+  cache,
+  executionOrder,
+  orderedGraph,
+  repoPath,
+  targetsInfo,
+}: {
+  orderedGraph: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.test] }>
+  targetsInfo?: TargetsInfo<DeploymentClient>
+  repoPath: string
+  cache: Cache
+  executionOrder: number
+}): Promise<PackagesStepResult<StepName.publish>> {
   const startMs = Date.now()
 
   log.info('publishing...')
 
-  if (Object.values(options.targetsInfo).filter(Boolean).length === 0) {
+  if (!targetsInfo || Object.values(targetsInfo).filter(Boolean).length === 0) {
     const durationMs = Date.now() - startMs
     return {
       stepName: StepName.publish,
       durationMs,
-      executionOrder: options.executionOrder,
+      executionOrder,
       status: StepStatus.skippedAsPassed,
       packagesResult: orderedGraph.map(node => ({
         ...node,
@@ -276,7 +280,7 @@ export async function publish<DeploymentClient>(
         }
       }
 
-      if (!options.targetsInfo[targetType]?.shouldPublish) {
+      if (!targetsInfo[targetType]?.shouldPublish) {
         return {
           artifact: node.data.artifact,
           stepResult: {
@@ -336,8 +340,8 @@ export async function publish<DeploymentClient>(
           const publishResult = await publishNpm({
             artifact: node.data.artifact,
             newVersion: node.data.artifact.publishInfo.newVersion,
-            setAsPublishedCache: options.cache.publish?.npm?.setAsPublished!,
-            targetPublishInfo: options.targetsInfo.npm!,
+            setAsPublishedCache: cache.publish?.npm?.setAsPublished!,
+            targetPublishInfo: targetsInfo.npm!,
           })
           return {
             artifact: node.data.artifact,
@@ -348,9 +352,9 @@ export async function publish<DeploymentClient>(
           const publishResult = await publishDocker({
             artifact: node.data.artifact,
             newVersion: node.data.artifact.publishInfo.newVersion,
-            repoPath: options.repoPath,
-            setAsPublishedCache: options.cache.publish?.docker?.setAsPublished!,
-            targetPublishInfo: options.targetsInfo.docker!,
+            repoPath: repoPath,
+            setAsPublishedCache: cache.publish?.docker?.setAsPublished!,
+            targetPublishInfo: targetsInfo.docker!,
           })
           return {
             artifact: node.data.artifact,
@@ -376,7 +380,7 @@ export async function publish<DeploymentClient>(
   return {
     stepName: StepName.publish,
     durationMs: Date.now() - startMs,
-    executionOrder: options.executionOrder,
+    executionOrder: executionOrder,
     status: calculateCombinedStatus(publishResult.map(node => node.data.stepResult.status)),
     packagesResult: publishResult,
     notes: [],

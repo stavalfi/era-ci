@@ -5,7 +5,7 @@ import NodeCache from 'node-cache'
 import semver from 'semver'
 import { isDockerVersionAlreadyPulished } from './docker-utils'
 import { isNpmVersionAlreadyPulished } from './npm-utils'
-import { Cache, CacheTypes, PackageVersion, ServerInfo, TargetsInfo, TargetType } from './types'
+import { Cache, CacheTypes, PackageVersion, ServerInfo, TargetsInfo, TargetType, CiOptions } from './types'
 
 const log = logger('cache')
 
@@ -107,13 +107,8 @@ const setResult = (set: Set) => (packageName: string, packageHash: string, isPas
   set(toTestKey(packageName, packageHash), isPassed ? TestsResult.passed : TestsResult.failed)
 
 type IntializeCacheOptions<DeploymentClient> = {
-  redis: {
-    redisServer: ServerInfo
-    auth: {
-      redisPassword?: string
-    }
-  }
-  targetsInfo: TargetsInfo<DeploymentClient>
+  redis: CiOptions<DeploymentClient>['redis']
+  targetsInfo?: TargetsInfo<DeploymentClient>
 }
 
 export async function intializeCache<DeploymentClient>({
@@ -125,7 +120,7 @@ export async function intializeCache<DeploymentClient>({
   const redisClient = new Redis({
     host: redis.redisServer.host,
     port: redis.redisServer.port,
-    ...(redis.auth.redisPassword && { password: redis.auth.redisPassword }),
+    ...(redis.auth.password && { password: redis.auth.password }),
   })
 
   async function set(key: string, value: string | number): Promise<void> {
@@ -163,7 +158,7 @@ export async function intializeCache<DeploymentClient>({
   }
 
   const publish: Cache['publish'] = {
-    ...(targetsInfo.npm && {
+    ...(targetsInfo?.npm && {
       npm: {
         isPublished: isNpmPublished({
           get,
@@ -175,7 +170,7 @@ export async function intializeCache<DeploymentClient>({
         }),
       },
     }),
-    ...(targetsInfo.docker && {
+    ...(targetsInfo?.docker && {
       docker: {
         isPublished: isDockerPublished({
           get,

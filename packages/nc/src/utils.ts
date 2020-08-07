@@ -89,7 +89,7 @@ export async function getOrderedGraph<DeploymentClient>({
     targetType: TargetType | undefined
   }[]
   publishCache: Cache['publish']
-  targetsInfo: TargetsInfo<DeploymentClient>
+  targetsInfo?: TargetsInfo<DeploymentClient>
 }): Promise<Graph<{ artifact: Artifact }>> {
   log.verbose('calculate hash of every package and check which packages changed since their last publish')
   const orderedGraph = await calculatePackagesHash(

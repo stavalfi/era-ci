@@ -76,8 +76,8 @@ export const newEnv: NewEnv = () => {
             shouldPublish: targetsInfo.docker.shouldPublish,
             registry: `${dockerRegistry.protocol}://${dockerRegistry.host}:${dockerRegistry.port}`,
             publishAuth: {
-              dockerRegistryToken: '',
-              dockerRegistryUsername: '',
+              token: '',
+              username: '',
             },
             dockerOrganizationName,
             ...(targetsInfo.docker.shouldDeploy
@@ -93,13 +93,13 @@ export const newEnv: NewEnv = () => {
         redis: {
           redisServer: `redis://${redisServer.host}:${redisServer.port}/`,
           auth: {
-            redisPassword: '',
+            password: '',
           },
         },
         git: {
           auth: {
-            gitServerUsername: gitServer.getUsername(),
-            gitServerToken: gitServer.getToken(),
+            username: gitServer.getUsername(),
+            token: gitServer.getToken(),
           },
         },
       }
@@ -193,9 +193,9 @@ export const newEnv: NewEnv = () => {
       publishNpmPackageWithoutCi: packageName =>
         publishNpmPackageWithoutCi({
           npmRegistry,
-          npmRegistryEmail: npmRegistry.auth.npmRegistryEmail,
-          npmRegistryToken: npmRegistry.auth.npmRegistryToken,
-          npmRegistryUsername: npmRegistry.auth.npmRegistryUsername,
+          npmRegistryEmail: npmRegistry.auth.email,
+          npmRegistryToken: npmRegistry.auth.token,
+          npmRegistryUsername: npmRegistry.auth.username,
           packageName,
           repoPath,
           toActualName,
@@ -203,9 +203,9 @@ export const newEnv: NewEnv = () => {
       unpublishNpmPackage: (packageName, versionToUnpublish) =>
         unpublishNpmPackage({
           npmRegistry,
-          npmRegistryEmail: npmRegistry.auth.npmRegistryEmail,
-          npmRegistryToken: npmRegistry.auth.npmRegistryToken,
-          npmRegistryUsername: npmRegistry.auth.npmRegistryUsername,
+          npmRegistryEmail: npmRegistry.auth.email,
+          npmRegistryToken: npmRegistry.auth.token,
+          npmRegistryUsername: npmRegistry.auth.username,
           packageName,
           versionToUnpublish,
           toActualName,

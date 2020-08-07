@@ -1,7 +1,7 @@
-import { ConfigFileOptions } from './packages/nc/src/index'
 import ciInfo from 'ci-info'
 import { createFile } from 'create-folder-structure'
 import execa from 'execa'
+import { ConfigFileOptions } from './packages/nc/src/index'
 
 export default async (): Promise<ConfigFileOptions<void>> => {
   const {
@@ -32,24 +32,24 @@ export default async (): Promise<ConfigFileOptions<void>> => {
   return {
     git: {
       auth: {
-        gitServerUsername: GIT_SERVER_USERNAME!,
-        gitServerToken: GIT_SERVER_TOKEN!,
+        username: GIT_SERVER_USERNAME!,
+        token: GIT_SERVER_TOKEN!,
       },
     },
     redis: {
       redisServer: `redis://${REDIS_ENDPOINT}/`,
       auth: {
-        redisPassword: REDIS_PASSWORD!,
+        password: REDIS_PASSWORD!,
       },
     },
-    targets: {
+    targetsInfo: {
       npm: {
         shouldPublish,
         registry: `https://registry.npmjs.com/`,
         publishAuth: {
-          npmRegistryEmail: 'stavalfi@gmail.com',
-          npmRegistryUsername: NPM_USERNAME!,
-          npmRegistryToken: NPM_TOKEN!,
+          email: 'stavalfi@gmail.com',
+          username: NPM_USERNAME!,
+          token: NPM_TOKEN!,
         },
         shouldDeploy,
       },
@@ -57,8 +57,8 @@ export default async (): Promise<ConfigFileOptions<void>> => {
         shouldPublish,
         registry: `https://registry.hub.docker.com/`,
         publishAuth: {
-          dockerRegistryUsername: DOCKER_HUB_USERNAME!,
-          dockerRegistryToken: DOCKER_HUB_TOKEN!,
+          username: DOCKER_HUB_USERNAME!,
+          token: DOCKER_HUB_TOKEN!,
         },
         dockerOrganizationName: 'stavalfi',
         shouldDeploy,

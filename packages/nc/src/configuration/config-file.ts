@@ -1,32 +1,70 @@
 import execa from 'execa'
 import path from 'path'
+import { boolean, func, is, object, optional, string, validate } from 'superstruct'
 import { ConfigFileOptions } from '../types'
 
-async function validateConfiguration(configuration: unknown): Promise<ConfigFileOptions<unknown>> {
-  const error = new Error(
-    `nc-configuration file default-export must be a function of type: "() => Promise<CiOptions>". after invoking the function, the result was: ${configuration}`,
-  )
-
-  if (typeof configuration !== 'object') {
-    throw error
+function getConfigValidationObject() {
+  const npmTargetInfoBaseValidation = {
+    shouldPublish: boolean(),
+    registry: string(),
+    // todo: it should be a opnion type similar to the typescript type.
+    //       i don't use it here because when the user is wrong, they error is not clear.
+    shouldDeploy: boolean(),
+    deployment: optional(
+      object({
+        initializeDeploymentClient: func(),
+        deploy: func(),
+        destroyDeploymentClient: func(),
+      }),
+    ),
   }
 
-  if (!configuration) {
-    throw error
+  const dockerTargetInfoBaseValidation = {
+    ...npmTargetInfoBaseValidation,
+    dockerOrganizationName: string(),
   }
 
-  const allowedOptions = ['targetsInfo', 'redis', 'git']
+  return object({
+    git: object({
+      auth: object({
+        username: string(),
+        token: string(),
+      }),
+    }),
+    redis: object({
+      redisServer: string(),
+      auth: object({
+        password: string(),
+      }),
+    }),
+    targetsInfo: optional(
+      object({
+        npm: optional(
+          object({
+            ...npmTargetInfoBaseValidation,
+            publishAuth: object({
+              email: string(),
+              username: string(),
+              token: string(),
+            }),
+          }),
+        ),
+        docker: optional(
+          object({
+            ...dockerTargetInfoBaseValidation,
+            publishAuth: object({
+              username: string(),
+              token: string(),
+            }),
+          }),
+        ),
+      }),
+    ),
+  })
+}
 
-  const invalidOptions = Object.keys(configuration).filter(option => !allowedOptions.includes(option))
-  if (invalidOptions.length > 0) {
-    throw new Error(
-      `you returned invalid nc-configurations-keys: "${invalidOptions.join(
-        ', ',
-      )}". allowed options are: "${allowedOptions.join(', ')}"`,
-    )
-  }
-
-  return configuration as ConfigFileOptions<unknown> // todo: validate type
+function validateConfiguration(configuration: unknown): configuration is ConfigFileOptions<unknown> {
+  return is(configuration, getConfigValidationObject())
 }
 
 export async function readNcConfigurationFile(ciConfigFilePath: string): Promise<ConfigFileOptions<unknown>> {
@@ -38,7 +76,12 @@ export async function readNcConfigurationFile(ciConfigFilePath: string): Promise
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const configGeneratorFunction = require(outputFilePath)
-  const config = await configGeneratorFunction.default()
-  const configurations = await validateConfiguration(config)
-  return configurations
+  const configuration = await configGeneratorFunction.default()
+
+  if (validateConfiguration(configuration)) {
+    return configuration
+  } else {
+    const [error] = validate(configuration, getConfigValidationObject())
+    throw new Error(`failed to parse nc.config.js file: ${error?.message}`)
+  }
 }
