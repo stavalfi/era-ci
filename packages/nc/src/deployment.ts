@@ -91,6 +91,20 @@ function prepareDeployments<DeploymentClient>({
       }
     }
 
+    if (node.data.stepResult.status === StepStatus.skippedAsPassed) {
+      return {
+        node: { ...node, data: node.data.artifact },
+        deployable: false,
+        targetType,
+        deploymentResult: async () => ({
+          stepName: StepName.deployment,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.skippedAsPassed,
+          notes: ['skipping deploy because publish step was skipped'],
+        }),
+      }
+    }
+
     const publishedVersion = node.data.stepResult.publishedVersion
 
     if (!publishedVersion) {

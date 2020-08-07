@@ -4,7 +4,7 @@
 
 /// <reference path="../../../declarations.d.ts" />
 
-// `require('source-map-support').install()` MUST be the first one!!!
+// `require('source-map-support').install()` MUST be the first (executed) line in the project!!!
 require('source-map-support').install()
 //
 import { logger } from '@tahini/log'
