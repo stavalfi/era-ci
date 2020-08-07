@@ -23,7 +23,12 @@ describe('publish only packages without failing tests', () => {
     await aTests.makeTestsFail()
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
       execaOptions: {
         reject: false,
       },
@@ -50,7 +55,12 @@ describe('publish only packages without failing tests', () => {
     await aTests.makeTestsPass()
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
     })
 
     expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
@@ -85,7 +95,12 @@ describe('publish only packages without failing tests', () => {
     await bTests.makeTestsPass()
 
     const master = await runCi({
-      shouldPublish: true,
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
       execaOptions: {
         reject: false,
       },

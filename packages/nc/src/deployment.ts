@@ -1,17 +1,15 @@
 import { logger } from '@tahini/log'
 import {
-  Auth,
-  Cache,
-  Deployment,
   Graph,
   Node,
   PackagesStepResult,
   PackageStepResult,
-  ServerInfo,
   StepName,
   StepStatus,
   TargetType,
   Artifact,
+  TargetsInfo,
+  DeployTarget,
 } from './types'
 import { calculateCombinedStatus } from './utils'
 import { buildFullDockerImageName } from './docker-utils'
@@ -33,19 +31,15 @@ type PrepareDeployment<DeploymentClient> = { node: Node<Artifact> } & (
 
 function prepareDeployments<DeploymentClient>({
   startMs,
-  delpoyment,
   graph,
-  dockerOrganizationName,
-  dockerRegistry,
+  targetsInfo,
 }: {
   graph: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.publish] }>
   startMs: number
-  delpoyment: Deployment<DeploymentClient>
-  dockerOrganizationName: string
-  dockerRegistry: ServerInfo
+  targetsInfo: TargetsInfo<DeploymentClient>
 }): PrepareDeployment<DeploymentClient>[] {
   return graph.map(node => {
-    const targetType = node.data.artifact.target?.targetType
+    const targetType = node.data.artifact.targetType
     if (!targetType) {
       return {
         node: { ...node, data: node.data.artifact },
@@ -59,11 +53,13 @@ function prepareDeployments<DeploymentClient>({
         }),
       }
     }
-    if (
-      [StepStatus.failed, StepStatus.skippedAsFailed, StepStatus.skippedAsFailedBecauseLastStepFailed].includes(
-        node.data.stepResult.status,
-      )
-    ) {
+
+    const isPublishFailed = [
+      StepStatus.failed,
+      StepStatus.skippedAsFailed,
+      StepStatus.skippedAsFailedBecauseLastStepFailed,
+    ].includes(node.data.stepResult.status)
+    if (isPublishFailed) {
       return {
         node: { ...node, data: node.data.artifact },
         deployable: false,
@@ -76,7 +72,85 @@ function prepareDeployments<DeploymentClient>({
         }),
       }
     }
-    const deployFunction = delpoyment[targetType]?.deploy
+
+    if (
+      node.data.stepResult.status === StepStatus.failed ||
+      node.data.stepResult.status === StepStatus.skippedAsFailed ||
+      node.data.stepResult.status === StepStatus.skippedAsFailedBecauseLastStepFailed
+    ) {
+      return {
+        node: { ...node, data: node.data.artifact },
+        deployable: false,
+        targetType,
+        deploymentResult: async () => ({
+          stepName: StepName.deployment,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.skippedAsFailedBecauseLastStepFailed,
+          notes: ['skipping deploy because publish step failed'],
+        }),
+      }
+    }
+
+    if (node.data.stepResult.status === StepStatus.skippedAsPassed) {
+      return {
+        node: { ...node, data: node.data.artifact },
+        deployable: false,
+        targetType,
+        deploymentResult: async () => ({
+          stepName: StepName.deployment,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.skippedAsPassed,
+          notes: ['skipping deploy because publish step was skipped'],
+        }),
+      }
+    }
+
+    const publishedVersion = node.data.stepResult.publishedVersion
+
+    if (!publishedVersion) {
+      return {
+        node: { ...node, data: node.data.artifact },
+        deployable: false,
+        targetType,
+        deploymentResult: async () => ({
+          stepName: StepName.deployment,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.skippedAsPassed,
+          notes: ['skipping deploy because there is nothing to deploy'],
+        }),
+      }
+    }
+
+    const targetInfo = targetsInfo[targetType]
+    if (!targetInfo) {
+      return {
+        node: { ...node, data: node.data.artifact },
+        deployable: false,
+        targetType,
+        deploymentResult: async () => ({
+          stepName: StepName.deployment,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.skippedAsPassed,
+          notes: [`there isn't any deployment configuration for ${targetType} targets`],
+        }),
+      }
+    }
+
+    if (!targetInfo.shouldDeploy) {
+      return {
+        node: { ...node, data: node.data.artifact },
+        deployable: false,
+        targetType,
+        deploymentResult: async () => ({
+          stepName: StepName.deployment,
+          durationMs: Date.now() - startMs,
+          status: StepStatus.skippedAsPassed,
+          notes: [`ci is configured to skip deployment for ${targetType} targets`],
+        }),
+      }
+    }
+
+    const deployFunction = targetInfo.deployment?.deploy
     if (!deployFunction) {
       return {
         node: { ...node, data: node.data.artifact },
@@ -90,27 +164,26 @@ function prepareDeployments<DeploymentClient>({
         }),
       }
     }
+
     return {
       node: { ...node, data: node.data.artifact },
       deployable: true,
       targetType,
       deploymentResult: async (deploymentClient: DeploymentClient) => {
         try {
-          const publishResult = graph.find(
-            node1 => node1.data.artifact.packageJson.name === node.data.artifact.packageJson.name,
-          )!
-          const publishedVersion = publishResult.data.stepResult.publishedVersion! // up above, we go out if the publish failed
           await deployFunction({
+            // @ts-ignore - typescript bug - `deployFunction` type is channged and is not true in this line
             deploymentClient,
-            // @ts-ignore - ts should accept it...
+            // @ts-ignore - typescript bug - `depdeployFunctionloy` type is channged and is not true in this line
             artifactToDeploy: {
               packageJson: node.data.artifact.packageJson,
               packagePath: node.data.artifact.packagePath,
               publishedVersion,
-              ...(node.data.artifact.target?.targetType === TargetType.docker && {
+              ...(targetType === TargetType.docker && {
                 fullImageName: buildFullDockerImageName({
-                  dockerOrganizationName,
-                  dockerRegistry,
+                  // @ts-ignore - typescript can't understand that its valid
+                  dockerOrganizationName: targetInfo.dockerOrganizationName,
+                  dockerRegistry: targetInfo.registry,
                   packageJsonName: node.data.artifact.packageJson.name!,
                   imageTag: publishedVersion,
                 }),
@@ -137,27 +210,31 @@ function prepareDeployments<DeploymentClient>({
   })
 }
 
-export async function deploy<DeploymentClient>(
-  graph: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.publish] }>,
-  options: {
-    repoPath: string
-    npmRegistry: ServerInfo
-    dockerRegistry: ServerInfo
-    dockerOrganizationName: string
-    cache: Cache
-    auth: Auth
-    shouldDeploy: boolean
-    delpoyment: Deployment<DeploymentClient>
-    executionOrder: number
-  },
-): Promise<PackagesStepResult<StepName.deployment>> {
+export async function deploy<DeploymentClient>({
+  repoPath,
+  executionOrder,
+  graph,
+  targetsInfo,
+}: {
+  graph: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.publish] }>
+  repoPath: string
+  targetsInfo?: TargetsInfo<DeploymentClient>
+  executionOrder: number
+}): Promise<PackagesStepResult<StepName.deployment>> {
   const startMs = Date.now()
 
-  if (!options.shouldDeploy) {
+  log.info('deploying...')
+
+  if (
+    !targetsInfo ||
+    Object.values(targetsInfo)
+      .filter(Boolean)
+      .map(targetInfo => targetInfo?.shouldDeploy).length === 0
+  ) {
     return {
       stepName: StepName.deployment,
       durationMs: Date.now() - startMs,
-      executionOrder: options.executionOrder,
+      executionOrder,
       status: StepStatus.skippedAsPassed,
       packagesResult: graph.map(node => ({
         ...node,
@@ -175,37 +252,86 @@ export async function deploy<DeploymentClient>(
     }
   }
 
-  log.info('deploying...')
+  const deploymentsInfo = Object.entries(targetsInfo).reduce(
+    (acc: { [targetTypeKey: string]: DeployTarget<DeploymentClient, TargetType> }, [key, value]) => {
+      if (value?.shouldDeploy) {
+        return {
+          ...acc,
+          [key]: value.deployment,
+        }
+      } else {
+        return acc
+      }
+    },
+    {},
+  )
 
-  // const deploymentClient = await options.delpoyment.
+  const deploymentClientsOrErrorByTargetType = Object.fromEntries(
+    await Promise.all(
+      Object.entries(deploymentsInfo).map<
+        Promise<[string, { deploymentClient: DeploymentClient } | { error: unknown }]>
+      >(async ([key, value]) => [
+        key,
+        await value.initializeDeploymentClient().then(
+          deploymentClient => ({ deploymentClient }),
+          error => ({ error }),
+        ),
+      ]),
+    ),
+  )
+
+  const initializeWithErrors = Object.entries(deploymentClientsOrErrorByTargetType).flatMap<[string, unknown]>(
+    ([key, value]) => {
+      if ('error' in value) {
+        return [[key, value.error]]
+      } else {
+        return []
+      }
+    },
+  )
+
+  if (initializeWithErrors.length > 0) {
+    log.error(
+      `the following target-types had an error while calling to "initializeDeploymentClient" (inside nc.config file): ${initializeWithErrors
+        .map(result => result[0])
+        .join(', ')}`,
+    )
+    initializeWithErrors.forEach(([targetType, error]) => {
+      log.error(targetType, error)
+    })
+    return {
+      stepName: StepName.deployment,
+      durationMs: Date.now() - startMs,
+      executionOrder,
+      status: StepStatus.failed,
+      packagesResult: graph.map(node => ({
+        ...node,
+        data: {
+          artifact: node.data.artifact,
+          stepResult: {
+            stepName: StepName.deployment,
+            durationMs: Date.now() - startMs,
+            status: StepStatus.skippedAsFailed,
+            notes: [],
+          },
+        },
+      })),
+      notes: ['"initializeDeploymentClient" function threw an error (inside nc.config file)'],
+    }
+  }
+
+  const deploymentClientsByTargetType = Object.fromEntries(
+    Object.entries(deploymentClientsOrErrorByTargetType).map(([key, value]) => [
+      key,
+      ('deploymentClient' in value && value.deploymentClient) as DeploymentClient,
+    ]),
+  )
 
   const prepares = prepareDeployments({
     graph,
     startMs,
-    delpoyment: options.delpoyment,
-    dockerRegistry: options.dockerRegistry,
-    dockerOrganizationName: options.dockerOrganizationName,
+    targetsInfo: targetsInfo,
   })
-
-  const targetsToDeploy = new Map(
-    await Promise.all(
-      Object.keys(options.delpoyment)
-        .map(key => Object.values(TargetType).find(k => k === key))
-        .filter(
-          targetType => targetType && prepares.some(prepare => prepare.deployable && prepare.targetType === targetType),
-        )
-        .map<Promise<[TargetType, DeploymentClient]>>(async targetType => {
-          if (targetType) {
-            const deploymentClient = await options.delpoyment[targetType]!.initializeDeploymentClient()
-            return [targetType, deploymentClient]
-          } else {
-            throw new Error(
-              `typescript is forcing me to throw this error - we shouldn't be here - but with my luck, we will probably be here every run :P`,
-            )
-          }
-        }),
-    ),
-  )
 
   const deploymentResults: Graph<{
     artifact: Artifact
@@ -213,7 +339,7 @@ export async function deploy<DeploymentClient>(
   }> = await Promise.all(
     prepares.map(async prepare => {
       if (prepare.targetType && prepare.deployable) {
-        const deploymentClient = targetsToDeploy.get(prepare.targetType)!
+        const deploymentClient = deploymentClientsByTargetType[prepare.targetType]
         return {
           ...prepare.node,
           data: {
@@ -233,33 +359,62 @@ export async function deploy<DeploymentClient>(
     }),
   )
 
-  await Promise.all(
-    [...targetsToDeploy.entries()].map(async ([targetType, deploymentClient]) => {
-      const destroyDeploymentClient = options.delpoyment[targetType]?.destroyDeploymentClient
-      if (!destroyDeploymentClient) {
-        throw new Error(`destroyDeploymentClient function is missing under deployment.${targetType} section`)
-      } else {
-        await destroyDeploymentClient({ deploymentClient })
-      }
-    }),
-  )
-
-  const withError = deploymentResults.filter(result => result.data.stepResult.error)
-  if (withError.length > 0) {
+  const deployWithError = deploymentResults.filter(result => result.data.stepResult.error)
+  if (deployWithError.length > 0) {
     log.error(
-      `the following packages had an error while deploying: ${withError
+      `the following packages had an error while deploying: ${deployWithError
         .map(result => result.data.artifact.packageJson.name)
         .join(', ')}`,
     )
-    withError.forEach(result => {
+    deployWithError.forEach(result => {
       log.error(`${result.data.artifact.packageJson.name}: `, result.data.stepResult.error)
     })
+  }
+
+  const destroyErrors = Object.entries(
+    (
+      await Promise.all(
+        Object.entries(deploymentsInfo).map(async ([targetType, value]) => {
+          const error: null | unknown = await value
+            .destroyDeploymentClient({ deploymentClient: deploymentClientsByTargetType[targetType] })
+            .then(
+              () => null,
+              error => error,
+            )
+          if (error) {
+            return { [targetType]: error }
+          } else {
+            return {}
+          }
+        }),
+      )
+    ).reduce((acc, r) => ({ ...acc, ...r }), {}),
+  )
+
+  if (destroyErrors.length > 0) {
+    log.error(
+      `the following target-types had an error while calling "destroyDeploymentClient" (inside nc.config file): ${destroyErrors
+        .map(result => result[0])
+        .join(', ')}`,
+    )
+    destroyErrors.forEach(([targetType, error]) => {
+      log.error(targetType, error)
+    })
+
+    return {
+      stepName: StepName.deployment,
+      durationMs: Date.now() - startMs,
+      executionOrder,
+      status: StepStatus.failed,
+      packagesResult: deploymentResults,
+      notes: ['"destroyDeploymentClient" function threw an error (inside nc.config file)'],
+    }
   }
 
   return {
     stepName: StepName.deployment,
     durationMs: Date.now() - startMs,
-    executionOrder: options.executionOrder,
+    executionOrder,
     status: calculateCombinedStatus(deploymentResults.map(node => node.data.stepResult.status)),
     packagesResult: deploymentResults,
     notes: [],

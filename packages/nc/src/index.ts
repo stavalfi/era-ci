@@ -4,13 +4,15 @@
 
 /// <reference path="../../../declarations.d.ts" />
 
-// `require('source-map-support').install()` MUST be the first one!!!
+// `require('source-map-support').install()` MUST be the first (executed) line in the project!!!
 require('source-map-support').install()
 //
 import { logger } from '@tahini/log'
 import { startCli } from './configuration/cli'
 
-export { ConfigFileOptions, ServerInfo, Auth, TargetType, Protocol } from './types'
+export { ConfigFileOptions, ServerInfo, TargetType, Protocol, DeployTarget } from './types'
+export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
+export { npmRegistryLogin } from './npm-utils'
 
 const log = logger('index')
 
