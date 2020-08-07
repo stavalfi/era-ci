@@ -56,5 +56,5 @@ test('disable docker targets', async () => {
     },
   })
   expect(master1.published.get('a')?.npm?.versions).toBeFalsy()
-  expect(master1.published.get('b')?.docker?.tags).toEqual(['2  .0.0'])
+  expect(master1.published.get('b')?.docker?.tags).toEqual(['2.0.0'])
 })
