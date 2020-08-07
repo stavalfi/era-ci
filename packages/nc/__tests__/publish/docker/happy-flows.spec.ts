@@ -1,6 +1,7 @@
 import chance from 'chance'
-import { newEnv, runDockerImage } from '../../prepare-test'
+import { newEnv } from '../../prepare-test'
 import { TargetType } from '../../prepare-test/types'
+import { runDockerImage } from '../../prepare-test/test-helpers'
 
 const { createRepo, getTestResources } = newEnv()
 

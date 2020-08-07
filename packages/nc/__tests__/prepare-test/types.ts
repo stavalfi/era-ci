@@ -1,7 +1,7 @@
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap, IPackageJson } from 'package-json-type'
 import execa, { StdioOption } from 'execa'
-import { ServerInfo, TargetType } from '../../src/index'
+import { ServerInfo, TargetType, ConfigFileOptions } from '../../src/index'
 
 export { TargetType }
 
@@ -33,6 +33,8 @@ export type Repo = {
   rootFiles?: FolderStructure
 }
 
+export type EditConfig = (config: ConfigFileOptions<unknown>) => ConfigFileOptions<unknown>
+
 export type TestOptions = {
   targetsInfo?: {
     [target in TargetType]?: {
@@ -49,6 +51,7 @@ export type TestOptions = {
     stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
     reject?: boolean
   }
+  editConfig?: EditConfig
 }
 
 export type ResultingArtifact = {

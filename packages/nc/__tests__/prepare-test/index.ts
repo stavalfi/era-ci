@@ -1,16 +1,9 @@
 import chance from 'chance'
-import ciInfo from 'ci-info'
-import execa from 'execa'
-import fse from 'fs-extra'
-import { ConfigFileOptions, TargetType, DeployTarget } from 'nc/src/types'
-import path from 'path'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'
-import { latestNpmPackageVersion, publishedDockerImageTags, publishedNpmPackageVersions } from './seach-targets'
 import {
   addRandomFileToPackage,
   addRandomFileToRoot,
-  commitAllAndPushChanges,
   createNewPackage,
   deletePackage,
   installAndRunNpmDependency,
@@ -22,10 +15,8 @@ import {
   renamePackageFolder,
   unpublishNpmPackage,
 } from './test-helpers'
-import { CreateAndManageRepo, MinimalNpmPackage, NewEnv, ResultingArtifact, RunCi } from './types'
-import { getPackagePath, getPackages, ignore } from './utils'
-
-export { runDockerImage } from './test-helpers'
+import { CreateAndManageRepo, MinimalNpmPackage, NewEnv, RunCi } from './types'
+import { createConfigFile, getPackagePath, runCiUsingConfigFile } from './utils'
 
 export const newEnv: NewEnv = () => {
   const testResources = prepareTestResources()
@@ -50,120 +41,29 @@ export const newEnv: NewEnv = () => {
       toActualName,
     })
 
-    const runCi: RunCi = async ({ targetsInfo, execaOptions } = {}) => {
-      const configFilePath = path.join(repoPath, 'nc.config.ts')
-      const [npmDeploymentLogic, dockerDeploymentLogic]: [
-        DeployTarget<unknown, TargetType.npm>,
-        DeployTarget<unknown, TargetType.docker>,
-        // @ts-expect-error
-      ] = [chance().hash(), chance().hash()]
-      const configurations: ConfigFileOptions<unknown> = {
-        targetsInfo: {
-          npm: targetsInfo?.npm && {
-            shouldPublish: targetsInfo.npm.shouldPublish,
-            registry: `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`,
-            publishAuth: npmRegistry.auth,
-            ...(targetsInfo.npm.shouldDeploy
-              ? {
-                  shouldDeploy: true,
-                  deployment: npmDeploymentLogic,
-                }
-              : {
-                  shouldDeploy: false,
-                }),
-          },
-          docker: targetsInfo?.docker && {
-            shouldPublish: targetsInfo.docker.shouldPublish,
-            registry: `${dockerRegistry.protocol}://${dockerRegistry.host}:${dockerRegistry.port}`,
-            publishAuth: {
-              token: '',
-              username: '',
-            },
-            dockerOrganizationName,
-            ...(targetsInfo.docker.shouldDeploy
-              ? {
-                  shouldDeploy: true,
-                  deployment: dockerDeploymentLogic,
-                }
-              : {
-                  shouldDeploy: false,
-                }),
-          },
-        },
-        redis: {
-          redisServer: `redis://${redisServer.host}:${redisServer.port}/`,
-          auth: {
-            password: '',
-          },
-        },
-        git: {
-          auth: {
-            username: gitServer.getUsername(),
-            token: gitServer.getToken(),
-          },
-        },
-      }
+    const runCi: RunCi = async ({ targetsInfo, execaOptions, editConfig } = {}) => {
+      const configFilePath = await createConfigFile({
+        dockerOrganizationName,
+        dockerRegistry,
+        gitServer,
+        npmRegistry,
+        redisServer,
+        repoName,
+        repoOrg,
+        repoPath,
+        targetsInfo,
+        editConfig,
+      })
 
-      const asString = JSON.stringify(configurations, null, 2)
-      let finalString = `export default async () => (${asString})`
-
-      if (targetsInfo?.npm?.shouldDeploy) {
-        finalString = finalString.replace(`"${npmDeploymentLogic}"`, targetsInfo.npm.deploymentStrigifiedSection)
-      }
-      if (targetsInfo?.docker?.shouldDeploy) {
-        finalString = finalString.replace(`"${dockerDeploymentLogic}"`, targetsInfo.docker.deploymentStrigifiedSection)
-      }
-
-      await fse.remove(configFilePath).catch(ignore)
-      await fse.writeFile(configFilePath, finalString, 'utf-8')
-      await commitAllAndPushChanges(repoPath, gitServer.generateGitRepositoryAddress(repoOrg, repoName))
-
-      const ciProcessResult = await execa.command(
-        `node --unhandled-rejections=strict ${path.join(
-          __dirname,
-          '../../dist/src/index.js',
-        )} --config-file ${configFilePath} --repo-path ${repoPath}`,
-        {
-          stdio: ciInfo.isCI ? 'pipe' : execaOptions?.stdio || 'inherit',
-          reject: execaOptions?.reject !== undefined ? execaOptions?.reject : true,
-        },
-      )
-
-      // the test can add/remove/modify packages between the creation of the repo until the call of the ci so we need to find all the packages again
-      const packagesPaths = await getPackages(repoPath)
-      const packages = await Promise.all(
-        packagesPaths // todo: need to search in runtime which packages I have NOW
-          .map(packagePath => require(path.join(packagePath, 'package.json')).name)
-          .map<Promise<[string, ResultingArtifact]>>(async (packageName: string) => {
-            const [versions, highestVersion, tags] = await Promise.all([
-              publishedNpmPackageVersions(packageName, npmRegistry),
-              latestNpmPackageVersion(packageName, npmRegistry),
-              publishedDockerImageTags(packageName, dockerOrganizationName, dockerRegistry),
-            ])
-            return [
-              toOriginalName(packageName),
-              {
-                npm: {
-                  versions,
-                  highestVersion,
-                },
-                docker: {
-                  tags,
-                },
-              },
-            ]
-          }),
-      )
-
-      const published = packages.filter(
-        ([, artifact]) =>
-          artifact.docker.tags.length > 0 || artifact.npm.versions.length > 0 || artifact.npm.highestVersion,
-      )
-
-      return {
-        published: new Map(published),
-        ciProcessResult,
-      }
+      return runCiUsingConfigFile({
+        configFilePath,
+        repoPath,
+        execaOptions,
+        dockerOrganizationName,
+        dockerRegistry,
+        npmRegistry,
+        toOriginalName,
+      })
     }
 
     return {
