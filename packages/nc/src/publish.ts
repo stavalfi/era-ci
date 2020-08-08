@@ -207,7 +207,7 @@ async function publishDocker<DeploymentClient>({
         }
       }
 
-      log.info(`published docker target in package: "${artifact.packageJson.name}"`)
+      log.info(`published docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}"`)
 
       return {
         stepName: StepName.publish,
