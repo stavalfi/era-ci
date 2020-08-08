@@ -305,14 +305,15 @@ export async function publish<DeploymentClient>({
       }
 
       if (node.data.artifact.publishInfo.needPublish !== true) {
+        const alreadyPublishedAsVersion = node.data.artifact.publishInfo.needPublish.alreadyPublishedAsVersion
         return {
           artifact: node.data.artifact,
           stepResult: {
             stepName: StepName.publish,
             durationMs: Date.now() - startMs,
             status: StepStatus.skippedAsPassed,
-            notes: [`this package was already published with the same content`],
-            publishedVersion: node.data.artifact.publishInfo.needPublish.alreadyPublishedAsVersion,
+            notes: [`this package was already published with the same content: ${alreadyPublishedAsVersion}`],
+            publishedVersion: alreadyPublishedAsVersion,
           },
         }
       }
