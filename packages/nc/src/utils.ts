@@ -120,7 +120,7 @@ export async function getOrderedGraph<DeploymentClient>({
     log.verbose(
       `${node.data.artifact.relativePackagePath} (${node.data.artifact.packageJson.name}): ${JSON.stringify(
         {
-          ..._.omit(node.data, ['packageJson']),
+          ..._.omit(node.data, ['artifact.packageJson']),
           packageJsonVersion: node.data.artifact.packageJson.version,
         },
         null,

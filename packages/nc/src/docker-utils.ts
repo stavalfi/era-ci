@@ -3,6 +3,7 @@ import { logger } from '@tahini/log'
 import { ServerInfo } from './types'
 import { getHighestDockerTag } from './versions'
 import isIp from 'is-ip'
+import _ from 'lodash'
 
 const log = logger('docker-utils')
 
@@ -118,7 +119,9 @@ export async function getDockerImageLabelsAndTags({
     }
 
     if (!silent) {
-      log.verbose(`latest tag and hash for "${fullImageName}" are: "${JSON.stringify(result, null, 2)}"`)
+      log.verbose(
+        `latest tag and hash for "${fullImageName}" are: "${JSON.stringify(_.omit(result, ['allTags']), null, 2)}"`,
+      )
       if (!result.latestHash || !result.latestTag) {
         log.verbose(
           `one of ${JSON.stringify(

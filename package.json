@@ -9,7 +9,7 @@
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
     "test": "jest --no-cache",
     "clean": "yarn workspace scripts clean",
-    "run-ci": "yarn build && node --unhandled-rejections=strict packages/nc/dist/src/index.js",
+    "run-ci": "NC_TEST_MODE=true yarn build && node --unhandled-rejections=strict packages/nc/dist/src/index.js",
     "build:tsc": "yarn tsc -b tsconfig-build.json",
     "build": "yarn build:tsc && chmod +x packages/nc/dist/src/index.js",
     "build:watch": "yarn build:tsc --watch"
