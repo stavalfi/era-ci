@@ -5,6 +5,7 @@ import { logger } from '@tahini/log'
 import fse from 'fs-extra'
 import path from 'path'
 import os from 'os'
+import _ from 'lodash'
 
 const log = logger('npm-utils')
 
@@ -68,7 +69,9 @@ export async function getNpmhighestVersionInfo(
       highestVersion,
       allVersions,
     }
-    log.verbose(`latest tag and hash for "${packageName}" are: "${JSON.stringify(latest, null, 2)}"`)
+    log.verbose(
+      `latest tag and hash for "${packageName}" are: "${JSON.stringify(_.omit(latest, ['allVersions']), null, 2)}"`,
+    )
     return latest
   } catch (e) {
     if (e.message.includes('code E404')) {
