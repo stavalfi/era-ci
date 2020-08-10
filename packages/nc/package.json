@@ -8,7 +8,7 @@
     "dist",
     "src",
     "__tests__",
-    ".swcrc"
+    ".nc-swcrc.config"
   ],
   "bin": {
     "nc-ci": "./dist/src/index.js"
