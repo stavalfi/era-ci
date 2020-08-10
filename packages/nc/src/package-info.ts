@@ -3,7 +3,16 @@ import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { getDockerImageLabelsAndTags } from './docker-utils'
 import { getNpmhighestVersionInfo } from './npm-utils'
-import { Artifact, Cache, PublishCache, ServerInfo, TargetType, TargetToPublish, TargetsInfo } from './types'
+import {
+  Artifact,
+  Cache,
+  PublishCache,
+  ServerInfo,
+  TargetType,
+  TargetToPublish,
+  TargetsInfo,
+  TargetsPublishAuth,
+} from './types'
 import { calculateNewVersion } from './versions'
 
 async function buildNpmTarget({
@@ -55,6 +64,7 @@ async function buildDockerTarget({
   packageHash,
   packagePath,
   publishCache,
+  publishAuth,
 }: {
   packageJson: IPackageJson
   dockerRegistry: ServerInfo
@@ -62,6 +72,7 @@ async function buildDockerTarget({
   packageHash: string
   packagePath: string
   publishCache: PublishCache
+  publishAuth: TargetsPublishAuth[TargetType.docker]
 }): Promise<TargetToPublish<TargetType.docker>> {
   if (!packageJson.name) {
     throw new Error(`package.json of: ${packagePath} must have a name property.`)
@@ -74,6 +85,7 @@ async function buildDockerTarget({
     dockerRegistry,
     dockerOrganizationName,
     packageJsonName: packageJson.name,
+    publishAuth,
   })
 
   if (!publishedTag) {
@@ -169,6 +181,7 @@ export async function getPackageInfo<DeploymentClient>({
             dockerOrganizationName: targetsInfo.docker.dockerOrganizationName,
             dockerRegistry: targetsInfo.docker.registry,
             packageJson,
+            publishAuth: targetsInfo.docker.publishAuth,
           }),
         }
       } else {

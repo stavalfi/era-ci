@@ -14,6 +14,5 @@ module.exports = {
       tsConfig: path.join(__dirname, 'tsconfig.json'),
     },
   },
-  globalSetup: path.join(__dirname, 'jest-global-setup.js'),
   testMatch: [path.join(__dirname, 'packages/*/__tests__/**/*.spec.ts')],
 }
