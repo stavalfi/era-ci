@@ -86,7 +86,7 @@ export async function getDockerImageLabelsAndTags({
       log.verbose(`searching for all tags for image: "${fullImageNameWithoutTag}"`)
     }
     const withAuth =
-      publishAuth.username && publishAuth.token ? `--creds ${publishAuth.username}=${publishAuth.token}` : ''
+      publishAuth.username && publishAuth.token ? `--creds ${publishAuth.username}:${publishAuth.token}` : ''
     const { stdout: tagsResult } = await execa.command(
       `skopeo list-tags ${withAuth} ${
         dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
@@ -175,7 +175,7 @@ export async function isDockerVersionAlreadyPulished({
   })
   try {
     const withAuth =
-      publishAuth.username && publishAuth.token ? `--creds ${publishAuth.username}=${publishAuth.token}` : ''
+      publishAuth.username && publishAuth.token ? `--creds ${publishAuth.username}:${publishAuth.token}` : ''
     await execa.command(
       `skopeo inspect ${withAuth} ${
         dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
