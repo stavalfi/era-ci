@@ -61,6 +61,7 @@
     "ioredis": "^4.17.1",
     "jest": "^26.1.0",
     "jest-circus": "^26.1.0",
+    "js-base64": "^3.4.5",
     "lint-staged": "^9.5.0",
     "node-git-server": "^0.6.1",
     "npm-login-noninteractive": "^0.1.4",

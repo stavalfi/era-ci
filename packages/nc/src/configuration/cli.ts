@@ -22,8 +22,10 @@ export async function startCli(processArgv: string[]) {
       }),
     },
     handler: async args => {
-      const repoPath = args['repo-path']
-      const configFilePath = args['config-file'] || path.join(repoPath, 'nc.config.ts')
+      const repoPath = path.resolve(args['repo-path'])
+      const configFilePath = args['config-file']
+        ? path.resolve(args['config-file'])
+        : path.join(repoPath, 'nc.config.ts')
       const configFileOptions = await readNcConfigurationFile(configFilePath)
       const ciOptions = await combineOptions({ configFileOptions, cliOptions: { repoPath } })
       await ci(ciOptions)
