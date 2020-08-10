@@ -1,6 +1,6 @@
 import execa from 'execa'
 import { logger } from '@tahini/log'
-import { ServerInfo } from './types'
+import { ServerInfo, TargetsPublishAuth, TargetType } from './types'
 import { getHighestDockerTag } from './versions'
 import isIp from 'is-ip'
 import _ from 'lodash'
@@ -68,11 +68,13 @@ export async function getDockerImageLabelsAndTags({
   dockerOrganizationName,
   dockerRegistry,
   silent,
+  publishAuth,
 }: {
   packageJsonName: string
   dockerOrganizationName: string
   dockerRegistry: ServerInfo
   silent?: boolean
+  publishAuth: TargetsPublishAuth[TargetType.docker]
 }): Promise<{ latestHash?: string; latestTag?: string; allTags: string[] } | undefined> {
   const fullImageNameWithoutTag = buildFullDockerImageName({
     dockerOrganizationName,
@@ -83,8 +85,10 @@ export async function getDockerImageLabelsAndTags({
     if (!silent) {
       log.verbose(`searching for all tags for image: "${fullImageNameWithoutTag}"`)
     }
+    const withAuth =
+      publishAuth.username && publishAuth.token ? `--creds ${publishAuth.username}=${publishAuth.token}` : ''
     const { stdout: tagsResult } = await execa.command(
-      `skopeo list-tags ${
+      `skopeo list-tags ${withAuth} ${
         dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
       } docker://${fullImageNameWithoutTag}`,
     )
@@ -104,7 +108,9 @@ export async function getDockerImageLabelsAndTags({
       log.verbose(`searching the latest tag and hash for image "${fullImageName}"`)
     }
     const { stdout } = await execa.command(
-      `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
+      `skopeo inspect ${withAuth} ${
+        dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
+      } docker://${fullImageName}`,
     )
     const LabelsResult = JSON.parse(stdout)
     const labels = LabelsResult.Labels || {}
@@ -153,11 +159,13 @@ export async function isDockerVersionAlreadyPulished({
   imageTag,
   dockerOrganizationName,
   dockerRegistry,
+  publishAuth,
 }: {
   packageName: string
   imageTag: string
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
+  publishAuth: TargetsPublishAuth[TargetType.docker]
 }) {
   const fullImageName = buildFullDockerImageName({
     dockerOrganizationName,
@@ -166,8 +174,12 @@ export async function isDockerVersionAlreadyPulished({
     imageTag,
   })
   try {
+    const withAuth =
+      publishAuth.username && publishAuth.token ? `--creds ${publishAuth.username}=${publishAuth.token}` : ''
     await execa.command(
-      `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
+      `skopeo inspect ${withAuth} ${
+        dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
+      } docker://${fullImageName}`,
     )
     return true
   } catch (e) {
