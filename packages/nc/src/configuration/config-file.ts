@@ -2,6 +2,7 @@ import execa from 'execa'
 import path from 'path'
 import { boolean, func, is, object, optional, string, validate } from 'superstruct'
 import { ConfigFileOptions } from '../types'
+import fse from 'fs-extra'
 
 function getConfigValidationObject() {
   const npmTargetInfoBaseValidation = {
@@ -68,15 +69,20 @@ function validateConfiguration(configuration: unknown): configuration is ConfigF
 }
 
 export async function readNcConfigurationFile(ciConfigFilePath: string): Promise<ConfigFileOptions<unknown>> {
-  const outputFilePath = path.join(__dirname, `nc.config.js`)
-  const swcConfigFile = path.join(__dirname, '../../../.swcrc')
+  const outputFilePath = path.join(path.dirname(ciConfigFilePath), `compiled-nc.config.js`)
+  const swcConfigFile = require.resolve('@tahini/nc/.nc-swcrc.config')
   const swcPath = require.resolve('.bin/swc')
   const command = `${swcPath} ${ciConfigFilePath} -o ${outputFilePath} --config-file ${swcConfigFile}`
+
   await execa.command(command)
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const configGeneratorFunction = require(outputFilePath)
   const configuration = await configGeneratorFunction.default()
+
+  await fse.remove(outputFilePath).catch(() => {
+    // ignore error
+  })
 
   if (validateConfiguration(configuration)) {
     return configuration

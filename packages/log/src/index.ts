@@ -44,9 +44,11 @@ const consoleTransport = new winston.transports.Console({
 })
 
 // eslint-disable-next-line no-process-env
+const customLogLevel = process.env.NC_LOG_LEVEL
+// eslint-disable-next-line no-process-env
 const isNcTestMode = Boolean(process.env.NC_TEST_MODE)
 const mainLogger = winston.createLogger({
-  level: isNcTestMode ? 'verbose' : 'info',
+  level: customLogLevel || (isNcTestMode ? 'verbose' : 'info'),
   transports: [consoleTransport],
 })
 
