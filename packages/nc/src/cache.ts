@@ -5,7 +5,16 @@ import NodeCache from 'node-cache'
 import semver from 'semver'
 import { isDockerVersionAlreadyPulished } from './docker-utils'
 import { isNpmVersionAlreadyPulished } from './npm-utils'
-import { Cache, CacheTypes, PackageVersion, ServerInfo, TargetsInfo, TargetType, CiOptions } from './types'
+import {
+  Cache,
+  CacheTypes,
+  PackageVersion,
+  ServerInfo,
+  TargetsInfo,
+  TargetType,
+  CiOptions,
+  TargetsPublishAuth,
+} from './types'
 
 const log = logger('cache')
 
@@ -64,10 +73,12 @@ const isDockerPublished = ({
   get,
   dockerOrganizationName,
   dockerRegistry,
+  publishAuth,
 }: {
   get: Get
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
+  publishAuth: TargetsPublishAuth[TargetType.docker]
 }) => async (packageName: string, packageHash: string): Promise<PackageVersion | false> => {
   const inCache = await checkIfPublishedInCache({ get, packageHash, packageName, targetType: TargetType.docker })
 
@@ -80,6 +91,7 @@ const isDockerPublished = ({
     dockerRegistry,
     imageTag: inCache,
     packageName,
+    publishAuth,
   })
   return inRegistry ? inCache : false
 }
@@ -176,6 +188,7 @@ export async function intializeCache<DeploymentClient>({
           get,
           dockerRegistry: targetsInfo.docker.registry,
           dockerOrganizationName: targetsInfo.docker.dockerOrganizationName,
+          publishAuth: targetsInfo.docker.publishAuth,
         }),
         setAsPublished: setAsPublished({
           set,

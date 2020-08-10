@@ -47,28 +47,6 @@ export async function publishedNpmPackageVersions(packageName: string, npmRegist
   }
 }
 
-export async function latestDockerImageTag(
-  packageJsonName: string,
-  dockerOrganizationName: string,
-  dockerRegistry: ServerInfo,
-): Promise<string | undefined> {
-  try {
-    const result = await getDockerImageLabelsAndTags({
-      dockerOrganizationName,
-      packageJsonName,
-      dockerRegistry,
-      silent: true,
-    })
-    return result?.latestTag
-  } catch (e) {
-    if (e.stderr?.includes('manifest unknown')) {
-      return ''
-    } else {
-      throw e
-    }
-  }
-}
-
 export async function publishedDockerImageTags(
   packageJsonName: string,
   dockerOrganizationName: string,
@@ -80,6 +58,10 @@ export async function publishedDockerImageTags(
       packageJsonName,
       dockerRegistry,
       silent: true,
+      publishAuth: {
+        username: '',
+        token: '',
+      },
     })
     const tags = result?.allTags.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
     const sorted = semver.sort(tags.filter(tag => tag !== 'latest')).concat(tags.includes('latest') ? ['latest'] : [])

@@ -17,6 +17,9 @@ async function initializeGitRepo({
   gitServer: GitServer
 }) {
   await execa.command('git init', { cwd: repoPath, stdio: 'pipe' })
+  await execa.command(`git config user.email "test@test.com"`, { cwd: repoPath, stdio: 'pipe' })
+  await execa.command(`git config user.name "test-user"`, { cwd: repoPath, stdio: 'pipe' })
+
   await execa.command('git add --all', { cwd: repoPath, stdio: 'pipe' })
   await execa.command('git commit -m init', { cwd: repoPath, stdio: 'pipe' })
 
