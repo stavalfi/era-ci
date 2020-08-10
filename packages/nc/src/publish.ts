@@ -41,14 +41,14 @@ async function updateVersionAndPublish({
       )
     }
     const packageJsonAsString = await fse.readFile(packageJsonPath, 'utf-8')
-    const from = `"name": "${fromVersion}"`
-    const to = `"name": "${toVersion}"`
+    const from = `"version": "${fromVersion}"`
+    const to = `"version": "${toVersion}"`
     if (packageJsonAsString.includes(from)) {
       const updatedPackageJson = packageJsonAsString.replace(from, to)
       await fse.writeFile(packageJsonPath, updatedPackageJson, 'utf-8')
     } else {
       throw new Error(
-        `could not find the following substring in package.json: "${from}". is there any missing/extra spaces?`,
+        `could not find the following substring in package.json: '${from}'. is there any missing/extra spaces? package.json as string: ${packageJsonAsString}`,
       )
     }
   }
