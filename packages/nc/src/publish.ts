@@ -33,11 +33,27 @@ async function updateVersionAndPublish({
   tryPublish: () => Promise<PackageStepResult[StepName.publish]>
   startMs: number
 }): Promise<PackageStepResult[StepName.publish]> {
+  const setPackageVersion = async (fromVersion: string | undefined, toVersion: string) => {
+    const packageJsonPath = path.join(artifact.packagePath, 'package.json')
+    if (!fromVersion) {
+      throw new Error(
+        `package.json: ${packageJsonPath} must have a version property. set it up to any valid version you want. for example: "1.0.0"`,
+      )
+    }
+    const packageJsonAsString = await fse.readFile(packageJsonPath, 'utf-8')
+    const from = `"name": "${fromVersion}"`
+    const to = `"name": "${toVersion}"`
+    if (packageJsonAsString.includes(from)) {
+      const updatedPackageJson = packageJsonAsString.replace(from, to)
+      await fse.writeFile(packageJsonPath, updatedPackageJson, 'utf-8')
+    } else {
+      throw new Error(
+        `could not find the following substring in package.json: "${from}". is there any missing/extra spaces?`,
+      )
+    }
+  }
   try {
-    await fse.writeFile(
-      path.join(artifact.packagePath, 'package.json'),
-      JSON.stringify({ ...artifact.packageJson, version: newVersion }, null, 2),
-    )
+    await setPackageVersion(artifact.packageJson.version, newVersion)
   } catch (error) {
     return {
       stepName: StepName.publish,
@@ -61,15 +77,10 @@ async function updateVersionAndPublish({
     }
   }
 
-  await fse
-    .writeFile(
-      path.join(artifact.packagePath, 'package.json'),
-      JSON.stringify({ ...artifact.packageJson, version: artifact.packageJson.version }, null, 2),
-    )
-    .catch(error => {
-      log.error(`failed to revert package.json back to the old version`, error)
-      // log and ignore this error.
-    })
+  await setPackageVersion(newVersion, artifact.packageJson.version!).catch(error => {
+    log.error(`failed to revert package.json back to the old version`, error)
+    // log and ignore this error.
+  })
 
   return result
 }
