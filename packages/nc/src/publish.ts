@@ -4,19 +4,19 @@ import fse from 'fs-extra'
 import isIp from 'is-ip'
 import path from 'path'
 import { buildFullDockerImageName } from './docker-utils'
-import { travelGraph } from './graph'
 import {
   Artifact,
   Cache,
   Graph,
+  Node,
   PackagesStepResult,
   PackageStepResult,
   PublishCache,
   StepName,
   StepStatus,
-  TargetType,
-  TargetsInfo,
   TargetInfo,
+  TargetsInfo,
+  TargetType,
 } from './types'
 import { calculateCombinedStatus } from './utils'
 
@@ -196,7 +196,9 @@ async function publishDocker<DeploymentClient>({
       log.info(`built docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}"`)
 
       try {
-        await execa.command(`docker push ${fullImageNameNewVersion}`)
+        await execa.command(`docker push ${fullImageNameNewVersion}`, {
+          stdio: 'inherit',
+        })
       } catch (error) {
         return {
           stepName: StepName.publish,
@@ -260,16 +262,21 @@ export async function publish<DeploymentClient>({
     }
   }
 
-  const publishResult: Graph<{
+  const publishNode = async (
+    node: Node<{
+      artifact: Artifact
+      stepResult: PackageStepResult[StepName.test]
+    }>,
+  ): Promise<Node<{
     artifact: Artifact
     stepResult: PackageStepResult[StepName.publish]
-  }> = await travelGraph(orderedGraph, {
-    fromLeafs: true,
-    mapData: async node => {
-      const targetType = node.data.artifact.targetType
+  }>> => {
+    const targetType = node.data.artifact.targetType
 
-      if (!targetType) {
-        return {
+    if (!targetType) {
+      return {
+        ...node,
+        data: {
           artifact: node.data.artifact,
           stepResult: {
             stepName: StepName.publish,
@@ -277,11 +284,14 @@ export async function publish<DeploymentClient>({
             status: StepStatus.skippedAsPassed,
             notes: ['skipping publish because this is a private-npm-package'],
           },
-        }
+        },
       }
+    }
 
-      if (!targetsInfo[targetType]?.shouldPublish) {
-        return {
+    if (!targetsInfo[targetType]?.shouldPublish) {
+      return {
+        ...node,
+        data: {
           artifact: node.data.artifact,
           stepResult: {
             stepName: StepName.publish,
@@ -289,11 +299,14 @@ export async function publish<DeploymentClient>({
             status: StepStatus.skippedAsPassed,
             notes: [`ci is configured to skip publish for ${targetType} targets`],
           },
-        }
+        },
       }
+    }
 
-      if (!node.data.artifact.publishInfo) {
-        return {
+    if (!node.data.artifact.publishInfo) {
+      return {
+        ...node,
+        data: {
           artifact: node.data.artifact,
           stepResult: {
             stepName: StepName.publish,
@@ -301,12 +314,15 @@ export async function publish<DeploymentClient>({
             status: StepStatus.skippedAsPassed,
             notes: [`there isn't any publish configuration for ${targetType} targets`],
           },
-        }
+        },
       }
+    }
 
-      if (node.data.artifact.publishInfo.needPublish !== true) {
-        const alreadyPublishedAsVersion = node.data.artifact.publishInfo.needPublish.alreadyPublishedAsVersion
-        return {
+    if (node.data.artifact.publishInfo.needPublish !== true) {
+      const alreadyPublishedAsVersion = node.data.artifact.publishInfo.needPublish.alreadyPublishedAsVersion
+      return {
+        ...node,
+        data: {
           artifact: node.data.artifact,
           stepResult: {
             stepName: StepName.publish,
@@ -315,17 +331,20 @@ export async function publish<DeploymentClient>({
             notes: [`this package was already published with the same content: ${alreadyPublishedAsVersion}`],
             publishedVersion: alreadyPublishedAsVersion,
           },
-        }
+        },
       }
+    }
 
-      const didTestStepFailed = [
-        StepStatus.failed,
-        StepStatus.skippedAsFailed,
-        StepStatus.skippedAsFailedBecauseLastStepFailed,
-      ].includes(node.data.stepResult.status)
+    const didTestStepFailed = [
+      StepStatus.failed,
+      StepStatus.skippedAsFailed,
+      StepStatus.skippedAsFailedBecauseLastStepFailed,
+    ].includes(node.data.stepResult.status)
 
-      if (didTestStepFailed) {
-        return {
+    if (didTestStepFailed) {
+      return {
+        ...node,
+        data: {
           artifact: node.data.artifact,
           stepResult: {
             stepName: StepName.publish,
@@ -333,38 +352,53 @@ export async function publish<DeploymentClient>({
             status: StepStatus.skippedAsFailedBecauseLastStepFailed,
             notes: ['skipping publish because the tests of this package failed'],
           },
-        }
+        },
       }
+    }
 
-      switch (targetType) {
-        case TargetType.npm: {
-          const publishResult = await publishNpm({
-            artifact: node.data.artifact,
-            newVersion: node.data.artifact.publishInfo.newVersion,
-            setAsPublishedCache: cache.publish?.npm?.setAsPublished!,
-            targetPublishInfo: targetsInfo.npm!,
-          })
-          return {
-            artifact: node.data.artifact,
-            stepResult: publishResult,
-          }
-        }
-        case TargetType.docker: {
-          const publishResult = await publishDocker({
-            artifact: node.data.artifact,
-            newVersion: node.data.artifact.publishInfo.newVersion,
-            repoPath: repoPath,
-            setAsPublishedCache: cache.publish?.docker?.setAsPublished!,
-            targetPublishInfo: targetsInfo.docker!,
-          })
-          return {
+    switch (targetType) {
+      case TargetType.npm: {
+        const publishResult = await publishNpm({
+          artifact: node.data.artifact,
+          newVersion: node.data.artifact.publishInfo.newVersion,
+          setAsPublishedCache: cache.publish?.npm?.setAsPublished!,
+          targetPublishInfo: targetsInfo.npm!,
+        })
+        return {
+          ...node,
+          data: {
             artifact: node.data.artifact,
             stepResult: publishResult,
-          }
+          },
         }
       }
-    },
-  })
+      case TargetType.docker: {
+        const publishResult = await publishDocker({
+          artifact: node.data.artifact,
+          newVersion: node.data.artifact.publishInfo.newVersion,
+          repoPath: repoPath,
+          setAsPublishedCache: cache.publish?.docker?.setAsPublished!,
+          targetPublishInfo: targetsInfo.docker!,
+        })
+        return {
+          ...node,
+          data: {
+            artifact: node.data.artifact,
+            stepResult: publishResult,
+          },
+        }
+      }
+    }
+  }
+
+  const publishResult: Graph<{
+    artifact: Artifact
+    stepResult: PackageStepResult[StepName.publish]
+  }> = []
+
+  for (const node of orderedGraph) {
+    publishResult.push(await publishNode(node))
+  }
 
   const withError = publishResult.filter(result => result.data.stepResult.error)
   if (withError.length > 0) {
