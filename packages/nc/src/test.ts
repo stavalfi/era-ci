@@ -85,15 +85,19 @@ export async function testPackages({
 }): Promise<PackagesStepResult<StepName.test>> {
   const startMs = Date.now()
   log.info('running tests...')
-  const packagesResult: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.test] }> = await Promise.all(
-    orderedGraph.map(async node => ({
+
+  const packagesResult: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.test] }> = []
+  for (const node of orderedGraph) {
+    log.info(`running tests of ${node.data.artifact.packageJson.name}:`)
+    const result = {
       ...node,
       data: {
         artifact: node.data.artifact,
         stepResult: await testPackage({ node, cache }),
       },
-    })),
-  )
+    }
+    packagesResult.push(result)
+  }
 
   return {
     stepName: StepName.test,
