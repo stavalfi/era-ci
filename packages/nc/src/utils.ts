@@ -62,7 +62,11 @@ export function shouldFailCi(
 ): boolean {
   return Object.values(steps)
     .filter(step => step)
-    .some(step => [StepStatus.skippedAsFailed, StepStatus.failed].includes(step!.status))
+    .some(step =>
+      [StepStatus.skippedAsFailed, StepStatus.failed, StepStatus.skippedAsFailedBecauseLastStepFailed].includes(
+        step!.status,
+      ),
+    )
 }
 
 export async function getPackages(repoPath: string): Promise<string[]> {
