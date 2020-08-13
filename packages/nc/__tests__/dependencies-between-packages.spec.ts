@@ -187,6 +187,35 @@ describe('npm package depends on.....', () => {
   })
 })
 
+test('private npm-package can depends on private-npm-package', async () => {
+  const { runCi } = await createRepo({
+    packages: [
+      {
+        name: 'a',
+        version: '1.0.0',
+      },
+      {
+        name: 'b',
+        version: '2.0.0',
+        dependencies: {
+          a: '^1.0.0',
+        },
+      },
+    ],
+  })
+
+  await expect(
+    runCi({
+      targetsInfo: {
+        npm: {
+          shouldPublish: false,
+          shouldDeploy: false,
+        },
+      },
+    }),
+  ).resolves.toBeTruthy()
+})
+
 describe('docker-package depends on...', () => {
   test('b-docker-package depends on a-package, when a-package published, then b-package need to publish as well', async () => {
     const { runCi, addRandomFileToPackage } = await createRepo({
