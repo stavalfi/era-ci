@@ -19,7 +19,7 @@
   "dependencies": {
     "chalk": "^4.1.0",
     "randomcolor": "^0.6.2",
-    "ci-info": "https://github.com/watson/ci-info",
+    "ci-info": "https://github.com/watson/ci-info.git",
     "winston": "^3.3.3"
   }
 }
