@@ -1643,9 +1643,9 @@ chardet@^0.7.0:
   resolved "https://registry.yarnpkg.com/chardet/-/chardet-0.7.0.tgz#90094849f0937f2eedc2425d0d28a9e5f0cbad9e"
   integrity sha512-mT8iDcrh03qDGRRmoA2hmBJnxpllMR+0/0qlzjqZES6NdiWDcZkCNAk4rPFZ9Q85r27unkiNNg8ZOiwZXBHwcA==
 
-ci-info@^2.0.0, "ci-info@https://github.com/watson/ci-info":
+ci-info@^2.0.0, "ci-info@https://github.com/watson/ci-info.git":
   version "2.0.0"
-  resolved "https://github.com/watson/ci-info#f43f6a1cefff47fb361c88cf4b943fdbcaafe540"
+  resolved "https://github.com/watson/ci-info.git#f43f6a1cefff47fb361c88cf4b943fdbcaafe540"
 
 class-utils@^0.3.5:
   version "0.3.6"
@@ -2199,9 +2199,9 @@ eslint-plugin-json@^2.0.1:
     lodash "^4.17.15"
     vscode-json-languageservice "^3.5.1"
 
-"eslint-plugin-no-floating-promise@https://github.com/SebastienGllmt/eslint-plugin-no-floating-promise":
-  version "1.0.0"
-  resolved "https://github.com/SebastienGllmt/eslint-plugin-no-floating-promise#8175a7e877dc62f8fddee945ca16051f26a7f42a"
+"eslint-plugin-no-floating-promise@https://github.com/SebastienGllmt/eslint-plugin-no-floating-promise.git":
+  version "1.0.1"
+  resolved "https://github.com/SebastienGllmt/eslint-plugin-no-floating-promise.git#f3eb6aaf1c8e3da262118244a006674c450601b9"
   dependencies:
     requireindex "1.2.0"
 
