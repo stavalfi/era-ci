@@ -27,10 +27,14 @@ async function updateVersionAndPublish({
   newVersion,
   artifact,
   startMs,
+  setAsPublishedCache,
+  setAsFailedCache,
 }: {
   artifact: Artifact
   newVersion: string
   tryPublish: () => Promise<PackageStepResult[StepName.publish]>
+  setAsPublishedCache: PublishCache['setAsPublished']
+  setAsFailedCache: PublishCache['setAsFailed']
   startMs: number
 }): Promise<PackageStepResult[StepName.publish]> {
   const setPackageVersion = async (fromVersion: string | undefined, toVersion: string) => {
@@ -67,12 +71,14 @@ async function updateVersionAndPublish({
   let result: PackageStepResult[StepName.publish]
   try {
     result = await tryPublish()
+    await setAsPublishedCache(artifact.packageJson.name as string, artifact.packageHash, newVersion)
   } catch (error) {
+    await setAsFailedCache(artifact.packageJson.name as string, artifact.packageHash)
     return {
       stepName: StepName.publish,
       durationMs: Date.now() - startMs,
       status: StepStatus.failed,
-      notes: [],
+      notes: ['publish failed'],
       error,
     }
   }
@@ -89,11 +95,13 @@ async function publishNpm<DeploymentClient>({
   newVersion,
   artifact,
   setAsPublishedCache,
+  setAsFailedCache,
   targetPublishInfo,
 }: {
   artifact: Artifact
   newVersion: string
   setAsPublishedCache: PublishCache['setAsPublished']
+  setAsFailedCache: PublishCache['setAsFailed']
   targetPublishInfo: TargetInfo<TargetType.npm, DeploymentClient>
 }): Promise<PackageStepResult[StepName.publish]> {
   const startMs = Date.now()
@@ -113,12 +121,16 @@ async function publishNpm<DeploymentClient>({
   // - if cache doesn't know the hash, we can be sure this hash never published.
   // - else, we check in the registry anyway.
   // if we call setAsPublished after the publish, using the cache is pointless.
+  // why we use the cache: (1) asking redis is faster compared to asking the npm-registry
+  //                       (2) to know if postpublish failed/passed
   await setAsPublishedCache(artifact.packageJson.name as string, artifact.packageHash, newVersion)
 
   return updateVersionAndPublish({
     startMs,
     newVersion,
     artifact,
+    setAsFailedCache,
+    setAsPublishedCache,
     tryPublish: async () => {
       await execa.command(
         `yarn publish --registry ${npmRegistryAddress} --non-interactive ${
@@ -151,11 +163,13 @@ async function publishDocker<DeploymentClient>({
   newVersion,
   artifact,
   setAsPublishedCache,
+  setAsFailedCache,
   targetPublishInfo,
 }: {
   artifact: Artifact
   newVersion: string
   setAsPublishedCache: PublishCache['setAsPublished']
+  setAsFailedCache: PublishCache['setAsFailed']
   repoPath: string
   targetPublishInfo: TargetInfo<TargetType.docker, DeploymentClient>
 }): Promise<PackageStepResult[StepName.publish]> {
@@ -177,6 +191,7 @@ async function publishDocker<DeploymentClient>({
   // - if cache doesn't know the hash, we can be sure this hash never published.
   // - else, we check in the registry anyway.
   // if we call setAsPublished after the publish, using the cache is pointless.
+  // why we use the cache: because asking redis is faster compared to asking the docker-registry
   await setAsPublishedCache(artifact.packageJson.name as string, artifact.packageHash, newVersion)
 
   // the package.json will probably copied to the image during the docker-build so we want to make sure the new version is in there
@@ -184,6 +199,8 @@ async function publishDocker<DeploymentClient>({
     startMs,
     artifact,
     newVersion,
+    setAsFailedCache,
+    setAsPublishedCache,
     tryPublish: async () => {
       log.info(`building docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}"`)
 
@@ -245,7 +262,7 @@ async function publishDocker<DeploymentClient>({
 }
 
 export async function publish<DeploymentClient>({
-  cache,
+  publishCache,
   executionOrder,
   orderedGraph,
   repoPath,
@@ -254,7 +271,7 @@ export async function publish<DeploymentClient>({
   orderedGraph: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.test] }>
   targetsInfo?: TargetsInfo<DeploymentClient>
   repoPath: string
-  cache: Cache
+  publishCache: Cache['publish']
   executionOrder: number
 }): Promise<PackagesStepResult<StepName.publish>> {
   const startMs = Date.now()
@@ -340,23 +357,6 @@ export async function publish<DeploymentClient>({
       }
     }
 
-    if (node.data.artifact.publishInfo.needPublish !== true) {
-      const alreadyPublishedAsVersion = node.data.artifact.publishInfo.needPublish.alreadyPublishedAsVersion
-      return {
-        ...node,
-        data: {
-          artifact: node.data.artifact,
-          stepResult: {
-            stepName: StepName.publish,
-            durationMs: Date.now() - startMs,
-            status: StepStatus.skippedAsPassed,
-            notes: [`this package was already published with the same content: ${alreadyPublishedAsVersion}`],
-            publishedVersion: alreadyPublishedAsVersion,
-          },
-        },
-      }
-    }
-
     const didTestStepFailed = [
       StepStatus.failed,
       StepStatus.skippedAsFailed,
@@ -378,12 +378,52 @@ export async function publish<DeploymentClient>({
       }
     }
 
+    const cache = publishCache[targetType]! // because `targetsInfo[targetType]` is truethy
+
+    const isPublishRun = await cache.isPublishRun(node.data.artifact.packageJson.name!, node.data.artifact.packageHash)
+
+    if (isPublishRun) {
+      const result = await cache.isPublished(node.data.artifact.packageJson.name!, node.data.artifact.packageHash)
+      if (!result.shouldPublish) {
+        if (result.publishSucceed) {
+          return {
+            ...node,
+            data: {
+              artifact: node.data.artifact,
+              stepResult: {
+                stepName: StepName.publish,
+                durationMs: Date.now() - startMs,
+                status: StepStatus.skippedAsPassed,
+                notes: [
+                  `this package was already published with the same content as version: ${result.alreadyPublishedAsVersion}`,
+                ],
+              },
+            },
+          }
+        } else {
+          return {
+            ...node,
+            data: {
+              artifact: node.data.artifact,
+              stepResult: {
+                stepName: StepName.publish,
+                durationMs: Date.now() - startMs,
+                status: StepStatus.skippedAsFailed,
+                notes: [result.failureReason],
+              },
+            },
+          }
+        }
+      }
+    }
+
     switch (targetType) {
       case TargetType.npm: {
         const publishResult = await publishNpm({
           artifact: node.data.artifact,
-          newVersion: node.data.artifact.publishInfo.newVersion,
-          setAsPublishedCache: cache.publish?.npm?.setAsPublished!,
+          newVersion: node.data.artifact.publishInfo.newVersionIfPublish,
+          setAsPublishedCache: cache.setAsPublished,
+          setAsFailedCache: cache.setAsFailed,
           targetPublishInfo: targetsInfo.npm!,
         })
         return {
@@ -397,9 +437,10 @@ export async function publish<DeploymentClient>({
       case TargetType.docker: {
         const publishResult = await publishDocker({
           artifact: node.data.artifact,
-          newVersion: node.data.artifact.publishInfo.newVersion,
+          newVersion: node.data.artifact.publishInfo.newVersionIfPublish,
           repoPath: repoPath,
-          setAsPublishedCache: cache.publish?.docker?.setAsPublished!,
+          setAsPublishedCache: cache.setAsPublished,
+          setAsFailedCache: cache.setAsFailed,
           targetPublishInfo: targetsInfo.docker!,
         })
         return {

@@ -1,12 +1,12 @@
 import { newEnv } from '../prepare-test'
 import { TargetType } from '../prepare-test/types'
-import { manageTest } from '../prepare-test/test-helpers'
+import { manageStepResult } from '../prepare-test/test-helpers'
 
 const { createRepo } = newEnv()
 
 describe('publish only packages without failing tests', () => {
   test('tests failed so there is no publish', async () => {
-    const aTests = await manageTest()
+    const aTests = await manageStepResult()
     const { runCi } = await createRepo({
       packages: [
         {
@@ -14,13 +14,13 @@ describe('publish only packages without failing tests', () => {
           version: '1.0.0',
           targetType: TargetType.npm,
           scripts: {
-            test: aTests.testScript,
+            test: aTests.stepScript,
           },
         },
       ],
     })
 
-    await aTests.makeTestsFail()
+    await aTests.makeStepFail()
 
     const master = await runCi({
       targetsInfo: {
@@ -38,7 +38,7 @@ describe('publish only packages without failing tests', () => {
   })
 
   test('tests passed so there is a publish', async () => {
-    const aTests = await manageTest()
+    const aTests = await manageStepResult()
     const { runCi } = await createRepo({
       packages: [
         {
@@ -46,13 +46,13 @@ describe('publish only packages without failing tests', () => {
           version: '1.0.0',
           targetType: TargetType.npm,
           scripts: {
-            test: aTests.testScript,
+            test: aTests.stepScript,
           },
         },
       ],
     })
 
-    await aTests.makeTestsPass()
+    await aTests.makeStepPass()
 
     const master = await runCi({
       targetsInfo: {
@@ -68,8 +68,8 @@ describe('publish only packages without failing tests', () => {
   })
 
   test('multiple packages - publish only packages with passed tests', async () => {
-    const aTests = await manageTest()
-    const bTests = await manageTest()
+    const aTests = await manageStepResult()
+    const bTests = await manageStepResult()
     const { runCi } = await createRepo({
       packages: [
         {
@@ -77,7 +77,7 @@ describe('publish only packages without failing tests', () => {
           version: '1.0.0',
           targetType: TargetType.npm,
           scripts: {
-            test: aTests.testScript,
+            test: aTests.stepScript,
           },
         },
         {
@@ -85,14 +85,14 @@ describe('publish only packages without failing tests', () => {
           version: '2.0.0',
           targetType: TargetType.npm,
           scripts: {
-            test: bTests.testScript,
+            test: bTests.stepScript,
           },
         },
       ],
     })
 
-    await aTests.makeTestsFail()
-    await bTests.makeTestsPass()
+    await aTests.makeStepFail()
+    await bTests.makeStepPass()
 
     const master = await runCi({
       targetsInfo: {

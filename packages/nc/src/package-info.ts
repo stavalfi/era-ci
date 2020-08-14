@@ -3,30 +3,17 @@ import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { getDockerImageLabelsAndTags } from './docker-utils'
 import { getNpmhighestVersionInfo } from './npm-utils'
-import {
-  Artifact,
-  Cache,
-  PublishCache,
-  ServerInfo,
-  TargetType,
-  TargetToPublish,
-  TargetsInfo,
-  TargetsPublishAuth,
-} from './types'
+import { Artifact, ServerInfo, TargetsInfo, TargetsPublishAuth, TargetToPublish, TargetType } from './types'
 import { calculateNewVersion } from './versions'
 
 async function buildNpmTarget({
   packageJson,
   npmRegistry,
-  packageHash,
   packagePath,
-  publishCache,
 }: {
   packageJson: IPackageJson
   npmRegistry: ServerInfo
-  packageHash: string
   packagePath: string
-  publishCache: PublishCache
 }): Promise<TargetToPublish<TargetType.npm>> {
   if (!packageJson.name) {
     throw new Error(`package.json of: ${packagePath} must have a name property.`)
@@ -34,26 +21,15 @@ async function buildNpmTarget({
   if (!packageJson.version) {
     throw new Error(`package.json of: ${packagePath} must have a version property.`)
   }
-  const publishedVersion = await publishCache.isPublished(packageJson.name as string, packageHash)
   const npmhighestVersionInfo = await getNpmhighestVersionInfo(packageJson.name, npmRegistry)
-  if (!publishedVersion) {
-    return {
-      targetType: TargetType.npm,
-      needPublish: true,
-      newVersion: calculateNewVersion({
-        packagePath,
-        packageJsonVersion: packageJson.version,
-        highestPublishedVersion: npmhighestVersionInfo?.highestVersion,
-        allVersions: npmhighestVersionInfo?.allVersions,
-      }),
-    }
-  } else {
-    return {
-      targetType: TargetType.npm,
-      needPublish: {
-        alreadyPublishedAsVersion: publishedVersion,
-      },
-    }
+  return {
+    targetType: TargetType.npm,
+    newVersionIfPublish: calculateNewVersion({
+      packagePath,
+      packageJsonVersion: packageJson.version,
+      highestPublishedVersion: npmhighestVersionInfo?.highestVersion,
+      allVersions: npmhighestVersionInfo?.allVersions,
+    }),
   }
 }
 
@@ -61,17 +37,13 @@ async function buildDockerTarget({
   packageJson,
   dockerOrganizationName,
   dockerRegistry,
-  packageHash,
   packagePath,
-  publishCache,
   publishAuth,
 }: {
   packageJson: IPackageJson
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
-  packageHash: string
   packagePath: string
-  publishCache: PublishCache
   publishAuth: TargetsPublishAuth[TargetType.docker]
 }): Promise<TargetToPublish<TargetType.docker>> {
   if (!packageJson.name) {
@@ -80,7 +52,7 @@ async function buildDockerTarget({
   if (!packageJson.version) {
     throw new Error(`package.json of: ${packagePath} must have a version property.`)
   }
-  const publishedTag = await publishCache.isPublished(packageJson.name as string, packageHash)
+
   const dockerLatestTagInfo = await getDockerImageLabelsAndTags({
     dockerRegistry,
     dockerOrganizationName,
@@ -88,24 +60,14 @@ async function buildDockerTarget({
     publishAuth,
   })
 
-  if (!publishedTag) {
-    return {
-      targetType: TargetType.docker,
-      needPublish: true,
-      newVersion: calculateNewVersion({
-        packagePath,
-        packageJsonVersion: packageJson.version,
-        highestPublishedVersion: dockerLatestTagInfo?.latestTag,
-        allVersions: dockerLatestTagInfo?.allTags,
-      }),
-    }
-  } else {
-    return {
-      targetType: TargetType.docker,
-      needPublish: {
-        alreadyPublishedAsVersion: publishedTag,
-      },
-    }
+  return {
+    targetType: TargetType.docker,
+    newVersionIfPublish: calculateNewVersion({
+      packagePath,
+      packageJsonVersion: packageJson.version,
+      highestPublishedVersion: dockerLatestTagInfo?.latestTag,
+      allVersions: dockerLatestTagInfo?.allTags,
+    }),
   }
 }
 
@@ -130,7 +92,6 @@ type GetPackageInfoOptions<DeploymentClient> = {
   packagePath: string
   packageHash: string
   packageJson: IPackageJson
-  publishCache: Cache['publish']
   targetType?: TargetType
   targetsInfo?: TargetsInfo<DeploymentClient>
 }
@@ -140,7 +101,6 @@ export async function getPackageInfo<DeploymentClient>({
   packagePath,
   packageJson,
   relativePackagePath,
-  publishCache,
   targetType,
   targetsInfo,
 }: GetPackageInfoOptions<DeploymentClient>): Promise<Artifact> {
@@ -160,9 +120,7 @@ export async function getPackageInfo<DeploymentClient>({
         return {
           ...base,
           publishInfo: await buildNpmTarget({
-            packageHash,
             packagePath,
-            publishCache: publishCache.npm!,
             npmRegistry: targetsInfo.npm.registry,
             packageJson,
           }),
@@ -175,9 +133,7 @@ export async function getPackageInfo<DeploymentClient>({
         return {
           ...base,
           publishInfo: await buildDockerTarget({
-            packageHash,
             packagePath,
-            publishCache: publishCache.docker!,
             dockerOrganizationName: targetsInfo.docker.dockerOrganizationName,
             dockerRegistry: targetsInfo.docker.registry,
             packageJson,

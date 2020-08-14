@@ -23,6 +23,7 @@ export type Package = {
   additionalFiles?: FolderStructure
   scripts?: {
     test?: string
+    postpublish?: string
   }
 }
 
