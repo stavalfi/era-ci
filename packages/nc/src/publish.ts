@@ -222,6 +222,17 @@ async function publishDocker<DeploymentClient>({
 
       log.info(`published docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}"`)
 
+      await execa
+        .command(`docker rmi ${fullImageNameNewVersion}`, {
+          stdio: 'pipe',
+        })
+        .catch(e =>
+          log.error(
+            `couldn't remove image: "${fullImageNameNewVersion}" after pushing it. this failure won't fail the build.`,
+            e,
+          ),
+        )
+
       return {
         stepName: StepName.publish,
         durationMs: Date.now() - startMs,
