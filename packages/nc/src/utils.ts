@@ -11,7 +11,6 @@ import { generateCliTableReport } from './report/cli-table-report'
 import { generateJsonReport } from './report/json-report'
 import {
   Artifact,
-  Cache,
   Cleanup,
   Graph,
   JsonReport,
@@ -20,8 +19,8 @@ import {
   ServerInfo,
   StepName,
   StepStatus,
-  TargetType,
   TargetsInfo,
+  TargetType,
 } from './types'
 
 const log = logger('utils')
@@ -82,7 +81,6 @@ export async function getPackages(repoPath: string): Promise<string[]> {
 export async function getOrderedGraph<DeploymentClient>({
   artifacts,
   repoPath,
-  publishCache,
   targetsInfo,
 }: {
   repoPath: string
@@ -92,7 +90,6 @@ export async function getOrderedGraph<DeploymentClient>({
     packageName: string | undefined
     targetType: TargetType | undefined
   }[]
-  publishCache: Cache['publish']
   targetsInfo?: TargetsInfo<DeploymentClient>
 }): Promise<Graph<{ artifact: Artifact }>> {
   log.verbose('calculate hash of every package and check which packages changed since their last publish')
@@ -111,7 +108,6 @@ export async function getOrderedGraph<DeploymentClient>({
           packagePath: node.data.packagePath,
           packageJson: node.data.packageJson,
           relativePackagePath: node.data.relativePackagePath,
-          publishCache,
           targetsInfo,
         }),
       },

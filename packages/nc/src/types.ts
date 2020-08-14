@@ -7,15 +7,10 @@ export enum TargetType {
   npm = 'npm',
 }
 
-export type TargetToPublish<TargetTypParam extends TargetType> = { targetType: TargetTypParam } & (
-  | {
-      needPublish: true
-      newVersion: string
-    }
-  | {
-      needPublish: { alreadyPublishedAsVersion: string }
-    }
-)
+export type TargetToPublish<TargetTypParam extends TargetType> = {
+  targetType: TargetTypParam
+  newVersionIfPublish: string
+}
 
 export type Artifact = {
   relativePackagePath: string
@@ -136,12 +131,36 @@ export type Node<T> = {
 export type Graph<T> = Node<T>[]
 
 export enum CacheTypes {
+  test = 'test',
   publish = 'publish',
+  deployment = 'deployment',
 }
 
+export type IsPublishResultCache =
+  | ({
+      shouldPublish: false
+    } & (
+      | {
+          publishSucceed: true
+          alreadyPublishedAsVersion: PackageVersion
+        }
+      | { publishSucceed: false; failureReason: string }
+    ))
+  | {
+      shouldPublish: true
+    }
+
 export type PublishCache = {
-  isPublished: (packageName: string, packageHash: string) => Promise<PackageVersion | false>
+  isPublishRun: (packageName: string, packageHash: string) => Promise<boolean>
+  isPublished: (packageName: string, packageHash: string) => Promise<IsPublishResultCache>
   setAsPublished: (packageName: string, packageHash: string, packageVersion: PackageVersion) => Promise<void>
+  setAsFailed: (packageName: string, packageHash: string) => Promise<void>
+}
+
+export type DeploymentCache = {
+  isDeploymentRun: (packageName: string, packageHash: string) => Promise<boolean>
+  isDeployed: (packageName: string, packageHash: string) => Promise<boolean>
+  setDeploymentResult: (packageName: string, packageHash: string, isDeployed: boolean) => Promise<void>
 }
 
 export type Cache = {
@@ -152,6 +171,9 @@ export type Cache = {
   }
   publish: {
     [Target in TargetType]?: PublishCache
+  }
+  deployment: {
+    [Target in TargetType]?: DeploymentCache
   }
   cleanup: () => Promise<unknown>
 }

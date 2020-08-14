@@ -1,11 +1,11 @@
 import { newEnv } from './prepare-test'
 import { TargetType } from './prepare-test/types'
-import { manageTest } from './prepare-test/test-helpers'
+import { manageStepResult } from './prepare-test/test-helpers'
 
 const { createRepo } = newEnv()
 
 test('make sure tests output is printed', async () => {
-  const test = await manageTest()
+  const test = await manageStepResult()
 
   const { runCi } = await createRepo({
     packages: [
@@ -14,11 +14,13 @@ test('make sure tests output is printed', async () => {
         version: '1.0.0',
         targetType: TargetType.npm,
         scripts: {
-          test: test.testScript,
+          test: test.stepScript,
         },
       },
     ],
   })
+
+  await test.makeStepPass()
 
   const { ciProcessResult } = await runCi({
     execaOptions: {
@@ -26,11 +28,11 @@ test('make sure tests output is printed', async () => {
     },
   })
 
-  expect(ciProcessResult.stdout).toContain(test.expectedContentInLog)
+  expect(ciProcessResult.stdout).toContain(test.expectedContentInLog())
 })
 
 test('make sure ci fails if tests fails', async () => {
-  const test = await manageTest()
+  const test = await manageStepResult()
 
   const { runCi } = await createRepo({
     packages: [
@@ -39,13 +41,13 @@ test('make sure ci fails if tests fails', async () => {
         version: '1.0.0',
         targetType: TargetType.npm,
         scripts: {
-          test: test.testScript,
+          test: test.stepScript,
         },
       },
     ],
   })
 
-  await test.makeTestsFail()
+  await test.makeStepFail()
 
   const result = await runCi({
     execaOptions: {
@@ -57,8 +59,8 @@ test('make sure ci fails if tests fails', async () => {
 })
 
 test('multiple packages', async () => {
-  const aTest = await manageTest()
-  const bTest = await manageTest()
+  const aTest = await manageStepResult()
+  const bTest = await manageStepResult()
 
   const { runCi } = await createRepo({
     packages: [
@@ -67,7 +69,7 @@ test('multiple packages', async () => {
         version: '1.0.0',
         targetType: TargetType.npm,
         scripts: {
-          test: aTest.testScript,
+          test: aTest.stepScript,
         },
       },
       {
@@ -75,14 +77,14 @@ test('multiple packages', async () => {
         version: '1.0.0',
         targetType: TargetType.npm,
         scripts: {
-          test: bTest.testScript,
+          test: bTest.stepScript,
         },
       },
     ],
   })
 
-  await aTest.makeTestsFail()
-  await bTest.makeTestsFail()
+  await aTest.makeStepFail()
+  await bTest.makeStepFail()
 
   const result = await runCi({
     execaOptions: {
@@ -95,7 +97,7 @@ test('multiple packages', async () => {
 })
 
 test('skip package with passed tests', async () => {
-  const test = await manageTest()
+  const test = await manageStepResult()
   const { runCi } = await createRepo({
     packages: [
       {
@@ -103,24 +105,24 @@ test('skip package with passed tests', async () => {
         version: '1.0.0',
         targetType: TargetType.npm,
         scripts: {
-          test: test.testScript,
+          test: test.stepScript,
         },
       },
     ],
   })
 
-  await test.makeTestsPass()
+  await test.makeStepPass()
 
   await runCi({})
 
-  await test.makeTestsFail()
+  await test.makeStepFail()
 
   await expect(runCi({})).resolves.toBeTruthy()
   // todo: find a way to check in the report that a-package passed in test-step
 })
 
 test('skip package with failed tests', async () => {
-  const test = await manageTest()
+  const test = await manageStepResult()
   const { runCi } = await createRepo({
     packages: [
       {
@@ -128,13 +130,13 @@ test('skip package with failed tests', async () => {
         version: '1.0.0',
         targetType: TargetType.npm,
         scripts: {
-          test: test.testScript,
+          test: test.stepScript,
         },
       },
     ],
   })
 
-  await test.makeTestsFail()
+  await test.makeStepFail()
 
   await runCi({
     execaOptions: {
@@ -142,7 +144,7 @@ test('skip package with failed tests', async () => {
     },
   })
 
-  await test.makeTestsPass()
+  await test.makeStepPass()
 
   const pr = await runCi({
     execaOptions: {
@@ -155,7 +157,7 @@ test('skip package with failed tests', async () => {
 })
 
 test('run tests of package after the package changed even if the tests passed at the first run', async () => {
-  const test = await manageTest()
+  const test = await manageStepResult()
   const { runCi, addRandomFileToPackage } = await createRepo({
     packages: [
       {
@@ -163,18 +165,18 @@ test('run tests of package after the package changed even if the tests passed at
         version: '1.0.0',
         targetType: TargetType.npm,
         scripts: {
-          test: test.testScript,
+          test: test.stepScript,
         },
       },
     ],
   })
 
-  await test.makeTestsPass()
+  await test.makeStepPass()
 
   await runCi({})
 
   await addRandomFileToPackage('a')
-  await test.makeTestsFail()
+  await test.makeStepFail()
 
   const result = await runCi({
     execaOptions: {

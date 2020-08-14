@@ -1,11 +1,11 @@
 import { newEnv } from '../prepare-test'
-import { manageTest } from '../prepare-test/test-helpers'
-import { TargetType } from '../prepare-test/types'
+import { manageStepResult } from '../prepare-test/test-helpers'
+import { TargetType, TestOptions } from '../prepare-test/types'
 
 const { createRepo } = newEnv()
 
 test('packages with failed tests wont deploy', async () => {
-  const bTest = await manageTest()
+  const bTest = await manageStepResult()
 
   const { runCi, toActualName } = await createRepo({
     packages: [
@@ -18,7 +18,7 @@ test('packages with failed tests wont deploy', async () => {
         name: 'b',
         version: '1.0.0',
         targetType: TargetType.docker,
-        scripts: { test: bTest.testScript },
+        scripts: { test: bTest.stepScript },
       },
       {
         name: 'c',
@@ -28,7 +28,7 @@ test('packages with failed tests wont deploy', async () => {
     ],
   })
 
-  await bTest.makeTestsFail()
+  await bTest.makeStepFail()
 
   const result = await runCi({
     targetsInfo: {
@@ -69,9 +69,9 @@ test('packages with failed tests wont deploy', async () => {
 // he probably has a good reason to. maybe revert a deployment due to a bug in production.
 // to make sure that other merges of PRs won't bring back the bug of one of the micro-services,
 // we need to make sure that only changed packages in the current flow can be deployed.
-describe('ensure only if package was not published in the current flow, it will not be deployed', () => {
-  test('no deployment if package didnt change', async () => {
-    const aDeployment = await manageTest()
+describe('ensure if package was not published in the current flow, it will not be deployed unless the deployment failed for the same package-hash', () => {
+  test(`deployment succeed so there won't be an addtional deployment because the package didnt change`, async () => {
+    const aDeployment = await manageStepResult()
     const { runCi } = await createRepo({
       packages: [
         {
@@ -92,7 +92,7 @@ describe('ensure only if package was not published in the current flow, it will 
                     initializeDeploymentClient: async () => Promise.resolve(),
                     deploy: async ({ artifactToDeploy }) => {
                         if(artifactToDeploy.packageJson.name?.startsWith("a")){
-                          require('child_process').execSync('${aDeployment.testScript}')
+                          require('child_process').execSync('${aDeployment.stepScript}')
                         }
                     },
                     destroyDeploymentClient: async ({ deploymentClient }) => Promise.resolve(),
@@ -101,15 +101,64 @@ describe('ensure only if package was not published in the current flow, it will 
       },
     }
 
-    await aDeployment.makeTestsPass()
+    await aDeployment.makeStepPass()
     await expect(runCi(runCiOptions)).resolves.toBeTruthy()
 
-    await aDeployment.makeTestsFail()
+    await aDeployment.makeStepFail()
     await expect(runCi(runCiOptions)).resolves.toBeTruthy()
   })
 
+  test(`deployment failed so there won't be an addtional deployment in the next flow because the hash didn't change`, async () => {
+    const aDeployment = await manageStepResult()
+    const { runCi } = await createRepo({
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    })
+
+    const runCiOptions: TestOptions = {
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: true,
+          deploymentStrigifiedSection: `\
+                {
+                    initializeDeploymentClient: async () => Promise.resolve(),
+                    deploy: async ({ artifactToDeploy }) => {
+                        if(artifactToDeploy.packageJson.name?.startsWith("a")){
+                          require('child_process').execSync('${aDeployment.stepScript}',{stdio:'inherit'})
+                        }
+                    },
+                    destroyDeploymentClient: async ({ deploymentClient }) => Promise.resolve(),
+                }`,
+        },
+      },
+      execaOptions: {
+        stdio: 'pipe',
+      },
+    }
+
+    await aDeployment.makeStepFail()
+    await expect(runCi(runCiOptions)).rejects.toEqual(
+      expect.objectContaining({
+        stderr: expect.stringMatching(aDeployment.expectedContentInLog()),
+      }),
+    )
+
+    await aDeployment.makeStepPass()
+    await expect(runCi(runCiOptions)).rejects.toEqual(
+      expect.objectContaining({
+        stdout: expect.stringMatching('nothing changed and deployment already failed in last builds'),
+      }),
+    )
+  })
+
   test('no deployment if other package changed', async () => {
-    const aDeployment = await manageTest()
+    const aDeployment = await manageStepResult()
     const { runCi, addRandomFileToPackage } = await createRepo({
       packages: [
         {
@@ -135,7 +184,7 @@ describe('ensure only if package was not published in the current flow, it will 
                   initializeDeploymentClient: async () => Promise.resolve(),
                   deploy: async ({ artifactToDeploy }) => {
                       if(artifactToDeploy.packageJson.name?.startsWith("a")){
-                        require('child_process').execSync('${aDeployment.testScript}')
+                        require('child_process').execSync('${aDeployment.stepScript}')
                       }
                   },
                   destroyDeploymentClient: async ({ deploymentClient }) => Promise.resolve(),
@@ -144,11 +193,11 @@ describe('ensure only if package was not published in the current flow, it will 
       },
     }
 
-    await aDeployment.makeTestsPass()
+    await aDeployment.makeStepPass()
 
     await expect(runCi(runCiOptions)).resolves.toBeTruthy()
 
-    await aDeployment.makeTestsFail()
+    await aDeployment.makeStepFail()
     await addRandomFileToPackage('b')
 
     await expect(runCi(runCiOptions)).resolves.toBeTruthy()

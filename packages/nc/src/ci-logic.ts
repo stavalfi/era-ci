@@ -68,7 +68,6 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
     const orderedGraph = await getOrderedGraph({
       repoPath: options.repoPath,
       artifacts,
-      publishCache: cache.publish,
       targetsInfo: options.targetsInfo,
     })
 
@@ -96,7 +95,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
           publish({
             orderedGraph: stepsResultUntilNow.test!.packagesResult,
             repoPath: options.repoPath,
-            cache,
+            publishCache: cache['publish'],
             targetsInfo: options.targetsInfo,
             executionOrder: 3,
           }),
@@ -109,6 +108,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
             repoPath: options.repoPath,
             executionOrder: 4,
             targetsInfo: options.targetsInfo,
+            deploymentCache: cache.deployment,
           }),
       },
     ])
