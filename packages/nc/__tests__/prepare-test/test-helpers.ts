@@ -114,6 +114,7 @@ export async function publishDockerPackageWithoutCi({
     cwd: packagePath,
   })
   await execa.command(`docker push ${fullImageNameNewVersion}`, { stdio: 'pipe' })
+  await execa.command(`docker rmi ${fullImageNameNewVersion}`, { stdio: 'pipe' })
 }
 
 export async function unpublishNpmPackage({
@@ -169,15 +170,7 @@ export const addRandomFileToPackage = ({
 }
 
 export const runDockerImage = async (fullDockerImageName: string): Promise<execa.ExecaChildProcess> => {
-  const containerName = `container-${chance().hash()}`
-
-  return execa
-    .command(`docker run --name ${containerName} ${fullDockerImageName}`, { stdio: 'pipe' })
-    .finally(async () => {
-      await execa.command(`docker rm ${containerName}`, { stdio: 'pipe' }).catch(() => {
-        /**/
-      })
-    })
+  return execa.command(`docker run --rm ${fullDockerImageName}`, { stdio: 'pipe' })
 }
 
 export const installAndRunNpmDependency = async ({
