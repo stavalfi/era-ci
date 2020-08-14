@@ -88,6 +88,7 @@ export type ManageRepoResult = {
   toActualName: ToActualName
   dockerOrganizationName: string
   getPackagePath: (packageName: string) => Promise<string>
+  getFullImageName: (packageName: string, imageTag: string) => string
   addRandomFileToPackage: AddRandomFileToPackage
   addRandomFileToRoot: AddRandomFileToRoot
   installAndRunNpmDependency: (dependencyName: string) => Promise<execa.ExecaChildProcess<string>>
