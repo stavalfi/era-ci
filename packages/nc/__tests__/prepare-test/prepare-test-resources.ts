@@ -5,10 +5,9 @@ import { GitServer, starGittServer } from './git-server-testkit'
 type Deployment = { serverInfo: ServerInfo; cleanup: () => Promise<unknown> }
 
 async function startDockerImage(fullDockerImageName: string, port: number): Promise<Deployment> {
-  const { stdout: dockerRegistryContainerId } = await execa.command(
-    `docker run -d -p 0:${port} ${fullDockerImageName}`,
-    { stdio: 'pipe' },
-  )
+  const {
+    stdout: dockerRegistryContainerId,
+  } = await execa.command(`docker run -d --rm -p 0:${port} ${fullDockerImageName}`, { stdio: 'pipe' })
   const { stdout: dockerRegistryPort } = await execa.command(
     `docker inspect --format="{{(index (index .NetworkSettings.Ports \\"${port}/tcp\\") 0).HostPort}}" ${dockerRegistryContainerId}`,
     {
