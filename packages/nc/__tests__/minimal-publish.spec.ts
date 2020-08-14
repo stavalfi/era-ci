@@ -1,41 +1,90 @@
 import { newEnv } from './prepare-test'
 import { TargetType } from './prepare-test/types'
+import { manageStepResult } from './prepare-test/test-helpers'
 
 const { createRepo } = newEnv()
 
-test('skip publish of package that did not change from the last publish', async () => {
-  const { runCi } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-        targetType: TargetType.npm,
+describe('skip publish of package that did not change from the last publish', () => {
+  test('publish passed so there is no need to publish again', async () => {
+    const { runCi } = await createRepo({
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.npm,
+        },
+      ],
+    })
+
+    const master1 = await runCi({
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
       },
-    ],
+    })
+    expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
+
+    const master2 = await runCi({
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
+    })
+    expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
   })
 
-  const master1 = await runCi({
-    targetsInfo: {
-      npm: {
-        shouldPublish: true,
-        shouldDeploy: false,
-      },
-    },
-  })
-  expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
+  test('publish failed so there is no need to publish again because the package-hash did not change', async () => {
+    const aPublish = await manageStepResult()
+    const { runCi } = await createRepo({
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.npm,
+          scripts: {
+            postpublish: aPublish.stepScript, // it will be called by yarn after the CI will call `yarn publish`
+          },
+        },
+      ],
+    })
 
-  const master2 = await runCi({
-    targetsInfo: {
-      npm: {
-        shouldPublish: true,
-        shouldDeploy: false,
+    await aPublish.makeStepFail()
+
+    const master1 = await runCi({
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
       },
-    },
+      execaOptions: {
+        reject: false,
+      },
+    })
+    expect(master1.ciProcessResult.failed).toBeTruthy()
+
+    await aPublish.makeStepPass()
+
+    const master2 = await runCi({
+      targetsInfo: {
+        npm: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
+      execaOptions: {
+        reject: false,
+      },
+    })
+    expect(master2.ciProcessResult.failed).toBeTruthy()
   })
-  expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
 })
 
-test('multiple packages - publish again only changed package', async () => {
+test('multiple packages - publish again changed package', async () => {
   const { runCi, addRandomFileToPackage } = await createRepo({
     packages: [
       {

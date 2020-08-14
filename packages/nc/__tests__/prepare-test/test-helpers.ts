@@ -10,19 +10,18 @@ import { CreateAndManageRepo, MinimalNpmPackage, TargetType, ToActualName } from
 import { getPackagePath, getPackages, ignore } from './utils'
 import { createFile } from 'create-folder-structure'
 
-export async function manageTest() {
-  const expectedContentInLog = `content-${chance().hash()}`
-  const filePath = await createFile(expectedContentInLog)
+export async function manageStepResult() {
+  const assertionFilePath = await createFile()
+
+  const writeToFile = (expectedContentInLog: string) => fse.writeFile(assertionFilePath, expectedContentInLog)
+
+  const content = `content-${chance().hash()}`
 
   return {
-    testScript: `cat ${filePath}`,
-    expectedContentInLog,
-    makeTestsPass: async () => {
-      await fse.writeFile(filePath, expectedContentInLog)
-    },
-    makeTestsFail: async () => {
-      await fse.remove(filePath)
-    },
+    stepScript: `node ${assertionFilePath}`,
+    expectedContentInLog: () => content,
+    makeStepPass: () => writeToFile(`console.log("passed-${content}")`),
+    makeStepFail: () => writeToFile(`throw new Error("failed-${content}")`),
   }
 }
 
