@@ -4,6 +4,7 @@ import { ServerInfo, TargetsPublishAuth, TargetType } from './types'
 import { getHighestDockerTag } from './versions'
 import isIp from 'is-ip'
 import _ from 'lodash'
+import chance from 'chance'
 
 const log = logger('docker-utils')
 
@@ -34,6 +35,11 @@ export async function dockerRegistryLogin({
 
 export const buildDockerImageName = (packageJsonName: string) => {
   return packageJsonName.replace('/', '-').replace('@', '')
+}
+
+async function runSkopeoCommand(command: string): Promise<string> {
+  const { stdout: result } = await execa.command(`skopeo ${command}`)
+  return result
 }
 
 export const buildFullDockerImageName = ({
@@ -87,8 +93,8 @@ export async function getDockerImageLabelsAndTags({
     }
     const withAuth =
       publishAuth.username && publishAuth.token ? `--creds ${publishAuth.username}:${publishAuth.token}` : ''
-    const { stdout: tagsResult } = await execa.command(
-      `skopeo list-tags ${withAuth} ${
+    const tagsResult = await runSkopeoCommand(
+      `list-tags ${withAuth} ${
         dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
       } docker://${fullImageNameWithoutTag}`,
     )
@@ -107,11 +113,11 @@ export async function getDockerImageLabelsAndTags({
     if (!silent) {
       log.verbose(`searching the latest tag and hash for image "${fullImageName}"`)
     }
-    const { stdout } = await execa.command(
-      `skopeo inspect ${withAuth} ${
-        dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
-      } docker://${fullImageName}`,
+
+    const stdout = await runSkopeoCommand(
+      `inspect ${withAuth} ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
     )
+
     const LabelsResult = JSON.parse(stdout)
     const labels = LabelsResult.Labels || {}
 
@@ -176,10 +182,9 @@ export async function isDockerVersionAlreadyPulished({
   try {
     const withAuth =
       publishAuth.username && publishAuth.token ? `--creds ${publishAuth.username}:${publishAuth.token}` : ''
-    await execa.command(
-      `skopeo inspect ${withAuth} ${
-        dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
-      } docker://${fullImageName}`,
+
+    await runSkopeoCommand(
+      `inspect ${withAuth} ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
     )
     return true
   } catch (e) {

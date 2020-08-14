@@ -1,4 +1,5 @@
 import chance from 'chance'
+import { buildFullDockerImageName } from '../../src'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'
 import {
@@ -70,6 +71,13 @@ export const newEnv: NewEnv = () => {
       repoPath,
       toActualName,
       getPackagePath: getPackagePath(repoPath, toActualName),
+      getFullImageName: (packageName, imageTag) =>
+        buildFullDockerImageName({
+          dockerOrganizationName,
+          dockerRegistry,
+          packageJsonName: toActualName(packageName),
+          imageTag,
+        }),
       addRandomFileToPackage: addRandomFileToPackage({
         repoPath,
         gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
