@@ -83,6 +83,7 @@ export function buildRoutes(app: express.Express, dbObject: { db: Db }): express
           // todo: placing manager is not using it so i don't implement it yet
           res.status(501)
           res.end()
+          return
         }
 
         const startDate = Date.now()
@@ -122,6 +123,7 @@ export function buildRoutes(app: express.Express, dbObject: { db: Db }): express
           }
         }
 
+        // wait until we need to close the betslip
         const dateNow = Date.now()
         if (dateNow < openedBetSlip.endDate) {
           const waitMs: number = Date.now() - Date.now()
