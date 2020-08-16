@@ -92,7 +92,7 @@ describe('ensure if package was not published in the current flow, it will not b
                     initializeDeploymentClient: async () => Promise.resolve(),
                     deploy: async ({ artifactToDeploy }) => {
                         if(artifactToDeploy.packageJson.name?.startsWith("a")){
-                          require('child_process').execSync('${aDeployment.stepScript}')
+                          require ('child_process').execSync('${aDeployment.stepScript}')
                         }
                     },
                     destroyDeploymentClient: async ({ deploymentClient }) => Promise.resolve(),
