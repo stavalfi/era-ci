@@ -1,11 +1,10 @@
+import { logger } from '@tahini/log'
 import crypto from 'crypto'
 import execa from 'execa'
 import fs from 'fs-extra'
-import path from 'path'
-import _ from 'lodash'
-import { Graph } from './types'
-import { logger } from '@tahini/log'
 import { IPackageJson } from 'package-json-type'
+import path from 'path'
+import { Graph } from './types'
 
 const log = logger('packages-hash')
 
@@ -19,8 +18,16 @@ export type PackageHashInfo = {
   packagePath: string
   packageHash: string
   packageJson: IPackageJson
-  children: string[]
-  parents: PackageHashInfo[]
+  parents: PackageHashInfo[] // who depends on me
+  children: string[] // who I depend on
+}
+
+function combineHashes(hashes: string[]): string {
+  const hasher = hashes.reduce((hasher, hash) => {
+    hasher.update(hash)
+    return hasher
+  }, crypto.createHash('sha224'))
+  return Buffer.from(hasher.digest()).toString('hex')
 }
 
 function fillParentsInGraph(packageHashInfoByPath: Map<string, PackageHashInfo>) {
@@ -39,6 +46,40 @@ function fillParentsInGraph(packageHashInfoByPath: Map<string, PackageHashInfo>)
     }
   }
   ;[...packageHashInfoByPath.keys()].forEach(visit)
+}
+
+// this method must be implemented in BFS (DFS will cause a bug) because dfs dont cover
+// the following scenraio: c depends on a, c depends on b.
+// why: we need to calculate the hash of a and b before we caluclate the hash of c
+function calculateConbinedHashes(
+  rootFilesHash: string,
+  packageDirectHashInfoByPath: Map<string, PackageHashInfo>,
+): void {
+  const heads = [...packageDirectHashInfoByPath.entries()].filter(
+    ([_packagePath, packageInfo]) => packageInfo.children.length === 0,
+  )
+  const queue = heads
+
+  const seen = new Set<string>()
+
+  while (queue.length > 0) {
+    const [packagePath, packageHashInfo] = queue[0]
+    queue.shift()
+    seen.add(packagePath)
+
+    const oldPackageHash = packageHashInfo.packageHash
+    const combinedHash = combineHashes([
+      rootFilesHash,
+      oldPackageHash,
+      ...packageHashInfo.children.map(parentPath => packageDirectHashInfoByPath.get(parentPath)?.packageHash!),
+    ])
+    packageHashInfo.packageHash = combinedHash
+    packageHashInfo.parents.forEach(packageInfo => {
+      if (!seen.has(packageInfo.packagePath)) {
+        queue.push([packageInfo.packagePath, packageInfo])
+      }
+    })
+  }
 }
 
 function createOrderGraph(
@@ -77,11 +118,7 @@ function createOrderGraph(
     }))
 }
 
-async function calculateHashOfPackage(
-  packagePath: string,
-  filesPath: string[],
-  rootFilesHash?: string,
-): Promise<string> {
+async function calculateHashOfPackage(packagePath: string, filesPath: string[]): Promise<string> {
   const hasher = (
     await Promise.all(
       filesPath.map(async filePath => ({
@@ -93,17 +130,6 @@ async function calculateHashOfPackage(
     const relativePathInPackage = path.relative(packagePath, filePath)
     hasher.update(relativePathInPackage)
     hasher.update(fileContent)
-    return hasher
-  }, crypto.createHash('sha224'))
-  if (rootFilesHash) {
-    hasher.update(rootFilesHash)
-  }
-  return Buffer.from(hasher.digest()).toString('hex')
-}
-
-function combineHashes(hashes: string[]): string {
-  const hasher = hashes.reduce((hasher, hash) => {
-    hasher.update(hash)
     return hasher
   }, crypto.createHash('sha224'))
   return Buffer.from(hasher.digest()).toString('hex')
@@ -124,9 +150,6 @@ export async function calculatePackagesHash(
   const repoFilesPath = repoFilesPathResult.stdout
     .split('\n')
     .map(relativeFilePath => path.join(repoPath, relativeFilePath))
-
-  const rootFilesInfo = repoFilesPath.filter(filePath => isRootFile(repoPath, filePath))
-  const rootFilesHash = await calculateHashOfPackage(repoPath, rootFilesInfo)
 
   const packagesWithPackageJson = await Promise.all(
     packagesPath.map<Promise<{ packagePath: string; packageJson: IPackageJson }>>(async packagePath => ({
@@ -154,7 +177,7 @@ export async function calculatePackagesHash(
     await Promise.all(
       packagesWithPackageJson.map<Promise<[string, Artifact]>>(async ({ packagePath, packageJson }) => {
         const packageFiles = repoFilesPath.filter(filePath => isInParent(packagePath, filePath))
-        const packageHash = await calculateHashOfPackage(packagePath, packageFiles, rootFilesHash)
+        const packageHash = await calculateHashOfPackage(packagePath, packageFiles)
         return [
           packagePath,
           {
@@ -163,7 +186,7 @@ export async function calculatePackagesHash(
             packageJson,
             packageHash,
             children: [...getDepsPaths(packageJson?.dependencies), ...getDepsPaths(packageJson?.devDependencies)],
-            parents: [], // I will fill this soon
+            parents: [], // I will fill this soon (its not a todo. the next secion will fill it)
           },
         ]
       }),
@@ -172,26 +195,19 @@ export async function calculatePackagesHash(
 
   fillParentsInGraph(packageHashInfoByPath)
 
-  const orderedGraph = createOrderGraph(packageHashInfoByPath)
+  const rootFilesInfo = repoFilesPath.filter(filePath => isRootFile(repoPath, filePath))
+  const rootFilesHash = await calculateHashOfPackage(repoPath, rootFilesInfo)
 
-  const result = _.cloneDeep(orderedGraph).map((packageHashInfo, _index, array) => ({
-    ...packageHashInfo,
-    data: {
-      ...packageHashInfo.data,
-      packageHash: combineHashes([
-        rootFilesHash,
-        packageHashInfo.data.packageHash,
-        ...packageHashInfo.childrenIndexes.map(i => array[i].data.packageHash),
-      ]),
-    },
-  }))
+  calculateConbinedHashes(rootFilesHash, packageHashInfoByPath)
+
+  const orderedGraph = createOrderGraph(packageHashInfoByPath)
 
   log.verbose('calculated hashes to every package in the monorepo:')
   log.verbose(`root-files -> ${rootFilesHash}`)
-  log.verbose(`${result.length} packages:`)
-  result.forEach(node =>
+  log.verbose(`${orderedGraph.length} packages:`)
+  orderedGraph.forEach(node =>
     log.verbose(`${node.data.relativePackagePath} (${node.data.packageJson.name}) -> ${node.data.packageHash}`),
   )
   log.verbose('---------------------------------------------------')
-  return result
+  return orderedGraph
 }
