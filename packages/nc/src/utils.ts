@@ -21,6 +21,7 @@ import {
   StepStatus,
   TargetsInfo,
   TargetType,
+  Cache,
 } from './types'
 
 const log = logger('utils')
@@ -306,7 +307,16 @@ export async function cleanup(cleanups: Cleanup[]): Promise<void> {
   )
 }
 
-export async function reportAndExitCi(jsonReport: JsonReport, cleanups: Cleanup[]): Promise<void> {
+export async function reportAndExitCi({
+  jsonReport,
+  cache,
+  cleanups,
+}: {
+  jsonReport: JsonReport
+  cleanups: Cleanup[]
+  cache: Cache
+}): Promise<void> {
+  await cache.flow.setFlowResult(jsonReport)
   logReport(generateCliTableReport(jsonReport))
   await cleanup(cleanups)
   if (
@@ -324,11 +334,19 @@ type RunStep = (
   },
 ) => false | undefined | Promise<false | undefined | PackagesStepResult<StepName>>
 
-export async function runSteps(
-  startMs: number,
-  graph: Graph<{ artifact: Artifact }>,
-  runSteps: { stopPipelineOnFailure: boolean; runStep: RunStep }[],
-): Promise<JsonReport> {
+export async function runSteps({
+  flowId,
+  startFlowDateUtc,
+  startMs,
+  runSteps,
+  graph,
+}: {
+  flowId: string
+  startFlowDateUtc: string
+  startMs: number
+  graph: Graph<{ artifact: Artifact }>
+  runSteps: { stopPipelineOnFailure: boolean; runStep: RunStep }[]
+}): Promise<JsonReport> {
   const result = await runSteps.reduce(
     async (accPromise, { runStep, stopPipelineOnFailure }) => {
       const { stepsResultUntilNow, exit } = await accPromise
@@ -359,6 +377,8 @@ export async function runSteps(
   )
 
   const report = generateJsonReport({
+    flowId,
+    startFlowDateUtc,
     durationUntilNowMs: Date.now() - startMs,
     steps: result.stepsResultUntilNow,
     graph,
