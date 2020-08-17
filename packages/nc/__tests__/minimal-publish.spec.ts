@@ -5,7 +5,7 @@ import { manageStepResult } from './prepare-test/test-helpers'
 const { createRepo } = newEnv()
 
 describe('skip publish of package that did not change from the last publish', () => {
-  test('publish passed so there is no need to publish again', async () => {
+  test('npm - publish passed so there is no need to publish again', async () => {
     const { runCi } = await createRepo({
       packages: [
         {
@@ -35,6 +35,38 @@ describe('skip publish of package that did not change from the last publish', ()
       },
     })
     expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
+  })
+
+  test('docker - publish passed so there is no need to publish again', async () => {
+    const { runCi } = await createRepo({
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    })
+
+    const master1 = await runCi({
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
+    })
+    expect(master1.published.get('a')?.docker?.tags).toEqual(['1.0.0'])
+
+    const master2 = await runCi({
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
+    })
+    expect(master2.published.get('a')?.docker?.tags).toEqual(['1.0.0'])
   })
 
   test('publish failed so there is no need to publish again because the package-hash did not change', async () => {
