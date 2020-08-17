@@ -89,6 +89,8 @@ export type TargetsInfo<DeploymentClient, ServerInfoType = ServerInfo> = {
 
 export type CiOptions<DeploymentClient, ServerInfoType = ServerInfo> = {
   repoPath: string
+  flowId: string
+  startFlowDateUtc: string
   redis: {
     redisServer: ServerInfoType
     auth: {
@@ -109,7 +111,7 @@ export type CiOptions<DeploymentClient, ServerInfoType = ServerInfo> = {
 
 export type ConfigFileOptions<DeploymentClient = never> = Omit<
   CiOptions<DeploymentClient, string>,
-  'repoPath' | 'git'
+  'repoPath' | 'git' | 'flowId' | 'startFlowDateUtc'
 > & {
   git: {
     auth: CiOptions<DeploymentClient, string>['git']['auth']
@@ -134,6 +136,7 @@ export enum CacheTypes {
   test = 'test',
   publish = 'publish',
   deployment = 'deployment',
+  flow = 'flow',
 }
 
 export type IsPublishResultCache =
@@ -174,6 +177,9 @@ export type Cache = {
   }
   deployment: {
     [Target in TargetType]?: DeploymentCache
+  }
+  flow: {
+    setFlowResult: (jsonReport: JsonReport) => Promise<void>
   }
   cleanup: () => Promise<unknown>
 }
@@ -228,6 +234,10 @@ export type PackagesStepResult<StepNameParam extends StepName> = StepResult<Step
 }
 
 export type JsonReport = {
+  flow: {
+    flowId: string
+    startFlowDateUtc: string
+  }
   graph: Graph<{
     artifact: Artifact
     stepsResult: { [stepName in StepName]?: PackageStepResult[stepName] }
