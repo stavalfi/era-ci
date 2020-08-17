@@ -3,7 +3,16 @@ import NodeCache from 'node-cache'
 import semver from 'semver'
 import { isDockerVersionAlreadyPulished } from './docker-utils'
 import { isNpmVersionAlreadyPulished } from './npm-utils'
-import { Cache, CacheTypes, CiOptions, IsPublishResultCache, PackageVersion, TargetsInfo, TargetType } from './types'
+import {
+  Cache,
+  CacheTypes,
+  CiOptions,
+  IsPublishResultCache,
+  PackageVersion,
+  TargetsInfo,
+  TargetType,
+  JsonReport,
+} from './types'
 
 const REDIS_TTL = 1000 * 60 * 24 * 30
 
@@ -15,9 +24,11 @@ const toPublishKey = (packageName: string, targetType: TargetType, packageHash: 
 
 const toTestKey = (packageName: string, packageHash: string) => `${CacheTypes.test}-${packageName}-${packageHash}`
 
+const toFlowKey = (flowId: string) => `${CacheTypes.flow}-${flowId}`
+
 type Get = (key: string) => Promise<string | null>
 type Has = (key: string) => Promise<boolean>
-type Set = (key: string, value: string | number) => Promise<void>
+type Set = (key: string, value: string) => Promise<void>
 
 enum DeploymentResult {
   passed = 'passed',
@@ -164,6 +175,10 @@ enum TestsResult {
   failed = 'failed',
 }
 
+const setFlowResult = (flowId: string, set: Set) => async (jsonReport: JsonReport): Promise<void> => {
+  await set(toFlowKey(flowId), JSON.stringify(jsonReport, null, 2))
+}
+
 const isTestsRun = (has: Has) => async (packageName: string, packageHash: string) =>
   has(toTestKey(packageName, packageHash))
 
@@ -174,11 +189,13 @@ const setResult = (set: Set) => (packageName: string, packageHash: string, isPas
   set(toTestKey(packageName, packageHash), isPassed ? TestsResult.passed : TestsResult.failed)
 
 type IntializeCacheOptions<DeploymentClient> = {
+  flowId: string
   redis: CiOptions<DeploymentClient>['redis']
   targetsInfo?: TargetsInfo<DeploymentClient>
 }
 
 export async function intializeCache<DeploymentClient>({
+  flowId,
   redis,
   targetsInfo,
 }: IntializeCacheOptions<DeploymentClient>): Promise<Cache> {
@@ -190,28 +207,39 @@ export async function intializeCache<DeploymentClient>({
     ...(redis.auth.password && { password: redis.auth.password }),
   })
 
-  async function set(key: string, value: string | number): Promise<void> {
+  type RedisSchema = { flowId: string; value: string }
+
+  const toRedisSchema = (value: string): RedisSchema => JSON.parse(value)
+
+  async function setBase(key: string, value: string): Promise<void> {
     nodeCache.set(key, value)
     await redisClient.set(key, value, 'px', REDIS_TTL)
   }
 
+  async function set(key: string, value: string): Promise<void> {
+    const asSchema: RedisSchema = { flowId, value }
+    await setBase(key, JSON.stringify(asSchema, null, 2))
+  }
+
   async function get(key: string): Promise<string | null> {
-    const fromNodeCatch = nodeCache.get(key) as string
-    if (fromNodeCatch) {
-      await set(key, fromNodeCatch) // we try to avoid situation where the key is in nodeCache but not in redis
-      return fromNodeCatch
+    const fromNodeCache = nodeCache.get(key) as string | null
+    if (fromNodeCache) {
+      await setBase(key, fromNodeCache) // we try to avoid situation where the key is in nodeCache but not in redis
+      return toRedisSchema(fromNodeCache).value
     } else {
       const fromRedis = await redisClient.get(key)
-      if (fromRedis !== null) {
+      if (fromRedis === null) {
+        return null
+      } else {
         nodeCache.set(key, fromRedis)
+        return toRedisSchema(fromRedis).value
       }
-      return fromRedis
     }
   }
 
   async function has(key: string): Promise<boolean> {
-    const fromNodeCatch = nodeCache.has(key)
-    if (fromNodeCatch) {
+    const fromNodeCache = nodeCache.has(key)
+    if (fromNodeCache) {
       await set(key, nodeCache.get(key) as string) // we try to avoid situation where the key is in nodeCache but not in redis
       return true
     } else {
@@ -261,10 +289,7 @@ export async function intializeCache<DeploymentClient>({
             publishAuth: targetInfo.publishAuth,
           }),
       }),
-      setAsPublished: setAsPublished({
-        set,
-        targetType: TargetType.docker,
-      }),
+      setAsPublished: setAsPublished({ set, targetType: TargetType.docker }),
     }
   }
 
@@ -302,6 +327,9 @@ export async function intializeCache<DeploymentClient>({
     },
     publish,
     deployment,
+    flow: {
+      setFlowResult: setFlowResult(flowId, set),
+    },
     cleanup: () => Promise.all([redisClient.quit(), nodeCache.close()]),
   }
 }

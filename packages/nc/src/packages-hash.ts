@@ -5,6 +5,7 @@ import fs from 'fs-extra'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { Graph } from './types'
+import { INVALIDATE_CACHE_HASH } from './constants'
 
 const log = logger('packages-hash')
 
@@ -132,6 +133,7 @@ async function calculateHashOfPackage(packagePath: string, filesPath: string[]):
     hasher.update(fileContent)
     return hasher
   }, crypto.createHash('sha224'))
+  hasher.update(INVALIDATE_CACHE_HASH)
   return Buffer.from(hasher.digest()).toString('hex')
 }
 

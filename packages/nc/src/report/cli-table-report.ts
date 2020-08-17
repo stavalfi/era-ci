@@ -107,6 +107,16 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
 }
 
 function generateSummaryReport(jsonReport: JsonReport): string {
+  const flowId: TableRow = ['flow-id', jsonReport.flow.flowId].map(content => ({
+    vAlign: 'center',
+    hAlign: 'center',
+    content,
+  }))
+  const flowStartFlowDateUtc: TableRow = ['start', jsonReport.flow.startFlowDateUtc].map(content => ({
+    vAlign: 'center',
+    hAlign: 'center',
+    content,
+  }))
   const notes = jsonReport.summary.notes
   const columns: TableRow[] = [
     [
@@ -136,7 +146,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
   const ciTable = new Table({
     chars: DEFAULT_CHART,
   })
-  ciTable.push(...columns)
+  ciTable.push(flowId, flowStartFlowDateUtc, ...columns)
   return ciTable.toString()
 }
 

@@ -3,6 +3,7 @@ import urlParse from 'url-parse'
 import execa from 'execa'
 import parseGitUrl from 'git-url-parse'
 import redisUrlParse from 'redis-url-parse'
+import chance from 'chance'
 
 function isProtocolSupported(protocol: string): protocol is Protocol {
   return Object.values(Protocol).includes(protocol as Protocol)
@@ -51,6 +52,8 @@ export async function combineOptions<DeploymentClient>({
   const parsedRedisServer = redisUrlParse(configFileOptions.redis.redisServer)
 
   return {
+    flowId: chance().hash(),
+    startFlowDateUtc: new Date().toISOString(),
     repoPath: cliOptions.repoPath,
     git: {
       gitRepoUrl: gitUrl,
