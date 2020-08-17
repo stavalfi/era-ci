@@ -98,13 +98,15 @@ async function checkIfPublishedInCache({
 const isPackagePublished = ({
   get,
   isInRegistry,
+  targetType,
 }: {
   get: Get
   isInRegistry: (packageName: string, packageVersion: string) => Promise<boolean>
+  targetType: TargetType
 }) => async (packageName: string, packageHash: string): Promise<IsPublishResultCache> => {
   let inCache: null | false | PackageVersion
   try {
-    inCache = await checkIfPublishedInCache({ get, packageHash, packageName, targetType: TargetType.npm })
+    inCache = await checkIfPublishedInCache({ get, packageHash, packageName, targetType })
   } catch (error) {
     return {
       shouldPublish: true,
@@ -230,6 +232,7 @@ export async function intializeCache<DeploymentClient>({
       setAsFailed: setAsFailed(TargetType.npm, set),
       isPublished: isPackagePublished({
         get,
+        targetType: TargetType.npm,
         isInRegistry: (packageName, packageVersion) =>
           isNpmVersionAlreadyPulished({ packageName, packageVersion, npmRegistry: registry }),
       }),
@@ -248,6 +251,7 @@ export async function intializeCache<DeploymentClient>({
       setAsFailed: setAsFailed(TargetType.docker, set),
       isPublished: isPackagePublished({
         get,
+        targetType: TargetType.docker,
         isInRegistry: (packageName, packageVersion) =>
           isDockerVersionAlreadyPulished({
             dockerOrganizationName: targetInfo.dockerOrganizationName,
