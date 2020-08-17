@@ -114,17 +114,6 @@ async function publishNpm<DeploymentClient>({
       : ''
   const npmRegistryAddress = `${targetPublishInfo.registry.protocol}://${targetPublishInfo.registry.host}${withPort}`
 
-  // we set in cache that this image was published BEFORE we publish it to ensure that:
-  // - if setAsPublished fails, we don't publish.
-  // - if setAsPublished succeed, we may fail to publish
-  // why? becuase when we check if we need to publish, the algorithm is:
-  // - if cache doesn't know the hash, we can be sure this hash never published.
-  // - else, we check in the registry anyway.
-  // if we call setAsPublished after the publish, using the cache is pointless.
-  // why we use the cache: (1) asking redis is faster compared to asking the npm-registry
-  //                       (2) to know if postpublish failed/passed
-  await setAsPublishedCache(artifact.packageJson.name as string, artifact.packageHash, newVersion)
-
   return updateVersionAndPublish({
     startMs,
     newVersion,
@@ -183,16 +172,6 @@ async function publishDocker<DeploymentClient>({
     packageJsonName: artifact.packageJson.name as string,
     imageTag: newVersion,
   })
-
-  // we set in cache that this image was published BEFORE we publish it to ensure that:
-  // - if setAsPublished fails, we don't publish.
-  // - if setAsPublished succeed, we may fail to publish
-  // why? becuase when we check if we need to publish, the algorithm is:
-  // - if cache doesn't know the hash, we can be sure this hash never published.
-  // - else, we check in the registry anyway.
-  // if we call setAsPublished after the publish, using the cache is pointless.
-  // why we use the cache: because asking redis is faster compared to asking the docker-registry
-  await setAsPublishedCache(artifact.packageJson.name as string, artifact.packageHash, newVersion)
 
   // the package.json will probably copied to the image during the docker-build so we want to make sure the new version is in there
   return updateVersionAndPublish({
@@ -397,6 +376,7 @@ export async function publish<DeploymentClient>({
                 notes: [
                   `this package was already published with the same content as version: ${result.alreadyPublishedAsVersion}`,
                 ],
+                publishedVersion: result.alreadyPublishedAsVersion,
               },
             },
           }
