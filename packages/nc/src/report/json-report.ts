@@ -15,10 +15,14 @@ import { calculateCombinedStatus, shouldFailCi } from '../utils'
 const log = logger('json-report')
 
 export function generateJsonReport({
+  flowId,
+  startFlowDateUtc,
   graph,
   durationUntilNowMs,
   steps,
 }: {
+  flowId: string
+  startFlowDateUtc: string
   durationUntilNowMs: number
   graph: Graph<{ artifact: Artifact }>
   steps: {
@@ -104,6 +108,10 @@ export function generateJsonReport({
 
   log.verbose(`generated the json-report`)
   return {
+    flow: {
+      flowId,
+      startFlowDateUtc,
+    },
     graph: finalGraph,
     steps: allSteps,
     summary,

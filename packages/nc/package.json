@@ -24,6 +24,7 @@
     "@swc/cli": "^0.1.26",
     "@swc/core": "^1.2.9",
     "@tahini/log": "^1.0.0",
+    "chance": "^1.1.5",
     "ci-info": "https://github.com/watson/ci-info.git",
     "cli-table3": "^0.6.0",
     "cmd-ts": "^0.6.3",
