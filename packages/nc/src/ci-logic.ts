@@ -59,6 +59,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
     }
 
     const cache = await intializeCache({
+      flowId: options.flowId,
       redis: options.redis,
       targetsInfo: options.targetsInfo,
     })
@@ -71,49 +72,55 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
       targetsInfo: options.targetsInfo,
     })
 
-    const jsonReport = await runSteps(startMs, orderedGraph, [
-      {
-        stopPipelineOnFailure: true,
-        runStep: () => install({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 0 }),
-      },
-      {
-        stopPipelineOnFailure: true,
-        runStep: () => build({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 1 }),
-      },
-      {
-        stopPipelineOnFailure: false,
-        runStep: () =>
-          testPackages({
-            orderedGraph,
-            cache,
-            executionOrder: 2,
-          }),
-      },
-      {
-        stopPipelineOnFailure: false,
-        runStep: stepsResultUntilNow =>
-          publish({
-            orderedGraph: stepsResultUntilNow.test!.packagesResult,
-            repoPath: options.repoPath,
-            publishCache: cache['publish'],
-            targetsInfo: options.targetsInfo,
-            executionOrder: 3,
-          }),
-      },
-      {
-        stopPipelineOnFailure: false,
-        runStep: stepsResultUntilNow =>
-          deploy<DeploymentClient>({
-            graph: stepsResultUntilNow.publish!.packagesResult,
-            repoPath: options.repoPath,
-            executionOrder: 4,
-            targetsInfo: options.targetsInfo,
-            deploymentCache: cache.deployment,
-          }),
-      },
-    ])
+    const jsonReport = await runSteps({
+      flowId: options.flowId,
+      startFlowDateUtc: options.startFlowDateUtc,
+      startMs,
+      graph: orderedGraph,
+      runSteps: [
+        {
+          stopPipelineOnFailure: true,
+          runStep: () => install({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 0 }),
+        },
+        {
+          stopPipelineOnFailure: true,
+          runStep: () => build({ graph: orderedGraph, repoPath: options.repoPath, executionOrder: 1 }),
+        },
+        {
+          stopPipelineOnFailure: false,
+          runStep: () =>
+            testPackages({
+              orderedGraph,
+              cache,
+              executionOrder: 2,
+            }),
+        },
+        {
+          stopPipelineOnFailure: false,
+          runStep: stepsResultUntilNow =>
+            publish({
+              orderedGraph: stepsResultUntilNow.test!.packagesResult,
+              repoPath: options.repoPath,
+              publishCache: cache['publish'],
+              targetsInfo: options.targetsInfo,
+              executionOrder: 3,
+            }),
+        },
+        {
+          stopPipelineOnFailure: false,
+          runStep: stepsResultUntilNow =>
+            deploy<DeploymentClient>({
+              graph: stepsResultUntilNow.publish!.packagesResult,
+              repoPath: options.repoPath,
+              executionOrder: 4,
+              targetsInfo: options.targetsInfo,
+              deploymentCache: cache.deployment,
+            }),
+        },
+      ],
+    })
 
-    await reportAndExitCi(jsonReport, cleanups)
+    await reportAndExitCi({ jsonReport, cleanups, cache })
   } catch (error) {
     log.error(`CI failed unexpectedly`, error)
     await cleanup(cleanups)
