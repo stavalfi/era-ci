@@ -280,19 +280,21 @@ export async function publish<DeploymentClient>({
     }
   }
 
-  const publishNode = async (
+  const preparePublishNode = async (
     node: Node<{
       artifact: Artifact
       stepResult: PackageStepResult[StepName.test]
     }>,
-  ): Promise<Node<{
-    artifact: Artifact
-    stepResult: PackageStepResult[StepName.publish]
-  }>> => {
+  ): Promise<() => Promise<
+    Node<{
+      artifact: Artifact
+      stepResult: PackageStepResult[StepName.publish]
+    }>
+  >> => {
     const targetType = node.data.artifact.targetType
 
     if (!targetType) {
-      return {
+      return async () => ({
         ...node,
         data: {
           artifact: node.data.artifact,
@@ -303,11 +305,11 @@ export async function publish<DeploymentClient>({
             notes: ['skipping publish because this is a private-npm-package'],
           },
         },
-      }
+      })
     }
 
     if (!targetsInfo[targetType]?.shouldPublish) {
-      return {
+      return async () => ({
         ...node,
         data: {
           artifact: node.data.artifact,
@@ -318,11 +320,11 @@ export async function publish<DeploymentClient>({
             notes: [`ci is configured to skip publish for ${targetType} targets`],
           },
         },
-      }
+      })
     }
 
     if (!node.data.artifact.publishInfo) {
-      return {
+      return async () => ({
         ...node,
         data: {
           artifact: node.data.artifact,
@@ -333,7 +335,7 @@ export async function publish<DeploymentClient>({
             notes: [`there isn't any publish configuration for ${targetType} targets`],
           },
         },
-      }
+      })
     }
 
     const didTestStepFailed = [
@@ -343,7 +345,7 @@ export async function publish<DeploymentClient>({
     ].includes(node.data.stepResult.status)
 
     if (didTestStepFailed) {
-      return {
+      return async () => ({
         ...node,
         data: {
           artifact: node.data.artifact,
@@ -354,7 +356,7 @@ export async function publish<DeploymentClient>({
             notes: ['skipping publish because the tests of this package failed'],
           },
         },
-      }
+      })
     }
 
     const cache = publishCache[targetType]! // because `targetsInfo[targetType]` is truethy
@@ -365,7 +367,7 @@ export async function publish<DeploymentClient>({
       const result = await cache.isPublished(node.data.artifact.packageJson.name!, node.data.artifact.packageHash)
       if (!result.shouldPublish) {
         if (result.publishSucceed) {
-          return {
+          return async () => ({
             ...node,
             data: {
               artifact: node.data.artifact,
@@ -379,9 +381,9 @@ export async function publish<DeploymentClient>({
                 publishedVersion: result.alreadyPublishedAsVersion,
               },
             },
-          }
+          })
         } else {
-          return {
+          return async () => ({
             ...node,
             data: {
               artifact: node.data.artifact,
@@ -392,55 +394,56 @@ export async function publish<DeploymentClient>({
                 notes: [result.failureReason],
               },
             },
-          }
+          })
         }
       }
     }
 
+    const publishInfo = node.data.artifact.publishInfo
     switch (targetType) {
       case TargetType.npm: {
-        const publishResult = await publishNpm({
-          artifact: node.data.artifact,
-          newVersion: node.data.artifact.publishInfo.newVersionIfPublish,
-          setAsPublishedCache: cache.setAsPublished,
-          setAsFailedCache: cache.setAsFailed,
-          targetPublishInfo: targetsInfo.npm!,
-        })
-        return {
+        return async () => ({
           ...node,
           data: {
             artifact: node.data.artifact,
-            stepResult: publishResult,
+            stepResult: await publishNpm({
+              artifact: node.data.artifact,
+              newVersion: publishInfo.newVersionIfPublish,
+              setAsPublishedCache: cache.setAsPublished,
+              setAsFailedCache: cache.setAsFailed,
+              targetPublishInfo: targetsInfo.npm!,
+            }),
           },
-        }
+        })
       }
       case TargetType.docker: {
-        const publishResult = await publishDocker({
-          artifact: node.data.artifact,
-          newVersion: node.data.artifact.publishInfo.newVersionIfPublish,
-          repoPath: repoPath,
-          setAsPublishedCache: cache.setAsPublished,
-          setAsFailedCache: cache.setAsFailed,
-          targetPublishInfo: targetsInfo.docker!,
-        })
-        return {
+        return async () => ({
           ...node,
           data: {
             artifact: node.data.artifact,
-            stepResult: publishResult,
+            stepResult: await publishDocker({
+              artifact: node.data.artifact,
+              newVersion: publishInfo.newVersionIfPublish,
+              repoPath: repoPath,
+              setAsPublishedCache: cache.setAsPublished,
+              setAsFailedCache: cache.setAsFailed,
+              targetPublishInfo: targetsInfo.docker!,
+            }),
           },
-        }
+        })
       }
     }
   }
+
+  const prepare = await Promise.all(orderedGraph.map(preparePublishNode))
 
   const publishResult: Graph<{
     artifact: Artifact
     stepResult: PackageStepResult[StepName.publish]
   }> = []
 
-  for (const node of orderedGraph) {
-    publishResult.push(await publishNode(node))
+  for (const resultFunc of prepare) {
+    publishResult.push(await resultFunc())
   }
 
   const withError = publishResult.filter(result => result.data.stepResult.error)
