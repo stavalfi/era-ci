@@ -58,25 +58,6 @@ async function prepareDeployments<DeploymentClient>({
         }
       }
 
-      const isPublishFailed = [
-        StepStatus.failed,
-        StepStatus.skippedAsFailed,
-        StepStatus.skippedAsFailedBecauseLastStepFailed,
-      ].includes(node.data.stepResult.status)
-      if (isPublishFailed) {
-        return {
-          node: { ...node, data: node.data.artifact },
-          deployable: false,
-          targetType,
-          deploymentResult: async () => ({
-            stepName: StepName.deployment,
-            durationMs: Date.now() - startMs,
-            status: StepStatus.skippedAsFailedBecauseLastStepFailed,
-            notes: ['skipping deploy because the publish of this package failed'],
-          }),
-        }
-      }
-
       if (
         node.data.stepResult.status === StepStatus.failed ||
         node.data.stepResult.status === StepStatus.skippedAsFailed ||
@@ -136,29 +117,13 @@ async function prepareDeployments<DeploymentClient>({
       if (isDeploymentRun) {
         const isDeployed = await cache.isDeployed(node.data.artifact.packageJson.name!, node.data.artifact.packageHash)
         if (isDeployed) {
-          return {
-            node: { ...node, data: node.data.artifact },
-            deployable: false,
-            targetType,
-            deploymentResult: async () => ({
-              stepName: StepName.deployment,
-              durationMs: Date.now() - startMs,
-              status: StepStatus.skippedAsPassed,
-              notes: ['nothing changed and deployment already passed in last builds.'],
-            }),
-          }
+          log.info(
+            `we see that we already deployed the package "${node.data.artifact.packageJson.name}" with the exect same content in the past. re-doploying again...`,
+          )
         } else {
-          return {
-            node: { ...node, data: node.data.artifact },
-            deployable: false,
-            targetType,
-            deploymentResult: async () => ({
-              stepName: StepName.deployment,
-              durationMs: Date.now() - startMs,
-              status: StepStatus.skippedAsFailed,
-              notes: ['nothing changed and deployment already failed in last builds.'],
-            }),
-          }
+          log.info(
+            `we see that we already failed to deployed the package "${node.data.artifact.packageJson.name}" with the exect same content in the past. re-doploying again...`,
+          )
         }
       }
 
@@ -240,7 +205,6 @@ async function prepareDeployments<DeploymentClient>({
 }
 
 export async function deploy<DeploymentClient>({
-  repoPath,
   executionOrder,
   graph,
   targetsInfo,
