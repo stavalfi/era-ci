@@ -21,7 +21,7 @@ export async function startCli(processArgv: string[]) {
         defaultValue: () => findProjectRoot(__dirname) as string,
       }),
     },
-    handler: async args => {
+    handler: async (args) => {
       const repoPath = path.resolve(args['repo-path'])
       const configFilePath = args['config-file']
         ? path.resolve(args['config-file'])

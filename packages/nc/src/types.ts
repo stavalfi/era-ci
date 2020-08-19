@@ -71,7 +71,7 @@ export type TargetsPublishAuth = {
 
 export enum NpmScopeAccess {
   public = 'public',
-  private = 'private',
+  restricted = 'restricted',
 }
 
 export type TargetInfo<Target extends TargetType, DeploymentClient, ServerInfoType = ServerInfo> = {
