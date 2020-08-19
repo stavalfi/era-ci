@@ -83,7 +83,7 @@ async function updateVersionAndPublish({
     }
   }
 
-  await setPackageVersion(newVersion, artifact.packageJson.version!).catch(error => {
+  await setPackageVersion(newVersion, artifact.packageJson.version!).catch((error) => {
     log.error(`failed to revert package.json back to the old version`, error)
     // log and ignore this error.
   })
@@ -126,6 +126,7 @@ async function publishNpm<DeploymentClient>({
           artifact.packageJson.name?.includes('@') ? `--access ${targetPublishInfo.npmScopeAccess}` : ''
         }`,
         {
+          stdio: 'inherit',
           cwd: artifact.packagePath,
           env: {
             // npm need this env-var for auth - this is needed only for production publishing.
@@ -222,7 +223,7 @@ async function publishDocker<DeploymentClient>({
         .command(`docker rmi ${fullImageNameNewVersion}`, {
           stdio: 'pipe',
         })
-        .catch(e =>
+        .catch((e) =>
           log.error(
             `couldn't remove image: "${fullImageNameNewVersion}" after pushing it. this failure won't fail the build.`,
             e,
@@ -264,7 +265,7 @@ export async function publish<DeploymentClient>({
       durationMs,
       executionOrder,
       status: StepStatus.skippedAsPassed,
-      packagesResult: orderedGraph.map(node => ({
+      packagesResult: orderedGraph.map((node) => ({
         ...node,
         data: {
           artifact: node.data.artifact,
@@ -285,12 +286,14 @@ export async function publish<DeploymentClient>({
       artifact: Artifact
       stepResult: PackageStepResult[StepName.test]
     }>,
-  ): Promise<() => Promise<
-    Node<{
-      artifact: Artifact
-      stepResult: PackageStepResult[StepName.publish]
-    }>
-  >> => {
+  ): Promise<
+    () => Promise<
+      Node<{
+        artifact: Artifact
+        stepResult: PackageStepResult[StepName.publish]
+      }>
+    >
+  > => {
     const targetType = node.data.artifact.targetType
 
     if (!targetType) {
@@ -446,14 +449,14 @@ export async function publish<DeploymentClient>({
     publishResult.push(await resultFunc())
   }
 
-  const withError = publishResult.filter(result => result.data.stepResult.error)
+  const withError = publishResult.filter((result) => result.data.stepResult.error)
   if (withError.length > 0) {
     log.error(
       `the following packages had an error while publishing: ${withError
-        .map(result => result.data.artifact.packageJson.name)
+        .map((result) => result.data.artifact.packageJson.name)
         .join(', ')}`,
     )
-    withError.forEach(result => {
+    withError.forEach((result) => {
       log.error(`${result.data.artifact.packageJson.name}: `, result.data.stepResult.error)
     })
   }
@@ -462,7 +465,7 @@ export async function publish<DeploymentClient>({
     stepName: StepName.publish,
     durationMs: Date.now() - startMs,
     executionOrder: executionOrder,
-    status: calculateCombinedStatus(publishResult.map(node => node.data.stepResult.status)),
+    status: calculateCombinedStatus(publishResult.map((node) => node.data.stepResult.status)),
     packagesResult: publishResult,
     notes: [],
   }

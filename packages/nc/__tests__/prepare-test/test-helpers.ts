@@ -157,7 +157,7 @@ export const addRandomFileToPackage = ({
   gitRepoAddress: string
 }) => async (packageName: string): Promise<string> => {
   const packagesPath = await getPackages(repoPath)
-  const packagePath = packagesPath.find(path => path.endsWith(toActualName(packageName)))
+  const packagePath = packagesPath.find((path) => path.endsWith(toActualName(packageName)))
   if (!packagePath) {
     throw new Error(`package "${packageName}" not found in [${packagesPath.join(', ')}]`)
   }
@@ -247,13 +247,7 @@ export const renamePackageFolder = async ({
   toActualName: ToActualName
 }): Promise<string> => {
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
-  const newPackagePath = path.join(
-    packagePath,
-    '..',
-    chance()
-      .hash()
-      .slice(0, 8),
-  )
+  const newPackagePath = path.join(packagePath, '..', chance().hash().slice(0, 8))
   await fse.rename(packagePath, newPackagePath)
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
   return newPackagePath

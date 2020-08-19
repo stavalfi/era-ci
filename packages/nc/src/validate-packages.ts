@@ -76,8 +76,8 @@ export async function validatePackages(
   const problems: string[] = []
 
   const missingNamesProblems = artifacts
-    .filter(artifact => !artifact.packageJson.name)
-    .map(artifact => `package: ${artifact.packagePath} must have a name property in the package.json`)
+    .filter((artifact) => !artifact.packageJson.name)
+    .map((artifact) => `package: ${artifact.packagePath} must have a name property in the package.json`)
 
   problems.push(...missingNamesProblems)
 

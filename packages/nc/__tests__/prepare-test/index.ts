@@ -23,9 +23,7 @@ export const newEnv: NewEnv = () => {
   const testResources = prepareTestResources()
 
   const createAndManageReo: CreateAndManageRepo = async (repo = {}) => {
-    const resourcesNamesPostfix = chance()
-      .hash()
-      .slice(0, 8)
+    const resourcesNamesPostfix = chance().hash().slice(0, 8)
 
     const toActualName = (name: string) =>
       name.endsWith(`-${resourcesNamesPostfix}`) ? name : `${name}-${resourcesNamesPostfix}`
@@ -91,14 +89,14 @@ export const newEnv: NewEnv = () => {
       npmRegistryAddress: `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`,
       runCi,
       dockerOrganizationName,
-      installAndRunNpmDependency: dependencyName =>
+      installAndRunNpmDependency: (dependencyName) =>
         installAndRunNpmDependency({
           createRepo: createAndManageReo,
           npmRegistry: testResources.get().npmRegistry,
           toActualName,
           dependencyName,
         }),
-      publishNpmPackageWithoutCi: packageName =>
+      publishNpmPackageWithoutCi: (packageName) =>
         publishNpmPackageWithoutCi({
           npmRegistry,
           npmRegistryEmail: npmRegistry.auth.email,
@@ -118,7 +116,7 @@ export const newEnv: NewEnv = () => {
           versionToUnpublish,
           toActualName,
         }),
-      removeAllNpmHashTags: packageName =>
+      removeAllNpmHashTags: (packageName) =>
         removeAllNpmHashTags({
           redisServer,
           packageName: toActualName(packageName),

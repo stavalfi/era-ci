@@ -8,7 +8,7 @@ test('npm package with scope.access=public', async () => {
   const { runCi } = await createRepo({
     packages: [
       {
-        name: 'a',
+        name: '@scope1/a',
         version: '1.0.0',
         targetType: TargetType.npm,
       },
@@ -24,14 +24,14 @@ test('npm package with scope.access=public', async () => {
       },
     },
   })
-  expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
+  expect(master.published.get('@scope1/a')?.npm?.versions).toEqual(['1.0.0'])
 })
 
 test('npm package with scope.access=private', async () => {
   const { runCi } = await createRepo({
     packages: [
       {
-        name: 'a',
+        name: '@scope1/a',
         version: '1.0.0',
         targetType: TargetType.npm,
       },
@@ -43,9 +43,9 @@ test('npm package with scope.access=private', async () => {
       npm: {
         shouldPublish: true,
         shouldDeploy: false,
-        npmScopeAccess: NpmScopeAccess.private,
+        npmScopeAccess: NpmScopeAccess.restricted,
       },
     },
   })
-  expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
+  expect(master.published.get('@scope1/a')?.npm?.versions).toEqual(['1.0.0'])
 })
