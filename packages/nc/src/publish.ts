@@ -123,7 +123,7 @@ async function publishNpm<DeploymentClient>({
     tryPublish: async () => {
       await execa.command(
         `yarn publish --registry ${npmRegistryAddress} --non-interactive ${
-          artifact.packageJson.name?.includes('@') ? '--access public' : ''
+          artifact.packageJson.name?.includes('@') ? `--access ${targetPublishInfo.npmScopeAccess}` : ''
         }`,
         {
           cwd: artifact.packagePath,
