@@ -12,7 +12,7 @@ import { startCli } from './configuration/cli'
 
 export { ConfigFileOptions, ServerInfo, TargetType, Protocol, DeployTarget, NpmScopeAccess } from './types'
 export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
-export { npmRegistryLogin } from './npm-utils'
+export { npmRegistryLogin, getNpmRegistryAddress } from './npm-utils'
 
 const log = logger('index')
 
