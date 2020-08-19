@@ -4,7 +4,6 @@ import { ServerInfo, TargetsPublishAuth, TargetType } from './types'
 import { getHighestDockerTag } from './versions'
 import isIp from 'is-ip'
 import _ from 'lodash'
-import chance from 'chance'
 
 const log = logger('docker-utils')
 

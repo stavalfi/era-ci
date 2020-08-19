@@ -42,7 +42,7 @@ async function prepareDeployments<DeploymentClient>({
   deploymentCache: Cache['deployment']
 }): Promise<PrepareDeployment<DeploymentClient>[]> {
   return Promise.all(
-    graph.map<Promise<PrepareDeployment<DeploymentClient>>>(async node => {
+    graph.map<Promise<PrepareDeployment<DeploymentClient>>>(async (node) => {
       const targetType = node.data.artifact.targetType
       if (!targetType) {
         return {
@@ -260,14 +260,14 @@ export async function deploy<DeploymentClient>({
     !targetsInfo ||
     Object.values(targetsInfo)
       .filter(Boolean)
-      .map(targetInfo => targetInfo?.shouldDeploy).length === 0
+      .map((targetInfo) => targetInfo?.shouldDeploy).length === 0
   ) {
     return {
       stepName: StepName.deployment,
       durationMs: Date.now() - startMs,
       executionOrder,
       status: StepStatus.skippedAsPassed,
-      packagesResult: graph.map(node => ({
+      packagesResult: graph.map((node) => ({
         ...node,
         data: {
           artifact: node.data.artifact,
@@ -304,8 +304,8 @@ export async function deploy<DeploymentClient>({
       >(async ([key, value]) => [
         key,
         await value.initializeDeploymentClient().then(
-          deploymentClient => ({ deploymentClient }),
-          error => ({ error }),
+          (deploymentClient) => ({ deploymentClient }),
+          (error) => ({ error }),
         ),
       ]),
     ),
@@ -324,7 +324,7 @@ export async function deploy<DeploymentClient>({
   if (initializeWithErrors.length > 0) {
     log.error(
       `the following target-types had an error while calling to "initializeDeploymentClient" (inside nc.config file): ${initializeWithErrors
-        .map(result => result[0])
+        .map((result) => result[0])
         .join(', ')}`,
     )
     initializeWithErrors.forEach(([targetType, error]) => {
@@ -335,7 +335,7 @@ export async function deploy<DeploymentClient>({
       durationMs: Date.now() - startMs,
       executionOrder,
       status: StepStatus.failed,
-      packagesResult: graph.map(node => ({
+      packagesResult: graph.map((node) => ({
         ...node,
         data: {
           artifact: node.data.artifact,
@@ -369,7 +369,7 @@ export async function deploy<DeploymentClient>({
     artifact: Artifact
     stepResult: PackageStepResult[StepName.deployment]
   }> = await Promise.all(
-    prepares.map(async prepare => {
+    prepares.map(async (prepare) => {
       if (prepare.targetType && prepare.deployable) {
         const deploymentClient = deploymentClientsByTargetType[prepare.targetType]
         return {
@@ -391,14 +391,14 @@ export async function deploy<DeploymentClient>({
     }),
   )
 
-  const deployWithError = deploymentResults.filter(result => result.data.stepResult.error)
+  const deployWithError = deploymentResults.filter((result) => result.data.stepResult.error)
   if (deployWithError.length > 0) {
     log.error(
       `the following packages had an error while deploying: ${deployWithError
-        .map(result => result.data.artifact.packageJson.name)
+        .map((result) => result.data.artifact.packageJson.name)
         .join(', ')}`,
     )
-    deployWithError.forEach(result => {
+    deployWithError.forEach((result) => {
       log.error(`${result.data.artifact.packageJson.name}: `, result.data.stepResult.error)
     })
   }
@@ -411,7 +411,7 @@ export async function deploy<DeploymentClient>({
             .destroyDeploymentClient({ deploymentClient: deploymentClientsByTargetType[targetType] })
             .then(
               () => null,
-              error => error,
+              (error) => error,
             )
           if (error) {
             return { [targetType]: error }
@@ -426,7 +426,7 @@ export async function deploy<DeploymentClient>({
   if (destroyErrors.length > 0) {
     log.error(
       `the following target-types had an error while calling "destroyDeploymentClient" (inside nc.config file): ${destroyErrors
-        .map(result => result[0])
+        .map((result) => result[0])
         .join(', ')}`,
     )
     destroyErrors.forEach(([targetType, error]) => {
@@ -447,7 +447,7 @@ export async function deploy<DeploymentClient>({
     stepName: StepName.deployment,
     durationMs: Date.now() - startMs,
     executionOrder,
-    status: calculateCombinedStatus(deploymentResults.map(node => node.data.stepResult.status)),
+    status: calculateCombinedStatus(deploymentResults.map((node) => node.data.stepResult.status)),
     packagesResult: deploymentResults,
     notes: [],
   }

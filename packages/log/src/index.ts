@@ -22,7 +22,7 @@ const consoleTransport = new winston.transports.Console({
   format: combine(
     timestamp(),
     winston.format.colorize(),
-    printf(log => {
+    printf((log) => {
       const base = `${log.timestamp} [${randomModuleColor(log.module)}] ${log.level}`
       if (log.stack) {
         // workaround to print error with stacktrace: https://github.com/winstonjs/winston/issues/1338#issuecomment-643473267
@@ -68,10 +68,10 @@ export const logger = (module: string): Log => {
         log.error(message, error instanceof Error ? error : { unknownErrorType: error })
       }
     },
-    info: message => {
+    info: (message) => {
       log.info(message)
     },
-    verbose: message => {
+    verbose: (message) => {
       log.verbose(message)
     },
   }

@@ -25,7 +25,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
     const packagesPath = await getPackages(options.repoPath)
 
     const artifacts = await Promise.all(
-      packagesPath.map(async packagePath => {
+      packagesPath.map(async (packagePath) => {
         const packageJson: IPackageJson = await fse.readJSON(path.join(packagePath, 'package.json'))
         return {
           packagePath,
@@ -97,7 +97,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
         },
         {
           stopPipelineOnFailure: false,
-          runStep: stepsResultUntilNow =>
+          runStep: (stepsResultUntilNow) =>
             publish({
               orderedGraph: stepsResultUntilNow.test!.packagesResult,
               repoPath: options.repoPath,
@@ -108,7 +108,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
         },
         {
           stopPipelineOnFailure: false,
-          runStep: stepsResultUntilNow =>
+          runStep: (stepsResultUntilNow) =>
             deploy<DeploymentClient>({
               graph: stepsResultUntilNow.publish!.packagesResult,
               repoPath: options.repoPath,

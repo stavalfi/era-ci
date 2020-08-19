@@ -61,8 +61,8 @@ export function shouldFailCi(
   },
 ): boolean {
   return Object.values(steps)
-    .filter(step => step)
-    .some(step =>
+    .filter((step) => step)
+    .some((step) =>
       [StepStatus.skippedAsFailed, StepStatus.failed, StepStatus.skippedAsFailedBecauseLastStepFailed].includes(
         step!.status,
       ),
@@ -75,8 +75,8 @@ export async function getPackages(repoPath: string): Promise<string[]> {
   })
   const workspacesInfo: { location: string }[] = JSON.parse(JSON.parse(result.stdout).data)
   return Object.values(workspacesInfo)
-    .map(workspaceInfo => workspaceInfo.location)
-    .map(relativePackagePath => path.join(repoPath, relativePackagePath))
+    .map((workspaceInfo) => workspaceInfo.location)
+    .map((relativePackagePath) => path.join(repoPath, relativePackagePath))
 }
 
 export async function getOrderedGraph<DeploymentClient>({
@@ -99,7 +99,7 @@ export async function getOrderedGraph<DeploymentClient>({
     artifacts.map(({ packagePath }) => packagePath),
   )
   const result = await Promise.all(
-    orderedGraph.map(async node => ({
+    orderedGraph.map(async (node) => ({
       ...node,
       data: {
         artifact: await getPackageInfo({
@@ -115,9 +115,9 @@ export async function getOrderedGraph<DeploymentClient>({
     })),
   )
   log.verbose(
-    `${orderedGraph.length} packages: ${orderedGraph.map(node => `"${node.data.packageJson.name}"`).join(', ')}`,
+    `${orderedGraph.length} packages: ${orderedGraph.map((node) => `"${node.data.packageJson.name}"`).join(', ')}`,
   )
-  result.forEach(node => {
+  result.forEach((node) => {
     log.verbose(
       `${node.data.artifact.relativePackagePath} (${node.data.artifact.packageJson.name}): ${JSON.stringify(
         {
@@ -185,7 +185,7 @@ export async function install({
       durationMs,
       notes: [`project must have yarn.lock file in the root folder of the repository`],
       status: StepStatus.failed,
-      packagesResult: graph.map(node => ({
+      packagesResult: graph.map((node) => ({
         ...node,
         data: {
           ...node.data,
@@ -214,7 +214,7 @@ export async function install({
     durationMs,
     notes: result.failed ? ['failed to install'] : [],
     status: result.failed ? StepStatus.failed : StepStatus.passed,
-    packagesResult: graph.map(node => ({
+    packagesResult: graph.map((node) => ({
       ...node,
       data: {
         ...node.data,
@@ -259,7 +259,7 @@ export async function build({
       notes: result.failed ? ['failed to run build-script in root package.json'] : [],
       status: result.failed ? StepStatus.failed : StepStatus.passed,
       executionOrder,
-      packagesResult: graph.map(node => ({
+      packagesResult: graph.map((node) => ({
         ...node,
         data: {
           ...node.data,
@@ -280,7 +280,7 @@ export async function build({
       durationMs: Date.now() - startMs,
       notes: ['no build-script in root package.json'],
       status: StepStatus.skippedAsPassed,
-      packagesResult: graph.map(node => ({
+      packagesResult: graph.map((node) => ({
         ...node,
         data: {
           ...node.data,
@@ -299,7 +299,7 @@ export async function build({
 
 export async function cleanup(cleanups: Cleanup[]): Promise<void> {
   await Promise.all(
-    cleanups.map(func =>
+    cleanups.map((func) =>
       func().catch(() => {
         // ignore errors
       }),
