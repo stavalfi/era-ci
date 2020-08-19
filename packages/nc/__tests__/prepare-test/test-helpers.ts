@@ -4,7 +4,7 @@ import fse from 'fs-extra'
 import Redis from 'ioredis'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
-import { buildFullDockerImageName, npmRegistryLogin } from '../../src'
+import { buildFullDockerImageName, npmRegistryLogin, getNpmRegistryAddress } from '../../src'
 import { CacheTypes, ServerInfo } from '../../src/types'
 import { CreateAndManageRepo, MinimalNpmPackage, TargetType, ToActualName } from './types'
 import { getPackagePath, getPackages, ignore } from './utils'
@@ -72,7 +72,7 @@ export async function publishNpmPackageWithoutCi({
     npmRegistryUsername,
     silent: true,
   })
-  const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
+  const npmRegistryAddress = getNpmRegistryAddress(npmRegistry)
   await execa.command(`npm publish --registry ${npmRegistryAddress}`, {
     stdio: 'pipe',
     cwd: packagePath,
@@ -140,7 +140,7 @@ export async function unpublishNpmPackage({
     npmRegistryUsername,
     silent: true,
   })
-  const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
+  const npmRegistryAddress = getNpmRegistryAddress(npmRegistry)
   await execa.command(
     `npm unpublish ${toActualName(packageName)}@${versionToUnpublish} --registry ${npmRegistryAddress}`,
     { stdio: 'pipe' },
