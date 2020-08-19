@@ -51,6 +51,7 @@ export async function publishedDockerImageTags(
   packageJsonName: string,
   dockerOrganizationName: string,
   dockerRegistry: ServerInfo,
+  repoPath: string,
 ): Promise<string[]> {
   try {
     const result = await getDockerImageLabelsAndTags({
@@ -62,6 +63,7 @@ export async function publishedDockerImageTags(
         username: '',
         token: '',
       },
+      repoPath,
     })
     const tags = result?.allTags.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
     const sorted = semver.sort(tags.filter((tag) => tag !== 'latest')).concat(tags.includes('latest') ? ['latest'] : [])

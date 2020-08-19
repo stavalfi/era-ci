@@ -10,10 +10,12 @@ async function buildNpmTarget({
   packageJson,
   npmRegistry,
   packagePath,
+  repoPath,
 }: {
   packageJson: IPackageJson
   npmRegistry: ServerInfo
   packagePath: string
+  repoPath: string
 }): Promise<TargetToPublish<TargetType.npm>> {
   if (!packageJson.name) {
     throw new Error(`package.json of: ${packagePath} must have a name property.`)
@@ -21,7 +23,7 @@ async function buildNpmTarget({
   if (!packageJson.version) {
     throw new Error(`package.json of: ${packagePath} must have a version property.`)
   }
-  const npmhighestVersionInfo = await getNpmhighestVersionInfo(packageJson.name, npmRegistry)
+  const npmhighestVersionInfo = await getNpmhighestVersionInfo(packageJson.name, npmRegistry, repoPath)
   return {
     targetType: TargetType.npm,
     newVersionIfPublish: calculateNewVersion({
@@ -39,12 +41,14 @@ async function buildDockerTarget({
   dockerRegistry,
   packagePath,
   publishAuth,
+  repoPath,
 }: {
   packageJson: IPackageJson
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
   packagePath: string
   publishAuth: TargetsPublishAuth[TargetType.docker]
+  repoPath: string
 }): Promise<TargetToPublish<TargetType.docker>> {
   if (!packageJson.name) {
     throw new Error(`package.json of: ${packagePath} must have a name property.`)
@@ -58,6 +62,7 @@ async function buildDockerTarget({
     dockerOrganizationName,
     packageJsonName: packageJson.name,
     publishAuth,
+    repoPath,
   })
 
   return {
@@ -94,6 +99,7 @@ type GetPackageInfoOptions<DeploymentClient> = {
   packageJson: IPackageJson
   targetType?: TargetType
   targetsInfo?: TargetsInfo<DeploymentClient>
+  repoPath: string
 }
 
 export async function getPackageInfo<DeploymentClient>({
@@ -103,6 +109,7 @@ export async function getPackageInfo<DeploymentClient>({
   relativePackagePath,
   targetType,
   targetsInfo,
+  repoPath,
 }: GetPackageInfoOptions<DeploymentClient>): Promise<Artifact> {
   const base = {
     relativePackagePath,
@@ -123,6 +130,7 @@ export async function getPackageInfo<DeploymentClient>({
             packagePath,
             npmRegistry: targetsInfo.npm.registry,
             packageJson,
+            repoPath,
           }),
         }
       } else {
@@ -138,6 +146,7 @@ export async function getPackageInfo<DeploymentClient>({
             dockerRegistry: targetsInfo.docker.registry,
             packageJson,
             publishAuth: targetsInfo.docker.publishAuth,
+            repoPath,
           }),
         }
       } else {
