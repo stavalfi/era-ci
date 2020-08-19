@@ -70,12 +70,14 @@ function createPackageJson({
 }
 
 function createPackages({ toActualName, repo }: { repo: Repo; toActualName: ToActualName }) {
-  const isFromThisMonorepo = (depName: string) => Boolean(repo.packages?.some(artifact => artifact.name === depName))
+  const isFromThisMonorepo = (depName: string) => Boolean(repo.packages?.some((artifact) => artifact.name === depName))
 
   return Object.fromEntries(
-    repo.packages?.map(artifact => {
+    repo.packages?.map((artifact) => {
+      const packageName = toActualName(artifact.name)
+      const packageDirName = packageName.replace('/', '-').replace('@', '')
       return [
-        toActualName(artifact.name),
+        packageDirName,
         {
           'package.json': createPackageJson({
             artifact,
@@ -112,9 +114,7 @@ export async function createRepo({
   toActualName: ToActualName
 }) {
   const repoOrg = toActualName('org')
-  const repoName = `repo-${chance()
-    .hash()
-    .slice(0, 8)}`
+  const repoName = `repo-${chance().hash().slice(0, 8)}`
   const packagesFolderName = 'packages'
   const subPackagesFolderName = 'more-packages'
 

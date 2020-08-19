@@ -35,7 +35,7 @@ export function generateJsonReport({
   const reportResult: PackagesStepResult<StepName.report> = {
     stepName: StepName.report,
     durationMs: reportDurationMs,
-    packagesResult: graph.map(node => ({
+    packagesResult: graph.map((node) => ({
       ...node,
       data: {
         artifact: node.data.artifact,
@@ -55,13 +55,13 @@ export function generateJsonReport({
   const allSteps = { ...steps, [StepName.report]: reportResult }
 
   // make sure all the graphs are orders the same as `graph`
-  Object.values(allSteps).forEach(value =>
+  Object.values(allSteps).forEach((value) =>
     value?.packagesResult
       .slice()
       .sort((a: Node<{}>, b: Node<{}>) => (a.index < b.index ? -1 : a.index > b.index ? 1 : 0)),
   )
 
-  const finalGraph: JsonReport['graph'] = graph.map(node => {
+  const finalGraph: JsonReport['graph'] = graph.map((node) => {
     const packageSteps = Object.fromEntries(
       Object.entries(allSteps)
         .filter(([, stepResult]) => stepResult)
@@ -70,12 +70,12 @@ export function generateJsonReport({
 
     const stepsSummary: StepsSummary = {
       durationMs: Object.values(packageSteps)
-        .map(stepResult => stepResult.durationMs)
+        .map((stepResult) => stepResult.durationMs)
         .reduce((acc, d) => acc + d, 0),
       notes: Object.values(packageSteps)
-        .filter(step => step)
-        .flatMap(step => step!.notes.map(note => `${step!.stepName} - ${note}`)),
-      status: calculateCombinedStatus(Object.values(packageSteps).map(step => step.status)),
+        .filter((step) => step)
+        .flatMap((step) => step!.notes.map((note) => `${step!.stepName} - ${note}`)),
+      status: calculateCombinedStatus(Object.values(packageSteps).map((step) => step.status)),
     }
 
     const data: {
@@ -98,7 +98,7 @@ export function generateJsonReport({
 
   const summaryNotes = Object.entries(allSteps)
     .filter(([, stepResult]) => stepResult)
-    .flatMap(([stepName, stepResult]) => stepResult!.notes.map(note => `${stepName} - ${note}`))
+    .flatMap(([stepName, stepResult]) => stepResult!.notes.map((note) => `${stepName} - ${note}`))
 
   const summary: JsonReport['summary'] = {
     durationMs: durationUntilNowMs + reportDurationMs,

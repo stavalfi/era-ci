@@ -7,7 +7,7 @@ import fse from 'fs-extra'
 function getConfigValidationObject() {
   const npmTargetInfoBaseValidation = {
     shouldPublish: boolean(),
-    npmScopeAccess: optional(union([literal(NpmScopeAccess.public), literal(NpmScopeAccess.private)])),
+    npmScopeAccess: optional(union([literal(NpmScopeAccess.public), literal(NpmScopeAccess.restricted)])),
     registry: string(),
     // todo: it should be a opnion type similar to the typescript type.
     //       i don't use it here because when the user is wrong, they error is not clear.
