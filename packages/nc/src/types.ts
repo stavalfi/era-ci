@@ -69,6 +69,11 @@ export type TargetsPublishAuth = {
   }
 }
 
+export enum NpmScopeAccess {
+  public = 'public',
+  private = 'private',
+}
+
 export type TargetInfo<Target extends TargetType, DeploymentClient, ServerInfoType = ServerInfo> = {
   shouldPublish: boolean
   registry: ServerInfoType
@@ -80,6 +85,11 @@ export type TargetInfo<Target extends TargetType, DeploymentClient, ServerInfoTy
   (Target extends TargetType.docker
     ? {
         dockerOrganizationName: string
+      }
+    : {}) &
+  (Target extends TargetType.npm
+    ? {
+        npmScopeAccess: NpmScopeAccess
       }
     : {})
 

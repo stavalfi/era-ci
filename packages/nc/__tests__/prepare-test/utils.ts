@@ -2,7 +2,7 @@ import chance from 'chance'
 import execa from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
-import { ConfigFileOptions, DeployTarget, ServerInfo, TargetType } from '../../src/index'
+import { ConfigFileOptions, DeployTarget, ServerInfo, TargetType, NpmScopeAccess } from '../../src/index'
 import { GitServer } from './git-server-testkit'
 import { commitAllAndPushChanges } from './test-helpers'
 import { TestOptions, ToActualName, ResultingArtifact, EditConfig } from './types'
@@ -68,6 +68,7 @@ export async function createConfigFile({
     targetsInfo: {
       npm: targetsInfo?.npm && {
         shouldPublish: targetsInfo.npm.shouldPublish,
+        npmScopeAccess: targetsInfo.npm.npmScopeAccess || NpmScopeAccess.public,
         registry: `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`,
         publishAuth: npmRegistry.auth,
         ...(targetsInfo.npm.shouldDeploy
