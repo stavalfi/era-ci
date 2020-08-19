@@ -110,6 +110,7 @@ export async function getOrderedGraph<DeploymentClient>({
           packageJson: node.data.packageJson,
           relativePackagePath: node.data.relativePackagePath,
           targetsInfo,
+          repoPath,
         }),
       },
     })),

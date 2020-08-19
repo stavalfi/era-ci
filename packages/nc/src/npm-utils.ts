@@ -23,12 +23,14 @@ export async function npmRegistryLogin({
   npmRegistryToken,
   npmRegistryUsername,
   silent,
+  repoPath,
 }: {
   silent?: boolean
   npmRegistry: ServerInfo
   npmRegistryUsername: string
   npmRegistryToken: string
   npmRegistryEmail: string
+  repoPath: string
 }): Promise<void> {
   const npmRegistryAddress = getNpmRegistryAddress(npmRegistry)
   // only login in tests. publishing in non-interactive mode is very buggy and tricky.
@@ -44,6 +46,7 @@ export async function npmRegistryLogin({
     // `npm-login-noninteractive` has a node-api but it prints logs so this is ugly workaround to avoid printing the logs
     await execa.command(
       `${npmLoginPath} -u ${npmRegistryUsername} -p ${npmRegistryToken} -e ${npmRegistryEmail} -r ${npmRegistryAddress}`,
+      { cwd: repoPath },
     )
     if (!silent) {
       log.verbose(`logged in to npm-registry: "${npmRegistryAddress}"`)
@@ -56,6 +59,7 @@ export async function npmRegistryLogin({
 export async function getNpmhighestVersionInfo(
   packageName: string,
   npmRegistry: ServerInfo,
+  repoPath: string,
 ): Promise<
   | {
       highestVersion?: string
@@ -66,7 +70,7 @@ export async function getNpmhighestVersionInfo(
   try {
     const command = `npm view ${packageName} --json --registry ${getNpmRegistryAddress(npmRegistry)}`
     log.verbose(`searching the latest tag and hash: "${command}"`)
-    const result = await execa.command(command)
+    const result = await execa.command(command, { cwd: repoPath })
     const resultJson = JSON.parse(result.stdout) || {}
     const allVersions: string[] = resultJson['versions'] || []
     const distTags = resultJson['dist-tags'] as { [key: string]: string }
@@ -93,14 +97,16 @@ export async function isNpmVersionAlreadyPulished({
   npmRegistry,
   packageName,
   packageVersion,
+  repoPath,
 }: {
   packageName: string
   packageVersion: string
   npmRegistry: ServerInfo
+  repoPath: string
 }) {
   const command = `npm view ${packageName}@${packageVersion} --json --registry ${getNpmRegistryAddress(npmRegistry)}`
   try {
-    const { stdout } = await execa.command(command)
+    const { stdout } = await execa.command(command, { cwd: repoPath })
     return Boolean(stdout) // for some reaosn, if the version is not found, it doesn't throw an error. but the stdout is empty.
   } catch (e) {
     if (e.message.includes('code E404')) {

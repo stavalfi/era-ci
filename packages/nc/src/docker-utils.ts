@@ -8,10 +8,12 @@ import _ from 'lodash'
 const log = logger('docker-utils')
 
 export async function dockerRegistryLogin({
+  repoPath,
   dockerRegistry,
   dockerRegistryToken,
   dockerRegistryUsername,
 }: {
+  repoPath: string
   dockerRegistryUsername?: string
   dockerRegistryToken?: string
   dockerRegistry: ServerInfo
@@ -26,6 +28,7 @@ export async function dockerRegistryLogin({
       `docker login --username=${dockerRegistryUsername} --password=${dockerRegistryToken} ${dockerRegistryAddress}`,
       {
         stdio: 'pipe',
+        cwd: repoPath,
       },
     )
     log.verbose('logged in to docker-registry')
@@ -36,8 +39,8 @@ export const buildDockerImageName = (packageJsonName: string) => {
   return packageJsonName.replace('/', '-').replace('@', '')
 }
 
-async function runSkopeoCommand(command: string): Promise<string> {
-  const { stdout: result } = await execa.command(`skopeo ${command}`)
+async function runSkopeoCommand(command: string, repoPath: string): Promise<string> {
+  const { stdout: result } = await execa.command(`skopeo ${command}`, { cwd: repoPath })
   return result
 }
 
@@ -74,12 +77,14 @@ export async function getDockerImageLabelsAndTags({
   dockerRegistry,
   silent,
   publishAuth,
+  repoPath,
 }: {
   packageJsonName: string
   dockerOrganizationName: string
   dockerRegistry: ServerInfo
   silent?: boolean
   publishAuth: TargetsPublishAuth[TargetType.docker]
+  repoPath: string
 }): Promise<{ latestHash?: string; latestTag?: string; allTags: string[] } | undefined> {
   const fullImageNameWithoutTag = buildFullDockerImageName({
     dockerOrganizationName,
@@ -96,6 +101,7 @@ export async function getDockerImageLabelsAndTags({
       `list-tags ${withAuth} ${
         dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
       } docker://${fullImageNameWithoutTag}`,
+      repoPath,
     )
     const tagsResultJson = JSON.parse(tagsResult || '{}')
     const allTags = tagsResultJson?.Tags || []
@@ -115,6 +121,7 @@ export async function getDockerImageLabelsAndTags({
 
     const stdout = await runSkopeoCommand(
       `inspect ${withAuth} ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
+      repoPath,
     )
 
     const LabelsResult = JSON.parse(stdout)
@@ -165,12 +172,14 @@ export async function isDockerVersionAlreadyPulished({
   dockerOrganizationName,
   dockerRegistry,
   publishAuth,
+  repoPath,
 }: {
   packageName: string
   imageTag: string
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
   publishAuth: TargetsPublishAuth[TargetType.docker]
+  repoPath: string
 }) {
   const fullImageName = buildFullDockerImageName({
     dockerOrganizationName,
@@ -184,6 +193,7 @@ export async function isDockerVersionAlreadyPulished({
 
     await runSkopeoCommand(
       `inspect ${withAuth} ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
+      repoPath,
     )
     return true
   } catch (e) {
