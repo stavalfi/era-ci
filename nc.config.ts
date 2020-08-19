@@ -42,9 +42,11 @@ export default async (): Promise<ConfigFileOptions<void>> => {
         password: REDIS_PASSWORD!,
       },
     },
+    // @ts-expect-error // i cant import NpmScopeAccess - need to fix it
     targetsInfo: {
       npm: {
         shouldPublish,
+        npmScopeAccess: 'public',
         registry: `https://registry.npmjs.com/`,
         publishAuth: {
           email: 'stavalfi@gmail.com',
