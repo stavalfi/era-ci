@@ -115,6 +115,7 @@ export const newEnv: NewEnv = () => {
           packageName,
           versionToUnpublish,
           toActualName,
+          repoPath,
         }),
       removeAllNpmHashTags: (packageName) =>
         removeAllNpmHashTags({

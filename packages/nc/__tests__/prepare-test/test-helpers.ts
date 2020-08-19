@@ -71,6 +71,7 @@ export async function publishNpmPackageWithoutCi({
     npmRegistryToken,
     npmRegistryUsername,
     silent: true,
+    repoPath,
   })
   const npmRegistryAddress = getNpmRegistryAddress(npmRegistry)
   await execa.command(`npm publish --registry ${npmRegistryAddress}`, {
@@ -124,6 +125,7 @@ export async function unpublishNpmPackage({
   packageName,
   toActualName,
   versionToUnpublish,
+  repoPath,
 }: {
   packageName: string
   npmRegistry: ServerInfo
@@ -132,6 +134,7 @@ export async function unpublishNpmPackage({
   npmRegistryEmail: string
   toActualName: ToActualName
   versionToUnpublish: string
+  repoPath: string
 }): Promise<void> {
   await npmRegistryLogin({
     npmRegistry,
@@ -139,6 +142,7 @@ export async function unpublishNpmPackage({
     npmRegistryToken,
     npmRegistryUsername,
     silent: true,
+    repoPath,
   })
   const npmRegistryAddress = getNpmRegistryAddress(npmRegistry)
   await execa.command(

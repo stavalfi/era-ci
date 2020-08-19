@@ -47,7 +47,7 @@ export default async (): Promise<ConfigFileOptions<void>> => {
       npm: {
         shouldPublish,
         npmScopeAccess: 'public',
-        registry: `https://registry.npmjs.com/`,
+        registry: `https://registry.npmjs.org/`,
         publishAuth: {
           email: 'stavalfi@gmail.com',
           username: NPM_USERNAME!,
