@@ -46,6 +46,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
         dockerRegistry: options.targetsInfo.docker.registry,
         dockerRegistryUsername: options.targetsInfo.docker.publishAuth.username,
         dockerRegistryToken: options.targetsInfo.docker.publishAuth.token,
+        repoPath: options.repoPath,
       })
     }
 
@@ -55,6 +56,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
         npmRegistryUsername: options.targetsInfo.npm.publishAuth.username,
         npmRegistryToken: options.targetsInfo.npm.publishAuth.token,
         npmRegistryEmail: options.targetsInfo.npm.publishAuth.email,
+        repoPath: options.repoPath,
       })
     }
 
@@ -62,6 +64,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
       flowId: options.flowId,
       redis: options.redis,
       targetsInfo: options.targetsInfo,
+      repoPath: options.repoPath,
     })
 
     cleanups.push(cache.cleanup)
