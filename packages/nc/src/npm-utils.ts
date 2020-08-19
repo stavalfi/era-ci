@@ -9,6 +9,14 @@ import _ from 'lodash'
 
 const log = logger('npm-utils')
 
+export function getNpmRegistryAddress(npmRegistry: ServerInfo): string {
+  if (isIp.v4(npmRegistry.host) || npmRegistry.host === 'localhost') {
+    return `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
+  } else {
+    return `${npmRegistry.protocol}://${npmRegistry.host}`
+  }
+}
+
 export async function npmRegistryLogin({
   npmRegistry,
   npmRegistryEmail,
@@ -22,8 +30,7 @@ export async function npmRegistryLogin({
   npmRegistryToken: string
   npmRegistryEmail: string
 }): Promise<void> {
-  const withPort = isIp.v4(npmRegistry.host) || npmRegistry.host === 'localhost' ? `:${npmRegistry.port}` : ''
-  const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}${withPort}`
+  const npmRegistryAddress = getNpmRegistryAddress(npmRegistry)
   // only login in tests. publishing in non-interactive mode is very buggy and tricky.
   // ---------------------------------------------------------------------------------
   // it's an ugly why to check if we are in a test but at least,
@@ -57,7 +64,7 @@ export async function getNpmhighestVersionInfo(
   | undefined
 > {
   try {
-    const command = `npm view ${packageName} --json --registry ${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
+    const command = `npm view ${packageName} --json --registry ${getNpmRegistryAddress(npmRegistry)}`
     log.verbose(`searching the latest tag and hash: "${command}"`)
     const result = await execa.command(command)
     const resultJson = JSON.parse(result.stdout) || {}
@@ -91,7 +98,7 @@ export async function isNpmVersionAlreadyPulished({
   packageVersion: string
   npmRegistry: ServerInfo
 }) {
-  const command = `npm view ${packageName}@${packageVersion} --json --registry ${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
+  const command = `npm view ${packageName}@${packageVersion} --json --registry ${getNpmRegistryAddress(npmRegistry)}`
   try {
     const { stdout } = await execa.command(command)
     return Boolean(stdout) // for some reaosn, if the version is not found, it doesn't throw an error. but the stdout is empty.

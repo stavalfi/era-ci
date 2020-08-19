@@ -1,5 +1,5 @@
 import chance from 'chance'
-import { buildFullDockerImageName } from '../../src'
+import { buildFullDockerImageName, getNpmRegistryAddress } from '../../src'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'
 import {
@@ -86,7 +86,7 @@ export const newEnv: NewEnv = () => {
           repoPath,
           gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
         }),
-      npmRegistryAddress: `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`,
+      npmRegistryAddress: getNpmRegistryAddress(npmRegistry),
       runCi,
       dockerOrganizationName,
       installAndRunNpmDependency: (dependencyName) =>
