@@ -1,12 +1,13 @@
 import execa from 'execa'
 import path from 'path'
-import { boolean, func, is, object, optional, string, validate } from 'superstruct'
-import { ConfigFileOptions } from '../types'
+import { boolean, func, is, object, optional, string, validate, union, literal } from 'superstruct'
+import { ConfigFileOptions, NpmScopeAccess } from '../types'
 import fse from 'fs-extra'
 
 function getConfigValidationObject() {
   const npmTargetInfoBaseValidation = {
     shouldPublish: boolean(),
+    npmScopeAccess: optional(union([literal(NpmScopeAccess.public), literal(NpmScopeAccess.private)])),
     registry: string(),
     // todo: it should be a opnion type similar to the typescript type.
     //       i don't use it here because when the user is wrong, they error is not clear.

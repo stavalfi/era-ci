@@ -1,7 +1,7 @@
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap, IPackageJson } from 'package-json-type'
 import execa, { StdioOption } from 'execa'
-import { ServerInfo, TargetType, ConfigFileOptions } from '../../src/index'
+import { ServerInfo, TargetType, ConfigFileOptions, NpmScopeAccess } from '../../src/index'
 
 export { TargetType }
 
@@ -46,7 +46,12 @@ export type TestOptions = {
           deploymentStrigifiedSection: string
         }
       | { shouldDeploy: false; deploymentStrigifiedSection?: string }
-    )
+    ) &
+      (target extends TargetType.npm
+        ? {
+            npmScopeAccess?: NpmScopeAccess
+          }
+        : {})
   }
   execaOptions?: {
     stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
