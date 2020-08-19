@@ -176,7 +176,7 @@ export async function runCiUsingConfigFile({
         const [versions, highestVersion, tags] = await Promise.all([
           publishedNpmPackageVersions(packageName, npmRegistry),
           latestNpmPackageVersion(packageName, npmRegistry),
-          publishedDockerImageTags(packageName, dockerOrganizationName, dockerRegistry),
+          publishedDockerImageTags(packageName, dockerOrganizationName, dockerRegistry, repoPath),
         ])
         return [
           toOriginalName(packageName),

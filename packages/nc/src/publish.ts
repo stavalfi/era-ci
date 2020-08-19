@@ -205,6 +205,7 @@ async function publishDocker<DeploymentClient>({
 
       try {
         await execa.command(`docker push ${fullImageNameNewVersion}`, {
+          cwd: artifact.packagePath,
           stdio: 'inherit',
         })
       } catch (error) {

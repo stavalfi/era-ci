@@ -192,12 +192,14 @@ type IntializeCacheOptions<DeploymentClient> = {
   flowId: string
   redis: CiOptions<DeploymentClient>['redis']
   targetsInfo?: TargetsInfo<DeploymentClient>
+  repoPath: string
 }
 
 export async function intializeCache<DeploymentClient>({
   flowId,
   redis,
   targetsInfo,
+  repoPath,
 }: IntializeCacheOptions<DeploymentClient>): Promise<Cache> {
   const nodeCache = new NodeCache()
 
@@ -262,7 +264,7 @@ export async function intializeCache<DeploymentClient>({
         get,
         targetType: TargetType.npm,
         isInRegistry: (packageName, packageVersion) =>
-          isNpmVersionAlreadyPulished({ packageName, packageVersion, npmRegistry: registry }),
+          isNpmVersionAlreadyPulished({ packageName, packageVersion, npmRegistry: registry, repoPath }),
       }),
       setAsPublished: setAsPublished({
         set,
@@ -287,6 +289,7 @@ export async function intializeCache<DeploymentClient>({
             imageTag: packageVersion,
             packageName,
             publishAuth: targetInfo.publishAuth,
+            repoPath,
           }),
       }),
       setAsPublished: setAsPublished({ set, targetType: TargetType.docker }),
