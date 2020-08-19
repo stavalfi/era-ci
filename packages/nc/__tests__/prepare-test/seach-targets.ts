@@ -1,14 +1,14 @@
 import execa from 'execa'
 import semver from 'semver'
 import { getDockerImageLabelsAndTags } from '../../src/docker-utils'
-import { ServerInfo } from '../../src/types'
+import { ServerInfo, getNpmRegistryAddress } from '../../src'
 
 export async function latestNpmPackageDistTags(
   packageName: string,
   npmRegistry: ServerInfo,
 ): Promise<{ [key: string]: string } | undefined> {
   try {
-    const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
+    const npmRegistryAddress = getNpmRegistryAddress(npmRegistry)
 
     const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`, {
       stdio: 'pipe',
@@ -33,7 +33,7 @@ export async function latestNpmPackageVersion(
 
 export async function publishedNpmPackageVersions(packageName: string, npmRegistry: ServerInfo): Promise<string[]> {
   try {
-    const npmRegistryAddress = `${npmRegistry.protocol}://${npmRegistry.host}:${npmRegistry.port}`
+    const npmRegistryAddress = getNpmRegistryAddress(npmRegistry)
     const command = `npm view ${packageName} --json --registry ${npmRegistryAddress}`
     const result = await execa.command(command, { stdio: 'pipe' })
     const resultJson = JSON.parse(result.stdout) || {}
