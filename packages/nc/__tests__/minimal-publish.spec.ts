@@ -181,7 +181,7 @@ test('no addtional publish of the same package with the exact same content', asy
   })
   expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
 
-  await modifyPackageJson('a', packageJson => ({
+  await modifyPackageJson('a', (packageJson) => ({
     ...packageJson,
     author: 'stav',
   }))
@@ -197,7 +197,7 @@ test('no addtional publish of the same package with the exact same content', asy
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
   expect(master2.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')
 
-  await modifyPackageJson('a', packageJson => {
+  await modifyPackageJson('a', (packageJson) => {
     const shallowCopy = { ...packageJson }
     delete shallowCopy.author
     return shallowCopy
