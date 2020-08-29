@@ -27,6 +27,7 @@ function getConfigValidationObject() {
   }
 
   return object({
+    logFilePath: string(),
     git: object({
       auth: object({
         username: string(),

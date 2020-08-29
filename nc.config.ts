@@ -30,6 +30,7 @@ export default async (): Promise<ConfigFileOptions<void>> => {
   const shouldDeploy = false
 
   return {
+    logFilePath: './nc.log',
     git: {
       auth: {
         username: GIT_SERVER_USERNAME!,

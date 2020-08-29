@@ -1,4 +1,4 @@
-import { logger } from '@tahini/log'
+import { logger, attachLogFileTransport } from '@tahini/log'
 import fse from 'fs-extra'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
@@ -20,7 +20,18 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
 
   try {
     const startMs = Date.now()
-    log.verbose(`starting ci execution. options: ${JSON.stringify(options, null, 2)}`)
+    // to avoid passing the logger instance between all the files and functions, we use ugly workaround:
+    attachLogFileTransport(options.logFilePath)
+
+    log.info('--------------------------------------')
+    log.info('--------------------------------------')
+    log.info('--------------------------------------')
+    // in tests, we extract the flowId using regex from this line (super ugly :S)
+    log.info(`Starting CI - flow-id: "${options.flowId}"`)
+    log.info('--------------------------------------')
+    log.info('--------------------------------------')
+    log.info('--------------------------------------')
+    log.verbose(`nc options: ${JSON.stringify(options, null, 2)}`)
 
     const packagesPath = await getPackages(options.repoPath)
 
@@ -123,7 +134,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
       ],
     })
 
-    await reportAndExitCi({ jsonReport, cleanups, cache })
+    await reportAndExitCi({ flowId: options.flowId, jsonReport, cleanups, cache, logFilePath: options.logFilePath })
   } catch (error) {
     log.error(`CI failed unexpectedly`, error)
     await cleanup(cleanups)

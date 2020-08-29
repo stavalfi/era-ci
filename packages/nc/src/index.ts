@@ -1,6 +1,4 @@
 #!/usr/bin/env node --unhandled-rejections=strict
-/* eslint-disable no-process-env */
-/* eslint-disable no-floating-promise/no-floating-promise */
 
 /// <reference path="../../../declarations.d.ts" />
 
@@ -17,8 +15,8 @@ export { npmRegistryLogin, getNpmRegistryAddress } from './npm-utils'
 const log = logger('index')
 
 if (require.main === module) {
-  log.info(`Loading CI CLI...`)
   startCli(process.argv).finally(() => {
+    // eslint-disable-next-line no-process-env
     if (process.env.NC_TEST_MODE) {
       // jest don't show last two console logs so we add this as a workaround
       // so we can see the *actual* two last console logs.
