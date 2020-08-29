@@ -29,10 +29,12 @@ export const defaultFormat = combine(
 export const reportToLogFileFormat = combine(printf(log => log.message))
 
 export const consoleTransport = new winston.transports.Console({
+  stderrLevels: ['error'],
   format: defaultFormat,
 })
 
 export const reportTransport = new winston.transports.Console({
+  stderrLevels: ['error'],
   format: combine(printf(({ message }) => message)),
 })
 

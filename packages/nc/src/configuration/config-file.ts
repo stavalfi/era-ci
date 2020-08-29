@@ -1,8 +1,8 @@
-import execa from 'execa'
 import path from 'path'
 import { boolean, func, is, object, optional, string, validate, union, literal } from 'superstruct'
 import { ConfigFileOptions, NpmScopeAccess } from '../types'
 import fse from 'fs-extra'
+import { execaCommand } from '../utils'
 
 function getConfigValidationObject() {
   const npmTargetInfoBaseValidation = {
@@ -76,7 +76,9 @@ export async function readNcConfigurationFile(ciConfigFilePath: string): Promise
   const swcPath = require.resolve('.bin/swc')
   const command = `${swcPath} ${ciConfigFilePath} -o ${outputFilePath} --config-file ${swcConfigFile}`
 
-  await execa.command(command)
+  await execaCommand(command, {
+    stdio: 'pipe',
+  })
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const configGeneratorFunction = require(outputFilePath)

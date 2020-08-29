@@ -1,21 +1,21 @@
 import chance from 'chance'
+import ciInfo from 'ci-info'
 import execa, { StdioOption } from 'execa'
 import fse from 'fs-extra'
+import _ from 'lodash'
 import path from 'path'
 import {
   ConfigFileOptions,
   DeployTarget,
+  getNpmRegistryAddress,
+  NpmScopeAccess,
   ServerInfo,
   TargetType,
-  NpmScopeAccess,
-  getNpmRegistryAddress,
 } from '../../src'
 import { GitServer } from './git-server-testkit'
+import { latestNpmPackageVersion, publishedDockerImageTags, publishedNpmPackageVersions } from './seach-targets'
 import { commitAllAndPushChanges } from './test-helpers'
-import { TestOptions, ToActualName, ResultingArtifact, EditConfig, CiResults } from './types'
-import { publishedNpmPackageVersions, latestNpmPackageVersion, publishedDockerImageTags } from './seach-targets'
-import ciInfo from 'ci-info'
-import _ from 'lodash'
+import { CiResults, EditConfig, ResultingArtifact, TestOptions, ToActualName } from './types'
 
 export async function getPackages(repoPath: string): Promise<string[]> {
   const result = await execa.command('yarn workspaces --json info', {
@@ -162,6 +162,7 @@ export async function runNcExecutable({
       stdio = 'inherit'
     }
   }
+
   return execa.command(
     `node --unhandled-rejections=strict ${path.join(
       __dirname,

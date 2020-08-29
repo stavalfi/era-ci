@@ -1,1 +1,2 @@
-export { attachLogFileTransport, logger, logReport } from './loggers'
+export { attachLogFileTransport, logger, closeLoggers } from './loggers'
+export { LogLevel } from './types'

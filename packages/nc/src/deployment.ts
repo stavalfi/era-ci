@@ -109,20 +109,17 @@ async function prepareDeployments<DeploymentClient>({
 
       const cache = deploymentCache[targetType]! // because `targetInfo` is truethy
 
-      const isDeploymentRun = await cache.isDeploymentRun(
-        node.data.artifact.packageJson.name!,
-        node.data.artifact.packageHash,
-      )
+      const flowId = await cache.isDeploymentRun(node.data.artifact.packageJson.name!, node.data.artifact.packageHash)
 
-      if (isDeploymentRun) {
+      if (flowId) {
         const isDeployed = await cache.isDeployed(node.data.artifact.packageJson.name!, node.data.artifact.packageHash)
         if (isDeployed) {
           log.info(
-            `we see that we already deployed the package "${node.data.artifact.packageJson.name}" with the exect same content in the past. re-doploying again...`,
+            `we see that we already deployed the package "${node.data.artifact.packageJson.name}" with the exect same content in flow: "${flowId}". re-doploying again...`,
           )
         } else {
           log.info(
-            `we see that we already failed to deployed the package "${node.data.artifact.packageJson.name}" with the exect same content in the past. re-doploying again...`,
+            `we see that we already failed to deployed the package "${node.data.artifact.packageJson.name}" with the exect same content in flow: "${flowId}". re-doploying again...`,
           )
         }
       }

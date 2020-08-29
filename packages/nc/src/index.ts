@@ -5,14 +5,11 @@
 // `require('source-map-support').install()` MUST be the first (executed) line in the project!!!
 require('source-map-support').install()
 //
-import { logger } from '@tahini/log'
 import { startCli } from './configuration/cli'
 
 export { ConfigFileOptions, ServerInfo, TargetType, Protocol, DeployTarget, NpmScopeAccess } from './types'
 export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
 export { npmRegistryLogin, getNpmRegistryAddress } from './npm-utils'
-
-const log = logger('index')
 
 if (require.main === module) {
   startCli(process.argv).finally(() => {
@@ -20,8 +17,10 @@ if (require.main === module) {
     if (process.env.NC_TEST_MODE) {
       // jest don't show last two console logs so we add this as a workaround
       // so we can see the *actual* two last console logs.
-      log.info('---------------------------')
-      log.info('---------------------------')
+      // eslint-disable-next-line no-console
+      console.log('---------------------------')
+      // eslint-disable-next-line no-console
+      console.log('---------------------------')
     }
   })
 }

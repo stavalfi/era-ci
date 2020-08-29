@@ -108,10 +108,12 @@ export async function createRepo({
   toActualName,
   repo,
   gitServer,
+  ncLogsFileNameToIgnore,
 }: {
   repo: Repo
   gitServer: GitServer
   toActualName: ToActualName
+  ncLogsFileNameToIgnore: string
 }) {
   const repoOrg = toActualName('org')
   const repoName = `repo-${chance().hash().slice(0, 8)}`
@@ -126,7 +128,10 @@ export async function createRepo({
       workspaces: [`${packagesFolderName}/*`, `${packagesFolderName}/${subPackagesFolderName}/*`],
     },
     '.dockerignore': `node_modules`,
-    '.gitignore': 'node_modules',
+    '.gitignore': `\
+node_modules
+${ncLogsFileNameToIgnore}\
+    `,
     packages: {
       ...createPackages({
         repo,

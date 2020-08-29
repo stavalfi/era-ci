@@ -1,9 +1,9 @@
-import execa from 'execa'
 import { logger } from '@tahini/log'
 import { ServerInfo, TargetsPublishAuth, TargetType } from './types'
 import { getHighestDockerTag } from './versions'
 import isIp from 'is-ip'
 import _ from 'lodash'
+import { execaCommand } from './utils'
 
 const log = logger('docker-utils')
 
@@ -24,7 +24,7 @@ export async function dockerRegistryLogin({
     const dockerRegistryAddress = `${dockerRegistry.protocol}://${dockerRegistry.host}${withPort}`
     log.verbose(`logging in to docker-registry: ${dockerRegistryAddress}`)
     // I need to login to read and push from `dockerRegistryUsername` repository
-    await execa.command(
+    await execaCommand(
       `docker login --username=${dockerRegistryUsername} --password=${dockerRegistryToken} ${dockerRegistryAddress}`,
       {
         stdio: 'pipe',
@@ -40,7 +40,7 @@ export const buildDockerImageName = (packageJsonName: string) => {
 }
 
 async function runSkopeoCommand(command: string, repoPath: string): Promise<string> {
-  const { stdout: result } = await execa.command(`skopeo ${command}`, { cwd: repoPath })
+  const { stdout: result } = await execaCommand(`skopeo ${command}`, { cwd: repoPath, stdio: 'pipe' })
   return result
 }
 

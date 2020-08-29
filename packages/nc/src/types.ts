@@ -166,21 +166,23 @@ export type IsPublishResultCache =
     }
 
 export type PublishCache = {
-  isPublishRun: (packageName: string, packageHash: string) => Promise<boolean>
+  isPublishRun: (packageName: string, packageHash: string) => Promise<FlowId | undefined>
   isPublished: (packageName: string, packageHash: string) => Promise<IsPublishResultCache>
   setAsPublished: (packageName: string, packageHash: string, packageVersion: PackageVersion) => Promise<void>
   setAsFailed: (packageName: string, packageHash: string) => Promise<void>
 }
 
 export type DeploymentCache = {
-  isDeploymentRun: (packageName: string, packageHash: string) => Promise<boolean>
+  isDeploymentRun: (packageName: string, packageHash: string) => Promise<FlowId | undefined>
   isDeployed: (packageName: string, packageHash: string) => Promise<boolean>
   setDeploymentResult: (packageName: string, packageHash: string, isDeployed: boolean) => Promise<void>
 }
 
+export type FlowId = string
+
 export type Cache = {
   test: {
-    isTestsRun: (packageName: string, packageHash: string) => Promise<boolean>
+    isTestsRun: (packageName: string, packageHash: string) => Promise<FlowId | undefined>
     isPassed: (packageName: string, packageHash: string) => Promise<boolean>
     setResult: (packageName: string, packageHash: string, isPassed: boolean) => Promise<void>
   }

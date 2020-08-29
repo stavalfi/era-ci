@@ -8,5 +8,7 @@ export type Log = {
   [LogLevel.error]: (message: string, error?: unknown) => void
   [LogLevel.info]: (message: string) => void
   [LogLevel.verbose]: (message: string) => void
+  noFormattingStdout: (message: string) => void
+  noFormattingStderr: (message: string) => void
   fromStream: (logLevel: LogLevel, stream: NodeJS.ReadableStream) => void
 }
