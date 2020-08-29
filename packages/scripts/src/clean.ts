@@ -5,7 +5,7 @@ import path from 'path'
 import findProjectRoot from 'find-project-root'
 
 const BASE_PATH = findProjectRoot(__dirname) as string
-const GLOBS_TO_REMOVE = ['dist', '*.tsbuildinfo', '*.d.ts', 'yarn-error.log'].map((entry) => `**/${entry}`)
+const GLOBS_TO_REMOVE = ['dist', '*.tsbuildinfo', '*.d.ts', 'yarn-error.log'].map(entry => `**/${entry}`)
 const EXPECT = ['declarations.d.ts']
 
 const remove = (
@@ -16,10 +16,10 @@ const remove = (
     ignore: ['node_modules', '.git'],
     ...options,
   })
-    .then((result) => result.filter((toRemove) => !EXPECT.includes(toRemove)))
-    .then((results) =>
+    .then(result => result.filter(toRemove => !EXPECT.includes(toRemove)))
+    .then(results =>
       Promise.all(
-        results.map(async (toRemove) => {
+        results.map(async toRemove => {
           options.beforeRemove(toRemove)
           await fs.remove(path.join(BASE_PATH, toRemove))
         }),
@@ -38,9 +38,9 @@ export async function clean(options: { silent: boolean }) {
 
   const dirs = await remove({
     onlyDirectories: true,
-    beforeRemove: (toRemove) => log(`dir: ${toRemove}`),
+    beforeRemove: toRemove => log(`dir: ${toRemove}`),
   })
-  const files = await remove({ onlyFiles: true, beforeRemove: (toRemove) => log(`file: ${toRemove}`) })
+  const files = await remove({ onlyFiles: true, beforeRemove: toRemove => log(`file: ${toRemove}`) })
   log('------summary------')
 
   log(`${dirs.length} directories removed`)
