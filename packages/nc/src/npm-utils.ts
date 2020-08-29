@@ -1,4 +1,3 @@
-import execa from 'execa'
 import { ServerInfo } from './types'
 import isIp from 'is-ip'
 import { logger } from '@tahini/log'
@@ -6,6 +5,7 @@ import fse from 'fs-extra'
 import path from 'path'
 import os from 'os'
 import _ from 'lodash'
+import { execaCommand } from './utils'
 
 const log = logger('npm-utils')
 
@@ -44,9 +44,9 @@ export async function npmRegistryLogin({
       log.verbose(`logging in to npm-registry: "${npmRegistryAddress}"`)
     }
     // `npm-login-noninteractive` has a node-api but it prints logs so this is ugly workaround to avoid printing the logs
-    await execa.command(
+    await execaCommand(
       `${npmLoginPath} -u ${npmRegistryUsername} -p ${npmRegistryToken} -e ${npmRegistryEmail} -r ${npmRegistryAddress}`,
-      { cwd: repoPath },
+      { cwd: repoPath, stdio: 'pipe' },
     )
     if (!silent) {
       log.verbose(`logged in to npm-registry: "${npmRegistryAddress}"`)
@@ -70,7 +70,7 @@ export async function getNpmhighestVersionInfo(
   try {
     const command = `npm view ${packageName} --json --registry ${getNpmRegistryAddress(npmRegistry)}`
     log.verbose(`searching the latest tag and hash: "${command}"`)
-    const result = await execa.command(command, { cwd: repoPath })
+    const result = await execaCommand(command, { cwd: repoPath, stdio: 'pipe' })
     const resultJson = JSON.parse(result.stdout) || {}
     const allVersions: string[] = resultJson['versions'] || []
     const distTags = resultJson['dist-tags'] as { [key: string]: string }
@@ -106,7 +106,7 @@ export async function isNpmVersionAlreadyPulished({
 }) {
   const command = `npm view ${packageName}@${packageVersion} --json --registry ${getNpmRegistryAddress(npmRegistry)}`
   try {
-    const { stdout } = await execa.command(command, { cwd: repoPath })
+    const { stdout } = await execaCommand(command, { cwd: repoPath, stdio: 'pipe' })
     return Boolean(stdout) // for some reaosn, if the version is not found, it doesn't throw an error. but the stdout is empty.
   } catch (e) {
     if (e.message.includes('code E404')) {

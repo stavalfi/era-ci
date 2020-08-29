@@ -1,9 +1,10 @@
-// we don't want to use logger here. it's too verbose for a small cli-script
-/* eslint-disable no-console */
+import { logger } from '@tahini/log'
 import { intializeCache } from './cache'
+import { MISSING_FLOW_ID_ERROR } from './constants'
 import { CiOptions, Cleanup } from './types'
 import { cleanup } from './utils'
-import { MISSING_FLOW_ID_ERROR } from './constants'
+
+const log = logger('ci-logic')
 
 export async function printFlowLogs(options: Pick<CiOptions<unknown>, 'flowId' | 'redis' | 'repoPath'>) {
   const cleanups: Cleanup[] = []
@@ -21,16 +22,15 @@ export async function printFlowLogs(options: Pick<CiOptions<unknown>, 'flowId' |
       // we want to avoid stacktraces so we don't throw an Error object
       throw MISSING_FLOW_ID_ERROR
     }
-    console.log(flowLogs)
+    log.noFormattingStdout(flowLogs)
   } catch (error) {
     if (error === MISSING_FLOW_ID_ERROR) {
-      console.error(error)
+      log.error(error)
     } else {
-      console.error(`CI failed unexpectedly`, error)
+      log.error(`CI failed unexpectedly`, error)
     }
     process.exitCode = 1
   } finally {
     await cleanup(cleanups)
-    console.log('stav1')
   }
 }

@@ -1,7 +1,6 @@
-import { logger } from '@tahini/log'
-import execa from 'execa'
+import { logger, LogLevel } from '@tahini/log'
 import { Cache, Graph, Node, Artifact, PackagesStepResult, PackageStepResult, StepName, StepStatus } from './types'
-import { calculateCombinedStatus } from './utils'
+import { calculateCombinedStatus, execaCommand } from './utils'
 
 const log = logger('test')
 
@@ -23,7 +22,11 @@ async function testPackage({
     }
   }
 
-  if (await cache.test.isTestsRun(node.data.artifact.packageJson.name as string, node.data.artifact.packageHash)) {
+  const flowId = await cache.test.isTestsRun(
+    node.data.artifact.packageJson.name as string,
+    node.data.artifact.packageHash,
+  )
+  if (flowId) {
     const testsResult = await cache.test.isPassed(
       node.data.artifact.packageJson.name as string,
       node.data.artifact.packageHash,
@@ -33,22 +36,25 @@ async function testPackage({
         stepName: StepName.test,
         status: StepStatus.skippedAsPassed,
         durationMs: Date.now() - startMs,
-        notes: ['nothing changed and tests already passed in last builds.'],
+        notes: [`nothing changed and tests already passed in flow: "${flowId}"`],
       }
     } else {
       return {
         stepName: StepName.test,
         status: StepStatus.skippedAsFailed,
         durationMs: Date.now() - startMs,
-        notes: ['nothing changed and tests already failed in last builds.'],
+        notes: [`nothing changed and tests already failed in flow: "${flowId}"`],
       }
     }
   }
 
-  const testsResult = await execa.command(`yarn test`, {
+  log.info(`running tests of ${node.data.artifact.packageJson.name}:`)
+
+  const testsResult = await execaCommand(`yarn test`, {
     cwd: node.data.artifact.packagePath,
     stdio: 'inherit',
     reject: false,
+    logLevel: LogLevel.info,
   })
 
   await cache.test.setResult(
@@ -88,7 +94,6 @@ export async function testPackages({
 
   const packagesResult: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepName.test] }> = []
   for (const node of orderedGraph) {
-    log.info(`running tests of ${node.data.artifact.packageJson.name}:`)
     const result = {
       ...node,
       data: {

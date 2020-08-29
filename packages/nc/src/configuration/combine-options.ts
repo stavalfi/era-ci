@@ -1,9 +1,9 @@
 import { ConfigFileOptions, CiOptions, Protocol, TargetType, ServerInfo, TargetInfo } from '../types'
 import urlParse from 'url-parse'
-import execa from 'execa'
 import parseGitUrl from 'git-url-parse'
 import redisUrlParse from 'redis-url-parse'
 import chance from 'chance'
+import { execaCommand } from '../utils'
 
 function isProtocolSupported(protocol: string): protocol is Protocol {
   return Object.values(Protocol).includes(protocol as Protocol)
@@ -46,7 +46,7 @@ export async function combineOptions<DeploymentClient>({
   configFileOptions: ConfigFileOptions<DeploymentClient>
   cliOptions: { repoPath: string }
 }): Promise<CiOptions<DeploymentClient>> {
-  const { stdout: gitUrl } = await execa.command(`git config --get remote.origin.url`, {
+  const { stdout: gitUrl } = await execaCommand(`git config --get remote.origin.url`, {
     stdio: 'pipe',
     cwd: cliOptions.repoPath,
   })

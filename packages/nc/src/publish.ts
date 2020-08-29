@@ -1,5 +1,4 @@
-import { logger } from '@tahini/log'
-import execa from 'execa'
+import { logger, LogLevel } from '@tahini/log'
 import fse from 'fs-extra'
 import isIp from 'is-ip'
 import path from 'path'
@@ -18,7 +17,7 @@ import {
   TargetsInfo,
   TargetType,
 } from './types'
-import { calculateCombinedStatus } from './utils'
+import { calculateCombinedStatus, execaCommand } from './utils'
 
 const log = logger('publish')
 
@@ -121,7 +120,7 @@ async function publishNpm<DeploymentClient>({
     setAsFailedCache,
     setAsPublishedCache,
     tryPublish: async () => {
-      await execa.command(
+      await execaCommand(
         `yarn publish --registry ${npmRegistryAddress} --non-interactive ${
           artifact.packageJson.name?.includes('@') ? `--access ${targetPublishInfo.npmScopeAccess}` : ''
         }`,
@@ -134,6 +133,7 @@ async function publishNpm<DeploymentClient>({
             NPM_AUTH_TOKEN: targetPublishInfo.publishAuth.token,
             NPM_TOKEN: targetPublishInfo.publishAuth.token,
           },
+          logLevel: LogLevel.info,
         },
       )
       log.info(`published npm target in package: "${artifact.packageJson.name}"`)
@@ -185,7 +185,7 @@ async function publishDocker<DeploymentClient>({
       log.info(`building docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}"`)
 
       try {
-        await execa.command(
+        await execaCommand(
           `docker build --label latest-hash=${artifact.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
           {
             cwd: artifact.packagePath,
@@ -194,6 +194,7 @@ async function publishDocker<DeploymentClient>({
               // eslint-disable-next-line no-process-env
               ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
             },
+            logLevel: LogLevel.info,
           },
         )
       } catch (error) {
@@ -208,13 +209,14 @@ async function publishDocker<DeploymentClient>({
       log.info(`built docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}"`)
 
       try {
-        await execa.command(`docker push ${fullImageNameNewVersion}`, {
+        await execaCommand(`docker push ${fullImageNameNewVersion}`, {
           cwd: artifact.packagePath,
           stdio: 'inherit',
           env: {
             // eslint-disable-next-line no-process-env
             ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
           },
+          logLevel: LogLevel.info,
         })
       } catch (error) {
         return {
@@ -228,20 +230,18 @@ async function publishDocker<DeploymentClient>({
 
       log.info(`published docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}"`)
 
-      await execa
-        .command(`docker rmi ${fullImageNameNewVersion}`, {
-          stdio: 'pipe',
-          env: {
-            // eslint-disable-next-line no-process-env
-            ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
-          },
-        })
-        .catch(e =>
-          log.error(
-            `couldn't remove image: "${fullImageNameNewVersion}" after pushing it. this failure won't fail the build.`,
-            e,
-          ),
-        )
+      await execaCommand(`docker rmi ${fullImageNameNewVersion}`, {
+        stdio: 'pipe',
+        env: {
+          // eslint-disable-next-line no-process-env
+          ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
+        },
+      }).catch(e =>
+        log.error(
+          `couldn't remove image: "${fullImageNameNewVersion}" after pushing it. this failure won't fail the build.`,
+          e,
+        ),
+      )
 
       return {
         stepName: StepName.publish,
@@ -377,9 +377,9 @@ export async function publish<DeploymentClient>({
 
     const cache = publishCache[targetType]! // because `targetsInfo[targetType]` is truethy
 
-    const isPublishRun = await cache.isPublishRun(node.data.artifact.packageJson.name!, node.data.artifact.packageHash)
+    const flowId = await cache.isPublishRun(node.data.artifact.packageJson.name!, node.data.artifact.packageHash)
 
-    if (isPublishRun) {
+    if (flowId) {
       const result = await cache.isPublished(node.data.artifact.packageJson.name!, node.data.artifact.packageHash)
       if (!result.shouldPublish) {
         if (result.publishSucceed) {
@@ -392,7 +392,7 @@ export async function publish<DeploymentClient>({
                 durationMs: Date.now() - startMs,
                 status: StepStatus.skippedAsPassed,
                 notes: [
-                  `this package was already published with the same content as version: ${result.alreadyPublishedAsVersion}`,
+                  `this package was already published in flow: "${flowId}" with the same content as version: ${result.alreadyPublishedAsVersion}`,
                 ],
                 publishedVersion: result.alreadyPublishedAsVersion,
               },
