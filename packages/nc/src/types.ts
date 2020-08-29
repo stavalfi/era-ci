@@ -101,6 +101,7 @@ export type CiOptions<DeploymentClient, ServerInfoType = ServerInfo> = {
   repoPath: string
   flowId: string
   startFlowDateUtc: string
+  logFilePath: string
   redis: {
     redisServer: ServerInfoType
     auth: {
@@ -146,7 +147,8 @@ export enum CacheTypes {
   test = 'test',
   publish = 'publish',
   deployment = 'deployment',
-  flow = 'flow',
+  flow = 'flow-result',
+  flowLogsContent = 'flow-logs-content',
 }
 
 export type IsPublishResultCache =
@@ -190,6 +192,8 @@ export type Cache = {
   }
   flow: {
     setFlowResult: (jsonReport: JsonReport) => Promise<void>
+    saveFlowLogsContent: (flowId: string, ncLogFilePath: string) => Promise<void>
+    readFlowLogsContent: (flowId: string) => Promise<string | null>
   }
   cleanup: () => Promise<unknown>
 }
