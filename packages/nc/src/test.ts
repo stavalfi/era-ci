@@ -103,7 +103,7 @@ export async function testPackages({
     stepName: StepName.test,
     durationMs: Date.now() - startMs,
     executionOrder,
-    status: calculateCombinedStatus(packagesResult.map((node) => node.data.stepResult.status)),
+    status: calculateCombinedStatus(packagesResult.map(node => node.data.stepResult.status)),
     packagesResult,
     notes: [],
   }

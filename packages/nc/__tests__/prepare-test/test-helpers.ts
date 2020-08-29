@@ -161,7 +161,7 @@ export const addRandomFileToPackage = ({
   gitRepoAddress: string
 }) => async (packageName: string): Promise<string> => {
   const packagesPath = await getPackages(repoPath)
-  const packagePath = packagesPath.find((path) => path.endsWith(toActualName(packageName)))
+  const packagePath = packagesPath.find(path => path.endsWith(toActualName(packageName)))
   if (!packagePath) {
     throw new Error(`package "${packageName}" not found in [${packagesPath.join(', ')}]`)
   }
