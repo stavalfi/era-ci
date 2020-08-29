@@ -18,8 +18,8 @@ export async function travelGraph<Data, newData>(
     }
   }
 
-  const leafs = graph.filter((node) => node.childrenIndexes.length === 0)
-  await Promise.all(leafs.map((node) => visit(node.index)))
+  const leafs = graph.filter(node => node.childrenIndexes.length === 0)
+  await Promise.all(leafs.map(node => visit(node.index)))
 
   return newGraph.sort((a, b) => (a.index < b.index ? -1 : a.index > b.index ? 1 : 0))
 }

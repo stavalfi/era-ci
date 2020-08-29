@@ -70,10 +70,10 @@ function createPackageJson({
 }
 
 function createPackages({ toActualName, repo }: { repo: Repo; toActualName: ToActualName }) {
-  const isFromThisMonorepo = (depName: string) => Boolean(repo.packages?.some((artifact) => artifact.name === depName))
+  const isFromThisMonorepo = (depName: string) => Boolean(repo.packages?.some(artifact => artifact.name === depName))
 
   return Object.fromEntries(
-    repo.packages?.map((artifact) => {
+    repo.packages?.map(artifact => {
       const packageName = toActualName(artifact.name)
       const packageDirName = packageName.replace('/', '-').replace('@', '')
       return [

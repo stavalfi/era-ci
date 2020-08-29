@@ -24,7 +24,7 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
       },
     })
 
-    await modifyPackageJson('a', (packageJson) => ({ ...packageJson, version: '1.0.8' }))
+    await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.8' }))
 
     const master = await runCi({
       targetsInfo: {
@@ -80,7 +80,7 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
       },
     })
 
-    await modifyPackageJson('a', (packageJson) => ({ ...packageJson, version: '1.0.1' }))
+    await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.1' }))
 
     const master = await runCi({
       targetsInfo: {
