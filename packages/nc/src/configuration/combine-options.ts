@@ -40,7 +40,9 @@ function getServerInfoFromTarget<Target extends TargetType, DeploymentClient>(
 export async function combineOptions<DeploymentClient>({
   cliOptions,
   configFileOptions,
+  flowId,
 }: {
+  flowId?: string
   configFileOptions: ConfigFileOptions<DeploymentClient>
   cliOptions: { repoPath: string }
 }): Promise<CiOptions<DeploymentClient>> {
@@ -52,9 +54,10 @@ export async function combineOptions<DeploymentClient>({
   const parsedRedisServer = redisUrlParse(configFileOptions.redis.redisServer)
 
   return {
-    flowId: chance().hash(),
+    flowId: flowId || chance().hash(),
     startFlowDateUtc: new Date().toISOString(),
     repoPath: cliOptions.repoPath,
+    logFilePath: configFileOptions.logFilePath,
     git: {
       gitRepoUrl: gitUrl,
       gitOrganizationName: parsedGitUrl.organization,

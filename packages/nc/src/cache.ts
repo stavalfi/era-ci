@@ -15,6 +15,7 @@ import {
 } from './types'
 
 const REDIS_TTL = 1000 * 60 * 24 * 30
+const FLOW_LOGS_COINTENT_TTL = 1000 * 60 * 24 * 7
 
 const toDeploymentKey = (packageName: string, targetType: TargetType, packageHash: string) =>
   `${CacheTypes.deployment}-${packageName}-${targetType}-${packageHash}`
@@ -26,9 +27,11 @@ const toTestKey = (packageName: string, packageHash: string) => `${CacheTypes.te
 
 const toFlowKey = (flowId: string) => `${CacheTypes.flow}-${flowId}`
 
+const toFlowLogsContentKey = (flowId: string) => `${CacheTypes.flow}-${flowId}`
+
 type Get = (key: string) => Promise<string | null>
 type Has = (key: string) => Promise<boolean>
-type Set = (key: string, value: string) => Promise<void>
+type Set = (key: string, value: string, ttl?: number) => Promise<void>
 
 enum DeploymentResult {
   passed = 'passed',
@@ -213,14 +216,14 @@ export async function intializeCache<DeploymentClient>({
 
   const toRedisSchema = (value: string): RedisSchema => JSON.parse(value)
 
-  async function setBase(key: string, value: string): Promise<void> {
+  async function setBase(key: string, value: string, ttl?: number): Promise<void> {
     nodeCache.set(key, value)
-    await redisClient.set(key, value, 'px', REDIS_TTL)
+    await redisClient.set(key, value, 'px', ttl)
   }
 
-  async function set(key: string, value: string): Promise<void> {
+  async function set(key: string, value: string, ttl: number = REDIS_TTL): Promise<void> {
     const asSchema: RedisSchema = { flowId, value }
-    await setBase(key, JSON.stringify(asSchema, null, 2))
+    await setBase(key, JSON.stringify(asSchema, null, 2), ttl)
   }
 
   async function get(key: string): Promise<string | null> {
@@ -332,6 +335,9 @@ export async function intializeCache<DeploymentClient>({
     deployment,
     flow: {
       setFlowResult: setFlowResult(flowId, set),
+      saveFlowLogsContent: (flowId, ncLogsContent) =>
+        set(toFlowLogsContentKey(flowId), ncLogsContent, FLOW_LOGS_COINTENT_TTL),
+      readFlowLogsContent: flowId => get(toFlowLogsContentKey(flowId)),
     },
     cleanup: () => Promise.all([redisClient.quit(), nodeCache.close()]),
   }

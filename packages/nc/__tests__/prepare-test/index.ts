@@ -16,13 +16,14 @@ import {
   renamePackageFolder,
   unpublishNpmPackage,
 } from './test-helpers'
-import { CreateAndManageRepo, MinimalNpmPackage, NewEnv, RunCi } from './types'
-import { createConfigFile, getPackagePath, runCiUsingConfigFile } from './utils'
+import { CreateAndManageRepo, MinimalNpmPackage, NewEnv, RunCi, GetFlowLogs } from './types'
+import { createConfigFile, getPackagePath, runCiUsingConfigFile, runNcExecutable } from './utils'
+import path from 'path'
 
 export const newEnv: NewEnv = () => {
   const testResources = prepareTestResources()
 
-  const createAndManageReo: CreateAndManageRepo = async (repo = {}) => {
+  const createAndManageRepo: CreateAndManageRepo = async (repo = {}) => {
     const resourcesNamesPostfix = chance().hash().slice(0, 8)
 
     const toActualName = (name: string) =>
@@ -40,8 +41,32 @@ export const newEnv: NewEnv = () => {
       toActualName,
     })
 
+    const logFilePath = path.join(repoPath, 'nc.log')
+
+    const getFlowLogs: GetFlowLogs = async ({ flowId, execaOptions }) => {
+      const configFilePath = await createConfigFile({
+        logFilePath,
+        dockerOrganizationName,
+        dockerRegistry,
+        gitServer,
+        npmRegistry,
+        redisServer,
+        repoName,
+        repoOrg,
+        repoPath,
+        targetsInfo: {},
+      })
+      return runNcExecutable({
+        configFilePath,
+        repoPath,
+        execaOptions,
+        printFlowId: flowId,
+      })
+    }
+
     const runCi: RunCi = async ({ targetsInfo, execaOptions, editConfig } = {}) => {
       const configFilePath = await createConfigFile({
+        logFilePath,
         dockerOrganizationName,
         dockerRegistry,
         gitServer,
@@ -55,6 +80,7 @@ export const newEnv: NewEnv = () => {
       })
 
       return runCiUsingConfigFile({
+        logFilePath,
         configFilePath,
         repoPath,
         execaOptions,
@@ -88,10 +114,11 @@ export const newEnv: NewEnv = () => {
         }),
       npmRegistryAddress: getNpmRegistryAddress(npmRegistry),
       runCi,
+      getFlowLogs,
       dockerOrganizationName,
       installAndRunNpmDependency: dependencyName =>
         installAndRunNpmDependency({
-          createRepo: createAndManageReo,
+          createRepo: createAndManageRepo,
           npmRegistry: testResources.get().npmRegistry,
           toActualName,
           dependencyName,
@@ -174,7 +201,7 @@ export const newEnv: NewEnv = () => {
   }
 
   return {
-    createRepo: createAndManageReo,
+    createRepo: createAndManageRepo,
     getTestResources: () => {
       const { dockerRegistry, gitServer, npmRegistry, redisServer } = testResources.get()
       return {
