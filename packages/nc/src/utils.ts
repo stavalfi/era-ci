@@ -309,16 +309,21 @@ export async function cleanup(cleanups: Cleanup[]): Promise<void> {
 }
 
 export async function reportAndExitCi({
+  flowId,
   jsonReport,
   cache,
   cleanups,
+  logFilePath,
 }: {
+  flowId: string
   jsonReport: JsonReport
   cleanups: Cleanup[]
   cache: Cache
+  logFilePath: string
 }): Promise<void> {
   await cache.flow.setFlowResult(jsonReport)
   logReport(generateCliTableReport(jsonReport))
+  await cache.flow.saveFlowLogsContent(flowId, await fse.readFile(logFilePath, 'utf-8'))
   await cleanup(cleanups)
   if (
     [StepStatus.failed, StepStatus.skippedAsFailed, StepStatus.skippedAsFailedBecauseLastStepFailed].includes(
