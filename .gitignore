@@ -19,4 +19,4 @@ tsconfig.tsbuildinfo
 dist-all
 yarn-error.log
 .history
-nc-logs.txt
+nc.log

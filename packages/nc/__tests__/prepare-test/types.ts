@@ -80,12 +80,20 @@ export type TestResources = {
 export type CiResults = {
   ciProcessResult: execa.ExecaReturnValue<string>
   published: Map<string, ResultingArtifact>
-  // deployed: Map<string, ResultingArtifact>
+  ncLogfileContent: string
+  flowId: string
 }
 
 export type ToActualName = (name: string) => string
 
 export type RunCi = (options?: TestOptions) => Promise<CiResults>
+export type GetFlowLogs = (options: {
+  flowId: string
+  execaOptions?: {
+    stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
+    reject?: boolean
+  }
+}) => Promise<execa.ExecaReturnValue<string>>
 export type AddRandomFileToPackage = (packageName: string) => Promise<string>
 export type AddRandomFileToRoot = () => Promise<string>
 
@@ -112,6 +120,7 @@ export type ManageRepoResult = {
   renamePackageFolder: (packageName: string) => Promise<string>
   createNewPackage: (newNpmPackage: MinimalNpmPackage) => Promise<void>
   runCi: RunCi
+  getFlowLogs: GetFlowLogs
 }
 
 export type CreateAndManageRepo = (repo?: Repo) => Promise<ManageRepoResult>

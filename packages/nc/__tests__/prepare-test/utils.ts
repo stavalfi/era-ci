@@ -1,5 +1,5 @@
 import chance from 'chance'
-import execa from 'execa'
+import execa, { StdioOption } from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
 import {
@@ -12,7 +12,7 @@ import {
 } from '../../src'
 import { GitServer } from './git-server-testkit'
 import { commitAllAndPushChanges } from './test-helpers'
-import { TestOptions, ToActualName, ResultingArtifact, EditConfig } from './types'
+import { TestOptions, ToActualName, ResultingArtifact, EditConfig, CiResults } from './types'
 import { publishedNpmPackageVersions, latestNpmPackageVersion, publishedDockerImageTags } from './seach-targets'
 import ciInfo from 'ci-info'
 import _ from 'lodash'
@@ -53,7 +53,9 @@ export async function createConfigFile({
   npmRegistry,
   redisServer,
   editConfig,
+  logFilePath,
 }: {
+  logFilePath: string
   repoOrg: string
   repoName: string
   repoPath: string
@@ -72,6 +74,7 @@ export async function createConfigFile({
     // @ts-expect-error
   ] = [chance().hash(), chance().hash()]
   const configurations: ConfigFileOptions<unknown> = {
+    logFilePath,
     targetsInfo: {
       npm: targetsInfo?.npm && {
         shouldPublish: targetsInfo.npm.shouldPublish,
@@ -138,6 +141,39 @@ export async function createConfigFile({
   return configFilePath
 }
 
+export async function runNcExecutable({
+  configFilePath,
+  execaOptions,
+  repoPath,
+  printFlowId,
+}: {
+  repoPath: string
+  configFilePath: string
+  execaOptions?: TestOptions['execaOptions']
+  printFlowId?: string
+}): Promise<execa.ExecaReturnValue<string>> {
+  let stdio: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
+  if (ciInfo.isCI || printFlowId) {
+    stdio = 'pipe'
+  } else {
+    if (execaOptions?.stdio) {
+      stdio = execaOptions.stdio
+    } else {
+      stdio = 'inherit'
+    }
+  }
+  return execa.command(
+    `node --unhandled-rejections=strict ${path.join(
+      __dirname,
+      '../../dist/src/index.js',
+    )} --config-file ${configFilePath} --repo-path ${repoPath} ${printFlowId ? `--print-flow ${printFlowId}` : ''}`,
+    {
+      stdio,
+      reject: execaOptions?.reject !== undefined ? execaOptions?.reject : true,
+    },
+  )
+}
+
 export async function runCiUsingConfigFile({
   configFilePath,
   repoPath,
@@ -146,7 +182,9 @@ export async function runCiUsingConfigFile({
   dockerRegistry,
   npmRegistry,
   toOriginalName,
+  logFilePath,
 }: {
+  logFilePath: string
   configFilePath: string
   repoPath: string
   execaOptions?: TestOptions['execaOptions']
@@ -154,17 +192,12 @@ export async function runCiUsingConfigFile({
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
   toOriginalName: (packageName: string) => string
-}) {
-  const ciProcessResult = await execa.command(
-    `node --unhandled-rejections=strict ${path.join(
-      __dirname,
-      '../../dist/src/index.js',
-    )} --config-file ${configFilePath} --repo-path ${repoPath}`,
-    {
-      stdio: ciInfo.isCI ? 'pipe' : execaOptions?.stdio || 'inherit',
-      reject: execaOptions?.reject !== undefined ? execaOptions?.reject : true,
-    },
-  )
+}): Promise<CiResults> {
+  const ciProcessResult = await runNcExecutable({
+    configFilePath,
+    repoPath,
+    execaOptions,
+  })
 
   // the test can add/remove/modify packages between the creation of the repo until
   // the call of the ci so we need to find all the packages again
@@ -198,8 +231,18 @@ export async function runCiUsingConfigFile({
       artifact.docker.tags.length > 0 || artifact.npm.versions.length > 0 || artifact.npm.highestVersion,
   )
 
+  const ncLogfileContent = await fse.readFile(logFilePath, 'utf-8')
+
+  const flowIdResult = ncLogfileContent.match(/flow-id: "(.*)"/)
+  if (!flowIdResult || flowIdResult.length < 2) {
+    throw new Error(`test-infra could not find the flow-id from the log-file using the regex: /flow-id: "(.*)"/`)
+  }
+  const flowId = flowIdResult[1]
+
   return {
     published: new Map(published),
     ciProcessResult,
+    ncLogfileContent,
+    flowId,
   }
 }
