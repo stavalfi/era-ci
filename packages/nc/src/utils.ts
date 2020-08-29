@@ -1,5 +1,4 @@
-import { logger, logReport } from '@tahini/log'
-import execa from 'execa'
+import { logger, LogLevel } from '@tahini/log'
 import fse from 'fs-extra'
 import isIp from 'is-ip'
 import _ from 'lodash'
@@ -23,8 +22,39 @@ import {
   TargetType,
   Cache,
 } from './types'
+import execa from 'execa'
 
 const log = logger('utils')
+
+type SupportedExecaCommandOptions = Omit<execa.Options, 'stderr' | 'stdout' | 'all' | 'stdin'> &
+  Required<Pick<execa.Options, 'stdio'>>
+
+export async function execaCommand<Options extends SupportedExecaCommandOptions>(
+  command: string,
+  options: Options['stdio'] extends 'inherit' ? SupportedExecaCommandOptions & { logLevel: LogLevel } : Options,
+): Promise<execa.ExecaReturnValue<string>> {
+  const subprocess = execa.command(command, {
+    ..._.omit(options, ['logLevel', 'stdio']),
+    stdio: options.stdio === 'ignore' ? 'ignore' : 'pipe',
+  })
+  if (options.stdio === 'ignore') {
+    return subprocess
+  }
+
+  if (subprocess.stdout) {
+    if (options.stdio === 'inherit') {
+      // @ts-ignore - looks like typescript bug. it should be fine
+      const logLevel = options.logLevel
+      log.fromStream(logLevel, subprocess.stdout)
+    }
+  }
+  if (subprocess.stderr) {
+    if (options.stdio === 'inherit') {
+      log.fromStream(LogLevel.error, subprocess.stderr)
+    }
+  }
+  return subprocess
+}
 
 export function getTargetTypeByKey(targetTypeKey: string): TargetType {
   switch (targetTypeKey) {
@@ -70,8 +100,9 @@ export function shouldFailCi(
 }
 
 export async function getPackages(repoPath: string): Promise<string[]> {
-  const result = await execa.command('yarn workspaces --json info', {
+  const result = await execaCommand('yarn workspaces --json info', {
     cwd: repoPath,
+    stdio: 'pipe',
   })
   const workspacesInfo: { location: string }[] = JSON.parse(JSON.parse(result.stdout).data)
   return Object.values(workspacesInfo)
@@ -202,10 +233,11 @@ export async function install({
     }
   }
 
-  const result = await execa.command('yarn install', {
+  const result = await execaCommand('yarn install', {
     cwd: repoPath,
     stdio: 'inherit',
     reject: false,
+    logLevel: LogLevel.info,
   })
 
   const durationMs = Date.now() - startMs
@@ -246,10 +278,11 @@ export async function build({
   const rootPackageJson: IPackageJson = await fse.readJson(path.join(repoPath, 'package.json'))
 
   if (rootPackageJson.scripts && 'build' in rootPackageJson.scripts && rootPackageJson.scripts.build) {
-    const result = await execa.command('yarn build', {
+    const result = await execaCommand('yarn build', {
       cwd: repoPath,
       stdio: 'inherit',
       reject: false,
+      logLevel: LogLevel.info,
     })
 
     const durationMs = Date.now() - startMs
@@ -322,7 +355,7 @@ export async function reportAndExitCi({
   logFilePath: string
 }): Promise<void> {
   await cache.flow.setFlowResult(jsonReport)
-  logReport(generateCliTableReport(jsonReport))
+  log.noFormattingStdout(generateCliTableReport(jsonReport))
   await cache.flow.saveFlowLogsContent(flowId, await fse.readFile(logFilePath, 'utf-8'))
   await cleanup(cleanups)
   if (
@@ -381,7 +414,6 @@ export async function runSteps({
       exit: false,
     }),
   )
-
   const report = generateJsonReport({
     flowId,
     startFlowDateUtc,
@@ -389,6 +421,5 @@ export async function runSteps({
     steps: result.stepsResultUntilNow,
     graph,
   })
-
   return report
 }

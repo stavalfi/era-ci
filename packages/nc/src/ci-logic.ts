@@ -1,4 +1,4 @@
-import { logger, attachLogFileTransport } from '@tahini/log'
+import { closeLoggers, logger, attachLogFileTransport } from '@tahini/log'
 import fse from 'fs-extra'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
@@ -15,23 +15,25 @@ import { validatePackages } from './validate-packages'
 
 const log = logger('ci-logic')
 
-export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>) {
-  const cleanups: Cleanup[] = []
+export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>): Promise<void> {
+  const cleanups: Cleanup[] = [closeLoggers]
 
   try {
     const startMs = Date.now()
     // to avoid passing the logger instance between all the files and functions, we use ugly workaround:
     attachLogFileTransport(options.logFilePath)
 
-    log.info('--------------------------------------')
-    log.info('--------------------------------------')
-    log.info('--------------------------------------')
     // in tests, we extract the flowId using regex from this line (super ugly :S)
     log.info(`Starting CI - flow-id: "${options.flowId}"`)
-    log.info('--------------------------------------')
-    log.info('--------------------------------------')
-    log.info('--------------------------------------')
     log.verbose(`nc options: ${JSON.stringify(options, null, 2)}`)
+
+    const cache = await intializeCache({
+      flowId: options.flowId,
+      redis: options.redis,
+      targetsInfo: options.targetsInfo,
+      repoPath: options.repoPath,
+    })
+    cleanups.push(cache.cleanup)
 
     const packagesPath = await getPackages(options.repoPath)
 
@@ -70,15 +72,6 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
         repoPath: options.repoPath,
       })
     }
-
-    const cache = await intializeCache({
-      flowId: options.flowId,
-      redis: options.redis,
-      targetsInfo: options.targetsInfo,
-      repoPath: options.repoPath,
-    })
-
-    cleanups.push(cache.cleanup)
 
     const orderedGraph = await getOrderedGraph({
       repoPath: options.repoPath,
@@ -133,11 +126,10 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
         },
       ],
     })
-
     await reportAndExitCi({ flowId: options.flowId, jsonReport, cleanups, cache, logFilePath: options.logFilePath })
   } catch (error) {
+    process.exitCode = 1
     log.error(`CI failed unexpectedly`, error)
     await cleanup(cleanups)
-    process.exitCode = 1
   }
 }
