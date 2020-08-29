@@ -23,13 +23,13 @@ export async function getPackages(repoPath: string): Promise<string[]> {
   })
   const workspacesInfo: { location: string }[] = JSON.parse(JSON.parse(result.stdout).data)
   return Object.values(workspacesInfo || {})
-    .map((workspaceInfo) => workspaceInfo.location)
-    .map((relativePackagePath) => path.join(repoPath, relativePackagePath))
+    .map(workspaceInfo => workspaceInfo.location)
+    .map(relativePackagePath => path.join(repoPath, relativePackagePath))
 }
 
 export const getPackagePath = (repoPath: string, toActualName: ToActualName) => async (packageName: string) => {
   const packagesPath = await getPackages(repoPath)
-  const packagePath = packagesPath.find((path) => path.endsWith(toActualName(packageName)))
+  const packagePath = packagesPath.find(path => path.endsWith(toActualName(packageName)))
   if (!packagePath) {
     throw new Error(
       `bug: could not create repo correctly. missing folder: packages/${toActualName(packageName)} in: ${repoPath}`,
@@ -171,7 +171,7 @@ export async function runCiUsingConfigFile({
   const packagesPaths = await getPackages(repoPath)
   const packages = await Promise.all(
     packagesPaths // todo: need to search in runtime which packages I have NOW
-      .map((packagePath) => require(path.join(packagePath, 'package.json')).name)
+      .map(packagePath => require(path.join(packagePath, 'package.json')).name)
       .map<Promise<[string, ResultingArtifact]>>(async (packageName: string) => {
         const [versions, highestVersion, tags] = await Promise.all([
           publishedNpmPackageVersions(packageName, npmRegistry),

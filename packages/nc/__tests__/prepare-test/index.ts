@@ -89,14 +89,14 @@ export const newEnv: NewEnv = () => {
       npmRegistryAddress: getNpmRegistryAddress(npmRegistry),
       runCi,
       dockerOrganizationName,
-      installAndRunNpmDependency: (dependencyName) =>
+      installAndRunNpmDependency: dependencyName =>
         installAndRunNpmDependency({
           createRepo: createAndManageReo,
           npmRegistry: testResources.get().npmRegistry,
           toActualName,
           dependencyName,
         }),
-      publishNpmPackageWithoutCi: (packageName) =>
+      publishNpmPackageWithoutCi: packageName =>
         publishNpmPackageWithoutCi({
           npmRegistry,
           npmRegistryEmail: npmRegistry.auth.email,
@@ -117,7 +117,7 @@ export const newEnv: NewEnv = () => {
           toActualName,
           repoPath,
         }),
-      removeAllNpmHashTags: (packageName) =>
+      removeAllNpmHashTags: packageName =>
         removeAllNpmHashTags({
           redisServer,
           packageName: toActualName(packageName),

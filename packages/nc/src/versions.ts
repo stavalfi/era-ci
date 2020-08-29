@@ -21,7 +21,7 @@ export function calculateNewVersion({
   if (!semver.valid(packageJsonVersion)) {
     throw new Error(`version packgeJson in ${packagePath} is invalid: ${packageJsonVersion}`)
   }
-  const allValidVersions = allVersions?.filter((version) => semver.valid(version))
+  const allValidVersions = allVersions?.filter(version => semver.valid(version))
 
   if (!allValidVersions?.length) {
     // this is immutable in each registry so if this is not defined or empty, it means that we never published before or there was unpublish of all the versions.

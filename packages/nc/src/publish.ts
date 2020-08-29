@@ -83,7 +83,7 @@ async function updateVersionAndPublish({
     }
   }
 
-  await setPackageVersion(newVersion, artifact.packageJson.version!).catch((error) => {
+  await setPackageVersion(newVersion, artifact.packageJson.version!).catch(error => {
     log.error(`failed to revert package.json back to the old version`, error)
     // log and ignore this error.
   })
@@ -236,7 +236,7 @@ async function publishDocker<DeploymentClient>({
             ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
           },
         })
-        .catch((e) =>
+        .catch(e =>
           log.error(
             `couldn't remove image: "${fullImageNameNewVersion}" after pushing it. this failure won't fail the build.`,
             e,
@@ -278,7 +278,7 @@ export async function publish<DeploymentClient>({
       durationMs,
       executionOrder,
       status: StepStatus.skippedAsPassed,
-      packagesResult: orderedGraph.map((node) => ({
+      packagesResult: orderedGraph.map(node => ({
         ...node,
         data: {
           artifact: node.data.artifact,
@@ -462,14 +462,14 @@ export async function publish<DeploymentClient>({
     publishResult.push(await resultFunc())
   }
 
-  const withError = publishResult.filter((result) => result.data.stepResult.error)
+  const withError = publishResult.filter(result => result.data.stepResult.error)
   if (withError.length > 0) {
     log.error(
       `the following packages had an error while publishing: ${withError
-        .map((result) => result.data.artifact.packageJson.name)
+        .map(result => result.data.artifact.packageJson.name)
         .join(', ')}`,
     )
-    withError.forEach((result) => {
+    withError.forEach(result => {
       log.error(`${result.data.artifact.packageJson.name}: `, result.data.stepResult.error)
     })
   }
@@ -478,7 +478,7 @@ export async function publish<DeploymentClient>({
     stepName: StepName.publish,
     durationMs: Date.now() - startMs,
     executionOrder: executionOrder,
-    status: calculateCombinedStatus(publishResult.map((node) => node.data.stepResult.status)),
+    status: calculateCombinedStatus(publishResult.map(node => node.data.stepResult.status)),
     packagesResult: publishResult,
     notes: [],
   }

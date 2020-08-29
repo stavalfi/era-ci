@@ -39,10 +39,10 @@ const STATUSES = {
 function generatePackagesStatusReport(jsonReport: JsonReport): string {
   const orderedSteps = [StepName.install, StepName.build, StepName.test, StepName.publish, StepName.deployment].filter(
     // @ts-ignore - ts can't handle the basics :S
-    (stepName) => jsonReport.steps[stepName],
+    stepName => jsonReport.steps[stepName],
   )
 
-  const rows = jsonReport.graph.map((node) => {
+  const rows = jsonReport.graph.map(node => {
     const stepsStatus = Object.fromEntries(
       Object.entries(node.data.stepsResult)
         .filter(([stepName, stepResult]) => stepName !== StepName.report && stepResult)
@@ -50,49 +50,47 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
     )
     return {
       packageName: node.data.artifact.packageJson.name as string,
-      stepsStatusOrdered: orderedSteps.map((stepName) => stepsStatus[stepName]),
+      stepsStatusOrdered: orderedSteps.map(stepName => stepsStatus[stepName]),
       summaryStatus: STATUSES[node.data.stepsSummary.status],
       duration: prettyMs(node.data.stepsSummary.durationMs),
       notes: Object.entries(node.data.stepsResult)
         .filter(([, stepResult]) => stepResult)
-        .flatMap(([stepName, stepResult]) => stepResult!.notes.map((node) => `${stepName} - ${node}`)),
+        .flatMap(([stepName, stepResult]) => stepResult!.notes.map(node => `${stepName} - ${node}`)),
     }
   })
 
-  const hasNotes = rows.some((row) => row.notes.length > 0)
+  const hasNotes = rows.some(row => row.notes.length > 0)
 
   const colums: TableRow = ['', ...orderedSteps, 'duration', 'summary']
     .concat(hasNotes ? ['notes'] : [])
-    .map((content) => ({
+    .map(content => ({
       vAlign: 'center',
       hAlign: 'center',
       content,
     }))
 
-  const rowsInTableFormat = rows.flatMap((row) => {
+  const rowsInTableFormat = rows.flatMap(row => {
     return [
       [
-        ...[row.packageName, ...row.stepsStatusOrdered, row.duration, row.summaryStatus].map<CellOptions>(
-          (content) => ({
-            rowSpan: Object.keys(row.notes).length || 1,
-            vAlign: 'center',
-            hAlign: 'center',
-            content,
-          }),
-        ),
+        ...[row.packageName, ...row.stepsStatusOrdered, row.duration, row.summaryStatus].map<CellOptions>(content => ({
+          rowSpan: Object.keys(row.notes).length || 1,
+          vAlign: 'center',
+          hAlign: 'center',
+          content,
+        })),
         ...row.notes.slice(0, 1),
       ],
-      ...row.notes.slice(1).map((note) => [note]),
+      ...row.notes.slice(1).map(note => [note]),
     ]
   })
 
   const stepsDurations = [
     '',
-    ...orderedSteps.map((stepName) =>
+    ...orderedSteps.map(stepName =>
       // @ts-ignore - ts can't handle the basics :S
       prettyMs(jsonReport.steps[stepName].durationMs),
     ),
-  ].map<CellOptions>((content) => ({
+  ].map<CellOptions>(content => ({
     rowSpan: 1,
     vAlign: 'center',
     hAlign: 'center',
@@ -109,12 +107,12 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
 }
 
 function generateSummaryReport(jsonReport: JsonReport): string {
-  const flowId: TableRow = ['flow-id', jsonReport.flow.flowId].map((content) => ({
+  const flowId: TableRow = ['flow-id', jsonReport.flow.flowId].map(content => ({
     vAlign: 'center',
     hAlign: 'center',
     content,
   }))
-  const flowStartFlowDateUtc: TableRow = ['start', jsonReport.flow.startFlowDateUtc].map((content) => ({
+  const flowStartFlowDateUtc: TableRow = ['start', jsonReport.flow.startFlowDateUtc].map(content => ({
     vAlign: 'center',
     hAlign: 'center',
     content,
@@ -142,7 +140,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
       },
       ...notes.slice(0, 1),
     ],
-    ...notes.slice(1).map((note) => [note]),
+    ...notes.slice(1).map(note => [note]),
   ]
 
   const ciTable = new Table({
