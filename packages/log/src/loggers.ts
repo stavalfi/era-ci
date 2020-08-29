@@ -1,12 +1,11 @@
 import winston from 'winston'
 import { customLogLevel, isNcTestMode } from './env'
-import { transforms } from './log-transform'
 import {
   consoleTransport,
   createFileTransport,
-  reportTransport,
   defaultFormat,
   reportToLogFileFormat,
+  reportTransport,
 } from './transports'
 import { Log, LogLevel } from './types'
 
@@ -15,20 +14,25 @@ const mainLogger = winston.createLogger({
   transports: [consoleTransport],
 })
 
-const reportLogger = winston.createLogger({
+const noFormattingLogger = winston.createLogger({
   transports: [reportTransport],
 })
 
-export const logReport = (report: string) => reportLogger.info(report)
-
 export function attachLogFileTransport(logFilePath: string): void {
   mainLogger.add(createFileTransport(logFilePath, defaultFormat))
-  reportLogger.add(createFileTransport(logFilePath, reportToLogFileFormat))
+  noFormattingLogger.add(createFileTransport(logFilePath, reportToLogFileFormat))
+}
+
+export async function closeLoggers(): Promise<void> {
+  await Promise.all([
+    new Promise(res => mainLogger.on('finish', () => mainLogger.end(res))),
+    new Promise(res => noFormattingLogger.on('finish', () => mainLogger.end(res))),
+  ])
 }
 
 export const logger = (module: string): Log => {
   const log = mainLogger.child({ module })
-  return {
+  const base: Omit<Log, 'fromStream'> = {
     error: (message, error) => {
       if (error === null || undefined) {
         log.error(message)
@@ -36,14 +40,23 @@ export const logger = (module: string): Log => {
         log.error(message, error instanceof Error ? error : { unknownErrorType: error })
       }
     },
-    info: message => {
-      log.info(message)
-    },
-    verbose: message => {
-      log.verbose(message)
-    },
-    fromStream: (logLevel: LogLevel, stream: NodeJS.ReadableStream) => {
-      stream.pipe(transforms[logLevel]).pipe(log)
+    info: message => log.info(message),
+    verbose: message => log.verbose(message),
+    noFormattingStdout: message => noFormattingLogger.info(message),
+    noFormattingStderr: message => noFormattingLogger.error(message),
+  }
+  return {
+    ...base,
+    fromStream: (logLevel: LogLevel, stream: NodeJS.ReadableStream, formatting?: boolean) => {
+      stream.on('data', chunk => {
+        const asString = chunk.toString()
+        const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString
+        if (formatting) {
+          base[logLevel](final)
+        } else {
+          noFormattingLogger[logLevel](final)
+        }
+      })
     },
   }
 }

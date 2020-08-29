@@ -7,14 +7,15 @@ import {
   Cache,
   CacheTypes,
   CiOptions,
+  FlowId,
   IsPublishResultCache,
+  JsonReport,
   PackageVersion,
   TargetsInfo,
   TargetType,
-  JsonReport,
 } from './types'
 
-const REDIS_TTL = 1000 * 60 * 24 * 30
+const DEFAULT_TTL = 1000 * 60 * 24 * 30
 const FLOW_LOGS_COINTENT_TTL = 1000 * 60 * 24 * 7
 
 const toDeploymentKey = (packageName: string, targetType: TargetType, packageHash: string) =>
@@ -29,9 +30,9 @@ const toFlowKey = (flowId: string) => `${CacheTypes.flow}-${flowId}`
 
 const toFlowLogsContentKey = (flowId: string) => `${CacheTypes.flow}-${flowId}`
 
-type Get = (key: string) => Promise<string | null>
-type Has = (key: string) => Promise<boolean>
-type Set = (key: string, value: string, ttl?: number) => Promise<void>
+type Get = (key: string, ttl: number) => Promise<string | null>
+type Has = (key: string, ttl: number) => Promise<FlowId | undefined>
+type Set = (key: string, value: string, ttl: number) => Promise<void>
 
 enum DeploymentResult {
   passed = 'passed',
@@ -41,15 +42,15 @@ enum DeploymentResult {
 const isDeploymentRun = (targetType: TargetType, has: Has) => async (
   packageName: string,
   packageHash: string,
-): Promise<boolean> => {
-  return has(toDeploymentKey(packageName, targetType, packageHash))
+): Promise<FlowId | undefined> => {
+  return has(toDeploymentKey(packageName, targetType, packageHash), DEFAULT_TTL)
 }
 
 const isDeployed = (targetType: TargetType, get: Get) => async (
   packageName: string,
   packageHash: string,
 ): Promise<boolean> => {
-  return (await get(toDeploymentKey(packageName, targetType, packageHash))) === DeploymentResult.passed
+  return (await get(toDeploymentKey(packageName, targetType, packageHash), DEFAULT_TTL)) === DeploymentResult.passed
 }
 
 const setDeploymentResult = (targetType: TargetType, set: Set) => async (
@@ -60,14 +61,15 @@ const setDeploymentResult = (targetType: TargetType, set: Set) => async (
   await set(
     toDeploymentKey(packageName, targetType, packageHash),
     isDeployed ? DeploymentResult.passed : DeploymentResult.failed,
+    DEFAULT_TTL,
   )
 }
 
 const isPublishRun = (targetType: TargetType, has: Has) => async (
   packageName: string,
   packageHash: string,
-): Promise<boolean> => {
-  return has(toPublishKey(packageName, targetType, packageHash))
+): Promise<FlowId | undefined> => {
+  return has(toPublishKey(packageName, targetType, packageHash), DEFAULT_TTL)
 }
 
 const setAsFailed = (targetType: TargetType, set: Set) => async (
@@ -77,6 +79,7 @@ const setAsFailed = (targetType: TargetType, set: Set) => async (
   return set(
     toPublishKey(packageName, targetType, packageHash),
     '' /* falsy value to indicate that we failed to publish */,
+    DEFAULT_TTL,
   )
 }
 
@@ -91,7 +94,7 @@ async function checkIfPublishedInCache({
   packageHash: string
   targetType: TargetType
 }): Promise<null | false | PackageVersion> {
-  const result = await get(toPublishKey(packageName, targetType, packageHash))
+  const result = await get(toPublishKey(packageName, targetType, packageHash), DEFAULT_TTL)
   if (result === null) {
     return null
   }
@@ -111,10 +114,12 @@ async function checkIfPublishedInCache({
 
 const isPackagePublished = ({
   get,
+  has,
   isInRegistry,
   targetType,
 }: {
   get: Get
+  has: Has
   isInRegistry: (packageName: string, packageVersion: string) => Promise<boolean>
   targetType: TargetType
 }) => async (packageName: string, packageHash: string): Promise<IsPublishResultCache> => {
@@ -136,10 +141,14 @@ const isPackagePublished = ({
   }
 
   if (!inCache) {
+    const flowId = await has(toPublishKey(packageName, targetType, packageHash), DEFAULT_TTL)
+    if (!flowId) {
+      throw new Error(`looks like a bug. redis.get returned a value but redis.has didn't`)
+    }
     return {
       shouldPublish: false,
       publishSucceed: false,
-      failureReason: `nothing changed and publish already failed in last builds.`,
+      failureReason: `nothing changed and publish already failed in flow: "${flowId}"`,
     }
   }
 
@@ -170,7 +179,7 @@ const setAsPublished = ({ set, targetType }: { set: Set; targetType: TargetType 
   packageHash: string,
   packageVersion: string,
 ): Promise<void> => {
-  await set(toPublishKey(packageName, targetType, packageHash), packageVersion)
+  await set(toPublishKey(packageName, targetType, packageHash), packageVersion, DEFAULT_TTL)
 }
 
 enum TestsResult {
@@ -179,17 +188,17 @@ enum TestsResult {
 }
 
 const setFlowResult = (flowId: string, set: Set) => async (jsonReport: JsonReport): Promise<void> => {
-  await set(toFlowKey(flowId), JSON.stringify(jsonReport, null, 2))
+  await set(toFlowKey(flowId), JSON.stringify(jsonReport, null, 2), FLOW_LOGS_COINTENT_TTL)
 }
 
 const isTestsRun = (has: Has) => async (packageName: string, packageHash: string) =>
-  has(toTestKey(packageName, packageHash))
+  has(toTestKey(packageName, packageHash), DEFAULT_TTL)
 
 const isPassed = (get: Get) => async (packageName: string, packageHash: string) =>
-  Boolean((await get(toTestKey(packageName, packageHash))) === TestsResult.passed)
+  Boolean((await get(toTestKey(packageName, packageHash), DEFAULT_TTL)) === TestsResult.passed)
 
 const setResult = (set: Set) => (packageName: string, packageHash: string, isPassed: boolean) =>
-  set(toTestKey(packageName, packageHash), isPassed ? TestsResult.passed : TestsResult.failed)
+  set(toTestKey(packageName, packageHash), isPassed ? TestsResult.passed : TestsResult.failed, DEFAULT_TTL)
 
 type IntializeCacheOptions<DeploymentClient> = {
   flowId: string
@@ -216,20 +225,20 @@ export async function intializeCache<DeploymentClient>({
 
   const toRedisSchema = (value: string): RedisSchema => JSON.parse(value)
 
-  async function setBase(key: string, value: string, ttl?: number): Promise<void> {
+  async function setBase(key: string, value: string, ttl: number): Promise<void> {
     nodeCache.set(key, value)
     await redisClient.set(key, value, 'px', ttl)
   }
 
-  async function set(key: string, value: string, ttl: number = REDIS_TTL): Promise<void> {
+  async function set(key: string, value: string, ttl: number): Promise<void> {
     const asSchema: RedisSchema = { flowId, value }
     await setBase(key, JSON.stringify(asSchema, null, 2), ttl)
   }
 
-  async function get(key: string): Promise<string | null> {
-    const fromNodeCache = nodeCache.get(key) as string | null
+  async function get(key: string, ttl: number): Promise<string | null> {
+    const fromNodeCache = nodeCache.get<string>(key)
     if (fromNodeCache) {
-      await setBase(key, fromNodeCache) // we try to avoid situation where the key is in nodeCache but not in redis
+      await setBase(key, fromNodeCache, ttl) // we try to avoid situation where the key is in nodeCache but not in redis
       return toRedisSchema(fromNodeCache).value
     } else {
       const fromRedis = await redisClient.get(key)
@@ -242,18 +251,19 @@ export async function intializeCache<DeploymentClient>({
     }
   }
 
-  async function has(key: string): Promise<boolean> {
-    const fromNodeCache = nodeCache.has(key)
+  async function has(key: string, ttl: number): Promise<FlowId | undefined> {
+    const fromNodeCache = nodeCache.get<string>(key)
     if (fromNodeCache) {
-      await set(key, nodeCache.get(key) as string) // we try to avoid situation where the key is in nodeCache but not in redis
-      return true
+      await set(key, nodeCache.get(key) as string, ttl) // we try to avoid situation where the key is in nodeCache but not in redis
+      return toRedisSchema(fromNodeCache).flowId
     } else {
       const fromRedis = await redisClient.get(key)
-      if (fromRedis !== null) {
+      if (fromRedis === null) {
+        return undefined
+      } else {
         nodeCache.set(key, fromRedis)
-        return true
+        return toRedisSchema(fromRedis).flowId
       }
-      return false
     }
   }
 
@@ -264,6 +274,7 @@ export async function intializeCache<DeploymentClient>({
       isPublishRun: isPublishRun(TargetType.npm, has),
       setAsFailed: setAsFailed(TargetType.npm, set),
       isPublished: isPackagePublished({
+        has,
         get,
         targetType: TargetType.npm,
         isInRegistry: (packageName, packageVersion) =>
@@ -283,6 +294,7 @@ export async function intializeCache<DeploymentClient>({
       isPublishRun: isPublishRun(TargetType.docker, has),
       setAsFailed: setAsFailed(TargetType.docker, set),
       isPublished: isPackagePublished({
+        has,
         get,
         targetType: TargetType.docker,
         isInRegistry: (packageName, packageVersion) =>
@@ -337,7 +349,7 @@ export async function intializeCache<DeploymentClient>({
       setFlowResult: setFlowResult(flowId, set),
       saveFlowLogsContent: (flowId, ncLogsContent) =>
         set(toFlowLogsContentKey(flowId), ncLogsContent, FLOW_LOGS_COINTENT_TTL),
-      readFlowLogsContent: flowId => get(toFlowLogsContentKey(flowId)),
+      readFlowLogsContent: flowId => get(toFlowLogsContentKey(flowId), FLOW_LOGS_COINTENT_TTL),
     },
     cleanup: () => Promise.all([redisClient.quit(), nodeCache.close()]),
   }

@@ -93,7 +93,6 @@ test('multiple packages', async () => {
   })
 
   expect(result.ciProcessResult.failed).toBeTruthy()
-  // todo: find a way to check in the report that a-package,b-package failed in test-step
 })
 
 test('skip package with passed tests', async () => {
@@ -113,12 +112,11 @@ test('skip package with passed tests', async () => {
 
   await test.makeStepPass()
 
-  await runCi({})
+  await runCi()
 
   await test.makeStepFail()
 
-  await expect(runCi({})).resolves.toBeTruthy()
-  // todo: find a way to check in the report that a-package passed in test-step
+  await expect(runCi()).resolves.toBeTruthy()
 })
 
 test('skip package with failed tests', async () => {
@@ -173,7 +171,7 @@ test('run tests of package after the package changed even if the tests passed at
 
   await test.makeStepPass()
 
-  await runCi({})
+  await runCi()
 
   await addRandomFileToPackage('a')
   await test.makeStepFail()
