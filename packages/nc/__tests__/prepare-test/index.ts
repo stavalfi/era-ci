@@ -35,13 +35,14 @@ export const newEnv: NewEnv = () => {
 
     const { dockerRegistry, npmRegistry, gitServer, redisServer } = testResources.get()
 
+    const ncLogsFileName = 'nc.log'
     const { repoPath, repoName, repoOrg, subPackagesFolderPath } = await createRepo({
       repo,
       gitServer,
       toActualName,
+      ncLogsFileNameToIgnore: ncLogsFileName,
     })
-
-    const logFilePath = path.join(repoPath, 'nc.log')
+    const logFilePath = path.join(repoPath, ncLogsFileName)
 
     const getFlowLogs: GetFlowLogs = async ({ flowId, execaOptions }) => {
       const configFilePath = await createConfigFile({

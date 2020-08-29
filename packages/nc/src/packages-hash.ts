@@ -1,11 +1,11 @@
 import { logger } from '@tahini/log'
 import crypto from 'crypto'
-import execa from 'execa'
 import fs from 'fs-extra'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { Graph } from './types'
 import { INVALIDATE_CACHE_HASH } from './constants'
+import { execaCommand } from './utils'
 
 const log = logger('packages-hash')
 
@@ -145,8 +145,9 @@ export async function calculatePackagesHash(
 ): Promise<
   Graph<{ relativePackagePath: string; packagePath: string; packageHash: string; packageJson: IPackageJson }>
 > {
-  const repoFilesPathResult = await execa.command('git ls-tree -r --name-only HEAD', {
+  const repoFilesPathResult = await execaCommand('git ls-tree -r --name-only HEAD', {
     cwd: repoPath,
+    stdio: 'pipe',
   })
 
   const repoFilesPath = repoFilesPathResult.stdout

@@ -30,8 +30,7 @@ export function generateJsonReport({
   }
 }): JsonReport {
   const reportDurationMs = 0
-  log.verbose(`start to generate json-report`)
-
+  log.info(`start to generate json-report`)
   const reportResult: PackagesStepResult<StepName.report> = {
     stepName: StepName.report,
     durationMs: reportDurationMs,
