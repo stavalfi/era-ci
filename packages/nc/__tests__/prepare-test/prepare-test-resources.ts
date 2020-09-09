@@ -1,33 +1,7 @@
-import execa from 'execa'
-import { ServerInfo, Protocol } from '../../src/types'
+import { Protocol, ServerInfo } from '../../src/types'
 import { GitServer, starGittServer } from './git-server-testkit'
 
 type Deployment = { serverInfo: ServerInfo; cleanup: () => Promise<unknown> }
-
-async function startDockerImage(fullDockerImageName: string, port: number): Promise<Deployment> {
-  const {
-    stdout: dockerRegistryContainerId,
-  } = await execa.command(`docker run -d --rm -p 0:${port} ${fullDockerImageName}`, { stdio: 'pipe' })
-  const { stdout: dockerRegistryPort } = await execa.command(
-    `docker inspect --format="{{(index (index .NetworkSettings.Ports \\"${port}/tcp\\") 0).HostPort}}" ${dockerRegistryContainerId}`,
-    {
-      shell: true,
-      stdio: 'pipe',
-    },
-  )
-  return {
-    cleanup: () =>
-      execa.command(`docker kill ${dockerRegistryContainerId}`, { stdio: 'pipe' }).then(
-        () => execa.command(`docker rm ${dockerRegistryContainerId}`, { stdio: 'pipe' }),
-        () => Promise.resolve(),
-      ),
-    serverInfo: {
-      protocol: Protocol.http,
-      port: Number(dockerRegistryPort),
-      host: 'localhost',
-    },
-  }
-}
 
 export function prepareTestResources() {
   let dockerRegistry: Deployment
@@ -44,14 +18,29 @@ export function prepareTestResources() {
 
   beforeAll(async () => {
     gitServer = await starGittServer()
-    const deployments = await Promise.all([
-      startDockerImage('verdaccio/verdaccio', 4873),
-      startDockerImage('redis', 6379),
-      startDockerImage('registry:2', 5000),
-    ])
-    npmRegistryDeployment = deployments[0]
-    redisDeployment = deployments[1]
-    dockerRegistry = deployments[2]
+    npmRegistryDeployment = {
+      cleanup: () => Promise.resolve(),
+      serverInfo: {
+        host: 'localhost',
+        port: 34873,
+        protocol: Protocol.http,
+      },
+    }
+    redisDeployment = {
+      cleanup: () => Promise.resolve(),
+      serverInfo: {
+        host: 'localhost',
+        port: 36379,
+      },
+    }
+    dockerRegistry = {
+      cleanup: () => Promise.resolve(),
+      serverInfo: {
+        host: 'localhost',
+        port: 35000,
+        protocol: Protocol.http,
+      },
+    }
   })
   afterAll(async () => {
     await Promise.all(

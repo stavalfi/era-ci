@@ -12,7 +12,9 @@
     "run-ci": "NC_TEST_MODE=true yarn build && node --unhandled-rejections=strict packages/nc/dist/src/index.js",
     "build:tsc": "yarn tsc -b tsconfig-build.json",
     "build": "yarn build:tsc && chmod +x packages/nc/dist/src/index.js",
-    "build:watch": "yarn build:tsc --watch"
+    "build:watch": "yarn build:tsc --watch",
+    "test-resources:up": "docker-compose -f ./packages/nc/__tests__/prepare-test/docker-compose.yml up -d",
+    "test-resources:down": "docker-compose -f ./packages/nc/__tests__/prepare-test/docker-compose.yml down"
   },
   "repository": {
     "url": "https://github.com/stavalfi/nc"
