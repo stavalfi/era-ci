@@ -1,4 +1,5 @@
-import { logger, LogLevel } from '@tahini/log'
+import { logger } from '@tahini/log'
+import execa from 'execa'
 import fse from 'fs-extra'
 import isIp from 'is-ip'
 import _ from 'lodash'
@@ -10,6 +11,7 @@ import { generateCliTableReport } from './report/cli-table-report'
 import { generateJsonReport } from './report/json-report'
 import {
   Artifact,
+  Cache,
   Cleanup,
   Graph,
   JsonReport,
@@ -20,40 +22,48 @@ import {
   StepStatus,
   TargetsInfo,
   TargetType,
-  Cache,
 } from './types'
-import execa from 'execa'
+import zlib from 'zlib'
+import { promisify } from 'util'
 
 const log = logger('utils')
+
+export async function zip(data: string): Promise<Buffer> {
+  return promisify<string, Buffer>(zlib.deflate)(data)
+}
+
+export async function unzip(buffer: Buffer): Promise<string> {
+  const result = await promisify<Buffer, Buffer>(zlib.unzip)(buffer)
+  return result.toString()
+}
 
 type SupportedExecaCommandOptions = Omit<execa.Options, 'stderr' | 'stdout' | 'all' | 'stdin'> &
   Required<Pick<execa.Options, 'stdio'>>
 
 export async function execaCommand<Options extends SupportedExecaCommandOptions>(
   command: string,
-  options: Options['stdio'] extends 'inherit' ? SupportedExecaCommandOptions & { logLevel: LogLevel } : Options,
+  options: Options['stdio'] extends 'inherit' ? SupportedExecaCommandOptions : Options,
 ): Promise<execa.ExecaReturnValue<string>> {
   const subprocess = execa.command(command, {
-    ..._.omit(options, ['logLevel', 'stdio']),
-    stdio: options.stdio === 'ignore' ? 'ignore' : 'pipe',
+    ..._.omit(options, ['logLevel']),
+    stdio: options.stdio === 'inherit' ? 'pipe' : options.stdio,
   })
+
   if (options.stdio === 'ignore') {
     return subprocess
   }
 
-  if (subprocess.stdout) {
-    if (options.stdio === 'inherit') {
-      // @ts-ignore - looks like typescript bug. it should be fine
-      const logLevel = options.logLevel
-      log.fromStream(logLevel, subprocess.stdout)
+  if (options.stdio === 'inherit') {
+    if (subprocess.stdout) {
+      log.infoFromStream(subprocess.stdout)
+    }
+    if (subprocess.stderr) {
+      log.errorFromStream(subprocess.stderr)
     }
   }
-  if (subprocess.stderr) {
-    if (options.stdio === 'inherit') {
-      log.fromStream(LogLevel.error, subprocess.stderr)
-    }
-  }
-  return subprocess
+
+  const result = await subprocess
+  return result
 }
 
 export function getTargetTypeByKey(targetTypeKey: string): TargetType {
@@ -123,9 +133,9 @@ export async function getOrderedGraph<DeploymentClient>({
     targetType: TargetType | undefined
   }[]
   targetsInfo?: TargetsInfo<DeploymentClient>
-}): Promise<Graph<{ artifact: Artifact }>> {
+}): Promise<{ repoHash: string; orderedGraph: Graph<{ artifact: Artifact }> }> {
   log.verbose('calculate hash of every package and check which packages changed since their last publish')
-  const orderedGraph = await calculatePackagesHash(
+  const { repoHash, orderedGraph } = await calculatePackagesHash(
     repoPath,
     artifacts.map(({ packagePath }) => packagePath),
   )
@@ -162,7 +172,7 @@ export async function getOrderedGraph<DeploymentClient>({
     )
   })
 
-  return result
+  return { repoHash, orderedGraph: result }
 }
 
 export function toServerInfo({ protocol, host, port }: { protocol?: string; host: string; port?: number }): ServerInfo {
@@ -237,7 +247,6 @@ export async function install({
     cwd: repoPath,
     stdio: 'inherit',
     reject: false,
-    logLevel: LogLevel.info,
   })
 
   const durationMs = Date.now() - startMs
@@ -282,7 +291,6 @@ export async function build({
       cwd: repoPath,
       stdio: 'inherit',
       reject: false,
-      logLevel: LogLevel.info,
     })
 
     const durationMs = Date.now() - startMs
@@ -341,6 +349,12 @@ export async function cleanup(cleanups: Cleanup[]): Promise<void> {
   )
 }
 
+export function shouldExitWithError(jsonReport: JsonReport): boolean {
+  return [StepStatus.failed, StepStatus.skippedAsFailed, StepStatus.skippedAsFailedBecauseLastStepFailed].includes(
+    jsonReport.summary.status,
+  )
+}
+
 export async function reportAndExitCi({
   flowId,
   jsonReport,
@@ -354,15 +368,12 @@ export async function reportAndExitCi({
   cache: Cache
   logFilePath: string
 }): Promise<void> {
-  await cache.flow.setFlowResult(jsonReport)
-  log.noFormattingStdout(generateCliTableReport(jsonReport))
+  await cache.flow.setFlowJsonReport(jsonReport)
+  log.noFormattingInfo(generateCliTableReport(jsonReport))
   await cache.flow.saveFlowLogsContent(flowId, await fse.readFile(logFilePath, 'utf-8'))
   await cleanup(cleanups)
-  if (
-    [StepStatus.failed, StepStatus.skippedAsFailed, StepStatus.skippedAsFailedBecauseLastStepFailed].includes(
-      jsonReport.summary.status,
-    )
-  ) {
+
+  if (shouldExitWithError(jsonReport)) {
     process.exitCode = 1
   }
 }

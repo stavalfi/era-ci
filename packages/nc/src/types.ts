@@ -99,7 +99,6 @@ export type TargetsInfo<DeploymentClient, ServerInfoType = ServerInfo> = {
 
 export type CiOptions<DeploymentClient, ServerInfoType = ServerInfo> = {
   repoPath: string
-  flowId: string
   startFlowDateUtc: string
   logFilePath: string
   redis: {
@@ -122,7 +121,7 @@ export type CiOptions<DeploymentClient, ServerInfoType = ServerInfo> = {
 
 export type ConfigFileOptions<DeploymentClient = never> = Omit<
   CiOptions<DeploymentClient, string>,
-  'repoPath' | 'git' | 'flowId' | 'startFlowDateUtc'
+  'repoPath' | 'git' | 'startFlowDateUtc'
 > & {
   git: {
     auth: CiOptions<DeploymentClient, string>['git']['auth']
@@ -147,7 +146,7 @@ export enum CacheTypes {
   test = 'test',
   publish = 'publish',
   deployment = 'deployment',
-  flow = 'flow-result',
+  flowJsonReport = 'flow-json-report',
   flowLogsContent = 'flow-logs-content',
 }
 
@@ -193,7 +192,8 @@ export type Cache = {
     [Target in TargetType]?: DeploymentCache
   }
   flow: {
-    setFlowResult: (jsonReport: JsonReport) => Promise<void>
+    setFlowJsonReport: (jsonReport: JsonReport) => Promise<void>
+    readFlowJsonReport: (flowId: string) => Promise<JsonReport | null>
     saveFlowLogsContent: (flowId: string, ncLogFilePath: string) => Promise<void>
     readFlowLogsContent: (flowId: string) => Promise<string | null>
   }

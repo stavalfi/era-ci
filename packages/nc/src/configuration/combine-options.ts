@@ -1,8 +1,7 @@
-import { ConfigFileOptions, CiOptions, Protocol, TargetType, ServerInfo, TargetInfo } from '../types'
-import urlParse from 'url-parse'
 import parseGitUrl from 'git-url-parse'
 import redisUrlParse from 'redis-url-parse'
-import chance from 'chance'
+import urlParse from 'url-parse'
+import { CiOptions, ConfigFileOptions, Protocol, ServerInfo, TargetInfo, TargetType } from '../types'
 import { execaCommand } from '../utils'
 
 function isProtocolSupported(protocol: string): protocol is Protocol {
@@ -40,9 +39,7 @@ function getServerInfoFromTarget<Target extends TargetType, DeploymentClient>(
 export async function combineOptions<DeploymentClient>({
   cliOptions,
   configFileOptions,
-  flowId,
 }: {
-  flowId?: string
   configFileOptions: ConfigFileOptions<DeploymentClient>
   cliOptions: { repoPath: string }
 }): Promise<CiOptions<DeploymentClient>> {
@@ -54,7 +51,6 @@ export async function combineOptions<DeploymentClient>({
   const parsedRedisServer = redisUrlParse(configFileOptions.redis.redisServer)
 
   return {
-    flowId: flowId || chance().hash(),
     startFlowDateUtc: new Date().toISOString(),
     repoPath: cliOptions.repoPath,
     logFilePath: configFileOptions.logFilePath,

@@ -81,7 +81,7 @@ export type CiResults = {
   ciProcessResult: execa.ExecaReturnValue<string>
   published: Map<string, ResultingArtifact>
   ncLogfileContent: string
-  flowId: string
+  flowId: string | undefined
 }
 
 export type ToActualName = (name: string) => string

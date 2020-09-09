@@ -235,10 +235,14 @@ export async function runCiUsingConfigFile({
   const ncLogfileContent = await fse.readFile(logFilePath, 'utf-8')
 
   const flowIdResult = ncLogfileContent.match(/flow-id: "(.*)"/)
+  let flowId: string | undefined
   if (!flowIdResult || flowIdResult.length < 2) {
-    throw new Error(`test-infra could not find the flow-id from the log-file using the regex: /flow-id: "(.*)"/`)
+    // test-infra could not find the flow-id from the log-file using the regex: /flow-id: "(.*)"/.
+    // maybe the test failed before the flow-id was generated
+    flowId = undefined
+  } else {
+    flowId = flowIdResult[1]
   }
-  const flowId = flowIdResult[1]
 
   return {
     published: new Map(published),
