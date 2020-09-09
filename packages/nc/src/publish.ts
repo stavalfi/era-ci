@@ -190,6 +190,10 @@ async function publishDocker<DeploymentClient>({
           {
             cwd: artifact.packagePath,
             stdio: 'inherit',
+            env: {
+              // eslint-disable-next-line no-process-env
+              ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
+            },
           },
         )
       } catch (error) {
@@ -207,6 +211,10 @@ async function publishDocker<DeploymentClient>({
         await execa.command(`docker push ${fullImageNameNewVersion}`, {
           cwd: artifact.packagePath,
           stdio: 'inherit',
+          env: {
+            // eslint-disable-next-line no-process-env
+            ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
+          },
         })
       } catch (error) {
         return {
