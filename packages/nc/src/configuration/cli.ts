@@ -34,12 +34,15 @@ export async function startCli(processArgv: string[]) {
         : path.join(repoPath, 'nc.config.ts')
       const configFileOptions = await readNcConfigurationFile(configFilePath)
       const ciOptions = await combineOptions({
-        flowId: args['print-flow'],
         configFileOptions,
         cliOptions: { repoPath },
       })
       if (args['print-flow']) {
-        await printFlowLogs(ciOptions)
+        await printFlowLogs({
+          flowId: args['print-flow'],
+          redis: ciOptions.redis,
+          repoPath: ciOptions.repoPath,
+        })
       } else {
         await ci(ciOptions)
       }

@@ -1,4 +1,4 @@
-import { closeLoggers, logger, attachLogFileTransport } from '@tahini/log'
+import { attachLogFileTransport, logger } from '@tahini/log'
 import fse from 'fs-extra'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
@@ -8,6 +8,7 @@ import { dockerRegistryLogin } from './docker-utils'
 import { npmRegistryLogin } from './npm-utils'
 import { getPackageTargetType } from './package-info'
 import { publish } from './publish'
+import { CLI_TABLE_REPORT_STATUSES } from './report/cli-table-report'
 import { testPackages } from './test'
 import { CiOptions, Cleanup, TargetType } from './types'
 import { build, cleanup, getOrderedGraph, getPackages, install, reportAndExitCi, runSteps } from './utils'
@@ -16,7 +17,7 @@ import { validatePackages } from './validate-packages'
 const log = logger('ci-logic')
 
 export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>): Promise<void> {
-  const cleanups: Cleanup[] = [closeLoggers]
+  const cleanups: Cleanup[] = []
 
   try {
     const startMs = Date.now()
@@ -24,16 +25,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
     attachLogFileTransport(options.logFilePath)
 
     // in tests, we extract the flowId using regex from this line (super ugly :S)
-    log.info(`Starting CI - flow-id: "${options.flowId}"`)
-    log.verbose(`nc options: ${JSON.stringify(options, null, 2)}`)
-
-    const cache = await intializeCache({
-      flowId: options.flowId,
-      redis: options.redis,
-      targetsInfo: options.targetsInfo,
-      repoPath: options.repoPath,
-    })
-    cleanups.push(cache.cleanup)
+    log.info(`Starting CI`)
 
     const packagesPath = await getPackages(options.repoPath)
 
@@ -50,6 +42,35 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
     )
 
     await validatePackages(artifacts)
+
+    const { repoHash: flowId, orderedGraph } = await getOrderedGraph({
+      repoPath: options.repoPath,
+      artifacts,
+      targetsInfo: options.targetsInfo,
+    })
+
+    const cache = await intializeCache({
+      flowId,
+      redis: options.redis,
+      targetsInfo: options.targetsInfo,
+      repoPath: options.repoPath,
+    })
+    cleanups.push(cache.cleanup)
+
+    const [flowLogs, flowJsonReport] = await Promise.all([
+      cache.flow.readFlowLogsContent(flowId),
+      cache.flow.readFlowJsonReport(flowId),
+    ])
+    if (flowLogs || flowJsonReport) {
+      log.info(`NC detected this this flow was already run and nothing changed in the repository`)
+      if (flowJsonReport) {
+        log.info(`previous flow result was: ${CLI_TABLE_REPORT_STATUSES[flowJsonReport?.summary.status]}`)
+      }
+      log.info(`running again...`)
+    }
+
+    log.info(`flow-id: "${flowId}"`)
+    log.verbose(`nc options: ${JSON.stringify(options, null, 2)}`)
 
     const npmPackages = artifacts.filter(({ targetType }) => targetType === TargetType.npm)
     const dockerPackages = artifacts.filter(({ targetType }) => targetType === TargetType.docker)
@@ -73,14 +94,8 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
       })
     }
 
-    const orderedGraph = await getOrderedGraph({
-      repoPath: options.repoPath,
-      artifacts,
-      targetsInfo: options.targetsInfo,
-    })
-
     const jsonReport = await runSteps({
-      flowId: options.flowId,
+      flowId,
       startFlowDateUtc: options.startFlowDateUtc,
       startMs,
       graph: orderedGraph,
@@ -126,7 +141,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
         },
       ],
     })
-    await reportAndExitCi({ flowId: options.flowId, jsonReport, cleanups, cache, logFilePath: options.logFilePath })
+    await reportAndExitCi({ flowId, jsonReport, cleanups, cache, logFilePath: options.logFilePath })
   } catch (error) {
     process.exitCode = 1
     log.error(`CI failed unexpectedly`, error)
