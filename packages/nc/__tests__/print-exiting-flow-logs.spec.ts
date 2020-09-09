@@ -22,11 +22,12 @@ test('ensure we can print old flow logs', async () => {
     },
   })
 
+  expect(result1.flowId).toBeTruthy()
   const flowLogsResult = await getFlowLogs({
-    flowId: result1.flowId,
+    flowId: result1.flowId!,
   })
 
-  expect(flowLogsResult.stdout).toMatch(result1.flowId)
+  expect(flowLogsResult.stdout).toMatch(result1.flowId!)
 })
 
 test('fail when we try to print logs of flow-id that does not exists', async () => {

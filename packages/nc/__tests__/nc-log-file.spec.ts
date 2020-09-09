@@ -22,7 +22,8 @@ test('ensure log file is created', async () => {
       },
     },
   })
-  expect(result1.ncLogfileContent).toMatch(result1.flowId)
+  expect(result1.flowId).toBeTruthy()
+  expect(result1.ncLogfileContent).toMatch(result1.flowId!)
 })
 
 test('ensure log file is not deleted/cleared between flows', async () => {
@@ -51,8 +52,10 @@ test('ensure log file is not deleted/cleared between flows', async () => {
       },
     },
   })
-  expect(result2.ncLogfileContent).toMatch(result1.flowId)
-  expect(result2.ncLogfileContent).toMatch(result2.flowId)
+  expect(result1.flowId).toBeTruthy()
+  expect(result2.ncLogfileContent).toMatch(result1.flowId!)
+  expect(result2.flowId).toBeTruthy()
+  expect(result2.ncLogfileContent).toMatch(result2.flowId!)
 })
 
 test('ensure any user-command that we run will be sent to the log file - user command passed', async () => {
