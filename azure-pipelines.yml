@@ -25,7 +25,7 @@ steps:
 
   - script: yarn install
     displayName: 'yarn install'
-  - script: yarn build
-    displayName: 'yarn build'
+  - script: yarn test-resources:up
+    displayName: 'setup tests resources'
   - script: secrethub run -- yarn run-ci
     displayName: 'run ci'
