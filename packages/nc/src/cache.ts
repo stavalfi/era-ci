@@ -14,6 +14,7 @@ import {
   TargetsInfo,
   TargetType,
 } from './types'
+import { zip } from './utils'
 
 const DEFAULT_TTL = 1000 * 60 * 24 * 30
 const FLOW_LOGS_COINTENT_TTL = 1000 * 60 * 24 * 7
@@ -26,9 +27,9 @@ const toPublishKey = (packageName: string, targetType: TargetType, packageHash: 
 
 const toTestKey = (packageName: string, packageHash: string) => `${CacheTypes.test}-${packageName}-${packageHash}`
 
-const toFlowKey = (flowId: string) => `${CacheTypes.flow}-${flowId}`
+const toFlowJsonReportKey = (flowId: string) => `${CacheTypes.flowJsonReport}-${flowId}`
 
-const toFlowLogsContentKey = (flowId: string) => `${CacheTypes.flow}-${flowId}`
+const toFlowLogsContentKey = (flowId: string) => `${CacheTypes.flowLogsContent}-${flowId}`
 
 type Get = (key: string, ttl: number) => Promise<string | null>
 type Has = (key: string, ttl: number) => Promise<FlowId | undefined>
@@ -187,10 +188,6 @@ enum TestsResult {
   failed = 'failed',
 }
 
-const setFlowResult = (flowId: string, set: Set) => async (jsonReport: JsonReport): Promise<void> => {
-  await set(toFlowKey(flowId), JSON.stringify(jsonReport, null, 2), FLOW_LOGS_COINTENT_TTL)
-}
-
 const isTestsRun = (has: Has) => async (packageName: string, packageHash: string) =>
   has(toTestKey(packageName, packageHash), DEFAULT_TTL)
 
@@ -320,6 +317,30 @@ export async function intializeCache<DeploymentClient>({
     }),
   }
 
+  const setFlowJsonReport = async (jsonReport: JsonReport): Promise<void> => {
+    await redisClient.set(
+      toFlowJsonReportKey(flowId),
+      await zip(JSON.stringify(jsonReport, null, 2)),
+      'px',
+      FLOW_LOGS_COINTENT_TTL,
+    )
+  }
+
+  const readFlowJsonReport = async (flowId: string): Promise<JsonReport | null> => {
+    const buffer = await redisClient.getBuffer(toFlowJsonReportKey(flowId))
+    const result = buffer?.toString()
+    return result && JSON.parse(result)
+  }
+
+  async function saveFlowLogsContent(flowId: string, ncLogsContent: string) {
+    await redisClient.set(toFlowLogsContentKey(flowId), await zip(ncLogsContent), 'px', FLOW_LOGS_COINTENT_TTL)
+  }
+
+  async function readFlowLogsContent(flowId: string): Promise<string | null> {
+    const buffer = await redisClient.getBuffer(toFlowLogsContentKey(flowId))
+    return buffer?.toString()
+  }
+
   const deployment: Cache['deployment'] = {
     ...(targetsInfo?.npm && {
       npm: {
@@ -346,10 +367,10 @@ export async function intializeCache<DeploymentClient>({
     publish,
     deployment,
     flow: {
-      setFlowResult: setFlowResult(flowId, set),
-      saveFlowLogsContent: (flowId, ncLogsContent) =>
-        set(toFlowLogsContentKey(flowId), ncLogsContent, FLOW_LOGS_COINTENT_TTL),
-      readFlowLogsContent: flowId => get(toFlowLogsContentKey(flowId), FLOW_LOGS_COINTENT_TTL),
+      setFlowJsonReport,
+      readFlowJsonReport,
+      saveFlowLogsContent,
+      readFlowLogsContent,
     },
     cleanup: () => Promise.all([redisClient.quit(), nodeCache.close()]),
   }

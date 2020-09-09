@@ -1,4 +1,4 @@
-import { logger, LogLevel } from '@tahini/log'
+import { logger } from '@tahini/log'
 import fse from 'fs-extra'
 import isIp from 'is-ip'
 import path from 'path'
@@ -133,7 +133,6 @@ async function publishNpm<DeploymentClient>({
             NPM_AUTH_TOKEN: targetPublishInfo.publishAuth.token,
             NPM_TOKEN: targetPublishInfo.publishAuth.token,
           },
-          logLevel: LogLevel.info,
         },
       )
       log.info(`published npm target in package: "${artifact.packageJson.name}"`)
@@ -194,7 +193,6 @@ async function publishDocker<DeploymentClient>({
               // eslint-disable-next-line no-process-env
               ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
             },
-            logLevel: LogLevel.info,
           },
         )
       } catch (error) {
@@ -216,7 +214,6 @@ async function publishDocker<DeploymentClient>({
             // eslint-disable-next-line no-process-env
             ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
           },
-          logLevel: LogLevel.info,
         })
       } catch (error) {
         return {

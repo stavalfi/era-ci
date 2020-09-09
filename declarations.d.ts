@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/camelcase */
 
 declare module 'object-deep-contain' {
-  export default function(bigObject: unknown, smallerObject: unknown): boolean
+  export default function (bigObject: unknown, smallerObject: unknown): boolean
 }
 
 declare module 'redis-url-parse' {
-  export default function(redisUrl: string): { host: string; port: number; database: string; password: string }
+  export default function (redisUrl: string): { host: string; port: number; database: string; password: string }
 }
 
 declare module 'ci-env' {
@@ -17,12 +17,12 @@ declare module 'ci-env' {
 }
 
 declare module '@hutson/set-npm-auth-token-for-ci' {
-  export default function(): void
+  export default function (): void
 }
 
 declare module 'npm-login-noninteractive' {
   // docs: https://github.com/icdevin/npm-login-noninteractive
-  export default function(
+  export default function (
     npmUsername: string,
     npmPassword: string,
     npmEmail: string,
@@ -33,7 +33,7 @@ declare module 'npm-login-noninteractive' {
 }
 
 declare module 'object-delete-key' {
-  export default function(
+  export default function (
     originalInput: unknown,
     originalOpts: {
       key?: string

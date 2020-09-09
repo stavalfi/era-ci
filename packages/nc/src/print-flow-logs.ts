@@ -6,7 +6,7 @@ import { cleanup } from './utils'
 
 const log = logger('ci-logic')
 
-export async function printFlowLogs(options: Pick<CiOptions<unknown>, 'flowId' | 'redis' | 'repoPath'>) {
+export async function printFlowLogs(options: Pick<CiOptions<unknown>, 'redis' | 'repoPath'> & { flowId: string }) {
   const cleanups: Cleanup[] = []
   try {
     const cache = await intializeCache({
@@ -22,7 +22,7 @@ export async function printFlowLogs(options: Pick<CiOptions<unknown>, 'flowId' |
       // we want to avoid stacktraces so we don't throw an Error object
       throw MISSING_FLOW_ID_ERROR
     }
-    log.noFormattingStdout(flowLogs)
+    log.noFormattingInfo(flowLogs)
   } catch (error) {
     if (error === MISSING_FLOW_ID_ERROR) {
       log.error(error)

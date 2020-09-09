@@ -63,6 +63,7 @@ test('packages with failed tests wont deploy', async () => {
   expect(result.ciProcessResult.stdout).toMatch(`deploy-${toActualName('c')}`)
 })
 
+// usecase: incase the developer revert a PR, we want to re-deploy the previous deployment again!
 test(`deployment succeed but there will be an addtional deployment in the next flow`, async () => {
   const aDeployment = await manageStepResult()
   const { runCi } = await createRepo({
@@ -101,6 +102,7 @@ test(`deployment succeed but there will be an addtional deployment in the next f
   await expect(runCi(runCiOptions)).rejects.toBeTruthy()
 })
 
+// usecase: i don't really have one. it's just the same behavior as if the deployment succeed -> we will redeploy anyway.
 test(`deployment failed but there will be an addtional deployment in the next flow`, async () => {
   const aDeployment = await manageStepResult()
   const { runCi } = await createRepo({
