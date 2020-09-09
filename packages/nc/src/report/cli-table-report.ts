@@ -28,7 +28,7 @@ const DEFAULT_CHART = {
 const good = (word: string) => colors.green(word)
 const bad = (word: string) => colors.red(word)
 
-const STATUSES = {
+export const CLI_TABLE_REPORT_STATUSES = {
   [StepStatus.passed]: good('Passed'),
   [StepStatus.failed]: bad('Failed'),
   [StepStatus.skippedAsPassed]: good('Skipped'),
@@ -46,12 +46,12 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
     const stepsStatus = Object.fromEntries(
       Object.entries(node.data.stepsResult)
         .filter(([stepName, stepResult]) => stepName !== StepName.report && stepResult)
-        .map(([stepName, stepResult]) => [stepName, STATUSES[stepResult!.status]]),
+        .map(([stepName, stepResult]) => [stepName, CLI_TABLE_REPORT_STATUSES[stepResult!.status]]),
     )
     return {
       packageName: node.data.artifact.packageJson.name as string,
       stepsStatusOrdered: orderedSteps.map(stepName => stepsStatus[stepName]),
-      summaryStatus: STATUSES[node.data.stepsSummary.status],
+      summaryStatus: CLI_TABLE_REPORT_STATUSES[node.data.stepsSummary.status],
       duration: prettyMs(node.data.stepsSummary.durationMs),
       notes: Object.entries(node.data.stepsResult)
         .filter(([, stepResult]) => stepResult)
@@ -130,7 +130,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
         rowSpan: notes.length || 1,
         vAlign: 'center',
         hAlign: 'center',
-        content: STATUSES[jsonReport.summary.status],
+        content: CLI_TABLE_REPORT_STATUSES[jsonReport.summary.status],
       },
       {
         rowSpan: notes.length || 1,

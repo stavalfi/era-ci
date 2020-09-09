@@ -142,9 +142,15 @@ const isRootFile = (repoPath: string, filePath: string) => !filePath.includes(pa
 export async function calculatePackagesHash(
   repoPath: string,
   packagesPath: string[],
-): Promise<
-  Graph<{ relativePackagePath: string; packagePath: string; packageHash: string; packageJson: IPackageJson }>
-> {
+): Promise<{
+  orderedGraph: Graph<{
+    relativePackagePath: string
+    packagePath: string
+    packageHash: string
+    packageJson: IPackageJson
+  }>
+  repoHash: string
+}> {
   const repoFilesPathResult = await execaCommand('git ls-tree -r --name-only HEAD', {
     cwd: repoPath,
     stdio: 'pipe',
@@ -205,6 +211,8 @@ export async function calculatePackagesHash(
 
   const orderedGraph = createOrderGraph(packageHashInfoByPath)
 
+  const repoHash = combineHashes([rootFilesHash, ...orderedGraph.map(p => p.data.packageHash)])
+
   log.verbose('calculated hashes to every package in the monorepo:')
   log.verbose(`root-files -> ${rootFilesHash}`)
   log.verbose(`${orderedGraph.length} packages:`)
@@ -212,5 +220,5 @@ export async function calculatePackagesHash(
     log.verbose(`${node.data.relativePackagePath} (${node.data.packageJson.name}) -> ${node.data.packageHash}`),
   )
   log.verbose('---------------------------------------------------')
-  return orderedGraph
+  return { repoHash, orderedGraph }
 }

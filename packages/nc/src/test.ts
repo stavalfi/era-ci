@@ -1,5 +1,5 @@
-import { logger, LogLevel } from '@tahini/log'
-import { Cache, Graph, Node, Artifact, PackagesStepResult, PackageStepResult, StepName, StepStatus } from './types'
+import { logger } from '@tahini/log'
+import { Artifact, Cache, Graph, Node, PackagesStepResult, PackageStepResult, StepName, StepStatus } from './types'
 import { calculateCombinedStatus, execaCommand } from './utils'
 
 const log = logger('test')
@@ -54,7 +54,6 @@ async function testPackage({
     cwd: node.data.artifact.packagePath,
     stdio: 'inherit',
     reject: false,
-    logLevel: LogLevel.info,
   })
 
   await cache.test.setResult(
