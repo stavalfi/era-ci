@@ -231,6 +231,10 @@ async function publishDocker<DeploymentClient>({
       await execa
         .command(`docker rmi ${fullImageNameNewVersion}`, {
           stdio: 'pipe',
+          env: {
+            // eslint-disable-next-line no-process-env
+            ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
+          },
         })
         .catch((e) =>
           log.error(
