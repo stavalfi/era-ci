@@ -5,6 +5,7 @@ const { pathsToModuleNameMapper } = require('ts-jest/utils')
 const { compilerOptions } = require('./tsconfig.json')
 
 module.exports = {
+  testEnvironment: 'node',
   preset: 'ts-jest',
   testRunner: 'jest-circus/runner',
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: path.join(__dirname, 'packages/') }),
@@ -15,4 +16,5 @@ module.exports = {
     },
   },
   testMatch: [path.join(__dirname, 'packages/*/__tests__/**/*.spec.ts')],
+  globalSetup: path.join(__dirname, 'jest-global-setup.js'),
 }
