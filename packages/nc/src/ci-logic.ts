@@ -22,7 +22,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
   try {
     const startMs = Date.now()
     // to avoid passing the logger instance between all the files and functions, we use ugly workaround:
-    attachLogFileTransport(options.logFilePath)
+    await attachLogFileTransport(options.logFilePath)
 
     // in tests, we extract the flowId using regex from this line (super ugly :S)
     log.info(`Starting CI`)
@@ -62,7 +62,7 @@ export async function ci<DeploymentClient>(options: CiOptions<DeploymentClient>)
       cache.flow.readFlowJsonReport(flowId),
     ])
     if (flowLogs || flowJsonReport) {
-      log.info(`NC detected this this flow was already run and nothing changed in the repository`)
+      log.info(`NC detected that this flow was already run and nothing changed in the repository`)
       if (flowJsonReport) {
         log.info(`previous flow result was: ${CLI_TABLE_REPORT_STATUSES[flowJsonReport?.summary.status]}`)
       }

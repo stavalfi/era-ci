@@ -14,7 +14,7 @@ import {
   TargetsInfo,
   TargetType,
 } from './types'
-import { zip } from './utils'
+import { zip, unzip } from './utils'
 
 const DEFAULT_TTL = 1000 * 60 * 24 * 30
 const FLOW_LOGS_COINTENT_TTL = 1000 * 60 * 24 * 7
@@ -328,8 +328,8 @@ export async function intializeCache<DeploymentClient>({
 
   const readFlowJsonReport = async (flowId: string): Promise<JsonReport | null> => {
     const buffer = await redisClient.getBuffer(toFlowJsonReportKey(flowId))
-    const result = buffer?.toString()
-    return result && JSON.parse(result)
+    const unzipped = buffer && (await unzip(buffer))
+    return unzipped && JSON.parse(unzipped)
   }
 
   async function saveFlowLogsContent(flowId: string, ncLogsContent: string) {
@@ -338,7 +338,7 @@ export async function intializeCache<DeploymentClient>({
 
   async function readFlowLogsContent(flowId: string): Promise<string | null> {
     const buffer = await redisClient.getBuffer(toFlowLogsContentKey(flowId))
-    return buffer?.toString()
+    return buffer && (await unzip(buffer))
   }
 
   const deployment: Cache['deployment'] = {
