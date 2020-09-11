@@ -1,6 +1,6 @@
 {
   "name": "@tahini/log",
-  "version": "1.2.75",
+  "version": "1.2.88",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": false,
@@ -20,6 +20,7 @@
     "chalk": "^4.1.0",
     "randomcolor": "^0.6.2",
     "ci-info": "https://github.com/watson/ci-info.git",
-    "winston": "^3.3.3"
+    "winston": "^3.3.3",
+    "fs-extra": "^9.0.0"
   }
 }
