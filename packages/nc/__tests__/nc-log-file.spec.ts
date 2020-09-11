@@ -26,7 +26,7 @@ test('ensure log file is created', async () => {
   expect(result1.ncLogfileContent).toMatch(result1.flowId!)
 })
 
-test('ensure log file is not deleted/cleared between flows', async () => {
+test('ensure log file is deleted when a new flow starts', async () => {
   const { runCi } = await createRepo({
     packages: [
       {
@@ -44,6 +44,8 @@ test('ensure log file is not deleted/cleared between flows', async () => {
       },
     },
   })
+  const flowId = result1.flowId as string
+
   const result2 = await runCi({
     targetsInfo: {
       npm: {
@@ -52,10 +54,13 @@ test('ensure log file is not deleted/cleared between flows', async () => {
       },
     },
   })
-  expect(result1.flowId).toBeTruthy()
-  expect(result2.ncLogfileContent).toMatch(result1.flowId!)
-  expect(result2.flowId).toBeTruthy()
-  expect(result2.ncLogfileContent).toMatch(result2.flowId!)
+
+  // what do we do here: flow-id is the repo-hash so the flow-id
+  //                     will be the same in both flows. we ensure
+  //                     it was printed only once in the log file.
+
+  const amountOfRepeats = result2.ncLogfileContent.split(`flow-id: "${flowId}"`).length - 1
+  expect(amountOfRepeats).toEqual(1)
 })
 
 test('ensure any user-command that we run will be sent to the log file - user command passed', async () => {
