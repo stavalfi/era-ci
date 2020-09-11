@@ -2,6 +2,7 @@ import winston from 'winston'
 import { customLogLevel, isNcTestMode } from './env'
 import { createConsoleTransport, createFileTransport, defaultFormat, noFormat } from './transports'
 import { Log } from './types'
+import fse from 'fs-extra'
 
 const mainLogger = winston.createLogger({
   level: customLogLevel || (isNcTestMode ? 'verbose' : 'info'),
@@ -18,7 +19,8 @@ const noFormattingOnlyFileLogger = winston.createLogger({
   transports: [],
 })
 
-export function attachLogFileTransport(logFilePath: string): void {
+export async function attachLogFileTransport(logFilePath: string): Promise<void> {
+  await fse.remove(logFilePath)
   mainLogger.add(createFileTransport(logFilePath, defaultFormat))
   noFormattingLogger.add(createFileTransport(logFilePath, noFormat))
   noFormattingOnlyFileLogger.add(createFileTransport(logFilePath, noFormat))
