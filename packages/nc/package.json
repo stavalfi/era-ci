@@ -39,6 +39,7 @@
     "pretty-ms": "^7.0.0",
     "randomcolor": "^0.6.2",
     "redis-url-parse": "^2.0.0",
+    "rxjs": "^6.6.3",
     "semver": "^7.3.2",
     "source-map-support": "^0.5.19",
     "superstruct": "^0.10.12",
