@@ -1,2 +1,2 @@
 export { attachLogFileTransport, logger } from './loggers'
-export { LogLevel } from './types'
+export { LogLevel, Log } from './types'

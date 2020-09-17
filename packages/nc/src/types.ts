@@ -217,7 +217,7 @@ export enum StepStatus {
   failed = 'failed',
 }
 
-export type StepResult<StepNameParam extends StepName> = {
+export type StepResult<StepNameParam extends string = string> = {
   stepName: StepNameParam
   status: StepStatus
   durationMs: number
@@ -244,9 +244,9 @@ export type PackageStepResult = {
   report: StepResult<StepName.report>
 }
 
-export type PackagesStepResult<StepNameParam extends StepName> = StepResult<StepNameParam> & {
+export type PackagesStepResult<StepNameParam extends string = string> = StepResult<StepNameParam> & {
   executionOrder: number
-  packagesResult: Graph<{ artifact: Artifact; stepResult: PackageStepResult[StepNameParam] }>
+  packagesResult: Graph<{ artifact: Artifact; stepResult: StepResult<StepNameParam> }>
 }
 
 export type JsonReport = {
