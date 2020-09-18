@@ -1,51 +1,37 @@
-import fse from 'fs-extra'
-import { IPackageJson } from 'package-json-type'
-import path from 'path'
 import { execaCommand } from '../../utils'
 import { createStep } from '../create-step'
 import { StepStatus } from '../types'
 
-export const build = createStep({
+export const build = createStep<void>({
   stepName: 'build',
-  runStepOnAllArtifacts: async ({ repoPath, allArtifacts }) => {
-    const startMs = Date.now()
-    const rootPackageJson: IPackageJson = await fse.readJson(path.join(repoPath, 'package.json'))
-
-    if (rootPackageJson.scripts && 'build' in rootPackageJson.scripts && rootPackageJson.scripts.build) {
-      const result = await execaCommand('yarn build', {
-        cwd: repoPath,
-        stdio: 'inherit',
-        reject: false,
-      })
-
-      return {
-        stepSummary: {
-          status: StepStatus.passed,
+  canRunStepOnArtifact: {
+    customPredicate: async ({ rootPackage }) => {
+      if (
+        rootPackage.packageJson.scripts &&
+        'build' in rootPackage.packageJson.scripts &&
+        rootPackage.packageJson.scripts.build
+      ) {
+        return {
+          canRun: true,
           notes: [],
-        },
-        artifactsResult: allArtifacts.map(node => ({
-          artifactName: node.data.artifact.packageJson.name!,
-          stepResult: {
-            status: result.failed ? StepStatus.failed : StepStatus.passed,
-            notes: [],
-            durationMs: Date.now() - startMs,
-          },
-        })),
-      }
-    } else {
-      return {
-        stepSummary: {
+        }
+      } else {
+        return {
+          canRun: false,
           notes: [],
-        },
-        artifactsResult: allArtifacts.map(node => ({
-          artifactName: node.data.artifact.packageJson.name!,
-          stepResult: {
-            status: StepStatus.skippedAsPassed,
-            notes: ['skipping because missing build-script in root package.json'],
-            durationMs: Date.now() - startMs,
-          },
-        })),
+          stepStatus: StepStatus.skippedAsPassed,
+        }
       }
+    },
+  },
+  runStepOnRoot: async ({ repoPath }) => {
+    await execaCommand('yarn build', {
+      cwd: repoPath,
+      stdio: 'inherit',
+    })
+
+    return {
+      status: StepStatus.passed,
     }
   },
 })

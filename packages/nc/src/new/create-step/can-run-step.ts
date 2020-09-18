@@ -56,7 +56,7 @@ const runAll = async (
   }
 }
 
-async function skipIfPackageResultsInCachePredicate({
+async function skipIfPackageResultsInCachePredicate<StepConfigurations>({
   canRunStepOnArtifact,
   cache,
   allArtifacts,
@@ -64,7 +64,7 @@ async function skipIfPackageResultsInCachePredicate({
   allSteps,
   currentStepIndex,
 }: {
-  canRunStepOnArtifact?: CanRunStepOnArtifact
+  canRunStepOnArtifact?: CanRunStepOnArtifact<StepConfigurations>
   allArtifacts: Graph<{ artifact: Artifact }>
   currentArtifactIndex: number
   cache: Cache
@@ -101,14 +101,14 @@ async function skipIfPackageResultsInCachePredicate({
   }
 }
 
-async function skipIfSomeDirectPrevStepsFailedOnPackage({
+async function skipIfSomeDirectPrevStepsFailedOnPackage<StepConfigurations>({
   allSteps,
   currentStepIndex,
   canRunStepOnArtifact,
 }: {
   currentStepIndex: number
   allSteps: Graph<{ stepInfo: StepInfo; stepResult?: StepResultOfPackage }>
-  canRunStepOnArtifact?: CanRunStepOnArtifact
+  canRunStepOnArtifact?: CanRunStepOnArtifact<StepConfigurations>
 }): Promise<CanRunStepOnArtifactResult> {
   const notes: string[] = []
   const didAllPreviousPassed = await allSteps[currentStepIndex].parentsIndexes
@@ -138,14 +138,15 @@ async function skipIfSomeDirectPrevStepsFailedOnPackage({
   }
 }
 
-export async function checkIfCanRunStepOnArtifact(options: {
-  canRunStepOnArtifact?: CanRunStepOnArtifact
+export async function checkIfCanRunStepOnArtifact<StepConfigurations>(options: {
+  canRunStepOnArtifact?: CanRunStepOnArtifact<StepConfigurations>
   allArtifacts: Graph<{ artifact: Artifact }>
   currentArtifactIndex: number
   cache: Cache
   currentStepIndex: number
   allSteps: Graph<{ stepInfo: StepInfo; stepResult?: StepResultOfPackage }>
   rootPackage: RootPackage
+  stepConfigurations: StepConfigurations
 }): Promise<CanRunStepOnArtifactResult> {
   return runAll([
     {
@@ -159,6 +160,7 @@ export async function checkIfCanRunStepOnArtifact(options: {
               currentStepInfo: options.allSteps[options.currentStepIndex],
               currentArtifact: options.allArtifacts[options.currentArtifactIndex],
               rootPackage: options.rootPackage,
+              stepConfigurations: options.stepConfigurations,
             })
           : { canRun: true, notes: [] },
     },
