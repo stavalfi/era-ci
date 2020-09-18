@@ -1,8 +1,8 @@
 import Redis, { ValueType } from 'ioredis'
 import NodeCache from 'node-cache'
 import { enums, literal, object, string, union, validate } from 'superstruct'
-import { CiOptions, StepStatus } from '../types'
-import { Cache } from './types'
+import { CiOptions } from '../types'
+import { Cache, StepStatus } from './types'
 
 function toStepKey({ packageHash, stepId }: { stepId: string; packageHash: string }) {
   return `${stepId}-${packageHash}`

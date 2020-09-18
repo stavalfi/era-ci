@@ -7,7 +7,7 @@ import { StepStatus } from '../types'
 
 export const build = createStep({
   stepName: 'build',
-  runStep: async ({ repoPath, graph }) => {
+  runStepOnAllArtifacts: async ({ repoPath, allArtifacts }) => {
     const startMs = Date.now()
     const rootPackageJson: IPackageJson = await fse.readJson(path.join(repoPath, 'package.json'))
 
@@ -23,7 +23,7 @@ export const build = createStep({
           status: StepStatus.passed,
           notes: [],
         },
-        packagesResult: graph.map(node => ({
+        artifactsResult: allArtifacts.map(node => ({
           artifactName: node.data.artifact.packageJson.name!,
           stepResult: {
             status: result.failed ? StepStatus.failed : StepStatus.passed,
@@ -37,11 +37,11 @@ export const build = createStep({
         stepSummary: {
           notes: [],
         },
-        packagesResult: graph.map(node => ({
+        artifactsResult: allArtifacts.map(node => ({
           artifactName: node.data.artifact.packageJson.name!,
           stepResult: {
             status: StepStatus.skippedAsPassed,
-            notes: ['no build-script in root package.json'],
+            notes: ['skipping because missing build-script in root package.json'],
             durationMs: Date.now() - startMs,
           },
         })),

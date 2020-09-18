@@ -5,7 +5,7 @@ import { StepStatus } from '../types'
 
 export const install = createStep({
   stepName: 'install',
-  runStep: async ({ repoPath, graph, cache }) => {
+  runStepOnAllArtifacts: async ({ repoPath, allArtifacts, cache }) => {
     const startMs = Date.now()
     const isExists = fse.existsSync(path.join(repoPath, 'yarn.lock'))
 
@@ -17,7 +17,7 @@ export const install = createStep({
       stepSummary: {
         notes: [],
       },
-      packagesResult: graph.map(node => ({
+      artifactsResult: allArtifacts.map(node => ({
         artifactName: node.data.artifact.packageJson.name!,
         stepResult: {
           status: StepStatus.passed,

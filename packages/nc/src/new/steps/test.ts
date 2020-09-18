@@ -1,5 +1,5 @@
 import { createStep } from '../create-step'
-import { PackageUserStepResult, StepStatus } from '../types'
+import { StepStatus } from '../types'
 
 // async function testPackage({
 //   cache,
@@ -78,26 +78,20 @@ import { PackageUserStepResult, StepStatus } from '../types'
 
 export const test = createStep({
   stepName: 'test',
-  runStep: async ({ repoPath, graph }) => {
-    const startMs = Date.now()
-
-    const packagesResult: PackageUserStepResult[] = []
-    for (const node of graph) {
-      packagesResult.push({
-        artifactName: node.data.artifact.packageJson.name!,
-        stepResult: {
-          durationMs: Date.now() - startMs,
-          notes: [],
-          status: StepStatus.passed,
-        },
-      })
-    }
-
+  canRunStepOnArtifact: {
+    customPredicate: async ({ currentArtifact }) =>
+      currentArtifact.data.artifact.packageJson.scripts?.test
+        ? { canRun: true, notes: [] }
+        : {
+            canRun: false,
+            notes: [`skipping because missing test-script in package.json`],
+            stepStatus: StepStatus.skippedAsPassed,
+          },
+  },
+  runStepOnArtifact: async ({ allArtifacts, currentArtifactIndex }) => {
     return {
-      stepSummary: {
-        notes: [],
-      },
-      packagesResult,
+      notes: [],
+      status: StepStatus.passed,
     }
   },
 })
