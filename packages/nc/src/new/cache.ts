@@ -8,6 +8,10 @@ function toStepKey({ packageHash, stepId }: { stepId: string; packageHash: strin
   return `${stepId}-${packageHash}`
 }
 
+export enum CacheTtl {
+  stepResult = 1000 * 60 * 24 * 10,
+}
+
 export async function intializeCache({
   redis,
   flowId,

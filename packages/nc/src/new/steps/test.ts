@@ -78,7 +78,6 @@ import { PackageUserStepResult, StepStatus } from '../types'
 
 export const test = createStep({
   stepName: 'test',
-  requiredDependentStepStatus: [StepStatus.passed, StepStatus.skippedAsPassed],
   runStep: async ({ repoPath, graph }) => {
     const startMs = Date.now()
 

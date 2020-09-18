@@ -7,7 +7,6 @@ import { StepStatus } from '../types'
 
 export const build = createStep({
   stepName: 'build',
-  requiredDependentStepStatus: [StepStatus.passed, StepStatus.skippedAsPassed],
   runStep: async ({ repoPath, graph }) => {
     const startMs = Date.now()
     const rootPackageJson: IPackageJson = await fse.readJson(path.join(repoPath, 'package.json'))

@@ -1,7 +1,7 @@
 import Redis, { ValueType } from 'ioredis'
 import NodeCache from 'node-cache'
 import { Log } from '@tahini/log'
-import { Artifact, Graph } from '../types'
+import { Artifact, Graph, Node } from '../types'
 
 export type Cache = {
   step: {
@@ -42,22 +42,46 @@ export enum StepStatus {
   failed = 'failed',
 }
 
-export type StepResult = {
+export type StepInfo = {
   stepName: string
+  stepId: string
+}
+
+export type StepResultOfPackage = StepInfo & {
   status: StepStatus
   durationMs: number
   notes: string[]
   error?: unknown
 }
 
-export type FinalStepResult = {
-  stepSummary: StepResult
-  packagesResult: Graph<{ artifact: Artifact; stepResult: StepResult }>
+export type StepResultOfAllPackages = {
+  stepSummary: StepResultOfPackage
+  packagesResult: Graph<{ artifact: Artifact; stepResult: StepResultOfPackage }>
 }
+
+export type CanRunStep = {
+  customPredicate?: (options: {
+    allPackages: Graph<{ artifact: Artifact }>
+    cache: Cache
+    currentStepInfo: Node<{ stepInfo: StepInfo }>
+    allSteps: Graph<{ stepInfo: StepInfo; stepResult?: StepResultOfPackage }>
+  }) => Promise<{ canRun: boolean; notes: string[] }>
+  options?: {
+    runCustomPredicateAsLastCheck?: boolean
+    skipIfSomeDirectPrevStepsFailedOnPackage?: boolean
+    skipIfPackageResultsInCache?: boolean
+  }
+}
+
+export type AllStepsInfo = Graph<
+  StepInfo & {
+    canRunStep?: CanRunStep
+  }
+>
 
 export type CreateStep = (
   createStepOptions: CreateStepOptions,
-) => (runStepOptions: RunStepOptions) => Promise<FinalStepResult>
+) => (runStepOptions: RunStepOptions) => Promise<StepResultOfAllPackages>
 
 export type StepsSummary = {
   status: StepStatus
@@ -112,5 +136,5 @@ export type RunStep = (options: UserRunStepOptions) => Promise<UserStepResult>
 export type CreateStepOptions = {
   stepName: string
   runStep: RunStep
-  requiredDependentStepStatus: StepStatus[]
+  canRunStep?: CanRunStep
 }

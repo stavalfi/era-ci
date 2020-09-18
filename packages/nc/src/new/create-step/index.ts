@@ -1,7 +1,7 @@
 import { logger } from '@tahini/log'
-import { StepStatus } from '../types'
-import { calculateCombinedStatus } from '../utils'
-import { CreateStep, RunStepOptions, UserRunStepOptions, UserStepResult } from './types'
+import { StepStatus } from '../../types'
+import { calculateCombinedStatus } from '../../utils'
+import { CreateStep, RunStepOptions, UserRunStepOptions, UserStepResult } from '../types'
 
 function validateUserStepResult(
   runStepOptions: RunStepOptions,
@@ -69,7 +69,7 @@ function createStepCache(runStepOptions: RunStepOptions): UserRunStepOptions['ca
   }
 }
 
-export const createStep: CreateStep = ({ stepName, runStep, requiredDependentStepStatus }) => async runStepOptions => {
+export const createStep: CreateStep = ({ stepName, runStep, canRunStep }) => async runStepOptions => {
   const startMs = Date.now()
   try {
     const userStepResult = await runStep({
@@ -81,6 +81,7 @@ export const createStep: CreateStep = ({ stepName, runStep, requiredDependentSte
     const endDurationMs = Date.now() - startMs
     return {
       stepSummary: {
+        stepId: runStepOptions.stepId,
         stepName,
         durationMs: endDurationMs,
         notes: [...problems, ...userStepResult.stepSummary.notes],
@@ -98,6 +99,7 @@ export const createStep: CreateStep = ({ stepName, runStep, requiredDependentSte
               ...node.data,
               stepResult: {
                 ...result.stepResult,
+                stepId: runStepOptions.stepId,
                 stepName,
               },
             },
@@ -111,6 +113,7 @@ export const createStep: CreateStep = ({ stepName, runStep, requiredDependentSte
                 durationMs: endDurationMs,
                 notes: ['could not determine what is the result-status of this package'],
                 status: StepStatus.failed,
+                stepId: runStepOptions.stepId,
                 stepName,
               },
             },
@@ -122,6 +125,7 @@ export const createStep: CreateStep = ({ stepName, runStep, requiredDependentSte
     const endDurationMs = Date.now() - startMs
     return {
       stepSummary: {
+        stepId: runStepOptions.stepId,
         stepName,
         durationMs: endDurationMs,
         notes: ['step threw an error'],
@@ -135,6 +139,7 @@ export const createStep: CreateStep = ({ stepName, runStep, requiredDependentSte
             durationMs: endDurationMs,
             notes: [],
             status: StepStatus.failed,
+            stepId: runStepOptions.stepId,
             stepName,
           },
         },
