@@ -2,6 +2,7 @@ import Redis, { ValueType } from 'ioredis'
 import NodeCache from 'node-cache'
 import { Log } from '@tahini/log'
 import { Artifact, Graph, Node } from '../types'
+import { IPackageJson } from 'package-json-type'
 
 export type Cache = {
   step: {
@@ -38,7 +39,6 @@ export enum StepStatus {
   passed = 'passed',
   skippedAsPassed = 'skipped-as-passed',
   skippedAsFailed = 'skipped-as-failed',
-  skippedAsFailedBecauseLastStepFailed = 'skipped-because-last-step-is-considered-as-failed',
   failed = 'failed',
 }
 
@@ -56,18 +56,24 @@ export type StepResultOfPackage = StepInfo & {
 
 export type StepResultOfAllPackages = {
   stepSummary: StepResultOfPackage
-  packagesResult: Graph<{ artifact: Artifact; stepResult: StepResultOfPackage }>
+  artifactsResult: Graph<{ artifact: Artifact; stepResult: StepResultOfPackage }>
 }
 
-export type CanRunStep = {
+export type RootPackage = {
+  packagePath: string
+  packageJson: IPackageJson
+}
+
+export type CanRunStepOnArtifact = {
   customPredicate?: (options: {
-    allPackages: Graph<{ artifact: Artifact }>
+    allArtifacts: Graph<{ artifact: Artifact }>
     cache: Cache
+    rootPackage: RootPackage
+    currentArtifact: Node<{ artifact: Artifact }>
     currentStepInfo: Node<{ stepInfo: StepInfo }>
     allSteps: Graph<{ stepInfo: StepInfo; stepResult?: StepResultOfPackage }>
-  }) => Promise<{ canRun: boolean; notes: string[] }>
+  }) => Promise<CanRunStepOnArtifactResult>
   options?: {
-    runCustomPredicateAsLastCheck?: boolean
     skipIfSomeDirectPrevStepsFailedOnPackage?: boolean
     skipIfPackageResultsInCache?: boolean
   }
@@ -75,7 +81,7 @@ export type CanRunStep = {
 
 export type AllStepsInfo = Graph<
   StepInfo & {
-    canRunStep?: CanRunStep
+    canRunStepOnArtifact?: CanRunStepOnArtifact
   }
 >
 
@@ -90,25 +96,16 @@ export type StepsSummary = {
   error?: unknown
 }
 
-export type PackageUserStepResult = {
-  artifactName: string
-  stepResult: {
-    durationMs: number
-    status: StepStatus
-    notes: string[]
-    error?: unknown
-  }
-}
-
-export type RunStepOptions = {
-  stepName: string
-  stepId: string
+export type RunStepOptions = StepInfo & {
   repoPath: string
-  graph: Graph<{ artifact: Artifact }>
+  allArtifacts: Graph<{ artifact: Artifact }>
+  allSteps: Graph<{ stepInfo: StepInfo; stepResult?: StepResultOfPackage }>
+  currentStepIndex: number
   cache: Cache
+  rootPackage: RootPackage
 }
 
-export type UserRunStepOptions = Pick<RunStepOptions, 'stepName' | 'repoPath' | 'graph'> & {
+export type UserRunStepOptions = Pick<RunStepOptions, 'stepName' | 'repoPath'> & {
   log: Log
   cache: {
     step: {
@@ -121,6 +118,17 @@ export type UserRunStepOptions = Pick<RunStepOptions, 'stepName' | 'repoPath' | 
       }) => ReturnType<Cache['step']['setStepResult']>
     }
   } & Pick<Cache, 'get' | 'set' | 'has' | 'nodeCache' | 'redisClient'>
+  allArtifacts: Graph<{ artifact: Artifact }>
+}
+
+export type UserArtifactResult = {
+  artifactName: string
+  stepResult: {
+    durationMs: number
+    status: StepStatus
+    notes: string[]
+    error?: unknown
+  }
 }
 
 export type UserStepResult = {
@@ -128,13 +136,37 @@ export type UserStepResult = {
     notes: string[]
     error?: unknown
   }
-  packagesResult: PackageUserStepResult[]
+  artifactsResult: UserArtifactResult[]
 }
 
 export type RunStep = (options: UserRunStepOptions) => Promise<UserStepResult>
 
+export type RunStepOnAllArtifacts = (options: UserRunStepOptions) => Promise<UserStepResult>
+export type RunStepOnArtifact = (
+  options: UserRunStepOptions & { currentArtifactIndex: number },
+) => Promise<{
+  status: StepStatus
+  notes?: string[]
+  error?: unknown
+}>
+
 export type CreateStepOptions = {
   stepName: string
-  runStep: RunStep
-  canRunStep?: CanRunStep
-}
+  canRunStepOnArtifact?: CanRunStepOnArtifact
+} & (
+  | { runStepOnAllArtifacts: RunStepOnAllArtifacts }
+  | {
+      runStepOnArtifact: RunStepOnArtifact
+    }
+)
+
+export type CanRunStepOnArtifactResult =
+  | {
+      canRun: true
+      notes: string[]
+    }
+  | {
+      canRun: false
+      notes: string[]
+      stepStatus: StepStatus
+    }
