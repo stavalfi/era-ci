@@ -5,7 +5,6 @@ import { StepStatus } from '../types'
 
 export const install = createStep({
   stepName: 'install',
-  requiredDependentStepStatus: [StepStatus.passed, StepStatus.skippedAsPassed],
   runStep: async ({ repoPath, graph, cache }) => {
     const startMs = Date.now()
     const isExists = fse.existsSync(path.join(repoPath, 'yarn.lock'))
