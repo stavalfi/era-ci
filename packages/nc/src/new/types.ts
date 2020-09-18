@@ -64,7 +64,7 @@ export type RootPackage = {
   packageJson: IPackageJson
 }
 
-export type CanRunStepOnArtifact = {
+export type CanRunStepOnArtifact<StepConfigurations> = {
   customPredicate?: (options: {
     allArtifacts: Graph<{ artifact: Artifact }>
     cache: Cache
@@ -72,22 +72,13 @@ export type CanRunStepOnArtifact = {
     currentArtifact: Node<{ artifact: Artifact }>
     currentStepInfo: Node<{ stepInfo: StepInfo }>
     allSteps: Graph<{ stepInfo: StepInfo; stepResult?: StepResultOfPackage }>
+    stepConfigurations: StepConfigurations
   }) => Promise<CanRunStepOnArtifactResult>
   options?: {
     skipIfSomeDirectPrevStepsFailedOnPackage?: boolean
     skipIfPackageResultsInCache?: boolean
   }
 }
-
-export type AllStepsInfo = Graph<
-  StepInfo & {
-    canRunStepOnArtifact?: CanRunStepOnArtifact
-  }
->
-
-export type CreateStep = (
-  createStepOptions: CreateStepOptions,
-) => (runStepOptions: RunStepOptions) => Promise<StepResultOfAllPackages>
 
 export type StepsSummary = {
   status: StepStatus
@@ -105,20 +96,23 @@ export type RunStepOptions = StepInfo & {
   rootPackage: RootPackage
 }
 
-export type UserRunStepOptions = Pick<RunStepOptions, 'stepName' | 'repoPath'> & {
+export type UserRunStepCache = {
+  step: {
+    didStepRun: (options: { packageHash: string }) => ReturnType<Cache['step']['didStepRun']>
+    getStepResult: (options: { packageHash: string; ttlMs: number }) => ReturnType<Cache['step']['getStepResult']>
+    setStepResult: (options: {
+      packageHash: string
+      stepStatus: StepStatus
+      ttlMs: number
+    }) => ReturnType<Cache['step']['setStepResult']>
+  }
+} & Pick<Cache, 'get' | 'set' | 'has' | 'nodeCache' | 'redisClient'>
+
+export type UserRunStepOptions<StepConfigurations> = Pick<RunStepOptions, 'stepName' | 'repoPath'> & {
   log: Log
-  cache: {
-    step: {
-      didStepRun: (options: { packageHash: string }) => ReturnType<Cache['step']['didStepRun']>
-      getStepResult: (options: { packageHash: string; ttlMs: number }) => ReturnType<Cache['step']['getStepResult']>
-      setStepResult: (options: {
-        packageHash: string
-        stepStatus: StepStatus
-        ttlMs: number
-      }) => ReturnType<Cache['step']['setStepResult']>
-    }
-  } & Pick<Cache, 'get' | 'set' | 'has' | 'nodeCache' | 'redisClient'>
+  cache: UserRunStepCache
   allArtifacts: Graph<{ artifact: Artifact }>
+  stepConfigurations: StepConfigurations
 }
 
 export type UserArtifactResult = {
@@ -139,24 +133,37 @@ export type UserStepResult = {
   artifactsResult: UserArtifactResult[]
 }
 
-export type RunStep = (options: UserRunStepOptions) => Promise<UserStepResult>
+export type RunStepOnAllArtifacts<StepConfigurations> = (
+  options: UserRunStepOptions<StepConfigurations>,
+) => Promise<UserStepResult>
 
-export type RunStepOnAllArtifacts = (options: UserRunStepOptions) => Promise<UserStepResult>
-export type RunStepOnArtifact = (
-  options: UserRunStepOptions & { currentArtifactIndex: number },
+export type RunStepOnArtifact<StepConfigurations> = (
+  options: UserRunStepOptions<StepConfigurations> & { currentArtifactIndex: number },
 ) => Promise<{
   status: StepStatus
   notes?: string[]
   error?: unknown
 }>
 
-export type CreateStepOptions = {
+export type RunStepOnRoot<StepConfigurations> = (
+  options: UserRunStepOptions<StepConfigurations>,
+) => Promise<{
+  status: StepStatus
+  notes?: string[]
+  error?: unknown
+}>
+
+export type CreateStepOptions<StepConfigurations, NormalizedStepConfigurations = StepConfigurations> = {
   stepName: string
-  canRunStepOnArtifact?: CanRunStepOnArtifact
+  normalizeStepConfigurations?: (stepConfigurations: StepConfigurations) => Promise<NormalizedStepConfigurations>
+  canRunStepOnArtifact?: CanRunStepOnArtifact<NormalizedStepConfigurations>
 } & (
-  | { runStepOnAllArtifacts: RunStepOnAllArtifacts }
+  | { runStepOnAllArtifacts: RunStepOnAllArtifacts<NormalizedStepConfigurations> }
   | {
-      runStepOnArtifact: RunStepOnArtifact
+      runStepOnArtifact: RunStepOnArtifact<NormalizedStepConfigurations>
+    }
+  | {
+      runStepOnRoot: RunStepOnRoot<NormalizedStepConfigurations>
     }
 )
 
@@ -170,3 +177,5 @@ export type CanRunStepOnArtifactResult =
       notes: string[]
       stepStatus: StepStatus
     }
+
+export type RunStep = (runStepOptions: RunStepOptions) => Promise<StepResultOfAllPackages>
