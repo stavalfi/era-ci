@@ -8,54 +8,15 @@ import {
   Step,
   StepResultOfAllPackages,
   UserArtifactResult,
-  UserRunStepCache,
   UserRunStepOptions,
   UserStepResult,
 } from '../types'
 import { calculateCombinedStatus } from '../utils'
 import { checkIfCanRunStepOnArtifact } from './can-run-step'
-import { StepStatus, StepExecutionStatus } from './types'
+import { StepExecutionStatus, StepStatus } from './types'
 import { validateUserStepResult } from './validations'
 
 export { StepStatus, StepExecutionStatus }
-
-function createStepCache(runStepOptions: RunStepOptions): UserRunStepCache {
-  return {
-    step: {
-      didStepRun: ({ packageHash }: { packageHash: string }) =>
-        runStepOptions.cache.step.didStepRun({
-          stepId: runStepOptions.stepId,
-          packageHash,
-        }),
-      getStepResult: ({ packageHash }: { packageHash: string }) =>
-        runStepOptions.cache.step.getStepResult({
-          stepId: runStepOptions.stepId,
-          packageHash,
-        }),
-      setStepResult: ({
-        packageHash,
-        stepStatus,
-        ttlMs,
-      }: {
-        packageHash: string
-        stepStatus: StepStatus
-        ttlMs: number
-      }) =>
-        runStepOptions.cache.step.setStepResult({
-          stepId: runStepOptions.stepId,
-          packageHash,
-          stepStatus,
-          ttlMs,
-        }),
-    },
-    get: runStepOptions.cache.get,
-    set: runStepOptions.cache.set,
-    has: runStepOptions.cache.has,
-    nodeCache: runStepOptions.cache.nodeCache,
-    redisClient: runStepOptions.cache.redisClient,
-    ttls: runStepOptions.cache.ttls,
-  }
-}
 
 async function runStepOnEveryArtifact<StepConfigurations>({
   startMs,
@@ -77,7 +38,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
   if (beforeAll) {
     await beforeAll({
       allArtifacts: runStepOptions.allArtifacts,
-      cache: createStepCache(runStepOptions),
+      cache: runStepOptions.cache,
       log: logger(runStepOptions.stepName),
       repoPath: runStepOptions.repoPath,
       stepName: runStepOptions.stepName,
@@ -95,7 +56,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
       try {
         const stepResult = await runStepOnArtifact({
           allArtifacts: runStepOptions.allArtifacts,
-          cache: createStepCache(runStepOptions),
+          cache: runStepOptions.cache,
           currentArtifact: runStepOptions.allArtifacts[i],
           log: logger(runStepOptions.stepName),
           repoPath: runStepOptions.repoPath,
@@ -141,7 +102,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
   if (afterAll) {
     await afterAll({
       allArtifacts: runStepOptions.allArtifacts,
-      cache: createStepCache(runStepOptions),
+      cache: runStepOptions.cache,
       log: logger(runStepOptions.stepName),
       repoPath: runStepOptions.repoPath,
       stepName: runStepOptions.stepName,
@@ -174,7 +135,7 @@ async function runStepOnRoot<StepConfigurations>({
 }): Promise<UserStepResult> {
   const result = await runStepOnRoot({
     allArtifacts: runStepOptions.allArtifacts,
-    cache: createStepCache(runStepOptions),
+    cache: runStepOptions.cache,
     log: logger(runStepOptions.stepName),
     repoPath: runStepOptions.repoPath,
     stepName: runStepOptions.stepName,
@@ -233,7 +194,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         ...runStepOptions,
         stepConfigurations,
         log: logger(runStepOptions.stepName),
-        cache: createStepCache(runStepOptions),
+        cache: runStepOptions.cache,
         allArtifacts: runStepOptions.allArtifacts.map((node, i) => ({
           ...node,
           data: {

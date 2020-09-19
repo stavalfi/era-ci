@@ -15,6 +15,7 @@ export type CacheConfiguration = {
   }
   ttls?: {
     stepResult?: number
+    flowLogs?: number
   }
 }
 
@@ -27,6 +28,7 @@ type NormalizedCacheConfiguration = {
   }
   ttls: {
     stepResult: number
+    flowLogs: number
   }
 }
 
@@ -43,6 +45,7 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
       },
       ttls: {
         stepResult: ttls?.stepResult ?? 1000 * 60 * 60 * 24 * 7, // default-ttl = 1-week
+        flowLogs: ttls?.stepResult ?? 1000 * 60 * 60 * 24 * 3, // default-ttl = 3-days
       },
     }
   },
