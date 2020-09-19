@@ -1,10 +1,9 @@
 import { buildFullDockerImageName, dockerRegistryLogin } from '../../docker-utils'
 import { buildDockerTarget, getPackageTargetType } from '../../package-info'
-import { TargetType } from '../../types'
 import { execaCommand } from '../../utils'
 import { createStep, StepStatus } from '../create-step'
 import { getServerInfoFromRegistryAddress } from '../utils'
-import { setPackageVersion } from './utils'
+import { setPackageVersion, TargetType } from './utils'
 
 export type DockerPublishConfiguration = {
   shouldPublish: boolean

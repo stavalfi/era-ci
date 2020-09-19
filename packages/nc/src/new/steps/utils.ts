@@ -22,3 +22,8 @@ export const setPackageVersion = async ({ toVersion, artifact }: { toVersion: st
     )
   }
 }
+
+export enum TargetType {
+  docker = 'docker',
+  npm = 'npm',
+}
