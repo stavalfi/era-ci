@@ -1,56 +1,12 @@
-import Redis, { ValueType } from 'ioredis'
-import NodeCache from 'node-cache'
 import { Log } from '@tahini/log'
-import { Graph, Node } from '../types'
 import { IPackageJson } from 'package-json-type'
+import { Graph, Node } from '../types'
+import { Cache } from './create-cache'
+import { StepExecutionStatus, StepStatus } from './create-step'
 
 export type Cleanup = () => Promise<unknown>
 
 export type PackageJson = Omit<IPackageJson, 'name' | 'version'> & Required<Pick<IPackageJson, 'name' | 'version'>>
-
-export type Cache = {
-  step: {
-    didStepRun: (options: { stepId: string; packageHash: string }) => Promise<boolean>
-    getStepResult: (options: {
-      stepId: string
-      packageHash: string
-    }) => Promise<
-      | {
-          didStepRun: true
-          StepStatus: StepStatus
-          flowId: string
-        }
-      | { didStepRun: false }
-      | undefined
-    >
-    setStepResult: (options: {
-      stepId: string
-      packageHash: string
-      stepStatus: StepStatus
-      ttlMs: number
-    }) => Promise<void>
-  }
-  get: <T>(key: string, mapper: (result: unknown) => T) => Promise<T | undefined>
-  set: (key: string, value: ValueType, ttl: number) => Promise<void>
-  has: (key: string) => Promise<boolean>
-  nodeCache: NodeCache
-  redisClient: Redis.Redis
-  cleanup: () => Promise<unknown>
-}
-
-export enum StepStatus {
-  passed = 'passed',
-  skippedAsPassed = 'skipped-as-passed',
-  skippedAsFailed = 'skipped-as-failed',
-  failed = 'failed',
-}
-
-export enum StepExecutionStatus {
-  scheduled = 'scheduled',
-  running = 'running',
-  done = 'done',
-  aborted = 'aborted',
-}
 
 export type StepInfo = {
   stepName: string
@@ -130,7 +86,7 @@ export type UserRunStepCache = {
       ttlMs: number
     }) => ReturnType<Cache['step']['setStepResult']>
   }
-} & Pick<Cache, 'get' | 'set' | 'has' | 'nodeCache' | 'redisClient'>
+} & Pick<Cache, 'get' | 'set' | 'has' | 'nodeCache' | 'redisClient' | 'ttls'>
 
 export type StepNodeData<StepResult> =
   | { stepInfo: StepInfo; stepExecutionStatus: StepExecutionStatus.done; stepResult: StepResult }

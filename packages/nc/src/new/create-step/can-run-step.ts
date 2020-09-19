@@ -1,17 +1,16 @@
 import _ from 'lodash'
 import { Graph } from '../../types'
+import { Cache } from '../create-cache'
 import {
   Artifact,
-  Cache,
   CanRunStepOnArtifact,
   CanRunStepOnArtifactResult,
   RootPackage,
-  StepExecutionStatus,
   StepNodeData,
   StepResultOfAllPackages,
-  StepStatus,
 } from '../types'
 import { didPassOrSkippedAsPassed } from '../utils'
+import { StepExecutionStatus, StepStatus } from './types'
 
 const runAll = async (
   array: { checkName: string; predicate: () => Promise<CanRunStepOnArtifactResult> }[],

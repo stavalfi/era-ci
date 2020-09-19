@@ -1,6 +1,6 @@
 import { Protocol, ServerInfo } from '../types'
-import { StepStatus } from './types'
 import urlParse from 'url-parse'
+import { StepStatus } from './create-step'
 
 export const didPassOrSkippedAsPassed = (stepStatus: StepStatus) =>
   [StepStatus.passed, StepStatus.skippedAsPassed].includes(stepStatus)

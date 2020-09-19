@@ -1,5 +1,7 @@
 import ciInfo from 'ci-info'
 import _ from 'lodash'
+import { redisWithNodeCache } from './redis-with-node-cache'
+import { CreateCache } from './create-cache'
 import {
   build,
   cliTableReport,
@@ -15,6 +17,7 @@ import {
 import { Step } from './types'
 
 export default async (): Promise<{
+  cache: CreateCache
   steps: Step[]
 }> => {
   const {
@@ -23,6 +26,8 @@ export default async (): Promise<{
     DOCKER_HUB_USERNAME,
     DOCKER_HUB_TOKEN,
     K8S_CLUSTER_TOKEN,
+    REDIS_ENDPOINT,
+    REDIS_PASSWORD,
     // eslint-disable-next-line no-process-env
   } = process.env
 
@@ -38,6 +43,15 @@ export default async (): Promise<{
 
   const stringToJsonReport = ({ jsonReportAsString }: { jsonReportAsString: string }) =>
     JSON.parse(jsonReportAsString) as JsonReport
+
+  const cache = redisWithNodeCache({
+    redis: {
+      redisServer: `redis://${REDIS_ENDPOINT}/`,
+      auth: {
+        password: REDIS_PASSWORD!,
+      },
+    },
+  })
 
   const steps: Step[] = [
     install(),
@@ -83,5 +97,8 @@ export default async (): Promise<{
     }),
   ]
 
-  return { steps }
+  return {
+    steps,
+    cache,
+  }
 }
