@@ -1,8 +1,7 @@
 import Table, { CellOptions } from 'cli-table3'
 import colors from 'colors/safe'
 import prettyMs from 'pretty-ms'
-import { createStep } from '../create-step'
-import { StepExecutionStatus, StepStatus } from '../types'
+import { createStep, StepExecutionStatus, StepStatus } from '../create-step'
 import { JsonReport } from './json-report'
 
 // note: this file is not tested (or can't be tested). modify with caution!!!

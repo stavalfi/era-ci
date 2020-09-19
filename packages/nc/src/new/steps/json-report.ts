@@ -1,18 +1,7 @@
 import { Graph } from '../../types'
+import { createStep, StepExecutionStatus, StepStatus } from '../create-step'
+import { Artifact, StepNodeData, StepResultOfAllPackages, StepResultOfPackage, StepsSummary } from '../types'
 import { calculateCombinedStatus } from '../utils'
-import { createStep } from '../create-step'
-import {
-  Artifact,
-  StepExecutionStatus,
-  StepNodeData,
-  StepResultOfAllPackages,
-  StepResultOfPackage,
-  StepsSummary,
-  StepStatus,
-} from '../types'
-import { CacheTtl } from '../cache'
-
-const jsonReportTtl = CacheTtl.stepResult
 
 const getArtifactResultKey = ({ artifactHash, stepId }: { artifactHash: string; stepId: string }) =>
   `json-report-artifact-result-${artifactHash}---in-step-id-${stepId}`
@@ -180,6 +169,9 @@ export const jsonReport = createStep<JsonReportConfiguration>({
         },
       }
     }
+
+    const jsonReportTtl = cache.ttls.stepResult
+
     await cache.set(
       stepConfigurations.jsonReportCacheKey({ flowId, stepId }),
       stepConfigurations.jsonReportToString({ jsonReport }),

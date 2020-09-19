@@ -1,5 +1,4 @@
 import { logger } from '@tahini/log'
-import { CacheTtl } from '../cache'
 import {
   CanRunStepOnArtifactResult,
   CreateStepOptions,
@@ -8,7 +7,6 @@ import {
   RunStepOptions,
   Step,
   StepResultOfAllPackages,
-  StepStatus,
   UserArtifactResult,
   UserRunStepCache,
   UserRunStepOptions,
@@ -16,7 +14,10 @@ import {
 } from '../types'
 import { calculateCombinedStatus } from '../utils'
 import { checkIfCanRunStepOnArtifact } from './can-run-step'
+import { StepStatus, StepExecutionStatus } from './types'
 import { validateUserStepResult } from './validations'
+
+export { StepStatus, StepExecutionStatus }
 
 function createStepCache(runStepOptions: RunStepOptions): UserRunStepCache {
   return {
@@ -52,6 +53,7 @@ function createStepCache(runStepOptions: RunStepOptions): UserRunStepCache {
     has: runStepOptions.cache.has,
     nodeCache: runStepOptions.cache.nodeCache,
     redisClient: runStepOptions.cache.redisClient,
+    ttls: runStepOptions.cache.ttls,
   }
 }
 
@@ -369,7 +371,7 @@ export function createStep<StepConfigurations = void, NormalizedStepConfiguratio
             packageHash: artifact.data.artifact.packageHash,
             stepId: result.stepSummary.stepId,
             stepStatus: artifact.data.stepResult.status,
-            ttlMs: CacheTtl.stepResult,
+            ttlMs: runStepOptions.cache.ttls.stepResult,
           }),
         ),
       )

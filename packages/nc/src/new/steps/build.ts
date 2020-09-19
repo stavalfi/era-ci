@@ -1,6 +1,5 @@
 import { execaCommand } from '../../utils'
-import { createStep } from '../create-step'
-import { StepStatus } from '../types'
+import { createStep, StepStatus } from '../create-step'
 
 export const build = createStep<void>({
   stepName: 'build',

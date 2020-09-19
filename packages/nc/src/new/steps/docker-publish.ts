@@ -2,13 +2,9 @@ import { buildFullDockerImageName, dockerRegistryLogin } from '../../docker-util
 import { buildDockerTarget, getPackageTargetType } from '../../package-info'
 import { TargetType } from '../../types'
 import { execaCommand } from '../../utils'
-import { CacheTtl } from '../cache'
-import { createStep } from '../create-step'
-import { StepStatus } from '../types'
+import { createStep, StepStatus } from '../create-step'
 import { getServerInfoFromRegistryAddress } from '../utils'
 import { setPackageVersion } from './utils'
-
-const fullImageNameCacheTtl = CacheTtl.stepResult
 
 export type DockerPublishConfiguration = {
   shouldPublish: boolean
@@ -24,7 +20,7 @@ export type DockerPublishConfiguration = {
 export const dockerPublish = createStep<DockerPublishConfiguration>({
   stepName: 'docker-publish',
   canRunStepOnArtifact: {
-    customPredicate: async ({ currentArtifact, stepConfigurations }) => {
+    customPredicate: async ({ currentArtifact, stepConfigurations, cache }) => {
       if (!stepConfigurations.shouldPublish) {
         return {
           canRun: false,
@@ -74,6 +70,8 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
       packageJsonName: currentArtifact.data.artifact.packageJson.name!,
       imageTag: dockerTarget.newVersionIfPublish,
     })
+
+    const fullImageNameCacheTtl = cache.ttls.stepResult
 
     await cache.set(
       stepConfigurations.fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),

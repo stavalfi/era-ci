@@ -1,20 +1,12 @@
 import { attachLogFileTransport, logger } from '@tahini/log'
 import fse from 'fs-extra'
 import path from 'path'
-import { CiOptions, Graph } from '../types'
+import { Graph } from '../types'
 import { getPackages } from '../utils'
 import { calculateArtifactsHash } from './artifacts-hash'
-import { intializeCache } from './cache'
 import getConfig from './config.example'
-import {
-  Cleanup,
-  PackageJson,
-  RunStep,
-  Step,
-  StepExecutionStatus,
-  StepNodeData,
-  StepResultOfAllPackages,
-} from './types'
+import { StepExecutionStatus } from './create-step'
+import { Cleanup, PackageJson, RunStep, Step, StepNodeData, StepResultOfAllPackages } from './types'
 
 const log = logger('ci-logic')
 
@@ -34,11 +26,7 @@ function getStepsAsGraph(steps: Step[]): Graph<StepNodeData<StepResultOfAllPacka
   }))
 }
 
-export async function ci(options: {
-  logFilePath: string
-  repoPath: string
-  redis: CiOptions<unknown>['redis']
-}): Promise<void> {
+export async function ci(options: { logFilePath: string; repoPath: string }): Promise<void> {
   const cleanups: Cleanup[] = []
 
   // TODO: validate packages that each has name and version in the package.json (including root package.json)
@@ -62,7 +50,7 @@ export async function ci(options: {
 
     log.info(`flow-id: "${flowId}"`)
 
-    const cache = await intializeCache({ flowId, redis: options.redis })
+    const cache = await config.cache.callInitializeCache({ flowId })
     cleanups.push(cache.cleanup)
 
     const rootPackageJson: PackageJson = await fse.readJson(path.join(options.repoPath, 'package.json'))
