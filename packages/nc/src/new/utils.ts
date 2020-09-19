@@ -1,6 +1,7 @@
-import { Protocol, ServerInfo } from '../types'
 import urlParse from 'url-parse'
-import { StepStatus } from './create-step'
+import { Graph, Protocol, ServerInfo } from '../types'
+import { StepExecutionStatus, StepStatus } from './create-step'
+import { RunStep, Step, StepNodeData, StepResultOfAllPackages } from './types'
 
 export const didPassOrSkippedAsPassed = (stepStatus: StepStatus) =>
   [StepStatus.passed, StepStatus.skippedAsPassed].includes(stepStatus)
@@ -50,3 +51,39 @@ export function getServerInfoFromRegistryAddress(registryAddress: string): Serve
     protocol: protocol,
   }
 }
+
+export function getStepsAsGraph(steps: Step[]): Graph<StepNodeData<StepResultOfAllPackages> & { runStep: RunStep }> {
+  return steps.map((step, i, array) => ({
+    index: i,
+    data: {
+      stepInfo: {
+        stepName: step.stepName,
+        stepId: `${step.stepName}-${i}`,
+      },
+      runStep: step.runStep,
+      stepExecutionStatus: StepExecutionStatus.scheduled,
+    },
+    childrenIndexes: i === 0 ? [] : [i - 1],
+    parentsIndexes: i === array.length - 1 ? [] : [i - 1],
+  }))
+}
+
+export function getExitCode(steps: Graph<StepNodeData<StepResultOfAllPackages>>): number {
+  const finalStepsStatus = calculateCombinedStatus(
+    steps.map(n =>
+      n.data.stepExecutionStatus === StepExecutionStatus.done
+        ? n.data.stepResult.stepSummary.status
+        : StepStatus.failed,
+    ),
+  )
+
+  if ([StepStatus.passed, StepStatus.skippedAsPassed].includes(finalStepsStatus)) {
+    return 0
+  } else {
+    return 1
+  }
+}
+
+export const toFlowLogsContentKey = (flowId: string) => `flow-logs-content-${flowId}`
+
+export const MISSING_FLOW_ID_ERROR = `flow-id was not found`

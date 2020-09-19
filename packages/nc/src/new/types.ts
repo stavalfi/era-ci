@@ -76,18 +76,6 @@ export type RunStepOptions = StepInfo & {
   rootPackage: RootPackage
 }
 
-export type UserRunStepCache = {
-  step: {
-    didStepRun: (options: { packageHash: string }) => ReturnType<Cache['step']['didStepRun']>
-    getStepResult: (options: { packageHash: string }) => ReturnType<Cache['step']['getStepResult']>
-    setStepResult: (options: {
-      packageHash: string
-      stepStatus: StepStatus
-      ttlMs: number
-    }) => ReturnType<Cache['step']['setStepResult']>
-  }
-} & Pick<Cache, 'get' | 'set' | 'has' | 'nodeCache' | 'redisClient' | 'ttls'>
-
 export type StepNodeData<StepResult> =
   | { stepInfo: StepInfo; stepExecutionStatus: StepExecutionStatus.done; stepResult: StepResult }
   | {
@@ -100,7 +88,7 @@ export type UserRunStepOptions<StepConfigurations> = Pick<
   'stepName' | 'stepId' | 'repoPath' | 'allArtifacts' | 'flowId' | 'startFlowMs'
 > & {
   log: Log
-  cache: UserRunStepCache
+  cache: Cache
   stepConfigurations: StepConfigurations
   steps: Graph<StepNodeData<StepResultOfAllPackages>>
 }

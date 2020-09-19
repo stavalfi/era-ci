@@ -1,6 +1,7 @@
 import { ValueType, Redis } from 'ioredis'
 import NodeCache from 'node-cache'
 import { StepStatus } from '../create-step'
+import { Log } from '@tahini/log'
 
 export type Cache = {
   step: {
@@ -31,10 +32,11 @@ export type Cache = {
   redisClient: Redis
   ttls: {
     stepResult: number
+    flowLogs: number
   }
   cleanup: () => Promise<unknown>
 }
 
 export type CreateCache = {
-  callInitializeCache: (options: { flowId: string }) => Promise<Cache>
+  callInitializeCache: (options: { flowId: string; log: Log }) => Promise<Cache>
 }

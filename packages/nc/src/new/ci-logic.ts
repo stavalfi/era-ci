@@ -1,36 +1,20 @@
 import { attachLogFileTransport, logger } from '@tahini/log'
 import fse from 'fs-extra'
 import path from 'path'
-import { Graph } from '../types'
 import { getPackages } from '../utils'
 import { calculateArtifactsHash } from './artifacts-hash'
 import getConfig from './config.example'
+import { Cache } from './create-cache'
 import { StepExecutionStatus } from './create-step'
-import { Cleanup, PackageJson, RunStep, Step, StepNodeData, StepResultOfAllPackages } from './types'
+import { Cleanup, PackageJson, RunStep, StepNodeData, StepResultOfAllPackages } from './types'
+import { getExitCode, getStepsAsGraph, toFlowLogsContentKey } from './utils'
 
 const log = logger('ci-logic')
 
-function getStepsAsGraph(steps: Step[]): Graph<StepNodeData<StepResultOfAllPackages> & { runStep: RunStep }> {
-  return steps.map((step, i, array) => ({
-    index: i,
-    data: {
-      stepInfo: {
-        stepName: step.stepName,
-        stepId: `${step.stepName}-${i}`,
-      },
-      runStep: step.runStep,
-      stepExecutionStatus: StepExecutionStatus.scheduled,
-    },
-    childrenIndexes: i === 0 ? [] : [i - 1],
-    parentsIndexes: i === array.length - 1 ? [] : [i - 1],
-  }))
-}
-
 export async function ci(options: { logFilePath: string; repoPath: string }): Promise<void> {
   const cleanups: Cleanup[] = []
-
-  // TODO: validate packages that each has name and version in the package.json (including root package.json)
-
+  let flowId: string | undefined = undefined
+  let cache: Cache | undefined = undefined
   try {
     const startFlowMs = Date.now()
 
@@ -46,24 +30,24 @@ export async function ci(options: { logFilePath: string; repoPath: string }): Pr
 
     const result = await calculateArtifactsHash({ repoPath: options.repoPath, packagesPath })
 
-    const flowId = result.repoHash
+    flowId = result.repoHash
 
     log.info(`flow-id: "${flowId}"`)
 
-    const cache = await config.cache.callInitializeCache({ flowId })
+    cache = await config.cache.callInitializeCache({ flowId, log: logger('cache') })
     cleanups.push(cache.cleanup)
 
     const rootPackageJson: PackageJson = await fse.readJson(path.join(options.repoPath, 'package.json'))
 
-    const allSteps = getStepsAsGraph(config.steps)
+    const steps = getStepsAsGraph(config.steps)
 
-    for (const node of allSteps) {
+    for (const node of steps) {
       const newStepData: StepNodeData<StepResultOfAllPackages> & { runStep: RunStep } = {
         ...node.data,
         stepExecutionStatus: StepExecutionStatus.done,
         stepResult: await node.data.runStep({
           allArtifacts: result.orderedGraph,
-          allSteps,
+          allSteps: steps,
           stepName: node.data.stepInfo.stepName,
           stepId: node.data.stepInfo.stepId,
           currentStepIndex: node.index,
@@ -79,9 +63,15 @@ export async function ci(options: { logFilePath: string; repoPath: string }): Pr
       }
       node.data = newStepData
     }
+
+    process.exitCode = getExitCode(steps)
   } catch (error) {
     process.exitCode = 1
     log.error(`CI failed unexpectedly`, error)
+  } finally {
+    if (cache && flowId) {
+      cache.set(toFlowLogsContentKey(flowId), await fse.readFile(options.logFilePath, 'utf-8'), cache.ttls.flowLogs)
+    }
     await Promise.all(cleanups.map(f => f().catch(e => log.error(`cleanup function failed to run`, e))))
   }
 }

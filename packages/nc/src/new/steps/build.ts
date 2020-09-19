@@ -1,7 +1,7 @@
 import { execaCommand } from '../../utils'
 import { createStep, StepStatus } from '../create-step'
 
-export const build = createStep<void>({
+export const build = createStep({
   stepName: 'build',
   canRunStepOnArtifact: {
     customPredicate: async ({ rootPackage }) => {
