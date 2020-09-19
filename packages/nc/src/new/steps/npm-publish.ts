@@ -1,10 +1,9 @@
 import { npmRegistryLogin } from '../../npm-utils'
 import { buildNpmTarget, getPackageTargetType } from '../../package-info'
-import { TargetType } from '../../types'
 import { execaCommand } from '../../utils'
 import { createStep, StepStatus } from '../create-step'
 import { getServerInfoFromRegistryAddress } from '../utils'
-import { setPackageVersion } from './utils'
+import { setPackageVersion, TargetType } from './utils'
 
 export enum NpmScopeAccess {
   public = 'public',

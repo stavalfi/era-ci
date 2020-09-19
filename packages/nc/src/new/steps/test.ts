@@ -17,14 +17,13 @@ export const test = createStep<{ testScriptName: string } | void, { testScriptNa
           },
   },
   runStepOnArtifact: async ({ currentArtifact, stepConfigurations }) => {
-    const testsResult = await execaCommand(`yarn run ${stepConfigurations.testScriptName}`, {
+    await execaCommand(`yarn run ${stepConfigurations.testScriptName}`, {
       cwd: currentArtifact.data.artifact.packagePath,
       stdio: 'inherit',
-      reject: false,
     })
     return {
       notes: [],
-      status: testsResult.failed ? StepStatus.failed : StepStatus.passed,
+      status: StepStatus.passed,
     }
   },
 })

@@ -13,6 +13,7 @@ import {
   npmPublish,
   NpmScopeAccess,
   test,
+  validatePackages,
 } from './steps'
 import { Step } from './types'
 
@@ -55,6 +56,7 @@ export default async (): Promise<{
 
   const steps: Step[] = [
     install(),
+    validatePackages(),
     build(),
     test(),
     npmPublish({
