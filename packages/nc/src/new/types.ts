@@ -138,7 +138,7 @@ export type RunStepOnAllArtifacts<StepConfigurations> = (
 ) => Promise<UserStepResult>
 
 export type RunStepOnArtifact<StepConfigurations> = (
-  options: UserRunStepOptions<StepConfigurations> & { currentArtifactIndex: number },
+  options: UserRunStepOptions<StepConfigurations> & { currentArtifact: Node<{ artifact: Artifact }> },
 ) => Promise<{
   status: StepStatus
   notes?: string[]
@@ -160,7 +160,9 @@ export type CreateStepOptions<StepConfigurations, NormalizedStepConfigurations =
 } & (
   | { runStepOnAllArtifacts: RunStepOnAllArtifacts<NormalizedStepConfigurations> }
   | {
+      beforeAll?: (options: UserRunStepOptions<NormalizedStepConfigurations>) => Promise<void>
       runStepOnArtifact: RunStepOnArtifact<NormalizedStepConfigurations>
+      afterAll?: (options: UserRunStepOptions<NormalizedStepConfigurations>) => Promise<void>
     }
   | {
       runStepOnRoot: RunStepOnRoot<NormalizedStepConfigurations>
