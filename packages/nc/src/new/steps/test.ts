@@ -17,9 +17,9 @@ export const test = createStep<{ testScriptName: string } | void, { testScriptNa
             stepStatus: StepStatus.skippedAsPassed,
           },
   },
-  runStepOnArtifact: async ({ allArtifacts, currentArtifactIndex, stepConfigurations }) => {
+  runStepOnArtifact: async ({ currentArtifact, stepConfigurations }) => {
     const testsResult = await execaCommand(`yarn run ${stepConfigurations.testScriptName}`, {
-      cwd: allArtifacts[currentArtifactIndex].data.artifact.packagePath,
+      cwd: currentArtifact.data.artifact.packagePath,
       stdio: 'inherit',
       reject: false,
     })

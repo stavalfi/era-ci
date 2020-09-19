@@ -11,6 +11,7 @@ import {
   StepStatus,
   UserArtifactResult,
   UserRunStepCache,
+  UserRunStepOptions,
   UserStepResult,
 } from '../types'
 import { calculateCombinedStatus } from '../utils'
@@ -57,17 +58,31 @@ function createStepCache(runStepOptions: RunStepOptions): UserRunStepCache {
 
 async function runStepOnEveryArtifact<StepConfigurations>({
   startMs,
+  beforeAll,
   runStepOnArtifact,
+  afterAll,
   runStepOptions,
   canRunStepResultOnArtifacts,
   stepConfigurations,
 }: {
   startMs: number
+  beforeAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
   runStepOnArtifact: RunStepOnArtifact<StepConfigurations>
+  afterAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
   runStepOptions: RunStepOptions
   canRunStepResultOnArtifacts: CanRunStepOnArtifactResult[]
   stepConfigurations: StepConfigurations
 }): Promise<UserStepResult> {
+  if (beforeAll) {
+    await beforeAll({
+      allArtifacts: runStepOptions.allArtifacts,
+      cache: createStepCache(runStepOptions),
+      log: logger(runStepOptions.stepName),
+      repoPath: runStepOptions.repoPath,
+      stepName: runStepOptions.stepName,
+      stepConfigurations,
+    })
+  }
   const artifactsResult: UserArtifactResult[] = []
   for (const [i, artifact] of runStepOptions.allArtifacts.entries()) {
     const canRunResult = canRunStepResultOnArtifacts[i]
@@ -76,7 +91,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
         const stepResult = await runStepOnArtifact({
           allArtifacts: runStepOptions.allArtifacts,
           cache: createStepCache(runStepOptions),
-          currentArtifactIndex: i,
+          currentArtifact: runStepOptions.allArtifacts[i],
           log: logger(runStepOptions.stepName),
           repoPath: runStepOptions.repoPath,
           stepName: runStepOptions.stepName,
@@ -112,6 +127,17 @@ async function runStepOnEveryArtifact<StepConfigurations>({
         },
       })
     }
+  }
+
+  if (afterAll) {
+    await afterAll({
+      allArtifacts: runStepOptions.allArtifacts,
+      cache: createStepCache(runStepOptions),
+      log: logger(runStepOptions.stepName),
+      repoPath: runStepOptions.repoPath,
+      stepName: runStepOptions.stepName,
+      stepConfigurations,
+    })
   }
 
   return {
@@ -204,7 +230,9 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         canRunStepResultOnArtifacts,
         runStepOptions,
         startMs,
+        beforeAll: createStepOptions.beforeAll,
         runStepOnArtifact: createStepOptions.runStepOnArtifact,
+        afterAll: createStepOptions.afterAll,
         stepConfigurations,
       })
     } else {

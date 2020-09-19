@@ -6,7 +6,7 @@ import { getNpmhighestVersionInfo } from './npm-utils'
 import { Artifact, ServerInfo, TargetsInfo, TargetsPublishAuth, TargetToPublish, TargetType } from './types'
 import { calculateNewVersion } from './versions'
 
-async function buildNpmTarget({
+export async function buildNpmTarget({
   packageJson,
   npmRegistry,
   packagePath,
