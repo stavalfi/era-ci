@@ -1,13 +1,14 @@
 import _ from 'lodash'
-import { Artifact, Graph } from '../../types'
-import { CacheTtl } from '../cache'
+import { Graph } from '../../types'
 import {
+  Artifact,
   Cache,
   CanRunStepOnArtifact,
   CanRunStepOnArtifactResult,
   RootPackage,
-  StepInfo,
-  StepResultOfPackage,
+  StepExecutionStatus,
+  StepNodeData,
+  StepResultOfAllPackages,
   StepStatus,
 } from '../types'
 import { didPassOrSkippedAsPassed } from '../utils'
@@ -69,12 +70,11 @@ async function skipIfPackageResultsInCachePredicate<StepConfigurations>({
   currentArtifactIndex: number
   cache: Cache
   currentStepIndex: number
-  allSteps: Graph<{ stepInfo: StepInfo; stepResult?: StepResultOfPackage }>
+  allSteps: Graph<StepNodeData<StepResultOfAllPackages>>
 }): Promise<CanRunStepOnArtifactResult> {
   const result = await cache.step.getStepResult({
     stepId: allSteps[currentStepIndex].data.stepInfo.stepId,
     packageHash: allArtifacts[currentArtifactIndex].data.artifact.packageHash,
-    ttlMs: CacheTtl.stepResult,
   })
   if (result?.didStepRun) {
     const isPassed = didPassOrSkippedAsPassed(result.StepStatus)
@@ -105,19 +105,27 @@ async function skipIfSomeDirectPrevStepsFailedOnPackage<StepConfigurations>({
   allSteps,
   currentStepIndex,
   canRunStepOnArtifact,
+  currentArtifactIndex,
 }: {
   currentStepIndex: number
-  allSteps: Graph<{ stepInfo: StepInfo; stepResult?: StepResultOfPackage }>
+  allSteps: Graph<StepNodeData<StepResultOfAllPackages>>
   canRunStepOnArtifact?: CanRunStepOnArtifact<StepConfigurations>
+  currentArtifactIndex: number
 }): Promise<CanRunStepOnArtifactResult> {
   const notes: string[] = []
-  const didAllPreviousPassed = await allSteps[currentStepIndex].parentsIndexes
-    .map(i => allSteps[i].data.stepResult!)
-    .every(result => [StepStatus.passed, StepStatus.skippedAsPassed].includes(result.status))
-  if (didAllPreviousPassed) {
+  const didAllPrevPassed = await allSteps[currentStepIndex].parentsIndexes
+    .map((_result, i) => allSteps[i].data)
+    .every(
+      step =>
+        step.stepExecutionStatus === StepExecutionStatus.done &&
+        [StepStatus.passed, StepStatus.skippedAsPassed].includes(
+          step.stepResult.artifactsResult[currentArtifactIndex].data.stepResult.status,
+        ),
+    )
+  if (didAllPrevPassed) {
     notes.push(`skipping step because not all previous steps passed`)
   }
-  if (didAllPreviousPassed) {
+  if (didAllPrevPassed) {
     return {
       canRun: true,
       notes,
@@ -144,7 +152,7 @@ export async function checkIfCanRunStepOnArtifact<StepConfigurations>(options: {
   currentArtifactIndex: number
   cache: Cache
   currentStepIndex: number
-  allSteps: Graph<{ stepInfo: StepInfo; stepResult?: StepResultOfPackage }>
+  allSteps: Graph<StepNodeData<StepResultOfAllPackages>>
   rootPackage: RootPackage
   stepConfigurations: StepConfigurations
 }): Promise<CanRunStepOnArtifactResult> {

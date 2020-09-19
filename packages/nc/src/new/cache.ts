@@ -32,10 +32,9 @@ export async function intializeCache({
     await redisClient.set(key, value, 'px', ttl)
   }
 
-  async function get<T>(key: string, ttl: number, mapper: (result: unknown) => T): Promise<T | undefined> {
+  async function get<T>(key: string, mapper: (result: unknown) => T): Promise<T | undefined> {
     const fromNodeCache = nodeCache.get<string>(key)
     if (fromNodeCache !== null && fromNodeCache !== undefined) {
-      await set(key, fromNodeCache, ttl) // we try to avoid situation where the key is in nodeCache but not in redis
       return mapper(fromNodeCache)
     } else {
       const fromRedis = await redisClient.get(key)
@@ -66,7 +65,7 @@ export async function intializeCache({
   const step: Cache['step'] = {
     didStepRun: options => has(toStepKey({ stepId: options.stepId, packageHash: options.packageHash })),
     getStepResult: options =>
-      get(toStepKey({ stepId: options.stepId, packageHash: options.packageHash }), options.ttlMs, r => {
+      get(toStepKey({ stepId: options.stepId, packageHash: options.packageHash }), r => {
         if (typeof r !== 'string') {
           throw new Error(
             `cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,

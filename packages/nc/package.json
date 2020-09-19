@@ -26,6 +26,7 @@
     "@tahini/log": "^1.0.0",
     "chance": "^1.1.5",
     "ci-info": "https://github.com/watson/ci-info.git",
+    "create-folder-structure": "^3.0.5",
     "cli-table3": "^0.6.0",
     "cmd-ts": "^0.6.3",
     "colors": "^1.4.0",
