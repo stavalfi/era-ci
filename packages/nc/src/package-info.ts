@@ -35,7 +35,7 @@ export async function buildNpmTarget({
   }
 }
 
-async function buildDockerTarget({
+export async function buildDockerTarget({
   packageJson,
   dockerOrganizationName,
   dockerRegistry,
