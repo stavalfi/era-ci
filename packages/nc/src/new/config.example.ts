@@ -1,7 +1,7 @@
 import ciInfo from 'ci-info'
 import _ from 'lodash'
+import { LogLevel } from './create-logger'
 import { redisWithNodeCache } from './redis-with-node-cache'
-import { CreateCache } from './create-cache'
 import {
   build,
   cliTableReport,
@@ -16,12 +16,10 @@ import {
   test,
   validatePackages,
 } from './steps'
-import { Step } from './types'
+import { ConfigFile, Step } from './types'
+import { winstonLogger } from './winston-logger'
 
-export default async (): Promise<{
-  cache: CreateCache
-  steps: Step[]
-}> => {
+export default async (): Promise<ConfigFile> => {
   const {
     NPM_USERNAME,
     NPM_TOKEN,
@@ -45,6 +43,11 @@ export default async (): Promise<{
 
   const stringToJsonReport = ({ jsonReportAsString }: { jsonReportAsString: string }) =>
     JSON.parse(jsonReportAsString) as JsonReport
+
+  const logger = winstonLogger({
+    customLogLevel: LogLevel.verbose,
+    disable: false,
+  })
 
   const cache = redisWithNodeCache({
     redis: {
@@ -106,5 +109,6 @@ export default async (): Promise<{
   return {
     steps,
     cache,
+    logger,
   }
 }
