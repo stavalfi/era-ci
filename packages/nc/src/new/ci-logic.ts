@@ -3,15 +3,14 @@ import fse from 'fs-extra'
 import path from 'path'
 import { getPackages } from '../utils'
 import { calculateArtifactsHash } from './artifacts-hash'
-import getConfig from './config.example'
 import { Cache } from './create-cache'
 import { StepExecutionStatus } from './create-step'
-import { Cleanup, PackageJson, RunStep, StepNodeData, StepResultOfAllPackages } from './types'
+import { Cleanup, ConfigFile, PackageJson, RunStep, StepNodeData, StepResultOfAllPackages } from './types'
 import { getExitCode, getStepsAsGraph, toFlowLogsContentKey } from './utils'
 
 const log = logger('ci-logic')
 
-export async function ci(options: { logFilePath: string; repoPath: string }): Promise<void> {
+export async function ci(options: { logFilePath: string; repoPath: string; configFile: ConfigFile }): Promise<void> {
   const cleanups: Cleanup[] = []
   let flowId: string | undefined = undefined
   let cache: Cache | undefined = undefined
@@ -24,8 +23,6 @@ export async function ci(options: { logFilePath: string; repoPath: string }): Pr
     // in tests, we extract the flowId using regex from this line (super ugly :S)
     log.info(`Starting CI`)
 
-    const config = await getConfig()
-
     const packagesPath = await getPackages(options.repoPath)
 
     const result = await calculateArtifactsHash({ repoPath: options.repoPath, packagesPath })
@@ -34,12 +31,12 @@ export async function ci(options: { logFilePath: string; repoPath: string }): Pr
 
     log.info(`flow-id: "${flowId}"`)
 
-    cache = await config.cache.callInitializeCache({ flowId, log: logger('cache') })
+    cache = await options.configFile.cache.callInitializeCache({ flowId, log: logger('cache') })
     cleanups.push(cache.cleanup)
 
     const rootPackageJson: PackageJson = await fse.readJson(path.join(options.repoPath, 'package.json'))
 
-    const steps = getStepsAsGraph(config.steps)
+    const steps = getStepsAsGraph(options.configFile.steps)
 
     for (const node of steps) {
       const newStepData: StepNodeData<StepResultOfAllPackages> & { runStep: RunStep } = {

@@ -1,15 +1,13 @@
 import { logger } from '@tahini/log'
-import { Cleanup } from './types'
-import getConfig from './config.example'
+import { Cleanup, ConfigFile } from './types'
 import { MISSING_FLOW_ID_ERROR, toFlowLogsContentKey } from './utils'
 
 const log = logger('ci-logic')
 
-export async function printFlowLogs(options: { flowId: string }) {
+export async function printFlowLogs(options: { flowId: string; configFile: ConfigFile }) {
   const cleanups: Cleanup[] = []
   try {
-    const config = await getConfig()
-    const cache = await config.cache.callInitializeCache({ flowId: options.flowId, log: logger('cache') })
+    const cache = await options.configFile.cache.callInitializeCache({ flowId: options.flowId, log: logger('cache') })
     cleanups.push(cache.cleanup)
 
     const flowLogs = await cache.get(toFlowLogsContentKey(options.flowId), r => {

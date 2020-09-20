@@ -1,7 +1,7 @@
 import { Log } from '@tahini/log'
 import { IPackageJson } from 'package-json-type'
 import { Graph, Node } from '../types'
-import { Cache } from './create-cache'
+import { Cache, CreateCache } from './create-cache'
 import { StepExecutionStatus, StepStatus } from './create-step'
 
 export type Cleanup = () => Promise<unknown>
@@ -168,3 +168,8 @@ export type CanRunStepOnArtifactResult =
     }
 
 export type RunStep = (runStepOptions: RunStepOptions) => Promise<StepResultOfAllPackages>
+
+export type ConfigFile = {
+  cache: CreateCache
+  steps: Step[]
+}

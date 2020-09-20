@@ -10,6 +10,7 @@ import {
   jsonReport,
   JsonReport,
   k8sGcloudDeployment,
+  lint,
   npmPublish,
   NpmScopeAccess,
   test,
@@ -57,8 +58,11 @@ export default async (): Promise<{
   const steps: Step[] = [
     install(),
     validatePackages(),
+    lint(),
     build(),
-    test(),
+    test({
+      testScriptName: 'test',
+    }),
     npmPublish({
       shouldPublish: isMasterBuild,
       npmScopeAccess: NpmScopeAccess.public,
