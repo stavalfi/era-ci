@@ -1,12 +1,11 @@
 import fse from 'fs-extra'
 import path from 'path'
-import { getPackages } from '../utils'
 import { calculateArtifactsHash } from './artifacts-hash'
 import { Cache } from './create-cache'
 import { Log } from './create-logger'
 import { StepExecutionStatus } from './create-step'
 import { Cleanup, ConfigFile, PackageJson, RunStep, StepNodeData, StepResultOfAllPackages } from './types'
-import { getExitCode, getStepsAsGraph, toFlowLogsContentKey } from './utils'
+import { getExitCode, getPackages, getStepsAsGraph, toFlowLogsContentKey } from './utils'
 
 export async function ci(options: { logFilePath: string; repoPath: string; configFile: ConfigFile }): Promise<void> {
   const cleanups: Cleanup[] = []
@@ -22,7 +21,7 @@ export async function ci(options: { logFilePath: string; repoPath: string; confi
     // in tests, we extract the flowId using regex from this line (super ugly :S)
     log.info(`Starting CI`)
 
-    const packagesPath = await getPackages(options.repoPath)
+    const packagesPath = await getPackages({ repoPath: options.repoPath, log })
 
     const result = await calculateArtifactsHash({
       repoPath: options.repoPath,
@@ -59,6 +58,7 @@ export async function ci(options: { logFilePath: string; repoPath: string; confi
           cache,
           flowId,
           startFlowMs,
+          logger,
         }),
       }
       node.data = newStepData

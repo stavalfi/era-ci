@@ -1,12 +1,12 @@
 import Redis, { ValueType } from 'ioredis'
 import NodeCache from 'node-cache'
 import { enums, literal, object, string, union, validate, any } from 'superstruct'
-import { ServerInfo } from '../types'
 import { Cache, createCache } from './create-cache'
 import { StepStatus } from './create-step'
 import redisUrlParse from 'redis-url-parse'
 import { promisify } from 'util'
 import zlib from 'zlib'
+import { ServerInfo } from './types'
 
 export type CacheConfiguration = {
   redis: {

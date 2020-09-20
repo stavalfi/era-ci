@@ -1,6 +1,7 @@
 import path from 'path'
-import { Artifact } from '../../types'
 import fse from 'fs-extra'
+import semver from 'semver'
+import { PackageJson, Artifact } from '../types'
 
 export const setPackageVersion = async ({ toVersion, artifact }: { toVersion: string; artifact: Artifact }) => {
   const packageJsonPath = path.join(artifact.packagePath, 'package.json')
@@ -26,4 +27,81 @@ export const setPackageVersion = async ({ toVersion, artifact }: { toVersion: st
 export enum TargetType {
   docker = 'docker',
   npm = 'npm',
+}
+
+export function calculateNewVersion({
+  packagePath,
+  packageJsonVersion,
+  allVersions,
+  highestPublishedVersion,
+}: {
+  packagePath: string
+  packageJsonVersion: string
+  highestPublishedVersion?: string
+  allVersions?: string[]
+}): string {
+  if (!semver.valid(packageJsonVersion)) {
+    throw new Error(`version packgeJson in ${packagePath} is invalid: ${packageJsonVersion}`)
+  }
+  const allValidVersions = allVersions?.filter(version => semver.valid(version))
+
+  if (!allValidVersions?.length) {
+    // this is immutable in each registry so if this is not defined or empty, it means that we never published before or there was unpublish of all the versions.
+    return packageJsonVersion
+  }
+
+  const incVersion = (version: string) => {
+    if (!semver.valid(version)) {
+      throw new Error(`version is invalid: ${version} in ${packagePath}`)
+    }
+    const newVersion = semver.inc(version, 'patch')
+    if (!newVersion) {
+      throw new Error(`could not path-increment version: ${version} in ${packagePath}`)
+    }
+    return newVersion
+  }
+
+  if (!highestPublishedVersion) {
+    // this is mutable in each registry so if we have versions but this is false, it means that:
+    // a. this is the first run of the ci on a target that was already pbulished.
+    // b. or, less likely, someone mutated one of the labels that this ci is modifying in every run :(
+
+    if (allValidVersions.includes(packageJsonVersion)) {
+      return incVersion(packageJsonVersion)
+    } else {
+      return packageJsonVersion
+    }
+  } else {
+    if (allValidVersions.includes(highestPublishedVersion)) {
+      const maxVersion = semver.gt(packageJsonVersion, highestPublishedVersion)
+        ? packageJsonVersion
+        : highestPublishedVersion
+
+      if (allVersions?.includes(maxVersion)) {
+        return incVersion(maxVersion)
+      } else {
+        return maxVersion
+      }
+    } else {
+      const sorted = semver.sort(allValidVersions)
+
+      return incVersion(sorted[sorted.length - 1])
+    }
+  }
+}
+
+export async function getPackageTargetType(
+  packagePath: string,
+  packageJson: PackageJson,
+): Promise<TargetType | undefined> {
+  const isNpm = !packageJson.private
+  // @ts-ignore
+  const isDocker: boolean = await fse.exists(path.join(packagePath, 'Dockerfile'))
+
+  if (isDocker) {
+    return TargetType.docker
+  }
+  if (isNpm) {
+    return TargetType.npm
+  }
 }

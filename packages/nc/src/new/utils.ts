@@ -1,10 +1,10 @@
 import execa from 'execa'
 import _ from 'lodash'
+import path from 'path'
 import urlParse from 'url-parse'
-import { Graph, Protocol, ServerInfo } from '../types'
 import { Log } from './create-logger'
 import { StepExecutionStatus, StepStatus } from './create-step'
-import { RunStep, Step, StepNodeData, StepResultOfAllPackages } from './types'
+import { RunStep, Step, StepNodeData, StepResultOfAllPackages, Graph, Protocol, ServerInfo } from './types'
 
 export const didPassOrSkippedAsPassed = (stepStatus: StepStatus) =>
   [StepStatus.passed, StepStatus.skippedAsPassed].includes(stepStatus)
@@ -90,6 +90,7 @@ export function getExitCode(steps: Graph<StepNodeData<StepResultOfAllPackages>>)
 export const toFlowLogsContentKey = (flowId: string) => `flow-logs-content-${flowId}`
 
 export const MISSING_FLOW_ID_ERROR = `flow-id was not found`
+export const INVALIDATE_CACHE_HASH = '1'
 
 type SupportedExecaCommandOptions = Omit<execa.Options, 'stderr' | 'stdout' | 'all' | 'stdin'> &
   Required<Pick<execa.Options, 'stdio'>> & { log: Log }
@@ -120,4 +121,16 @@ export async function execaCommand<Options extends SupportedExecaCommandOptions>
   }
 
   return subprocess
+}
+
+export async function getPackages({ log, repoPath }: { repoPath: string; log: Log }): Promise<string[]> {
+  const result = await execaCommand('yarn workspaces --json info', {
+    cwd: repoPath,
+    stdio: 'pipe',
+    log,
+  })
+  const workspacesInfo: { location: string }[] = JSON.parse(JSON.parse(result.stdout).data)
+  return Object.values(workspacesInfo)
+    .map(workspaceInfo => workspaceInfo.location)
+    .map(relativePackagePath => path.join(repoPath, relativePackagePath))
 }

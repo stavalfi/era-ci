@@ -1,4 +1,4 @@
-import { logger } from '@tahini/log'
+import { Logger } from '../create-logger'
 import {
   CanRunStepOnArtifactResult,
   CreateStepOptions,
@@ -26,6 +26,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
   runStepOptions,
   canRunStepResultOnArtifacts,
   stepConfigurations,
+  logger,
 }: {
   startMs: number
   beforeAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
@@ -34,6 +35,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
   runStepOptions: RunStepOptions
   canRunStepResultOnArtifacts: CanRunStepOnArtifactResult[]
   stepConfigurations: StepConfigurations
+  logger: Logger
 }): Promise<UserStepResult> {
   if (beforeAll) {
     await beforeAll({
@@ -127,11 +129,13 @@ async function runStepOnRoot<StepConfigurations>({
   runStepOnRoot,
   runStepOptions,
   stepConfigurations,
+  logger,
 }: {
   startMs: number
   runStepOnRoot: RunStepOnRoot<StepConfigurations>
   runStepOptions: RunStepOptions
   stepConfigurations: StepConfigurations
+  logger: Logger
 }): Promise<UserStepResult> {
   const result = await runStepOnRoot({
     allArtifacts: runStepOptions.allArtifacts,
@@ -174,7 +178,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
   stepConfigurations: NormalizedStepConfigurations
 }): Promise<StepResultOfAllPackages> {
   try {
-    const log = logger(runStepOptions.stepName)
+    const log = runStepOptions.logger(runStepOptions.stepName)
     const canRunStepResultOnArtifacts = await Promise.all(
       runStepOptions.allArtifacts.map(node =>
         checkIfCanRunStepOnArtifact({
@@ -219,6 +223,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         runStepOnArtifact: createStepOptions.runStepOnArtifact,
         afterAll: createStepOptions.afterAll,
         stepConfigurations,
+        logger: runStepOptions.logger,
       })
     } else {
       userStepResult = await runStepOnRoot({
@@ -226,6 +231,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         startMs,
         runStepOnRoot: createStepOptions.runStepOnRoot,
         stepConfigurations,
+        logger: runStepOptions.logger,
       })
     }
 

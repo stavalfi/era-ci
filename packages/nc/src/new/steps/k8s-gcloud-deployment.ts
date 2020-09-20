@@ -1,8 +1,7 @@
 import { createFile } from 'create-folder-structure'
-import { getPackageTargetType } from '../../package-info'
-import { TargetType } from '../../types'
 import { execaCommand } from '../utils'
 import { createStep, StepStatus } from '../create-step'
+import { getPackageTargetType, TargetType } from './utils'
 
 export type K8sGcloudDeploymentConfiguration = {
   shouldDeploy: boolean

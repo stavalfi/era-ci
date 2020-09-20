@@ -1,5 +1,4 @@
 import _ from 'lodash'
-import { Graph } from '../../types'
 import { Cache } from '../create-cache'
 import { Log } from '../create-logger'
 import {
@@ -9,6 +8,7 @@ import {
   RootPackage,
   StepNodeData,
   StepResultOfAllPackages,
+  Graph,
 } from '../types'
 import { didPassOrSkippedAsPassed } from '../utils'
 import { StepExecutionStatus, StepStatus } from './types'
