@@ -11,7 +11,7 @@ export async function printFlowLogs(options: { flowId: string; configFile: Confi
     const cache = await options.configFile.cache.callInitializeCache({ flowId: options.flowId, log: logger('cache') })
     cleanups.push(cache.cleanup)
 
-    const flowLogs = await cache.get(toFlowLogsContentKey(options.flowId), r => {
+    const flowLogsResult = await cache.get(toFlowLogsContentKey(options.flowId), r => {
       if (typeof r === 'string') {
         return r
       } else {
@@ -20,11 +20,11 @@ export async function printFlowLogs(options: { flowId: string; configFile: Confi
         )
       }
     })
-    if (!flowLogs) {
+    if (!flowLogsResult) {
       // we want to avoid stacktraces so we don't throw an Error object
       throw new Error(MISSING_FLOW_ID_ERROR)
     }
-    log.noFormattingInfo(flowLogs)
+    log.noFormattingInfo(flowLogsResult.value)
   } catch (error) {
     if (error.message === MISSING_FLOW_ID_ERROR) {
       log?.error(error)

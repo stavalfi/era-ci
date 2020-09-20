@@ -174,6 +174,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
   stepConfigurations: NormalizedStepConfigurations
 }): Promise<StepResultOfAllPackages> {
   try {
+    const log = logger(runStepOptions.stepName)
     const canRunStepResultOnArtifacts = await Promise.all(
       runStepOptions.allArtifacts.map(node =>
         checkIfCanRunStepOnArtifact({
@@ -185,6 +186,8 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
           currentArtifactIndex: node.index,
           currentStepIndex: runStepOptions.currentStepIndex,
           stepConfigurations,
+          log,
+          repoPath: runStepOptions.repoPath,
         }),
       ),
     )
@@ -193,7 +196,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
       userStepResult = await createStepOptions.runStepOnAllArtifacts({
         ...runStepOptions,
         stepConfigurations,
-        log: logger(runStepOptions.stepName),
+        log,
         cache: runStepOptions.cache,
         allArtifacts: runStepOptions.allArtifacts.map((node, i) => ({
           ...node,

@@ -1,9 +1,11 @@
 import { buildFullDockerImageName, dockerRegistryLogin } from '../../docker-utils'
 import { buildDockerTarget, getPackageTargetType } from '../../package-info'
-import { execaCommand } from '../../utils'
+import { ServerInfo } from '../../types'
+import { execaCommand } from '../utils'
 import { createStep, StepStatus } from '../create-step'
 import { getServerInfoFromRegistryAddress } from '../utils'
 import { setPackageVersion, TargetType } from './utils'
+import { Log } from '../create-logger'
 
 export type DockerPublishConfiguration = {
   shouldPublish: boolean
@@ -13,13 +15,62 @@ export type DockerPublishConfiguration = {
     token: string
   }
   dockerOrganizationName: string
+  remoteSshDockerHost?: string
   fullImageNameCacheKey: (options: { packageHash: string }) => string
+}
+
+const getVersionCacheKey = ({ artifactHash }: { artifactHash: string }) => `${artifactHash}-docker-version`
+
+async function runSkopeoCommand(command: string | [string, ...string[]], repoPath: string, log: Log): Promise<string> {
+  const { stdout: result } = await execaCommand(command, { cwd: repoPath, stdio: 'pipe', log })
+  return result
+}
+
+async function isDockerVersionAlreadyPulished({
+  packageName,
+  imageTag,
+  dockerOrganizationName,
+  dockerRegistry,
+  repoPath,
+  log,
+}: {
+  packageName: string
+  imageTag: string
+  dockerRegistry: ServerInfo
+  dockerOrganizationName: string
+  repoPath: string
+  log: Log
+}) {
+  const fullImageName = buildFullDockerImageName({
+    dockerOrganizationName,
+    dockerRegistry,
+    packageJsonName: packageName,
+    imageTag,
+  })
+  try {
+    await runSkopeoCommand(
+      `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
+      repoPath,
+      log,
+    )
+    return true
+  } catch (e) {
+    if (
+      e.stderr?.includes('manifest unknown') ||
+      e.stderr?.includes('unable to retrieve auth token') ||
+      e.stderr?.includes('invalid status code from registry 404 (Not Found)')
+    ) {
+      return false
+    } else {
+      throw e
+    }
+  }
 }
 
 export const dockerPublish = createStep<DockerPublishConfiguration>({
   stepName: 'docker-publish',
   canRunStepOnArtifact: {
-    customPredicate: async ({ currentArtifact, stepConfigurations, cache }) => {
+    customPredicate: async ({ currentArtifact, stepConfigurations, cache, repoPath, log }) => {
       if (!stepConfigurations.shouldPublish) {
         return {
           canRun: false,
@@ -36,6 +87,45 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
         return {
           canRun: false,
           notes: [],
+          stepStatus: StepStatus.skippedAsPassed,
+        }
+      }
+
+      const dockerVersionResult = await cache.get(
+        getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
+        r => {
+          if (typeof r === 'string') {
+            return r
+          } else {
+            throw new Error(
+              `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+            )
+          }
+        },
+      )
+
+      if (!dockerVersionResult) {
+        return {
+          canRun: true,
+          notes: [],
+        }
+      }
+
+      if (
+        await isDockerVersionAlreadyPulished({
+          dockerRegistry: getServerInfoFromRegistryAddress(stepConfigurations.registry),
+          packageName: currentArtifact.data.artifact.packageJson.name,
+          imageTag: dockerVersionResult.value,
+          dockerOrganizationName: stepConfigurations.dockerOrganizationName,
+          repoPath,
+          log,
+        })
+      ) {
+        return {
+          canRun: false,
+          notes: [
+            `this package was already published in flow: "${dockerVersionResult.flowId}" with the same content as version: ${dockerVersionResult.value}`,
+          ],
           stepStatus: StepStatus.skippedAsPassed,
         }
       }
@@ -95,8 +185,9 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
           stdio: 'inherit',
           env: {
             // eslint-disable-next-line no-process-env
-            ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
+            ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
           },
+          log,
         },
       )
     } catch (error) {
@@ -116,9 +207,16 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
       stdio: 'inherit',
       env: {
         // eslint-disable-next-line no-process-env
-        ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
+        ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
       },
+      log,
     })
+
+    await cache.set(
+      getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
+      dockerTarget.newVersionIfPublish,
+      cache.ttls.stepResult,
+    )
 
     log.info(
       `published docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,
@@ -128,9 +226,10 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
       stdio: 'pipe',
       env: {
         // eslint-disable-next-line no-process-env
-        ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
+        ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
       },
       cwd: repoPath,
+      log,
     }).catch(e =>
       log.error(
         `couldn't remove image: "${fullImageNameNewVersion}" after pushing it. this failure won't fail the build.`,

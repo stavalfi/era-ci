@@ -1,9 +1,10 @@
 import { npmRegistryLogin } from '../../npm-utils'
 import { buildNpmTarget, getPackageTargetType } from '../../package-info'
-import { execaCommand } from '../../utils'
+import { execaCommand } from '../utils'
 import { createStep, StepStatus } from '../create-step'
 import { getServerInfoFromRegistryAddress } from '../utils'
 import { setPackageVersion, TargetType } from './utils'
+import { Log } from '../create-logger'
 
 export enum NpmScopeAccess {
   public = 'public',
@@ -21,10 +22,38 @@ export type NpmPublishConfiguration = {
   }
 }
 
+const getVersionCacheKey = ({ artifactHash }: { artifactHash: string }) => `${artifactHash}-npm-version`
+
+async function isNpmVersionAlreadyPulished({
+  npmRegistry,
+  packageName,
+  packageVersion,
+  repoPath,
+  log,
+}: {
+  packageName: string
+  packageVersion: string
+  npmRegistry: string
+  repoPath: string
+  log: Log
+}) {
+  const command = `npm view ${packageName}@${packageVersion} --json --registry ${npmRegistry}`
+  try {
+    const { stdout } = await execaCommand(command, { cwd: repoPath, stdio: 'pipe', log })
+    return Boolean(stdout) // for some reaosn, if the version is not found, it doesn't throw an error. but the stdout is empty.
+  } catch (e) {
+    if (e.message.includes('code E404')) {
+      return false
+    } else {
+      throw e
+    }
+  }
+}
+
 export const npmPublish = createStep<NpmPublishConfiguration>({
   stepName: 'npm-publish',
   canRunStepOnArtifact: {
-    customPredicate: async ({ currentArtifact, stepConfigurations }) => {
+    customPredicate: async ({ currentArtifact, stepConfigurations, repoPath, cache, log }) => {
       if (!stepConfigurations.shouldPublish) {
         return {
           canRun: false,
@@ -37,6 +66,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
         currentArtifact.data.artifact.packagePath,
         currentArtifact.data.artifact.packageJson,
       )
+
       if (targetType !== TargetType.npm) {
         return {
           canRun: false,
@@ -45,10 +75,52 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
         }
       }
 
+      const npmVersionResult = await cache.get(
+        getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
+        r => {
+          if (typeof r === 'string') {
+            return r
+          } else {
+            throw new Error(
+              `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+            )
+          }
+        },
+      )
+
+      if (!npmVersionResult) {
+        return {
+          canRun: true,
+          notes: [],
+        }
+      }
+
+      if (
+        await isNpmVersionAlreadyPulished({
+          npmRegistry: stepConfigurations.registry,
+          packageName: currentArtifact.data.artifact.packageJson.name,
+          packageVersion: npmVersionResult.value,
+          repoPath,
+          log,
+        })
+      ) {
+        return {
+          canRun: false,
+          notes: [
+            `this package was already published in flow: "${npmVersionResult.flowId}" with the same content as version: ${npmVersionResult.value}`,
+          ],
+          stepStatus: StepStatus.skippedAsPassed,
+        }
+      }
+
       return {
         canRun: true,
         notes: [],
       }
+    },
+    options: {
+      // maybe the publish already succeed but someone deleted the target from the registry so we need to check that manually as well
+      skipIfPackageResultsInCache: false,
     },
   },
   beforeAll: ({ stepConfigurations, repoPath }) =>
@@ -59,7 +131,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
       npmRegistryUsername: stepConfigurations.publishAuth.username,
       repoPath,
     }),
-  runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log }) => {
+  runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, cache, flowId, stepId }) => {
     const npmTarget = await buildNpmTarget({
       npmRegistry: getServerInfoFromRegistryAddress(stepConfigurations.registry),
       packageJson: currentArtifact.data.artifact.packageJson,
@@ -87,14 +159,23 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
           NPM_AUTH_TOKEN: stepConfigurations.publishAuth.token,
           NPM_TOKEN: stepConfigurations.publishAuth.token,
         },
+        log,
       },
-    ).finally(() =>
-      // revert version to what it was before we changed it
-      setPackageVersion({
-        artifact: currentArtifact.data.artifact,
-        toVersion: currentArtifact.data.artifact.packageJson.version!,
-      }),
     )
+      .then(() =>
+        cache.set(
+          getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
+          npmTarget.newVersionIfPublish,
+          cache.ttls.stepResult,
+        ),
+      )
+      .finally(() =>
+        // revert version to what it was before we changed it
+        setPackageVersion({
+          artifact: currentArtifact.data.artifact,
+          toVersion: currentArtifact.data.artifact.packageJson.version!,
+        }),
+      )
 
     log.info(`published npm target in package: "${currentArtifact.data.artifact.packageJson.name}"`)
 

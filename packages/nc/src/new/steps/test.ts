@@ -1,4 +1,4 @@
-import { execaCommand } from '../../utils'
+import { execaCommand } from '../utils'
 import { createStep, StepStatus } from '../create-step'
 
 export const test = createStep<{ testScriptName: string } | void, { testScriptName: string }>({
@@ -16,10 +16,11 @@ export const test = createStep<{ testScriptName: string } | void, { testScriptNa
             stepStatus: StepStatus.skippedAsPassed,
           },
   },
-  runStepOnArtifact: async ({ currentArtifact, stepConfigurations }) => {
+  runStepOnArtifact: async ({ currentArtifact, stepConfigurations, log }) => {
     await execaCommand(`yarn run ${stepConfigurations.testScriptName}`, {
       cwd: currentArtifact.data.artifact.packagePath,
       stdio: 'inherit',
+      log,
     })
     return {
       notes: [],

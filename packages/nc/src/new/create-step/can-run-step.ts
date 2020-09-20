@@ -1,6 +1,7 @@
 import _ from 'lodash'
 import { Graph } from '../../types'
 import { Cache } from '../create-cache'
+import { Log } from '../create-logger'
 import {
   Artifact,
   CanRunStepOnArtifact,
@@ -154,6 +155,8 @@ export async function checkIfCanRunStepOnArtifact<StepConfigurations>(options: {
   allSteps: Graph<StepNodeData<StepResultOfAllPackages>>
   rootPackage: RootPackage
   stepConfigurations: StepConfigurations
+  log: Log
+  repoPath: string
 }): Promise<CanRunStepOnArtifactResult> {
   return runAll([
     {
@@ -168,6 +171,8 @@ export async function checkIfCanRunStepOnArtifact<StepConfigurations>(options: {
               currentArtifact: options.allArtifacts[options.currentArtifactIndex],
               rootPackage: options.rootPackage,
               stepConfigurations: options.stepConfigurations,
+              log: options.log,
+              repoPath: options.repoPath,
             })
           : { canRun: true, notes: [] },
     },

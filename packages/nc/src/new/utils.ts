@@ -1,5 +1,8 @@
+import execa from 'execa'
+import _ from 'lodash'
 import urlParse from 'url-parse'
 import { Graph, Protocol, ServerInfo } from '../types'
+import { Log } from './create-logger'
 import { StepExecutionStatus, StepStatus } from './create-step'
 import { RunStep, Step, StepNodeData, StepResultOfAllPackages } from './types'
 
@@ -87,3 +90,34 @@ export function getExitCode(steps: Graph<StepNodeData<StepResultOfAllPackages>>)
 export const toFlowLogsContentKey = (flowId: string) => `flow-logs-content-${flowId}`
 
 export const MISSING_FLOW_ID_ERROR = `flow-id was not found`
+
+type SupportedExecaCommandOptions = Omit<execa.Options, 'stderr' | 'stdout' | 'all' | 'stdin'> &
+  Required<Pick<execa.Options, 'stdio'>> & { log: Log }
+
+export async function execaCommand<Options extends SupportedExecaCommandOptions>(
+  command: string | [string, ...string[]],
+  options: Options['stdio'] extends 'inherit' ? SupportedExecaCommandOptions : Options,
+): Promise<execa.ExecaReturnValue<string>> {
+  const execaOptions = {
+    ..._.omit(options, ['logLevel']),
+    stdio: options.stdio === 'inherit' ? 'pipe' : options.stdio,
+  }
+  const subprocess = Array.isArray(command)
+    ? execa(command[0], command.slice(1), execaOptions)
+    : execa.command(command, execaOptions)
+
+  if (options.stdio === 'ignore') {
+    return subprocess
+  }
+
+  if (options.stdio === 'inherit') {
+    if (subprocess.stdout) {
+      options.log.infoFromStream(subprocess.stdout)
+    }
+    if (subprocess.stderr) {
+      options.log.errorFromStream(subprocess.stderr)
+    }
+  }
+
+  return subprocess
+}

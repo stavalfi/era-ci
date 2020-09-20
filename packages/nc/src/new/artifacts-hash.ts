@@ -3,9 +3,9 @@ import fs from 'fs-extra'
 import path from 'path'
 import { Graph } from '../types'
 import { INVALIDATE_CACHE_HASH } from '../constants'
-import { execaCommand } from '../utils'
 import { Artifact, PackageJson } from './types'
 import { Log } from './create-logger'
+import { execaCommand } from './utils'
 
 const isInParent = (parent: string, child: string) => {
   const relative = path.relative(parent, child)
@@ -158,6 +158,7 @@ export async function calculateArtifactsHash({
   const repoFilesPathResult = await execaCommand('git ls-tree -r --name-only HEAD', {
     cwd: repoPath,
     stdio: 'pipe',
+    log,
   })
 
   const repoFilesPath = repoFilesPathResult.stdout

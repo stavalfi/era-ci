@@ -1,6 +1,6 @@
 import Redis, { ValueType } from 'ioredis'
 import NodeCache from 'node-cache'
-import { enums, literal, object, string, union, validate } from 'superstruct'
+import { enums, literal, object, string, union, validate, any } from 'superstruct'
 import { ServerInfo } from '../types'
 import { Cache, createCache } from './create-cache'
 import { StepStatus } from './create-step'
@@ -59,21 +59,57 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
     })
 
     async function set(key: string, value: ValueType, ttl: number): Promise<void> {
-      nodeCache.set(key, value)
-      await redisClient.set(key, value, 'px', ttl)
+      nodeCache.set(key, {
+        flowId,
+        value,
+      })
+      await redisClient.set(
+        key,
+        JSON.stringify({
+          flowId,
+          value,
+        }),
+        'px',
+        ttl,
+      )
     }
 
-    async function get<T>(key: string, mapper: (result: unknown) => T): Promise<T | undefined> {
-      const fromNodeCache = nodeCache.get<string>(key)
+    const getResultSchema = object({
+      flowId: string(),
+      value: any(),
+    })
+
+    async function get<T>(
+      key: string,
+      mapper: (result: unknown) => T,
+    ): Promise<{ flowId: string; value: T } | undefined> {
+      const fromNodeCache = nodeCache.get<{ flowId: string; value: T }>(key)
       if (fromNodeCache !== null && fromNodeCache !== undefined) {
-        return mapper(fromNodeCache)
+        return {
+          flowId: fromNodeCache.flowId,
+          value: mapper(fromNodeCache.value),
+        }
       } else {
         const fromRedis = await redisClient.get(key)
         if (fromRedis === null) {
           return undefined
         } else {
-          nodeCache.set(key, fromRedis)
-          return mapper(fromRedis)
+          const [error, parsedResult] = validate(JSON.parse(fromRedis), getResultSchema)
+          if (parsedResult) {
+            const mappedValue = mapper(parsedResult.value)
+            nodeCache.set(key, {
+              flowId: parsedResult.flowId,
+              value: mappedValue,
+            })
+            return {
+              flowId: parsedResult.flowId,
+              value: mappedValue,
+            }
+          } else {
+            throw new Error(
+              `(1) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${fromRedis}"`,
+            )
+          }
         }
       }
     }
@@ -86,7 +122,6 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
       object({
         didStepRun: literal(true),
         StepStatus: enums(Object.values(StepStatus)),
-        flowId: string(),
       }),
       object({
         didStepRun: literal(false),
@@ -99,11 +134,11 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
 
     const step: Cache['step'] = {
       didStepRun: options => has(toStepKey({ stepId: options.stepId, packageHash: options.packageHash })),
-      getStepResult: options =>
-        get(toStepKey({ stepId: options.stepId, packageHash: options.packageHash }), r => {
+      getStepResult: async options => {
+        const result = await get(toStepKey({ stepId: options.stepId, packageHash: options.packageHash }), r => {
           if (typeof r !== 'string') {
             throw new Error(
-              `cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
+              `(2) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
             )
           }
           const [error, parsedResult] = validate(JSON.parse(r), getStepResultSchema)
@@ -111,10 +146,25 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
             return parsedResult
           } else {
             throw new Error(
-              `cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
+              `(3) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
             )
           }
-        }),
+        })
+        if (!result) {
+          return undefined
+        }
+        if (result.value.didStepRun) {
+          return {
+            flowId: result.flowId,
+            didStepRun: true,
+            StepStatus: result.value.StepStatus,
+          }
+        } else {
+          return {
+            didStepRun: false,
+          }
+        }
+      },
       setStepResult: options =>
         set(
           toStepKey({ stepId: options.stepId, packageHash: options.packageHash }),
@@ -122,7 +172,6 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
             {
               didStepRun: true,
               StepStatus: options.stepStatus,
-              flowId,
             },
             null,
             2,

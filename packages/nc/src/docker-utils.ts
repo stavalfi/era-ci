@@ -171,14 +171,12 @@ export async function isDockerVersionAlreadyPulished({
   imageTag,
   dockerOrganizationName,
   dockerRegistry,
-  publishAuth,
   repoPath,
 }: {
   packageName: string
   imageTag: string
   dockerRegistry: ServerInfo
   dockerOrganizationName: string
-  publishAuth: TargetsPublishAuth[TargetType.docker]
   repoPath: string
 }) {
   const fullImageName = buildFullDockerImageName({

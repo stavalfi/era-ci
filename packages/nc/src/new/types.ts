@@ -40,11 +40,13 @@ export type CanRunStepOnArtifact<StepConfigurations> = {
   customPredicate?: (options: {
     allArtifacts: Graph<{ artifact: Artifact }>
     cache: Cache
+    repoPath: string
     rootPackage: RootPackage
     currentArtifact: Node<{ artifact: Artifact }>
     currentStepInfo: Node<{ stepInfo: StepInfo }>
     allSteps: Graph<{ stepInfo: StepInfo; stepResult?: StepResultOfAllPackages }>
     stepConfigurations: StepConfigurations
+    log: Log
   }) => Promise<CanRunStepOnArtifactResult>
   options?: {
     skipIfSomeDirectPrevStepsFailedOnPackage?: boolean
