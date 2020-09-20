@@ -1,7 +1,7 @@
 import { ValueType, Redis } from 'ioredis'
 import NodeCache from 'node-cache'
+import { Log } from '../create-logger'
 import { StepStatus } from '../create-step'
-import { Log } from '@tahini/log'
 
 export type Cache = {
   step: {

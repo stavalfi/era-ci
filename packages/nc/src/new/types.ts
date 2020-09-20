@@ -1,8 +1,6 @@
-import { Log } from '@tahini/log'
 import { IPackageJson } from 'package-json-type'
-import { Graph, Node } from '../types'
 import { Cache, CreateCache } from './create-cache'
-import { CreateLogger } from './create-logger'
+import { CreateLogger, Log, Logger } from './create-logger'
 import { StepExecutionStatus, StepStatus } from './create-step'
 
 export type Cleanup = () => Promise<unknown>
@@ -77,6 +75,7 @@ export type RunStepOptions = StepInfo & {
   currentStepIndex: number
   cache: Cache
   rootPackage: RootPackage
+  logger: Logger
 }
 
 export type StepNodeData<StepResult> =
@@ -177,3 +176,23 @@ export type ConfigFile = {
   logger: CreateLogger
   steps: Step[]
 }
+
+export enum Protocol {
+  http = 'http',
+  https = 'https',
+}
+
+export type ServerInfo = {
+  host: string
+  port: number
+  protocol?: Protocol
+}
+
+export type Node<T> = {
+  data: T
+  index: number
+  parentsIndexes: number[]
+  childrenIndexes: number[]
+}
+
+export type Graph<T> = Node<T>[]

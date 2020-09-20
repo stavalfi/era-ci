@@ -1,10 +1,12 @@
-import { npmRegistryLogin } from '../../npm-utils'
-import { buildNpmTarget, getPackageTargetType } from '../../package-info'
-import { execaCommand } from '../utils'
-import { createStep, StepStatus } from '../create-step'
-import { getServerInfoFromRegistryAddress } from '../utils'
-import { setPackageVersion, TargetType } from './utils'
+import fse from 'fs-extra'
+import _ from 'lodash'
+import os from 'os'
+import path from 'path'
 import { Log } from '../create-logger'
+import { createStep, StepStatus } from '../create-step'
+import { PackageJson } from '../types'
+import { execaCommand } from '../utils'
+import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
 
 export enum NpmScopeAccess {
   public = 'public',
@@ -23,6 +25,76 @@ export type NpmPublishConfiguration = {
 }
 
 const getVersionCacheKey = ({ artifactHash }: { artifactHash: string }) => `${artifactHash}-npm-version`
+
+async function getNpmhighestVersionInfo({
+  packageName,
+  npmRegistry,
+  repoPath,
+  log,
+}: {
+  packageName: string
+  npmRegistry: string
+  repoPath: string
+  log: Log
+}): Promise<
+  | {
+      highestVersion?: string
+      allVersions: string[]
+    }
+  | undefined
+> {
+  try {
+    const command = `npm view ${packageName} --json --registry ${npmRegistry}`
+    log.verbose(`searching the latest tag and hash: "${command}"`)
+    const result = await execaCommand(command, { cwd: repoPath, stdio: 'pipe', log })
+    const resultJson = JSON.parse(result.stdout) || {}
+    const allVersions: string[] = resultJson['versions'] || []
+    const distTags = resultJson['dist-tags'] as { [key: string]: string }
+    const highestVersion = distTags['latest']
+
+    const latest = {
+      highestVersion,
+      allVersions,
+    }
+    log.verbose(
+      `latest tag and hash for "${packageName}" are: "${JSON.stringify(_.omit(latest, ['allVersions']), null, 2)}"`,
+    )
+    return latest
+  } catch (e) {
+    if (e.message.includes('code E404')) {
+      log.verbose(`"${packageName}" weren't published`)
+    } else {
+      throw e
+    }
+  }
+}
+
+async function calculateNextNewVersion({
+  packageJson,
+  npmRegistry,
+  packagePath,
+  repoPath,
+  log,
+}: {
+  packageJson: PackageJson
+  npmRegistry: string
+  packagePath: string
+  repoPath: string
+  log: Log
+}): Promise<string> {
+  const npmhighestVersionInfo = await getNpmhighestVersionInfo({
+    packageName: packageJson.name,
+    npmRegistry,
+    repoPath,
+    log,
+  })
+  return calculateNewVersion({
+    packagePath,
+    packageJsonVersion: packageJson.version,
+    highestPublishedVersion: npmhighestVersionInfo?.highestVersion,
+    allVersions: npmhighestVersionInfo?.allVersions,
+  })
+}
 
 async function isNpmVersionAlreadyPulished({
   npmRegistry,
@@ -47,6 +119,46 @@ async function isNpmVersionAlreadyPulished({
     } else {
       throw e
     }
+  }
+}
+
+async function npmRegistryLogin({
+  npmRegistry,
+  npmRegistryEmail,
+  npmRegistryToken,
+  npmRegistryUsername,
+  silent,
+  repoPath,
+  log,
+}: {
+  silent?: boolean
+  npmRegistry: string
+  npmRegistryUsername: string
+  npmRegistryToken: string
+  npmRegistryEmail: string
+  repoPath: string
+  log: Log
+}): Promise<void> {
+  // only login in tests. publishing in non-interactive mode is very buggy and tricky.
+  // ---------------------------------------------------------------------------------
+  // it's an ugly why to check if we are in a test but at least,
+  // it doesn't use env-var (that the user can use by mistake) or addtional ci-parameter.
+  if (npmRegistryEmail === 'root@root.root') {
+    const npmLoginPath = require.resolve('.bin/npm-login-noninteractive')
+
+    if (!silent) {
+      log.verbose(`logging in to npm-registry: "${npmRegistry}"`)
+    }
+    // `npm-login-noninteractive` has a node-api but it prints logs so this is ugly workaround to avoid printing the logs
+    await execaCommand(
+      `${npmLoginPath} -u ${npmRegistryUsername} -p ${npmRegistryToken} -e ${npmRegistryEmail} -r ${npmRegistry}`,
+      { cwd: repoPath, stdio: 'pipe', log },
+    )
+    if (!silent) {
+      log.verbose(`logged in to npm-registry: "${npmRegistry}"`)
+    }
+  } else {
+    await fse.writeFile(path.join(os.homedir(), '.npmrc'), `//${npmRegistry}/:_authToken=${npmRegistryToken}`)
   }
 }
 
@@ -123,25 +235,27 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
       skipIfPackageResultsInCache: false,
     },
   },
-  beforeAll: ({ stepConfigurations, repoPath }) =>
+  beforeAll: ({ stepConfigurations, repoPath, log }) =>
     npmRegistryLogin({
-      npmRegistry: getServerInfoFromRegistryAddress(stepConfigurations.registry),
+      npmRegistry: stepConfigurations.registry,
       npmRegistryEmail: stepConfigurations.publishAuth.email,
       npmRegistryToken: stepConfigurations.publishAuth.token,
       npmRegistryUsername: stepConfigurations.publishAuth.username,
       repoPath,
+      log,
     }),
   runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, cache, flowId, stepId }) => {
-    const npmTarget = await buildNpmTarget({
-      npmRegistry: getServerInfoFromRegistryAddress(stepConfigurations.registry),
+    const newVersion = await calculateNextNewVersion({
+      npmRegistry: stepConfigurations.registry,
       packageJson: currentArtifact.data.artifact.packageJson,
       packagePath: currentArtifact.data.artifact.packagePath,
       repoPath,
+      log,
     })
 
     await setPackageVersion({
       artifact: currentArtifact.data.artifact,
-      toVersion: npmTarget.newVersionIfPublish,
+      toVersion: newVersion,
     })
 
     await execaCommand(
@@ -165,7 +279,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
       .then(() =>
         cache.set(
           getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
-          npmTarget.newVersionIfPublish,
+          newVersion,
           cache.ttls.stepResult,
         ),
       )

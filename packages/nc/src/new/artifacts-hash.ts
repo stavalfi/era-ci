@@ -2,10 +2,9 @@ import crypto from 'crypto'
 import fs from 'fs-extra'
 import path from 'path'
 import { Graph } from '../types'
-import { INVALIDATE_CACHE_HASH } from '../constants'
 import { Artifact, PackageJson } from './types'
 import { Log } from './create-logger'
-import { execaCommand } from './utils'
+import { execaCommand, INVALIDATE_CACHE_HASH } from './utils'
 
 const isInParent = (parent: string, child: string) => {
   const relative = path.relative(parent, child)

@@ -1,9 +1,8 @@
 import _ from 'lodash'
 import { IDependencyMap } from 'package-json-type'
 import semver from 'semver'
-import { getPackageTargetType } from '../../package-info'
 import { createStep, StepStatus } from '../create-step'
-import { TargetType } from './utils'
+import { getPackageTargetType, TargetType } from './utils'
 
 export const validatePackages = createStep({
   stepName: 'validate-packages',

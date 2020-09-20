@@ -1,6 +1,5 @@
-import { Graph } from '../../types'
 import { createStep, StepExecutionStatus, StepStatus } from '../create-step'
-import { Artifact, StepNodeData, StepResultOfAllPackages, StepResultOfPackage, StepsSummary } from '../types'
+import { Artifact, StepNodeData, StepResultOfAllPackages, StepResultOfPackage, StepsSummary, Graph } from '../types'
 import { calculateCombinedStatus } from '../utils'
 
 const getArtifactResultKey = ({ artifactHash, stepId }: { artifactHash: string; stepId: string }) =>
