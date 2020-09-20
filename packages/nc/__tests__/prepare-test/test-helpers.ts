@@ -4,9 +4,8 @@ import fse from 'fs-extra'
 import Redis from 'ioredis'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
-import { buildFullDockerImageName, npmRegistryLogin, getNpmRegistryAddress } from '../../src'
-import { CacheTypes, ServerInfo } from '../../src/types'
-import { CreateAndManageRepo, MinimalNpmPackage, TargetType, ToActualName } from './types'
+import { buildFullDockerImageName, Log, npmRegistryLogin } from '../../src'
+import { CreateAndManageRepo, MinimalNpmPackage, ToActualName } from './types'
 import { getPackagePath, getPackages, ignore } from './utils'
 import { createFile } from 'create-folder-structure'
 
@@ -36,45 +35,52 @@ export async function removeAllNpmHashTags({
   redisServer,
 }: {
   packageName: string
-  redisServer: ServerInfo
+  redisServer: string
 }): Promise<void> {
-  const redisClient = new Redis({
-    host: redisServer.host,
-    port: redisServer.port,
-  })
-  const keys = await redisClient.keys(`${CacheTypes.publish}-${packageName}-${TargetType.npm}-*`)
+  const redisClient = new Redis(redisServer)
+  const keys = await redisClient.keys(`npm-version-of-${packageName}-*`)
+  if (keys.length === 0) {
+    throw new Error(
+      `looks like we could not find any key that represent the new-version of an artifact. \
+maybe the key-schema changed in the production code. anyways, \
+this test is useless until update the key-schema in this test-function`,
+    )
+  }
   await redisClient.del(...keys)
   await redisClient.quit()
 }
 
 export async function publishNpmPackageWithoutCi({
   npmRegistry,
-  npmRegistryEmail,
-  npmRegistryToken,
-  npmRegistryUsername,
   packageName,
   repoPath,
   toActualName,
+  log,
 }: {
   packageName: string
-  npmRegistry: ServerInfo
-  npmRegistryUsername: string
-  npmRegistryToken: string
-  npmRegistryEmail: string
+  npmRegistry: {
+    address: string
+    auth: {
+      username: string
+      token: string
+      email: string
+    }
+  }
   repoPath: string
   toActualName: ToActualName
+  log: Log
 }): Promise<void> {
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
   await npmRegistryLogin({
-    npmRegistry,
-    npmRegistryEmail,
-    npmRegistryToken,
-    npmRegistryUsername,
+    npmRegistry: npmRegistry.address,
+    npmRegistryEmail: npmRegistry.auth.email,
+    npmRegistryToken: npmRegistry.auth.token,
+    npmRegistryUsername: npmRegistry.auth.username,
     silent: true,
     repoPath,
+    log,
   })
-  const npmRegistryAddress = getNpmRegistryAddress(npmRegistry)
-  await execa.command(`npm publish --registry ${npmRegistryAddress}`, {
+  await execa.command(`npm publish --registry ${npmRegistry}`, {
     stdio: 'pipe',
     cwd: packagePath,
   })
@@ -90,7 +96,7 @@ export async function publishDockerPackageWithoutCi({
   labels,
 }: {
   packageName: string
-  dockerRegistry: ServerInfo
+  dockerRegistry: string
   dockerOrganizationName: string
   repoPath: string
   toActualName: ToActualName
@@ -119,36 +125,38 @@ export async function publishDockerPackageWithoutCi({
 
 export async function unpublishNpmPackage({
   npmRegistry,
-  npmRegistryEmail,
-  npmRegistryToken,
-  npmRegistryUsername,
   packageName,
   toActualName,
   versionToUnpublish,
   repoPath,
+  log,
 }: {
   packageName: string
-  npmRegistry: ServerInfo
-  npmRegistryUsername: string
-  npmRegistryToken: string
-  npmRegistryEmail: string
+  npmRegistry: {
+    address: string
+    auth: {
+      username: string
+      token: string
+      email: string
+    }
+  }
   toActualName: ToActualName
   versionToUnpublish: string
   repoPath: string
+  log: Log
 }): Promise<void> {
   await npmRegistryLogin({
-    npmRegistry,
-    npmRegistryEmail,
-    npmRegistryToken,
-    npmRegistryUsername,
+    npmRegistry: npmRegistry.address,
+    npmRegistryEmail: npmRegistry.auth.email,
+    npmRegistryToken: npmRegistry.auth.token,
+    npmRegistryUsername: npmRegistry.auth.username,
     silent: true,
     repoPath,
+    log,
   })
-  const npmRegistryAddress = getNpmRegistryAddress(npmRegistry)
-  await execa.command(
-    `npm unpublish ${toActualName(packageName)}@${versionToUnpublish} --registry ${npmRegistryAddress}`,
-    { stdio: 'pipe' },
-  )
+  await execa.command(`npm unpublish ${toActualName(packageName)}@${versionToUnpublish} --registry ${npmRegistry}`, {
+    stdio: 'pipe',
+  })
 }
 
 export const addRandomFileToPackage = ({
@@ -183,7 +191,14 @@ export const installAndRunNpmDependency = async ({
   dependencyName,
 }: {
   toActualName: ToActualName
-  npmRegistry: ServerInfo
+  npmRegistry: {
+    address: string
+    auth: {
+      username: string
+      token: string
+      email: string
+    }
+  }
   createRepo: CreateAndManageRepo
   dependencyName: string
 }): Promise<execa.ExecaChildProcess<string>> => {
@@ -193,9 +208,9 @@ export const installAndRunNpmDependency = async ({
         name: 'b',
         version: '2.0.0',
         dependencies: {
-          [toActualName(dependencyName)]: `${npmRegistry.protocol}://${npmRegistry.host}:${
-            npmRegistry.port
-          }/${toActualName(dependencyName)}/-/${toActualName(dependencyName)}-1.0.0.tgz`,
+          [toActualName(dependencyName)]: `${npmRegistry.address}/${toActualName(dependencyName)}/-/${toActualName(
+            dependencyName,
+          )}-1.0.0.tgz`,
         },
         'index.js': `require("${toActualName(dependencyName)}")`,
       },

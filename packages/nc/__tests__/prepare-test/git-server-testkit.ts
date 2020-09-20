@@ -2,7 +2,6 @@ import { createFolder } from 'create-folder-structure'
 import { Server } from 'http'
 import { URL } from 'url'
 import NodeGitServer from 'node-git-server'
-import { Protocol } from '../../src/index'
 
 type NodeGitServerInstance = {
   close: () => Promise<void>
@@ -20,7 +19,7 @@ export type GitServer = {
   getServerInfo: () => {
     port: number
     host: string
-    protocol: Protocol
+    protocol: string
   }
 }
 
@@ -57,7 +56,7 @@ export const starGittServer = async (): Promise<GitServer> => {
   await new Promise((res, rej) => server.listen(0, err => (err ? rej(err) : res())))
 
   const port = getPort(server.server)
-  const connectionType = Protocol.http
+  const connectionType = 'http'
   const ip = 'localhost'
 
   return {

@@ -1,21 +1,10 @@
-import chance from 'chance'
 import ciInfo from 'ci-info'
 import execa, { StdioOption } from 'execa'
 import fse from 'fs-extra'
-import _ from 'lodash'
 import path from 'path'
-import {
-  ConfigFileOptions,
-  DeployTarget,
-  getNpmRegistryAddress,
-  NpmScopeAccess,
-  ServerInfo,
-  TargetType,
-} from '../../src'
-import { GitServer } from './git-server-testkit'
+import { Log } from '../../src'
 import { latestNpmPackageVersion, publishedDockerImageTags, publishedNpmPackageVersions } from './seach-targets'
-import { commitAllAndPushChanges } from './test-helpers'
-import { CiResults, EditConfig, ResultingArtifact, TestOptions, ToActualName } from './types'
+import { CiResults, ResultingArtifact, TestOptions, ToActualName } from './types'
 
 export async function getPackages(repoPath: string): Promise<string[]> {
   const result = await execa.command('yarn workspaces --json info', {
@@ -42,126 +31,35 @@ export const ignore = () => {
   // ignore
 }
 
-export async function createConfigFile({
-  repoName,
-  repoOrg,
-  targetsInfo,
-  dockerOrganizationName,
-  repoPath,
-  dockerRegistry,
-  gitServer,
-  npmRegistry,
-  redisServer,
-  editConfig,
-  logFilePath,
-}: {
-  logFilePath: string
-  repoOrg: string
-  repoName: string
-  repoPath: string
-  targetsInfo: TestOptions['targetsInfo']
-  gitServer: GitServer
-  redisServer: ServerInfo
-  npmRegistry: ServerInfo & { auth: { username: string; token: string; email: string } }
-  dockerRegistry: ServerInfo
-  dockerOrganizationName: string
-  editConfig?: EditConfig
-}): Promise<string> {
-  const configFilePath = path.join(repoPath, 'nc.config.ts')
-  const [npmDeploymentLogic, dockerDeploymentLogic]: [
-    DeployTarget<unknown, TargetType.npm>,
-    DeployTarget<unknown, TargetType.docker>,
-    // @ts-expect-error
-  ] = [chance().hash(), chance().hash()]
-  const configurations: ConfigFileOptions<unknown> = {
-    logFilePath,
-    targetsInfo: {
-      npm: targetsInfo?.npm && {
-        shouldPublish: targetsInfo.npm.shouldPublish,
-        npmScopeAccess: targetsInfo.npm.npmScopeAccess || NpmScopeAccess.public,
-        registry: getNpmRegistryAddress(npmRegistry),
-        publishAuth: npmRegistry.auth,
-        ...(targetsInfo.npm.shouldDeploy
-          ? {
-              shouldDeploy: true,
-              deployment: npmDeploymentLogic,
-            }
-          : {
-              shouldDeploy: false,
-            }),
-      },
-      docker: targetsInfo?.docker && {
-        shouldPublish: targetsInfo.docker.shouldPublish,
-        registry: `${dockerRegistry.protocol}://${dockerRegistry.host}:${dockerRegistry.port}`,
-        publishAuth: {
-          token: '',
-          username: '',
-        },
-        dockerOrganizationName,
-        ...(targetsInfo.docker.shouldDeploy
-          ? {
-              shouldDeploy: true,
-              deployment: dockerDeploymentLogic,
-            }
-          : {
-              shouldDeploy: false,
-            }),
-      },
-    },
-    redis: {
-      redisServer: `redis://${redisServer.host}:${redisServer.port}/`,
-      auth: {
-        password: '',
-      },
-    },
-    git: {
-      auth: {
-        username: gitServer.getUsername(),
-        token: gitServer.getToken(),
-      },
-    },
-  }
-
-  const finalConfigurations = editConfig ? editConfig(_.cloneDeep(configurations)) : configurations
-
-  const asString = JSON.stringify(finalConfigurations, null, 2)
-  let finalString = `export default async () => (${asString})`
-
-  if (targetsInfo?.npm?.shouldDeploy) {
-    finalString = finalString.replace(`"${npmDeploymentLogic}"`, targetsInfo.npm.deploymentStrigifiedSection)
-  }
-  if (targetsInfo?.docker?.shouldDeploy) {
-    finalString = finalString.replace(`"${dockerDeploymentLogic}"`, targetsInfo.docker.deploymentStrigifiedSection)
-  }
-
-  await fse.remove(configFilePath).catch(ignore)
-  await fse.writeFile(configFilePath, finalString, 'utf-8')
-  await commitAllAndPushChanges(repoPath, gitServer.generateGitRepositoryAddress(repoOrg, repoName))
-
-  return configFilePath
-}
-
 export async function runNcExecutable({
-  configFilePath,
-  execaOptions,
+  testOptions,
   repoPath,
   printFlowId,
+  dockerOrganizationName,
+  dockerRegistry,
+  redisServer,
+  npmRegistry,
 }: {
   repoPath: string
-  configFilePath: string
-  execaOptions?: TestOptions['execaOptions']
+  testOptions?: TestOptions
   printFlowId?: string
+  redisServer: string
+  npmRegistry: { address: string; auth: { username: string; token: string; email: string } }
+  dockerRegistry: string
+  dockerOrganizationName: string
 }): Promise<execa.ExecaReturnValue<string>> {
   let stdio: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
   if (ciInfo.isCI || printFlowId) {
     stdio = 'pipe'
   } else {
-    if (execaOptions?.stdio) {
-      stdio = execaOptions.stdio
+    if (testOptions?.execaOptions?.stdio) {
+      stdio = testOptions.execaOptions.stdio
     } else {
       stdio = 'inherit'
     }
   }
+
+  const configFilePath = path.join(__dirname, 'test-nc.config.ts')
 
   return execa.command(
     `node --unhandled-rejections=strict ${path.join(
@@ -170,34 +68,57 @@ export async function runNcExecutable({
     )} --config-file ${configFilePath} --repo-path ${repoPath} ${printFlowId ? `--print-flow ${printFlowId}` : ''}`,
     {
       stdio,
-      reject: execaOptions?.reject !== undefined ? execaOptions?.reject : true,
+      reject: testOptions?.execaOptions?.reject !== undefined ? testOptions.execaOptions?.reject : true,
+      env: {
+        SHOULD_PUBLISH_NPM: testOptions?.targetsInfo?.npm?.shouldPublish ? 'true' : '',
+        SHOULD_PUBLISH_DOCKER: testOptions?.targetsInfo?.docker?.shouldPublish ? 'true' : '',
+        DOCKER_ORGANIZATION_NAME: dockerOrganizationName,
+        DOCKER_REGISTRY: dockerRegistry,
+        NPM_REGISTRY: npmRegistry.address,
+        NPM_EMAIL: npmRegistry.auth.email,
+        NPM_USERNAME: npmRegistry.auth.username,
+        NPM_TOKEN: npmRegistry.auth.token,
+        DOCKER_HUB_USERNAME: '',
+        DOCKER_HUB_TOKEN: '',
+        REDIS_ENDPOINT: redisServer,
+        REDIS_PASSWORD: '',
+        TEST_SCRIPT_NAME: 'test',
+      },
     },
   )
 }
 
 export async function runCiUsingConfigFile({
-  configFilePath,
   repoPath,
-  execaOptions,
+  testOptions,
   dockerOrganizationName,
   dockerRegistry,
   npmRegistry,
   toOriginalName,
   logFilePath,
+  redisServer,
+  log,
+  printFlowId,
 }: {
   logFilePath: string
-  configFilePath: string
   repoPath: string
-  execaOptions?: TestOptions['execaOptions']
-  npmRegistry: ServerInfo & { auth: { username: string; token: string; email: string } }
-  dockerRegistry: ServerInfo
+  testOptions?: TestOptions
+  npmRegistry: { address: string; auth: { username: string; token: string; email: string } }
+  dockerRegistry: string
   dockerOrganizationName: string
   toOriginalName: (packageName: string) => string
+  redisServer: string
+  log: Log
+  printFlowId?: string
 }): Promise<CiResults> {
   const ciProcessResult = await runNcExecutable({
-    configFilePath,
     repoPath,
-    execaOptions,
+    testOptions,
+    dockerOrganizationName,
+    dockerRegistry,
+    npmRegistry,
+    redisServer,
+    printFlowId,
   })
 
   // the test can add/remove/modify packages between the creation of the repo until
@@ -208,9 +129,15 @@ export async function runCiUsingConfigFile({
       .map(packagePath => require(path.join(packagePath, 'package.json')).name)
       .map<Promise<[string, ResultingArtifact]>>(async (packageName: string) => {
         const [versions, highestVersion, tags] = await Promise.all([
-          publishedNpmPackageVersions(packageName, npmRegistry),
-          latestNpmPackageVersion(packageName, npmRegistry),
-          publishedDockerImageTags(packageName, dockerOrganizationName, dockerRegistry, repoPath),
+          publishedNpmPackageVersions(packageName, npmRegistry.address),
+          latestNpmPackageVersion(packageName, npmRegistry.address),
+          publishedDockerImageTags({
+            packageJsonName: packageName,
+            dockerOrganizationName,
+            dockerRegistry,
+            repoPath,
+            log,
+          }),
         ])
         return [
           toOriginalName(packageName),

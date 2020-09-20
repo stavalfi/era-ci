@@ -1,16 +1,13 @@
 import execa from 'execa'
 import semver from 'semver'
-import { getDockerImageLabelsAndTags } from '../../src/docker-utils'
-import { ServerInfo, getNpmRegistryAddress } from '../../src'
+import { getDockerImageLabelsAndTags, Log } from '../../src/'
 
 export async function latestNpmPackageDistTags(
   packageName: string,
-  npmRegistry: ServerInfo,
+  npmRegistry: string,
 ): Promise<{ [key: string]: string } | undefined> {
   try {
-    const npmRegistryAddress = getNpmRegistryAddress(npmRegistry)
-
-    const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistryAddress}`, {
+    const result = await execa.command(`npm view ${packageName} --json --registry ${npmRegistry}`, {
       stdio: 'pipe',
     })
     const resultJson = JSON.parse(result.stdout) || {}
@@ -23,17 +20,14 @@ export async function latestNpmPackageDistTags(
   }
 }
 
-export async function latestNpmPackageVersion(
-  packageName: string,
-  npmRegistry: ServerInfo,
-): Promise<string | undefined> {
+export async function latestNpmPackageVersion(packageName: string, npmRegistry: string): Promise<string | undefined> {
   const distTags = await latestNpmPackageDistTags(packageName, npmRegistry)
   return distTags?.['latest']
 }
 
-export async function publishedNpmPackageVersions(packageName: string, npmRegistry: ServerInfo): Promise<string[]> {
+export async function publishedNpmPackageVersions(packageName: string, npmRegistry: string): Promise<string[]> {
   try {
-    const npmRegistryAddress = getNpmRegistryAddress(npmRegistry)
+    const npmRegistryAddress = npmRegistry
     const command = `npm view ${packageName} --json --registry ${npmRegistryAddress}`
     const result = await execa.command(command, { stdio: 'pipe' })
     const resultJson = JSON.parse(result.stdout) || {}
@@ -47,23 +41,27 @@ export async function publishedNpmPackageVersions(packageName: string, npmRegist
   }
 }
 
-export async function publishedDockerImageTags(
-  packageJsonName: string,
-  dockerOrganizationName: string,
-  dockerRegistry: ServerInfo,
-  repoPath: string,
-): Promise<string[]> {
+export async function publishedDockerImageTags({
+  dockerOrganizationName,
+  log,
+  repoPath,
+  dockerRegistry,
+  packageJsonName,
+}: {
+  packageJsonName: string
+  dockerOrganizationName: string
+  dockerRegistry: string
+  repoPath: string
+  log: Log
+}): Promise<string[]> {
   try {
     const result = await getDockerImageLabelsAndTags({
       dockerOrganizationName,
       packageJsonName,
       dockerRegistry,
       silent: true,
-      publishAuth: {
-        username: '',
-        token: '',
-      },
       repoPath,
+      log,
     })
     const tags = result?.allTags.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
     const sorted = semver.sort(tags.filter(tag => tag !== 'latest')).concat(tags.includes('latest') ? ['latest'] : [])

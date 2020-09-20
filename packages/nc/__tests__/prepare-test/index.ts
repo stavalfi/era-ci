@@ -1,5 +1,5 @@
 import chance from 'chance'
-import { buildFullDockerImageName, getNpmRegistryAddress } from '../../src'
+import { buildFullDockerImageName, winstonLogger } from '../../src'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'
 import {
@@ -17,8 +17,9 @@ import {
   unpublishNpmPackage,
 } from './test-helpers'
 import { CreateAndManageRepo, MinimalNpmPackage, NewEnv, RunCi, GetFlowLogs } from './types'
-import { createConfigFile, getPackagePath, runCiUsingConfigFile, runNcExecutable } from './utils'
+import { getPackagePath, runCiUsingConfigFile, runNcExecutable } from './utils'
 import path from 'path'
+import { LogLevel } from '../../src/create-logger'
 
 export const newEnv: NewEnv = () => {
   const testResources = prepareTestResources()
@@ -42,53 +43,45 @@ export const newEnv: NewEnv = () => {
       toActualName,
       ncLogsFileNameToIgnore: ncLogsFileName,
     })
+
+    const testLog = (
+      await winstonLogger({
+        customLogLevel: LogLevel.verbose,
+        logFilePath: 'test-nc.log',
+        disable: true,
+      }).callInitializeLogger({ repoPath })
+    )('nc-tests')
+
     const logFilePath = path.join(repoPath, ncLogsFileName)
 
     const getFlowLogs: GetFlowLogs = async ({ flowId, execaOptions }) => {
-      const configFilePath = await createConfigFile({
-        logFilePath,
+      return runNcExecutable({
+        repoPath,
+        testOptions: {
+          execaOptions,
+        },
+        printFlowId: flowId,
         dockerOrganizationName,
         dockerRegistry,
-        gitServer,
         npmRegistry,
         redisServer,
-        repoName,
-        repoOrg,
-        repoPath,
-        targetsInfo: {},
-      })
-      return runNcExecutable({
-        configFilePath,
-        repoPath,
-        execaOptions,
-        printFlowId: flowId,
       })
     }
 
-    const runCi: RunCi = async ({ targetsInfo, execaOptions, editConfig } = {}) => {
-      const configFilePath = await createConfigFile({
-        logFilePath,
-        dockerOrganizationName,
-        dockerRegistry,
-        gitServer,
-        npmRegistry,
-        redisServer,
-        repoName,
-        repoOrg,
-        repoPath,
-        targetsInfo,
-        editConfig,
-      })
-
+    const runCi: RunCi = async ({ targetsInfo, execaOptions } = {}) => {
       return runCiUsingConfigFile({
         logFilePath,
-        configFilePath,
         repoPath,
-        execaOptions,
+        testOptions: {
+          targetsInfo,
+          execaOptions,
+        },
         dockerOrganizationName,
         dockerRegistry,
         npmRegistry,
         toOriginalName,
+        log: testLog,
+        redisServer,
       })
     }
 
@@ -99,7 +92,7 @@ export const newEnv: NewEnv = () => {
       getFullImageName: (packageName, imageTag) =>
         buildFullDockerImageName({
           dockerOrganizationName,
-          dockerRegistry,
+          dockerRegistry: dockerRegistry,
           packageJsonName: toActualName(packageName),
           imageTag,
         }),
@@ -113,37 +106,33 @@ export const newEnv: NewEnv = () => {
           repoPath,
           gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
         }),
-      npmRegistryAddress: getNpmRegistryAddress(npmRegistry),
+      npmRegistryAddress: npmRegistry.address,
       runCi,
       getFlowLogs,
       dockerOrganizationName,
       installAndRunNpmDependency: dependencyName =>
         installAndRunNpmDependency({
           createRepo: createAndManageRepo,
-          npmRegistry: testResources.get().npmRegistry,
+          npmRegistry,
           toActualName,
           dependencyName,
         }),
       publishNpmPackageWithoutCi: packageName =>
         publishNpmPackageWithoutCi({
           npmRegistry,
-          npmRegistryEmail: npmRegistry.auth.email,
-          npmRegistryToken: npmRegistry.auth.token,
-          npmRegistryUsername: npmRegistry.auth.username,
           packageName,
           repoPath,
           toActualName,
+          log: testLog,
         }),
       unpublishNpmPackage: (packageName, versionToUnpublish) =>
         unpublishNpmPackage({
           npmRegistry,
-          npmRegistryEmail: npmRegistry.auth.email,
-          npmRegistryToken: npmRegistry.auth.token,
-          npmRegistryUsername: npmRegistry.auth.username,
           packageName,
           versionToUnpublish,
           toActualName,
           repoPath,
+          log: testLog,
         }),
       removeAllNpmHashTags: packageName =>
         removeAllNpmHashTags({

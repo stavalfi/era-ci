@@ -1,7 +1,7 @@
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap, IPackageJson } from 'package-json-type'
 import execa, { StdioOption } from 'execa'
-import { ServerInfo, TargetType, ConfigFileOptions, NpmScopeAccess } from '../../src/index'
+import { TargetType, NpmScopeAccess } from '../../src'
 
 export { TargetType }
 
@@ -34,8 +34,6 @@ export type Repo = {
   rootFiles?: FolderStructure
 }
 
-export type EditConfig = (config: ConfigFileOptions<unknown>) => ConfigFileOptions<unknown>
-
 export type TestOptions = {
   targetsInfo?: {
     [target in TargetType]?: {
@@ -57,7 +55,6 @@ export type TestOptions = {
     stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
     reject?: boolean
   }
-  editConfig?: EditConfig
 }
 
 export type ResultingArtifact = {
@@ -71,10 +68,21 @@ export type ResultingArtifact = {
 }
 
 export type TestResources = {
-  npmRegistry: ServerInfo
-  dockerRegistry: ServerInfo
-  gitServer: ServerInfo
-  redisServer: ServerInfo
+  npmRegistry: {
+    address: string
+    auth: {
+      username: string
+      token: string
+      email: string
+    }
+  }
+  dockerRegistry: string
+  gitServer: {
+    port: number
+    host: string
+    protocol: string
+  }
+  redisServer: string
 }
 
 export type CiResults = {

@@ -7,9 +7,32 @@ require('source-map-support').install()
 //
 import { startCli } from './configuration/cli'
 
-export { ConfigFileOptions, ServerInfo, TargetType, Protocol, DeployTarget, NpmScopeAccess } from './types'
-export { buildFullDockerImageName, dockerRegistryLogin, getDockerImageLabelsAndTags } from './docker-utils'
-export { npmRegistryLogin, getNpmRegistryAddress } from './npm-utils'
+export { Artifact, ConfigFile, Step } from './types'
+export { StepExecutionStatus, StepStatus } from './create-step'
+export { Log, LogLevel, Logger } from './create-logger'
+export { Cache } from './create-cache'
+export {
+  NpmScopeAccess,
+  buildFullDockerImageName,
+  getDockerImageLabelsAndTags,
+  npmRegistryLogin,
+  TargetType,
+  CliTableReportConfiguration,
+  cliTableReport,
+  jsonReport,
+  test,
+  npmPublish,
+  k8sGcloudDeployment,
+  dockerPublish,
+  build,
+  JsonReport,
+  JsonReportConfiguration,
+  install,
+  lint,
+  validatePackages,
+} from './steps'
+export { LoggerConfiguration, winstonLogger } from './winston-logger'
+export { CacheConfiguration, redisWithNodeCache } from './redis-with-node-cache'
 
 if (require.main === module) {
   startCli(process.argv).finally(() => {

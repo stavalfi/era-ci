@@ -1,7 +1,6 @@
-import { Protocol, ServerInfo } from '../../src/types'
 import { GitServer, starGittServer } from './git-server-testkit'
 
-type Deployment = { serverInfo: ServerInfo; cleanup: () => Promise<unknown> }
+type Deployment = { address: string; cleanup: () => Promise<unknown> }
 
 export function prepareTestResources() {
   let dockerRegistry: Deployment
@@ -20,26 +19,15 @@ export function prepareTestResources() {
     gitServer = await starGittServer()
     npmRegistryDeployment = {
       cleanup: () => Promise.resolve(),
-      serverInfo: {
-        host: 'localhost',
-        port: 34873,
-        protocol: Protocol.http,
-      },
+      address: `http://localhost:34873`,
     }
     redisDeployment = {
       cleanup: () => Promise.resolve(),
-      serverInfo: {
-        host: 'localhost',
-        port: 36379,
-      },
+      address: `redis://localhost:36379`,
     }
     dockerRegistry = {
       cleanup: () => Promise.resolve(),
-      serverInfo: {
-        host: 'localhost',
-        port: 35000,
-        protocol: Protocol.http,
-      },
+      address: `http://localhost:35000`,
     }
   })
   afterAll(async () => {
@@ -56,20 +44,11 @@ export function prepareTestResources() {
   return {
     get: () => ({
       npmRegistry: {
-        host: npmRegistryDeployment.serverInfo.host,
-        port: npmRegistryDeployment.serverInfo.port,
-        protocol: npmRegistryDeployment.serverInfo.protocol,
+        address: npmRegistryDeployment.address,
         auth: verdaccioCardentials,
       },
-      dockerRegistry: {
-        host: dockerRegistry.serverInfo.host,
-        port: dockerRegistry.serverInfo.port,
-        protocol: dockerRegistry.serverInfo.protocol,
-      },
-      redisServer: {
-        host: redisDeployment.serverInfo.host,
-        port: redisDeployment.serverInfo.port,
-      },
+      dockerRegistry: dockerRegistry.address,
+      redisServer: redisDeployment.address,
       gitServer,
     }),
   }
