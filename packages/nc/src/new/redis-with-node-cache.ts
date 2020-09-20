@@ -5,6 +5,8 @@ import { ServerInfo } from '../types'
 import { Cache, createCache } from './create-cache'
 import { StepStatus } from './create-step'
 import redisUrlParse from 'redis-url-parse'
+import { promisify } from 'util'
+import zlib from 'zlib'
 
 export type CacheConfiguration = {
   redis: {
@@ -30,6 +32,15 @@ type NormalizedCacheConfiguration = {
     stepResult: number
     flowLogs: number
   }
+}
+
+export async function zip(data: string): Promise<Buffer> {
+  return promisify<string, Buffer>(zlib.deflate)(data)
+}
+
+export async function unzip(buffer: Buffer): Promise<string> {
+  const result = await promisify<Buffer, Buffer>(zlib.unzip)(buffer)
+  return result.toString()
 }
 
 export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCacheConfiguration>({
@@ -58,20 +69,28 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
       password: cacheConfigurations.redis.auth?.password,
     })
 
-    async function set(key: string, value: ValueType, ttl: number): Promise<void> {
-      nodeCache.set(key, {
-        flowId,
-        value,
-      })
-      await redisClient.set(
-        key,
+    async function set(
+      options:
+        | {
+            key: string
+            value: ValueType
+            onlySaveInNodeCache: true
+          }
+        | { key: string; value: ValueType; ttl: number; onlySaveInNodeCache: false },
+    ): Promise<void> {
+      const zippedBuffer = await zip(
         JSON.stringify({
           flowId,
-          value,
+          value: options.value,
         }),
-        'px',
-        ttl,
       )
+      nodeCache.set(options.key, {
+        flowId,
+        zippedBuffer,
+      })
+      if (!options.onlySaveInNodeCache) {
+        await redisClient.set(options.key, zippedBuffer, 'px', options.ttl)
+      }
     }
 
     const getResultSchema = object({
@@ -79,37 +98,48 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
       value: any(),
     })
 
+    async function transformFromCache<T>(
+      fromCache: Buffer | undefined | null,
+      mapper: (result: unknown) => T,
+    ): Promise<{ flowId: string; value: T } | undefined> {
+      if (fromCache === null || fromCache === undefined) {
+        return undefined
+      }
+      const unzipped = await unzip(fromCache)
+      const [error, parsedResult] = validate(JSON.parse(unzipped), getResultSchema)
+      if (parsedResult) {
+        const mappedValue = mapper(parsedResult.value)
+        return {
+          flowId: parsedResult.flowId,
+          value: mappedValue,
+        }
+      } else {
+        throw new Error(
+          `(1) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${unzipped}"`,
+        )
+      }
+    }
+
     async function get<T>(
       key: string,
       mapper: (result: unknown) => T,
     ): Promise<{ flowId: string; value: T } | undefined> {
-      const fromNodeCache = nodeCache.get<{ flowId: string; value: T }>(key)
-      if (fromNodeCache !== null && fromNodeCache !== undefined) {
-        return {
-          flowId: fromNodeCache.flowId,
-          value: mapper(fromNodeCache.value),
-        }
+      const fromNodeCache = nodeCache.get<Buffer>(key)
+      const result = await transformFromCache(fromNodeCache, mapper)
+      if (result) {
+        return result
       } else {
-        const fromRedis = await redisClient.get(key)
-        if (fromRedis === null) {
-          return undefined
+        const fromRedis = await redisClient.getBuffer(key)
+        const result = await transformFromCache(fromRedis, mapper)
+        if (result) {
+          await set({
+            key,
+            value: JSON.stringify(result),
+            onlySaveInNodeCache: true,
+          })
+          return result
         } else {
-          const [error, parsedResult] = validate(JSON.parse(fromRedis), getResultSchema)
-          if (parsedResult) {
-            const mappedValue = mapper(parsedResult.value)
-            nodeCache.set(key, {
-              flowId: parsedResult.flowId,
-              value: mappedValue,
-            })
-            return {
-              flowId: parsedResult.flowId,
-              value: mappedValue,
-            }
-          } else {
-            throw new Error(
-              `(1) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${fromRedis}"`,
-            )
-          }
+          return undefined
         }
       }
     }
@@ -166,9 +196,9 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
         }
       },
       setStepResult: options =>
-        set(
-          toStepKey({ stepId: options.stepId, packageHash: options.packageHash }),
-          JSON.stringify(
+        set({
+          key: toStepKey({ stepId: options.stepId, packageHash: options.packageHash }),
+          value: JSON.stringify(
             {
               didStepRun: true,
               StepStatus: options.stepStatus,
@@ -176,8 +206,9 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
             null,
             2,
           ),
-          options.ttlMs,
-        ),
+          ttl: options.ttlMs,
+          onlySaveInNodeCache: false,
+        }),
     }
 
     const cleanup = () => Promise.all([redisClient.quit(), nodeCache.close()])
@@ -188,7 +219,7 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
       redisClient,
       get,
       has,
-      set,
+      set: (key: string, value: ValueType, ttl: number) => set({ key, value, ttl, onlySaveInNodeCache: false }),
       cleanup,
       ttls: cacheConfigurations.ttls,
     }
