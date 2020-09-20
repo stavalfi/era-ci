@@ -166,7 +166,7 @@ export type CliTableReportConfiguration = {
 export const cliTableReport = createStep<CliTableReportConfiguration>({
   stepName: 'cli-table-report',
   runStepOnRoot: async ({ cache, flowId, stepId, stepConfigurations, log }) => {
-    const jsonReport = await cache.get(stepConfigurations.jsonReportCacheKey({ flowId, stepId }), r => {
+    const jsonReportResult = await cache.get(stepConfigurations.jsonReportCacheKey({ flowId, stepId }), r => {
       if (typeof r === 'string') {
         return stepConfigurations.stringToJsonReport({ jsonReportAsString: r })
       } else {
@@ -175,12 +175,12 @@ export const cliTableReport = createStep<CliTableReportConfiguration>({
         )
       }
     })
-    if (!jsonReport) {
+    if (!jsonReportResult) {
       throw new Error(`can't find json-report in the cache. printing the report is aborted`)
     }
 
-    const packagesStatusReport = generatePackagesStatusReport(jsonReport)
-    const summaryReport = generateSummaryReport(jsonReport)
+    const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value)
+    const summaryReport = generateSummaryReport(jsonReportResult.value)
 
     log.noFormattingInfo(packagesStatusReport)
     log.noFormattingInfo(summaryReport)

@@ -1,4 +1,4 @@
-import { execaCommand } from '../../utils'
+import { execaCommand } from '../utils'
 import { createStep, StepStatus } from '../create-step'
 
 export const lint = createStep<{ lintScriptName: string } | void, { lintScriptName: string }>({
@@ -26,10 +26,11 @@ export const lint = createStep<{ lintScriptName: string } | void, { lintScriptNa
       }
     },
   },
-  runStepOnRoot: async ({ repoPath }) => {
+  runStepOnRoot: async ({ repoPath, log }) => {
     await execaCommand('yarn lint', {
       cwd: repoPath,
       stdio: 'inherit',
+      log,
     })
 
     return {

@@ -25,7 +25,7 @@ export type Cache = {
       ttlMs: number
     }) => Promise<void>
   }
-  get: <T>(key: string, mapper: (result: unknown) => T) => Promise<T | undefined>
+  get: <T>(key: string, mapper: (result: unknown) => T) => Promise<{ flowId: string; value: T } | undefined>
   set: (key: string, value: ValueType, ttl: number) => Promise<void>
   has: (key: string) => Promise<boolean>
   nodeCache: NodeCache

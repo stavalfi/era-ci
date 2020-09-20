@@ -1,4 +1,4 @@
-import { execaCommand } from '../../utils'
+import { execaCommand } from '../utils'
 import { createStep, StepStatus } from '../create-step'
 
 export const build = createStep({
@@ -23,10 +23,11 @@ export const build = createStep({
       }
     },
   },
-  runStepOnRoot: async ({ repoPath }) => {
+  runStepOnRoot: async ({ repoPath, log }) => {
     await execaCommand('yarn build', {
       cwd: repoPath,
       stdio: 'inherit',
+      log,
     })
 
     return {

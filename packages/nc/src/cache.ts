@@ -300,7 +300,6 @@ export async function intializeCache<DeploymentClient>({
             dockerRegistry: targetInfo.registry,
             imageTag: packageVersion,
             packageName,
-            publishAuth: targetInfo.publishAuth,
             repoPath,
           }),
       }),

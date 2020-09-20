@@ -1,7 +1,7 @@
 import { createFile } from 'create-folder-structure'
 import { getPackageTargetType } from '../../package-info'
 import { TargetType } from '../../types'
-import { execaCommand } from '../../utils'
+import { execaCommand } from '../utils'
 import { createStep, StepStatus } from '../create-step'
 
 export type K8sGcloudDeploymentConfiguration = {
@@ -45,11 +45,12 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
       }
     },
   },
-  beforeAll: async ({ stepConfigurations, repoPath }) => {
+  beforeAll: async ({ stepConfigurations, repoPath, log }) => {
     const { stdout: keyContent } = await execaCommand(`echo ${stepConfigurations.k8sClusterTokenBase64} | base64 -d`, {
       stdio: 'pipe',
       shell: true,
       cwd: repoPath,
+      log,
     })
     const k8sKeyPath = await createFile(keyContent)
     await execaCommand(
@@ -58,6 +59,7 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
         stdio: 'pipe',
         shell: true,
         cwd: repoPath,
+        log,
       },
     )
     await execaCommand(
@@ -66,6 +68,7 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
         stdio: 'pipe',
         shell: true,
         cwd: repoPath,
+        log,
       },
     )
   },
@@ -94,6 +97,7 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
     await execaCommand(`kubectl set image deployment/${deploymentName} ${containerName}=${fullImageName} --record`, {
       stdio: 'inherit',
       cwd: repoPath,
+      log,
     })
 
     return {

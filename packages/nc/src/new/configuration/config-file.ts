@@ -2,7 +2,7 @@ import fse from 'fs-extra'
 import path from 'path'
 import { is, object, string, validate, func, array } from 'superstruct'
 import { ConfigFile } from '../types'
-import { execaCommand } from '../../utils'
+import execa from 'execa'
 
 function getConfigValidationObject() {
   return object({
@@ -31,7 +31,7 @@ export async function readNcConfigurationFile(ciConfigFilePath: string): Promise
   const swcPath = require.resolve('.bin/swc')
   const command = `${swcPath} ${ciConfigFilePath} -o ${outputFilePath} --config-file ${swcConfigFile}`
 
-  await execaCommand(command, {
+  await execa.command(command, {
     stdio: 'pipe',
   })
 
