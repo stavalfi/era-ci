@@ -1,36 +1,38 @@
-import { logger } from '@tahini/log'
-import { intializeCache } from './cache'
-import { MISSING_FLOW_ID_ERROR } from './constants'
-import { CiOptions, Cleanup } from './types'
-import { cleanup } from './utils'
+import { Log } from './create-logger'
+import { Cleanup, ConfigFile } from './types'
+import { MISSING_FLOW_ID_ERROR, toFlowLogsContentKey } from './utils'
 
-const log = logger('ci-logic')
-
-export async function printFlowLogs(options: Pick<CiOptions<unknown>, 'redis' | 'repoPath'> & { flowId: string }) {
+export async function printFlowLogs(options: { flowId: string; configFile: ConfigFile; repoPath: string }) {
   const cleanups: Cleanup[] = []
+  let log: Log | undefined
   try {
-    const cache = await intializeCache({
-      flowId: options.flowId,
-      redis: options.redis,
-      repoPath: options.repoPath,
-      targetsInfo: {},
-    })
+    const logger = await options.configFile.logger.callInitializeLogger({ repoPath: options.repoPath })
+    log = logger('print-flow')
+    const cache = await options.configFile.cache.callInitializeCache({ flowId: options.flowId, log: logger('cache') })
     cleanups.push(cache.cleanup)
 
-    const flowLogs = await cache.flow.readFlowLogsContent(options.flowId)
-    if (!flowLogs) {
+    const flowLogsResult = await cache.get(toFlowLogsContentKey(options.flowId), r => {
+      if (typeof r === 'string') {
+        return r
+      } else {
+        throw new Error(
+          `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+        )
+      }
+    })
+    if (!flowLogsResult) {
       // we want to avoid stacktraces so we don't throw an Error object
-      throw MISSING_FLOW_ID_ERROR
+      throw new Error(MISSING_FLOW_ID_ERROR)
     }
-    log.noFormattingInfo(flowLogs)
+    log.noFormattingInfo(flowLogsResult.value)
   } catch (error) {
-    if (error === MISSING_FLOW_ID_ERROR) {
-      log.error(error)
+    if (error.message === MISSING_FLOW_ID_ERROR) {
+      log?.error(error)
     } else {
-      log.error(`CI failed unexpectedly`, error)
+      log?.error(`CI failed unexpectedly`, error)
     }
     process.exitCode = 1
   } finally {
-    await cleanup(cleanups)
+    await Promise.all(cleanups.map(f => f().catch(e => log?.error(`cleanup function failed to run`, e))))
   }
 }

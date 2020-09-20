@@ -1,137 +1,181 @@
 import { IPackageJson } from 'package-json-type'
+import { Cache, CreateCache } from './create-cache'
+import { CreateLogger, Log, Logger } from './create-logger'
+import { StepExecutionStatus, StepStatus } from './create-step'
 
 export type Cleanup = () => Promise<unknown>
 
-export enum TargetType {
-  docker = 'docker',
-  npm = 'npm',
+export type PackageJson = Omit<IPackageJson, 'name' | 'version'> & Required<Pick<IPackageJson, 'name' | 'version'>>
+
+export type StepInfo = {
+  stepName: string
+  stepId: string
 }
 
-export type TargetToPublish<TargetTypParam extends TargetType> = {
-  targetType: TargetTypParam
-  newVersionIfPublish: string
+export type Step = {
+  stepName: string
+  runStep: RunStep
+}
+
+export type StepResultOfPackage = StepInfo & {
+  status: StepStatus
+  durationMs: number
+  notes: string[]
+  error?: unknown
+}
+
+export type StepResultOfAllPackages = {
+  stepSummary: StepResultOfPackage
+  artifactsResult: Graph<{ artifact: Artifact; stepResult: StepResultOfPackage }>
+}
+
+export type RootPackage = {
+  packagePath: string
+  packageJson: PackageJson
+}
+
+export type CanRunStepOnArtifact<StepConfigurations> = {
+  customPredicate?: (options: {
+    allArtifacts: Graph<{ artifact: Artifact }>
+    cache: Cache
+    repoPath: string
+    rootPackage: RootPackage
+    currentArtifact: Node<{ artifact: Artifact }>
+    currentStepInfo: Node<{ stepInfo: StepInfo }>
+    allSteps: Graph<{ stepInfo: StepInfo; stepResult?: StepResultOfAllPackages }>
+    stepConfigurations: StepConfigurations
+    log: Log
+  }) => Promise<CanRunStepOnArtifactResult>
+  options?: {
+    skipIfSomeDirectPrevStepsFailedOnPackage?: boolean
+    skipIfPackageResultsInCache?: boolean
+  }
+}
+
+export type StepsSummary = {
+  status: StepStatus
+  durationMs: number
+  notes: string[]
+  error?: unknown
 }
 
 export type Artifact = {
   relativePackagePath: string
   packagePath: string
   packageHash: string
-  packageJson: IPackageJson
-  targetType?: TargetType
-  publishInfo?: TargetToPublish<TargetType> // if this property is undefined, it means that the user didn't specify publish configurations for this `targetType`
+  packageJson: Omit<PackageJson, 'name' | 'version'> & Required<Pick<PackageJson, 'name' | 'version'>>
 }
 
-export type ArtifactToDeploy<Target extends TargetType> = {
-  packagePath: string
-  packageJson: IPackageJson
-  publishedVersion: string
-} & (Target extends TargetType.docker
-  ? {
-      fullImageName: string
-    }
-  : {})
-
-export enum Protocol {
-  http = 'http',
-  https = 'https',
-}
-
-export type ServerInfo = {
-  host: string
-  port: number
-  protocol?: Protocol
-}
-
-type DeployOptions<DeploymentClient, Target extends TargetType> = {
-  deploymentClient: DeploymentClient
-  artifactToDeploy: ArtifactToDeploy<Target>
-}
-
-export type Deploy<DeploymentClient, Target extends TargetType> = (
-  options: DeployOptions<DeploymentClient, Target>,
-) => Promise<void>
-
-export type DeployTarget<DeploymentClient, Target extends TargetType> = {
-  initializeDeploymentClient: () => Promise<DeploymentClient>
-  deploy: Deploy<DeploymentClient, Target>
-  destroyDeploymentClient: (options: { deploymentClient: DeploymentClient }) => Promise<void>
-}
-
-export type TargetsPublishAuth = {
-  [TargetType.npm]: {
-    username: string
-    email: string
-    token: string
-  }
-  [TargetType.docker]: {
-    username?: string
-    token?: string
-  }
-}
-
-export enum NpmScopeAccess {
-  public = 'public',
-  restricted = 'restricted',
-}
-
-export type TargetInfo<Target extends TargetType, DeploymentClient, ServerInfoType = ServerInfo> = {
-  shouldPublish: boolean
-  registry: ServerInfoType
-  publishAuth: TargetsPublishAuth[Target]
-} & (
-  | { shouldDeploy: false; deployment?: DeployTarget<DeploymentClient, Target> }
-  | { shouldDeploy: true; deployment: DeployTarget<DeploymentClient, Target> }
-) &
-  (Target extends TargetType.docker
-    ? {
-        dockerOrganizationName: string
-      }
-    : {}) &
-  (Target extends TargetType.npm
-    ? {
-        npmScopeAccess: NpmScopeAccess
-      }
-    : {})
-
-export type TargetsInfo<DeploymentClient, ServerInfoType = ServerInfo> = {
-  [Target in TargetType]?: TargetInfo<Target, DeploymentClient, ServerInfoType>
-}
-
-export type CiOptions<DeploymentClient, ServerInfoType = ServerInfo> = {
+export type RunStepOptions = StepInfo & {
+  flowId: string
+  startFlowMs: number
   repoPath: string
-  startFlowDateUtc: string
-  logFilePath: string
-  redis: {
-    redisServer: ServerInfoType
-    auth: {
-      password?: string
-    }
-  }
-  git: {
-    gitRepoUrl: string
-    gitRepositoryName: string
-    gitOrganizationName: string
-    auth: {
-      username: string
-      token: string
-    }
-  }
-  targetsInfo?: TargetsInfo<DeploymentClient, ServerInfoType>
+  allArtifacts: Graph<{ artifact: Artifact }>
+  allSteps: Graph<StepNodeData<StepResultOfAllPackages>>
+  currentStepIndex: number
+  cache: Cache
+  rootPackage: RootPackage
+  logger: Logger
 }
 
-export type ConfigFileOptions<DeploymentClient = never> = Omit<
-  CiOptions<DeploymentClient, string>,
-  'repoPath' | 'git' | 'startFlowDateUtc'
+export type StepNodeData<StepResult> =
+  | { stepInfo: StepInfo; stepExecutionStatus: StepExecutionStatus.done; stepResult: StepResult }
+  | {
+      stepInfo: StepInfo
+      stepExecutionStatus: StepExecutionStatus.running | StepExecutionStatus.aborted | StepExecutionStatus.scheduled
+    }
+
+export type UserRunStepOptions<StepConfigurations> = Pick<
+  RunStepOptions,
+  'stepName' | 'stepId' | 'repoPath' | 'allArtifacts' | 'flowId' | 'startFlowMs'
 > & {
-  git: {
-    auth: CiOptions<DeploymentClient, string>['git']['auth']
+  log: Log
+  cache: Cache
+  stepConfigurations: StepConfigurations
+  steps: Graph<StepNodeData<StepResultOfAllPackages>>
+}
+
+export type UserArtifactResult = {
+  artifactName: string
+  stepResult: {
+    durationMs: number
+    status: StepStatus
+    notes: string[]
+    error?: unknown
   }
 }
 
-export type PackageName = string
-export type PackageVersion = string
+export type UserStepResult = {
+  stepSummary: {
+    notes: string[]
+    error?: unknown
+  }
+  artifactsResult: UserArtifactResult[]
+}
 
-export type TargetToDeploy<TargetTypParam extends TargetType> = { targetType: TargetTypParam; publishedVersion: string }
+export type RunStepOnAllArtifacts<StepConfigurations> = (
+  options: UserRunStepOptions<StepConfigurations>,
+) => Promise<UserStepResult>
+
+export type RunStepOnArtifact<StepConfigurations> = (
+  options: UserRunStepOptions<StepConfigurations> & { currentArtifact: Node<{ artifact: Artifact }> },
+) => Promise<{
+  status: StepStatus
+  notes?: string[]
+  error?: unknown
+}>
+
+export type RunStepOnRoot<StepConfigurations> = (
+  options: UserRunStepOptions<StepConfigurations>,
+) => Promise<{
+  status: StepStatus
+  notes?: string[]
+  error?: unknown
+}>
+
+export type CreateStepOptions<StepConfigurations, NormalizedStepConfigurations = StepConfigurations> = {
+  stepName: string
+  normalizeStepConfigurations?: (stepConfigurations: StepConfigurations) => Promise<NormalizedStepConfigurations>
+  canRunStepOnArtifact?: CanRunStepOnArtifact<NormalizedStepConfigurations>
+  onStepDone?: (
+    options: UserRunStepOptions<NormalizedStepConfigurations> & {
+      currentStepResultOnArtifacts: Graph<{
+        artifact: Artifact
+        stepsResult: StepResultOfPackage[]
+        stepsSummary: StepsSummary
+      }>
+    },
+  ) => Promise<void>
+} & (
+  | { runStepOnAllArtifacts: RunStepOnAllArtifacts<NormalizedStepConfigurations> }
+  | {
+      beforeAll?: (options: UserRunStepOptions<NormalizedStepConfigurations>) => Promise<void>
+      runStepOnArtifact: RunStepOnArtifact<NormalizedStepConfigurations>
+      afterAll?: (options: UserRunStepOptions<NormalizedStepConfigurations>) => Promise<void>
+    }
+  | {
+      runStepOnRoot: RunStepOnRoot<NormalizedStepConfigurations>
+    }
+)
+
+export type CanRunStepOnArtifactResult =
+  | {
+      canRun: true
+      notes: string[]
+    }
+  | {
+      canRun: false
+      notes: string[]
+      stepStatus: StepStatus
+    }
+
+export type RunStep = (runStepOptions: RunStepOptions) => Promise<StepResultOfAllPackages>
+
+export type ConfigFile = {
+  cache: CreateCache
+  logger: CreateLogger
+  steps: Step[]
+}
 
 export type Node<T> = {
   data: T
@@ -141,126 +185,3 @@ export type Node<T> = {
 }
 
 export type Graph<T> = Node<T>[]
-
-export enum CacheTypes {
-  test = 'test',
-  publish = 'publish',
-  deployment = 'deployment',
-  flowJsonReport = 'flow-json-report',
-  flowLogsContent = 'flow-logs-content',
-}
-
-export type IsPublishResultCache =
-  | ({
-      shouldPublish: false
-    } & (
-      | {
-          publishSucceed: true
-          alreadyPublishedAsVersion: PackageVersion
-        }
-      | { publishSucceed: false; failureReason: string }
-    ))
-  | {
-      shouldPublish: true
-    }
-
-export type PublishCache = {
-  isPublishRun: (packageName: string, packageHash: string) => Promise<FlowId | undefined>
-  isPublished: (packageName: string, packageHash: string) => Promise<IsPublishResultCache>
-  setAsPublished: (packageName: string, packageHash: string, packageVersion: PackageVersion) => Promise<void>
-  setAsFailed: (packageName: string, packageHash: string) => Promise<void>
-}
-
-export type DeploymentCache = {
-  isDeploymentRun: (packageName: string, packageHash: string) => Promise<FlowId | undefined>
-  isDeployed: (packageName: string, packageHash: string) => Promise<boolean>
-  setDeploymentResult: (packageName: string, packageHash: string, isDeployed: boolean) => Promise<void>
-}
-
-export type FlowId = string
-
-export type Cache = {
-  test: {
-    isTestsRun: (packageName: string, packageHash: string) => Promise<FlowId | undefined>
-    isPassed: (packageName: string, packageHash: string) => Promise<boolean>
-    setResult: (packageName: string, packageHash: string, isPassed: boolean) => Promise<void>
-  }
-  publish: {
-    [Target in TargetType]?: PublishCache
-  }
-  deployment: {
-    [Target in TargetType]?: DeploymentCache
-  }
-  flow: {
-    setFlowJsonReport: (jsonReport: JsonReport) => Promise<void>
-    readFlowJsonReport: (flowId: string) => Promise<JsonReport | null>
-    saveFlowLogsContent: (flowId: string, ncLogFilePath: string) => Promise<void>
-    readFlowLogsContent: (flowId: string) => Promise<string | null>
-  }
-  cleanup: () => Promise<unknown>
-}
-
-export enum StepName {
-  install = 'install',
-  build = 'build',
-  test = 'test',
-  publish = 'publish',
-  deployment = 'deployment',
-  report = 'report',
-}
-
-export enum StepStatus {
-  passed = 'passed',
-  skippedAsPassed = 'skipped-as-passed',
-  skippedAsFailed = 'skipped-as-failed',
-  skippedAsFailedBecauseLastStepFailed = 'skipped-because-last-step-is-considered-as-failed',
-  failed = 'failed',
-}
-
-export type StepResult<StepNameParam extends string = string> = {
-  stepName: StepNameParam
-  status: StepStatus
-  durationMs: number
-  notes: string[]
-  error?: unknown
-}
-
-// it is used as package-summary and as a ci-summary
-export type StepsSummary = {
-  status: StepStatus
-  durationMs: number
-  notes: string[]
-  error?: unknown
-}
-
-export type PackageStepResult = {
-  install: StepResult<StepName.install>
-  build: StepResult<StepName.build>
-  test: StepResult<StepName.test>
-  publish: StepResult<StepName.publish> & {
-    publishedVersion?: string
-  }
-  deployment: StepResult<StepName.deployment>
-  report: StepResult<StepName.report>
-}
-
-export type PackagesStepResult<StepNameParam extends string = string> = StepResult<StepNameParam> & {
-  executionOrder: number
-  packagesResult: Graph<{ artifact: Artifact; stepResult: StepResult<StepNameParam> }>
-}
-
-export type JsonReport = {
-  flow: {
-    flowId: string
-    startFlowDateUtc: string
-  }
-  graph: Graph<{
-    artifact: Artifact
-    stepsResult: { [stepName in StepName]?: PackageStepResult[stepName] }
-    stepsSummary: StepsSummary
-  }>
-  steps: {
-    [stepName in StepName]?: PackagesStepResult<stepName>
-  }
-  summary: StepsSummary
-}

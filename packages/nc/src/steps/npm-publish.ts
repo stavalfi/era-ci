@@ -24,7 +24,8 @@ export type NpmPublishConfiguration = {
   }
 }
 
-const getVersionCacheKey = ({ artifactHash }: { artifactHash: string }) => `${artifactHash}-npm-version`
+const getVersionCacheKey = ({ artifactHash, artifactName }: { artifactHash: string; artifactName: string }) =>
+  `npm-version-of-${artifactName}-${artifactHash}`
 
 async function getNpmhighestVersionInfo({
   packageName,
@@ -122,7 +123,7 @@ async function isNpmVersionAlreadyPulished({
   }
 }
 
-async function npmRegistryLogin({
+export async function npmRegistryLogin({
   npmRegistry,
   npmRegistryEmail,
   npmRegistryToken,
@@ -188,7 +189,10 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
       }
 
       const npmVersionResult = await cache.get(
-        getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
+        getVersionCacheKey({
+          artifactHash: currentArtifact.data.artifact.packageHash,
+          artifactName: currentArtifact.data.artifact.packageJson.name,
+        }),
         r => {
           if (typeof r === 'string') {
             return r
@@ -278,7 +282,10 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
     )
       .then(() =>
         cache.set(
-          getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
+          getVersionCacheKey({
+            artifactHash: currentArtifact.data.artifact.packageHash,
+            artifactName: currentArtifact.data.artifact.packageJson.name,
+          }),
           newVersion,
           cache.ttls.stepResult,
         ),

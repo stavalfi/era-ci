@@ -54,11 +54,7 @@ test('ensure the image is working', async () => {
   })
 
   await expect(
-    runDockerImage(
-      `${getTestResources().dockerRegistry.host}:${
-        getTestResources().dockerRegistry.port
-      }/${dockerOrganizationName}/${toActualName('a')}:1.0.0`,
-    ),
+    runDockerImage(`${getTestResources().dockerRegistry}/${dockerOrganizationName}/${toActualName('a')}:1.0.0`),
   ).resolves.toEqual(
     expect.objectContaining({
       stdout: expect.stringContaining(hash),

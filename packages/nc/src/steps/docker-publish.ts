@@ -29,7 +29,7 @@ const buildDockerImageName = (packageJsonName: string) => {
   return packageJsonName.replace('/', '-').replace('@', '')
 }
 
-const buildFullDockerImageName = ({
+export const buildFullDockerImageName = ({
   dockerOrganizationName,
   dockerRegistry,
   packageJsonName,

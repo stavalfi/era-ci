@@ -1,13 +1,9 @@
-import { logger } from '@tahini/log'
 import crypto from 'crypto'
 import fs from 'fs-extra'
-import { IPackageJson } from 'package-json-type'
 import path from 'path'
-import { Graph } from './types'
-import { INVALIDATE_CACHE_HASH } from './constants'
-import { execaCommand } from './utils'
-
-const log = logger('packages-hash')
+import { Artifact, PackageJson, Graph } from './types'
+import { Log } from './create-logger'
+import { execaCommand, INVALIDATE_CACHE_HASH } from './utils'
 
 const isInParent = (parent: string, child: string) => {
   const relative = path.relative(parent, child)
@@ -18,7 +14,7 @@ export type PackageHashInfo = {
   relativePackagePath: string
   packagePath: string
   packageHash: string
-  packageJson: IPackageJson
+  packageJson: PackageJson
   parents: PackageHashInfo[] // who depends on me
   children: string[] // who I depend on
 }
@@ -85,7 +81,9 @@ function calculateConbinedHashes(
 
 function createOrderGraph(
   packageHashInfoByPath: Map<string, PackageHashInfo>,
-): Graph<{ relativePackagePath: string; packagePath: string; packageHash: string; packageJson: IPackageJson }> {
+): Graph<{
+  artifact: Artifact
+}> {
   const heads = [...packageHashInfoByPath.values()].filter(packageHashInfo => packageHashInfo.children.length === 0)
   const orderedGraph: PackageHashInfo[] = []
   const visited = new Map<PackageHashInfo, boolean>()
@@ -107,10 +105,12 @@ function createOrderGraph(
       // @ts-ignore
       index: node.index,
       data: {
-        relativePackagePath: node.relativePackagePath,
-        packageHash: node.packageHash,
-        packageJson: node.packageJson,
-        packagePath: node.packagePath,
+        artifact: {
+          relativePackagePath: node.relativePackagePath,
+          packageHash: node.packageHash,
+          packageJson: node.packageJson,
+          packagePath: node.packagePath,
+        },
       },
       // @ts-ignore
       childrenIndexes: node.children.map(packagePath => packageHashInfoByPath.get(packagePath)?.index!),
@@ -139,21 +139,24 @@ async function calculateHashOfPackage(packagePath: string, filesPath: string[]):
 
 const isRootFile = (repoPath: string, filePath: string) => !filePath.includes(path.join(repoPath, 'packages'))
 
-export async function calculatePackagesHash(
-  repoPath: string,
-  packagesPath: string[],
-): Promise<{
+export async function calculateArtifactsHash({
+  repoPath,
+  packagesPath,
+  log,
+}: {
+  repoPath: string
+  packagesPath: string[]
+  log: Log
+}): Promise<{
   orderedGraph: Graph<{
-    relativePackagePath: string
-    packagePath: string
-    packageHash: string
-    packageJson: IPackageJson
+    artifact: { relativePackagePath: string; packagePath: string; packageHash: string; packageJson: PackageJson }
   }>
   repoHash: string
 }> {
   const repoFilesPathResult = await execaCommand('git ls-tree -r --name-only HEAD', {
     cwd: repoPath,
     stdio: 'pipe',
+    log,
   })
 
   const repoFilesPath = repoFilesPathResult.stdout
@@ -161,7 +164,7 @@ export async function calculatePackagesHash(
     .map(relativeFilePath => path.join(repoPath, relativeFilePath))
 
   const packagesWithPackageJson = await Promise.all(
-    packagesPath.map<Promise<{ packagePath: string; packageJson: IPackageJson }>>(async packagePath => ({
+    packagesPath.map<Promise<{ packagePath: string; packageJson: PackageJson }>>(async packagePath => ({
       packagePath,
       packageJson: await fs.readJson(path.join(packagePath, 'package.json')),
     })),
@@ -173,10 +176,10 @@ export async function calculatePackagesHash(
       .filter(Boolean)
       .map(p => p?.packagePath as string)
 
-  type Artifact = {
+  type TempArtifact = {
     relativePackagePath: string
     packagePath: string
-    packageJson: IPackageJson
+    packageJson: PackageJson
     packageHash: string
     children: string[]
     parents: []
@@ -184,7 +187,7 @@ export async function calculatePackagesHash(
 
   const packageHashInfoByPath: Map<string, PackageHashInfo> = new Map(
     await Promise.all(
-      packagesWithPackageJson.map<Promise<[string, Artifact]>>(async ({ packagePath, packageJson }) => {
+      packagesWithPackageJson.map<Promise<[string, TempArtifact]>>(async ({ packagePath, packageJson }) => {
         const packageFiles = repoFilesPath.filter(filePath => isInParent(packagePath, filePath))
         const packageHash = await calculateHashOfPackage(packagePath, packageFiles)
         return [
@@ -211,13 +214,15 @@ export async function calculatePackagesHash(
 
   const orderedGraph = createOrderGraph(packageHashInfoByPath)
 
-  const repoHash = combineHashes([rootFilesHash, ...orderedGraph.map(p => p.data.packageHash)])
+  const repoHash = combineHashes([rootFilesHash, ...orderedGraph.map(p => p.data.artifact.packageHash)])
 
   log.verbose('calculated hashes to every package in the monorepo:')
   log.verbose(`root-files -> ${rootFilesHash}`)
   log.verbose(`${orderedGraph.length} packages:`)
   orderedGraph.forEach(node =>
-    log.verbose(`${node.data.relativePackagePath} (${node.data.packageJson.name}) -> ${node.data.packageHash}`),
+    log.verbose(
+      `${node.data.artifact.relativePackagePath} (${node.data.artifact.packageJson.name}) -> ${node.data.artifact.packageHash}`,
+    ),
   )
   log.verbose('---------------------------------------------------')
   return { repoHash, orderedGraph }

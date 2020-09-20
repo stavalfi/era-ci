@@ -9,10 +9,10 @@ export type LoggerConfiguration = {
   logFilePath?: string
 }
 
-export type NormalizedLoggerConfiguration = {
+type NormalizedLoggerConfiguration = {
   customLogLevel: LogLevel
-  disable: boolean
   logFilePath: string
+  disable: boolean
 }
 
 export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerConfiguration>({

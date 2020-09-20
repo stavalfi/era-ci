@@ -6,7 +6,6 @@ import { StepStatus } from './create-step'
 import redisUrlParse from 'redis-url-parse'
 import { promisify } from 'util'
 import zlib from 'zlib'
-import { ServerInfo } from './types'
 
 export type CacheConfiguration = {
   redis: {
@@ -23,7 +22,10 @@ export type CacheConfiguration = {
 
 type NormalizedCacheConfiguration = {
   redis: {
-    redisServer: ServerInfo
+    redisServer: {
+      host: string
+      port: number
+    }
     auth?: {
       password?: string
     }
@@ -34,11 +36,11 @@ type NormalizedCacheConfiguration = {
   }
 }
 
-export async function zip(data: string): Promise<Buffer> {
+async function zip(data: string): Promise<Buffer> {
   return promisify<string, Buffer>(zlib.deflate)(data)
 }
 
-export async function unzip(buffer: Buffer): Promise<string> {
+async function unzip(buffer: Buffer): Promise<string> {
   const result = await promisify<Buffer, Buffer>(zlib.unzip)(buffer)
   return result.toString()
 }
