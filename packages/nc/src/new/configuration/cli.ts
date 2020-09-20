@@ -35,6 +35,7 @@ export async function startCli(processArgv: string[]) {
       if (args['print-flow']) {
         await printFlowLogs({
           flowId: args['print-flow'],
+          repoPath,
           configFile,
         })
       } else {

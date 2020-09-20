@@ -1,31 +1,34 @@
-import { attachLogFileTransport, logger } from '@tahini/log'
 import fse from 'fs-extra'
 import path from 'path'
 import { getPackages } from '../utils'
 import { calculateArtifactsHash } from './artifacts-hash'
 import { Cache } from './create-cache'
+import { Log } from './create-logger'
 import { StepExecutionStatus } from './create-step'
 import { Cleanup, ConfigFile, PackageJson, RunStep, StepNodeData, StepResultOfAllPackages } from './types'
 import { getExitCode, getStepsAsGraph, toFlowLogsContentKey } from './utils'
-
-const log = logger('ci-logic')
 
 export async function ci(options: { logFilePath: string; repoPath: string; configFile: ConfigFile }): Promise<void> {
   const cleanups: Cleanup[] = []
   let flowId: string | undefined = undefined
   let cache: Cache | undefined = undefined
+  let log: Log | undefined
   try {
     const startFlowMs = Date.now()
 
-    // to avoid passing the logger instance between all the files and functions, we use ugly workaround:
-    await attachLogFileTransport(options.logFilePath)
+    const logger = await options.configFile.logger.callInitializeLogger({ repoPath: options.repoPath })
+    log = logger('ci-logic')
 
     // in tests, we extract the flowId using regex from this line (super ugly :S)
     log.info(`Starting CI`)
 
     const packagesPath = await getPackages(options.repoPath)
 
-    const result = await calculateArtifactsHash({ repoPath: options.repoPath, packagesPath })
+    const result = await calculateArtifactsHash({
+      repoPath: options.repoPath,
+      packagesPath,
+      log: logger('calculate-hashes'),
+    })
 
     flowId = result.repoHash
 
@@ -64,11 +67,11 @@ export async function ci(options: { logFilePath: string; repoPath: string; confi
     process.exitCode = getExitCode(steps)
   } catch (error) {
     process.exitCode = 1
-    log.error(`CI failed unexpectedly`, error)
+    log?.error(`CI failed unexpectedly`, error)
   } finally {
     if (cache && flowId) {
       cache.set(toFlowLogsContentKey(flowId), await fse.readFile(options.logFilePath, 'utf-8'), cache.ttls.flowLogs)
     }
-    await Promise.all(cleanups.map(f => f().catch(e => log.error(`cleanup function failed to run`, e))))
+    await Promise.all(cleanups.map(f => f().catch(e => log?.error(`cleanup function failed to run`, e))))
   }
 }

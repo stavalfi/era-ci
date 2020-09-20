@@ -1,4 +1,3 @@
-import { logger } from '@tahini/log'
 import crypto from 'crypto'
 import fs from 'fs-extra'
 import path from 'path'
@@ -6,8 +5,7 @@ import { Graph } from '../types'
 import { INVALIDATE_CACHE_HASH } from '../constants'
 import { execaCommand } from '../utils'
 import { Artifact, PackageJson } from './types'
-
-const log = logger('artifacts-hash')
+import { Log } from './create-logger'
 
 const isInParent = (parent: string, child: string) => {
   const relative = path.relative(parent, child)
@@ -146,9 +144,11 @@ const isRootFile = (repoPath: string, filePath: string) => !filePath.includes(pa
 export async function calculateArtifactsHash({
   repoPath,
   packagesPath,
+  log,
 }: {
   repoPath: string
   packagesPath: string[]
+  log: Log
 }): Promise<{
   orderedGraph: Graph<{
     artifact: { relativePackagePath: string; packagePath: string; packageHash: string; packageJson: PackageJson }

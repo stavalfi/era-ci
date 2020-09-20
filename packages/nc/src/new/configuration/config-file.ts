@@ -6,6 +6,9 @@ import { execaCommand } from '../../utils'
 
 function getConfigValidationObject() {
   return object({
+    logger: object({
+      callInitializeLogger: func(),
+    }),
     cache: object({
       callInitializeCache: func(),
     }),

@@ -45,6 +45,9 @@
     "source-map-support": "^0.5.19",
     "superstruct": "^0.10.12",
     "ts-node": "^8.10.2",
-    "url-parse": "^1.4.7"
+    "url-parse": "^1.4.7",
+    "chalk": "^4.1.0",
+    "winston": "^3.3.3",
+    "fs-extra": "^9.0.0"
   }
 }

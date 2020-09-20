@@ -11,7 +11,7 @@ export function createCache<
 }) {
   return (cacheConfigurations: CacheConfigurations): CreateCache => ({
     callInitializeCache: async ({ flowId }) => {
-      // @ts-ignore - we need to find a way to ensure that if NormalizedStepConfigurations is defined, also normalizeStepConfigurations is defined.
+      // @ts-ignore - we need to find a way to ensure that if NormalizedCacheConfigurations is defined, also normalizedCacheConfigurations is defined.
       const normalizedCacheConfigurations: NormalizedCacheConfigurations = createCacheOptions.normalizeCacheConfigurations
         ? await createCacheOptions.normalizeCacheConfigurations(cacheConfigurations)
         : cacheConfigurations
