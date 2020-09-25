@@ -25,36 +25,13 @@ export async function dockerRegistryLogin({
     log.verbose(`logging in to docker-registry: ${dockerRegistryAddress}`)
     // I need to login to read and push from `dockerRegistryUsername` repository
     await execaCommand(
-      [
-        'docker',
-        'login',
-        '--username',
-        dockerRegistryUsername,
-        '--password',
-        dockerRegistryToken,
-        dockerRegistryAddress,
-      ],
+      `docker login --username=${dockerRegistryUsername} --password=${dockerRegistryToken} ${dockerRegistryAddress}`,
       {
         stdio: 'pipe',
         cwd: repoPath,
       },
     )
-    await execaCommand(
-      [
-        'skopeo',
-        'login',
-        dockerRegistryAddress,
-        '--username',
-        dockerRegistryUsername,
-        '--password',
-        dockerRegistryToken,
-      ],
-      {
-        stdio: 'pipe',
-        cwd: repoPath,
-      },
-    )
-    log.verbose(`logged in to docker-registry: "${dockerRegistryAddress}"`)
+    log.verbose('logged in to docker-registry')
   }
 }
 
@@ -62,8 +39,8 @@ export const buildDockerImageName = (packageJsonName: string) => {
   return packageJsonName.replace('/', '-').replace('@', '')
 }
 
-async function runSkopeoCommand(command: string | [string, ...string[]], repoPath: string): Promise<string> {
-  const { stdout: result } = await execaCommand(command, { cwd: repoPath, stdio: 'pipe' })
+async function runSkopeoCommand(command: string, repoPath: string): Promise<string> {
+  const { stdout: result } = await execaCommand(`skopeo ${command}`, { cwd: repoPath, stdio: 'pipe' })
   return result
 }
 
@@ -118,8 +95,10 @@ export async function getDockerImageLabelsAndTags({
     if (!silent) {
       log.verbose(`searching for all tags for image: "${fullImageNameWithoutTag}"`)
     }
+    const withAuth =
+      publishAuth.username && publishAuth.token ? `--creds ${publishAuth.username}:${publishAuth.token}` : ''
     const tagsResult = await runSkopeoCommand(
-      `skopeo list-tags ${
+      `list-tags ${withAuth} ${
         dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''
       } docker://${fullImageNameWithoutTag}`,
       repoPath,
@@ -141,7 +120,7 @@ export async function getDockerImageLabelsAndTags({
     }
 
     const stdout = await runSkopeoCommand(
-      `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
+      `inspect ${withAuth} ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
       repoPath,
     )
 
@@ -209,8 +188,11 @@ export async function isDockerVersionAlreadyPulished({
     imageTag,
   })
   try {
+    const withAuth =
+      publishAuth.username && publishAuth.token ? `--creds ${publishAuth.username}:${publishAuth.token}` : ''
+
     await runSkopeoCommand(
-      `skopeo inspect ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
+      `inspect ${withAuth} ${dockerRegistry.protocol === 'http' ? '--tls-verify=false' : ''} docker://${fullImageName}`,
       repoPath,
     )
     return true
