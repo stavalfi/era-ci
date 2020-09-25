@@ -190,20 +190,20 @@ async function publishDocker<DeploymentClient>({
     setAsPublishedCache,
     isDockerPublish: true,
     tryPublish: async () => {
-      log.info(`building docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}"`)
+      const dockerBuildCommand = `docker build --build-arg new_version=${newVersion} --label latest-hash=${artifact.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`
+      log.info(
+        `building docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}": "${dockerBuildCommand}"`,
+      )
 
       try {
-        await execaCommand(
-          `docker build --build-arg new_version=${newVersion} --label latest-hash=${artifact.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
-          {
-            cwd: artifact.packagePath,
-            stdio: 'inherit',
-            env: {
-              // eslint-disable-next-line no-process-env
-              ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
-            },
+        await execaCommand(dockerBuildCommand, {
+          cwd: artifact.packagePath,
+          stdio: 'inherit',
+          env: {
+            // eslint-disable-next-line no-process-env
+            ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
           },
-        )
+        })
       } catch (error) {
         return {
           stepName: StepName.publish,
