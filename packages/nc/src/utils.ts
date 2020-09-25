@@ -41,16 +41,13 @@ type SupportedExecaCommandOptions = Omit<execa.Options, 'stderr' | 'stdout' | 'a
   Required<Pick<execa.Options, 'stdio'>>
 
 export async function execaCommand<Options extends SupportedExecaCommandOptions>(
-  command: string | [string, ...string[]],
+  command: string,
   options: Options['stdio'] extends 'inherit' ? SupportedExecaCommandOptions : Options,
 ): Promise<execa.ExecaReturnValue<string>> {
-  const execaOptions = {
+  const subprocess = execa.command(command, {
     ..._.omit(options, ['logLevel']),
     stdio: options.stdio === 'inherit' ? 'pipe' : options.stdio,
-  }
-  const subprocess = Array.isArray(command)
-    ? execa(command[0], command.slice(1), execaOptions)
-    : execa.command(command, execaOptions)
+  })
 
   if (options.stdio === 'ignore') {
     return subprocess
