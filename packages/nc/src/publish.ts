@@ -18,6 +18,7 @@ import {
   TargetType,
 } from './types'
 import { calculateCombinedStatus, execaCommand } from './utils'
+import semver from 'semver'
 
 const log = logger('publish')
 
@@ -28,6 +29,7 @@ async function updateVersionAndPublish({
   startMs,
   setAsPublishedCache,
   setAsFailedCache,
+  isDockerPublish,
 }: {
   artifact: Artifact
   newVersion: string
@@ -35,6 +37,7 @@ async function updateVersionAndPublish({
   setAsPublishedCache: PublishCache['setAsPublished']
   setAsFailedCache: PublishCache['setAsFailed']
   startMs: number
+  isDockerPublish: boolean
 }): Promise<PackageStepResult[StepName.publish]> {
   const setPackageVersion = async (fromVersion: string | undefined, toVersion: string) => {
     const packageJsonPath = path.join(artifact.packagePath, 'package.json')
@@ -56,7 +59,9 @@ async function updateVersionAndPublish({
     }
   }
   try {
-    await setPackageVersion(artifact.packageJson.version, newVersion)
+    if (!isDockerPublish) {
+      await setPackageVersion(artifact.packageJson.version, newVersion)
+    }
   } catch (error) {
     return {
       stepName: StepName.publish,
@@ -82,10 +87,12 @@ async function updateVersionAndPublish({
     }
   }
 
-  await setPackageVersion(newVersion, artifact.packageJson.version!).catch(error => {
-    log.error(`failed to revert package.json back to the old version`, error)
-    // log and ignore this error.
-  })
+  if (!isDockerPublish) {
+    await setPackageVersion(newVersion, artifact.packageJson.version!).catch(error => {
+      log.error(`failed to revert package.json back to the old version`, error)
+      // log and ignore this error.
+    })
+  }
 
   return result
 }
@@ -119,6 +126,7 @@ async function publishNpm<DeploymentClient>({
     artifact,
     setAsFailedCache,
     setAsPublishedCache,
+    isDockerPublish: false,
     tryPublish: async () => {
       await execaCommand(
         `yarn publish --registry ${npmRegistryAddress} --non-interactive ${
@@ -180,12 +188,13 @@ async function publishDocker<DeploymentClient>({
     newVersion,
     setAsFailedCache,
     setAsPublishedCache,
+    isDockerPublish: true,
     tryPublish: async () => {
       log.info(`building docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}"`)
 
       try {
         await execaCommand(
-          `docker build --label latest-hash=${artifact.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
+          `docker build --build-arg new_version=${newVersion} --label latest-hash=${artifact.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
           {
             cwd: artifact.packagePath,
             stdio: 'inherit',
@@ -227,18 +236,43 @@ async function publishDocker<DeploymentClient>({
 
       log.info(`published docker image "${fullImageNameNewVersion}" in package: "${artifact.packageJson.name}"`)
 
-      await execaCommand(`docker rmi ${fullImageNameNewVersion}`, {
-        stdio: 'pipe',
-        env: {
-          // eslint-disable-next-line no-process-env
-          ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
-        },
-      }).catch(e =>
-        log.error(
-          `couldn't remove image: "${fullImageNameNewVersion}" after pushing it. this failure won't fail the build.`,
-          e,
-        ),
-      )
+      const fullImageNameLastVersion =
+        semver.patch(newVersion) > 0 &&
+        buildFullDockerImageName({
+          dockerOrganizationName: targetPublishInfo.dockerOrganizationName,
+          dockerRegistry: targetPublishInfo.registry,
+          packageJsonName: artifact.packageJson.name as string,
+          imageTag: `${semver.major(newVersion)}:${semver.minor(newVersion)}:${semver.patch(newVersion) - 1}`,
+        })
+      // eslint-disable-next-line no-process-env
+      const imageToRemove = process.env.NC_TEST_MODE ? fullImageNameNewVersion : fullImageNameLastVersion
+      if (imageToRemove) {
+        const isImageExists = await execaCommand(`docker inspect --type=image ${imageToRemove}`, {
+          stdio: 'ignore',
+          reject: false,
+        }).then(result => !result.failed)
+        if (isImageExists) {
+          const isLastVersion = imageToRemove === fullImageNameLastVersion
+          if (isLastVersion) {
+            log.verbose(`removing the previouse version of the image from the vm: "${fullImageNameNewVersion}"`)
+          } else {
+            log.verbose(`removing the new version of the image from the vm: "${fullImageNameNewVersion}"`)
+          }
+          // we skip docker rmi for cacheing
+          await execaCommand(`docker rmi ${imageToRemove}`, {
+            stdio: 'pipe',
+            env: {
+              // eslint-disable-next-line no-process-env
+              ...(process.env.REMOTE_SSH_DOCKER_HOST && { DOCKER_HOST: process.env.REMOTE_SSH_DOCKER_HOST }),
+            },
+          }).catch(e =>
+            log.error(
+              `couldn't remove image: "${imageToRemove}" after pushing it. this failure won't fail the build.`,
+              e,
+            ),
+          )
+        }
+      }
 
       return {
         stepName: StepName.publish,
