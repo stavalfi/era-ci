@@ -1,19 +1,17 @@
+import _ from 'lodash'
+import { ErrorObject, serializeError } from 'serialize-error'
+import traverse from 'traverse'
 import {
   createStep,
   ExecutionStatus,
   Result,
   Status,
   StepInfo,
-  StepResultOfArtifacts,
-  StepsResultOfArtifact,
   StepsResultOfArtifactsByArtifact,
   StepsResultOfArtifactsByStep,
 } from '../create-step'
 import { Artifact, Graph } from '../types'
 import { calculateCombinedStatus } from '../utils'
-import { serializeError, ErrorObject } from 'serialize-error'
-import _ from 'lodash'
-import traverse from 'traverse'
 
 export type JsonReport = {
   flow: {
@@ -23,9 +21,7 @@ export type JsonReport = {
   steps: Graph<{ stepInfo: StepInfo }>
   artifacts: Graph<{ artifact: Artifact }>
   flowResult: Result<ErrorObject>
-  stepResultOfArtifacts: StepResultOfArtifacts<ErrorObject>
   stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<ErrorObject>
-  stepsResultOfArtifact: StepsResultOfArtifact<ErrorObject>
   stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact<ErrorObject>
 }
 
@@ -51,12 +47,10 @@ export const jsonReport = createStep<JsonReportConfiguration>({
     startFlowMs,
     steps,
     artifacts,
-    stepId,
     stepConfigurations,
-    stepResultOfArtifacts,
-    stepsResultOfArtifact,
     stepsResultOfArtifactsByStep,
     stepsResultOfArtifactsByArtifact,
+    currentStepInfo,
   }) => {
     const jsonReport: JsonReport = {
       artifacts,
@@ -78,16 +72,14 @@ export const jsonReport = createStep<JsonReportConfiguration>({
           ),
         ),
       },
-      stepResultOfArtifacts: normalizeErrors(stepResultOfArtifacts),
       stepsResultOfArtifactsByStep: normalizeErrors(stepsResultOfArtifactsByStep),
-      stepsResultOfArtifact: normalizeErrors(stepsResultOfArtifact),
       stepsResultOfArtifactsByArtifact: normalizeErrors(stepsResultOfArtifactsByArtifact),
     }
 
     const jsonReportTtl = cache.ttls.stepSummary
 
     await cache.set(
-      stepConfigurations.jsonReportCacheKey({ flowId, stepId }),
+      stepConfigurations.jsonReportCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
       stepConfigurations.jsonReportToString({ jsonReport }),
       jsonReportTtl,
     )

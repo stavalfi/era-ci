@@ -148,7 +148,7 @@ export async function calculateArtifactsHash({
   packagesPath: string[]
   log: Log
 }): Promise<{
-  orderedGraph: Graph<{
+  artifacts: Graph<{
     artifact: { relativePackagePath: string; packagePath: string; packageHash: string; packageJson: PackageJson }
   }>
   repoHash: string
@@ -212,18 +212,18 @@ export async function calculateArtifactsHash({
 
   calculateConbinedHashes(rootFilesHash, packageHashInfoByPath)
 
-  const orderedGraph = createOrderGraph(packageHashInfoByPath)
+  const artifacts = createOrderGraph(packageHashInfoByPath)
 
-  const repoHash = combineHashes([rootFilesHash, ...orderedGraph.map(p => p.data.artifact.packageHash)])
+  const repoHash = combineHashes([rootFilesHash, ...artifacts.map(p => p.data.artifact.packageHash)])
 
   log.verbose('calculated hashes to every package in the monorepo:')
   log.verbose(`root-files -> ${rootFilesHash}`)
-  log.verbose(`${orderedGraph.length} packages:`)
-  orderedGraph.forEach(node =>
+  log.verbose(`${artifacts.length} packages:`)
+  artifacts.forEach(node =>
     log.verbose(
       `${node.data.artifact.relativePackagePath} (${node.data.artifact.packageJson.name}) -> ${node.data.artifact.packageHash}`,
     ),
   )
   log.verbose('---------------------------------------------------')
-  return { repoHash, orderedGraph }
+  return { repoHash, artifacts }
 }

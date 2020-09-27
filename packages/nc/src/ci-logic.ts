@@ -24,13 +24,13 @@ export async function ci(options: { repoPath: string; configFile: ConfigFile }):
 
     const packagesPath = await getPackages({ repoPath: options.repoPath, log })
 
-    const result = await calculateArtifactsHash({
+    const { artifacts, repoHash } = await calculateArtifactsHash({
       repoPath: options.repoPath,
       packagesPath,
       log: logger.createLog('calculate-hashes'),
     })
 
-    flowId = result.repoHash
+    flowId = repoHash
 
     log.info(`flow-id: "${flowId}"`)
 
@@ -46,6 +46,8 @@ export async function ci(options: { repoPath: string; configFile: ConfigFile }):
       flowId,
       repoPath: options.repoPath,
       startFlowMs,
+      artifacts,
+      steps: stepsToRun.map(s => ({ ...s, data: { stepInfo: s.data.stepInfo } })),
     })
 
     process.exitCode = getExitCode(stepResultOfArtifacts)

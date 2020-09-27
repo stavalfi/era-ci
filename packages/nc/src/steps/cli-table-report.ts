@@ -166,16 +166,19 @@ export type CliTableReportConfiguration = {
 
 export const cliTableReport = createStep<CliTableReportConfiguration>({
   stepName: 'cli-table-report',
-  runStepOnRoot: async ({ cache, flowId, stepId, stepConfigurations, log }) => {
-    const jsonReportResult = await cache.get(stepConfigurations.jsonReportCacheKey({ flowId, stepId }), r => {
-      if (typeof r === 'string') {
-        return stepConfigurations.stringToJsonReport({ jsonReportAsString: r })
-      } else {
-        throw new Error(
-          `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-        )
-      }
-    })
+  runStepOnRoot: async ({ cache, flowId, stepConfigurations, log, currentStepInfo }) => {
+    const jsonReportResult = await cache.get(
+      stepConfigurations.jsonReportCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
+      r => {
+        if (typeof r === 'string') {
+          return stepConfigurations.stringToJsonReport({ jsonReportAsString: r })
+        } else {
+          throw new Error(
+            `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+          )
+        }
+      },
+    )
     if (!jsonReportResult) {
       throw new Error(`can't find json-report in the cache. printing the report is aborted`)
     }

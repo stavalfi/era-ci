@@ -1,6 +1,8 @@
 import ciInfo from 'ci-info'
 import _ from 'lodash'
+import { ConfigFile } from './configuration'
 import { LogLevel } from './create-logger'
+import { Step } from './create-step'
 import { redisWithNodeCache } from './redis-with-node-cache'
 import {
   build,
@@ -16,7 +18,6 @@ import {
   test,
   validatePackages,
 } from './steps'
-import { ConfigFile, Step } from './types'
 import { winstonLogger } from './winston-logger'
 
 export default async (): Promise<ConfigFile> => {

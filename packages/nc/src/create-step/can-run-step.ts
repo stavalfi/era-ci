@@ -61,7 +61,7 @@ async function skipIfPackageResultsInCachePredicate<StepConfigurations>({
     packageHash: currentArtifact.data.artifact.packageHash,
   })
   if (result?.didStepRun) {
-    const isPassed = didPassOrSkippedAsPassed(result.status)
+    const isPassed = didPassOrSkippedAsPassed(result.stepStatus)
     const note = `step already run on this package with the same hash in flow-id: "${result.flowId}". result: "${
       isPassed ? 'passed' : 'failed'
     }"`
@@ -139,7 +139,7 @@ export async function checkIfCanRunStepOnArtifact<StepConfigurations>(
       checkName: 'custom-step-predicate',
       predicate: async () =>
         options.canRunStepOnArtifact?.customPredicate
-          ? options.canRunStepOnArtifact.customPredicate(_.omit(options, ['currentArtifact', 'canRunStepOnArtifact']))
+          ? options.canRunStepOnArtifact.customPredicate(_.omit(options, ['canRunStepOnArtifact']))
           : { canRun: true, notes: [] },
     },
     {
