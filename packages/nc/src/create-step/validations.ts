@@ -10,7 +10,7 @@ export function validateUserStepResult(
 
   if (userStepResult.artifactsResult.length !== runStepOptions.artifacts.length) {
     problems.push(
-      `step: "${runStepOptions.stepName}" returned result with invalid amount of packages. expected packages reuslt: "${runStepOptions.artifacts.length}", actual: "${userStepResult.artifactsResult.length}"`,
+      `step: "${runStepOptions.currentStepInfo.data.stepInfo.stepName}" returned result with invalid amount of packages. expected packages reuslt: "${runStepOptions.artifacts.length}", actual: "${userStepResult.artifactsResult.length}"`,
     )
   }
   const artifactNames = runStepOptions.artifacts.map(node => node.data.artifact.packageJson.name!)
@@ -21,7 +21,7 @@ export function validateUserStepResult(
   problems.push(
     ...unknownArtifactNames.map(
       unknownArtifactName =>
-        `step: "${runStepOptions.stepName}" returned result of unknown artifact: "${unknownArtifactName}"`,
+        `step: "${runStepOptions.currentStepInfo.data.stepInfo.stepName}" returned result of unknown artifact: "${unknownArtifactName}"`,
     ),
   )
 

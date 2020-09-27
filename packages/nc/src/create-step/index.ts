@@ -143,7 +143,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
   try {
     const userRunStepOptions: UserRunStepOptions<NormalizedStepConfigurations> = {
       ...runStepOptions,
-      log: runStepOptions.logger.createLog(runStepOptions.stepName),
+      log: runStepOptions.logger.createLog(runStepOptions.currentStepInfo.data.stepInfo.stepName),
       stepConfigurations,
       startStepMs: Date.now(),
     }
@@ -198,8 +198,8 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
     if (problems.length > 0) {
       return {
         stepInfo: {
-          stepId: runStepOptions.stepId,
-          stepName: runStepOptions.stepName,
+          stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
+          stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,
         },
         stepExecutionStatus: ExecutionStatus.done,
         stepResult: {
@@ -247,8 +247,8 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
     })
     const result: StepResultOfArtifacts<unknown> = {
       stepInfo: {
-        stepId: runStepOptions.stepId,
-        stepName: runStepOptions.stepName,
+        stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
+        stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,
       },
       stepExecutionStatus: ExecutionStatus.done,
       stepResult: {
@@ -264,8 +264,8 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
     const endDurationMs = Date.now() - startMs
     const result: StepResultOfArtifacts<unknown> = {
       stepInfo: {
-        stepId: runStepOptions.stepId,
-        stepName: runStepOptions.stepName,
+        stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
+        stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,
       },
       stepExecutionStatus: ExecutionStatus.done,
       stepResult: {
@@ -313,7 +313,7 @@ export function createStep<StepConfigurations = void, NormalizedStepConfiguratio
             artifact.data.artifactStepExecutionStatus === ExecutionStatus.done
               ? runStepOptions.cache.step.setStepResult({
                   packageHash: artifact.data.artifact.packageHash,
-                  stepId: runStepOptions.stepId,
+                  stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
                   stepExecutionStatus: ExecutionStatus.done,
                   stepStatus: artifact.data.artifactStepResult.status,
                   ttlMs: runStepOptions.cache.ttls.stepSummary,

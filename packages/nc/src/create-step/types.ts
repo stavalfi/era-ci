@@ -115,7 +115,7 @@ export type CanRunStepOnArtifact<StepConfigurations> = {
   }
 }
 
-export type RunStepOptions = StepInfo & {
+export type RunStepOptions = {
   flowId: string
   startFlowMs: number
   repoPath: string
@@ -123,9 +123,7 @@ export type RunStepOptions = StepInfo & {
   artifacts: Graph<{ artifact: Artifact }>
   steps: Graph<{ stepInfo: StepInfo }>
   currentStepInfo: Node<{ stepInfo: StepInfo }>
-  stepResultOfArtifacts: StepResultOfArtifacts<unknown>
   stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<unknown>
-  stepsResultOfArtifact: StepsResultOfArtifact<unknown>
   stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact<unknown>
   cache: Cache
   logger: Logger

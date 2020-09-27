@@ -248,7 +248,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
       repoPath,
       log,
     }),
-  runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, cache, flowId, stepId }) => {
+  runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, cache }) => {
     const newVersion = await calculateNextNewVersion({
       npmRegistry: stepConfigurations.registry,
       packageJson: currentArtifact.data.artifact.packageJson,

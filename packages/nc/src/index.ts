@@ -7,8 +7,9 @@ require('source-map-support').install()
 //
 import { startCli } from './configuration/cli'
 
-export { Artifact, ConfigFile, Step } from './types'
-export { StepExecutionStatus, Status } from './create-step'
+export { Artifact } from './types'
+export { ConfigFile } from './configuration'
+export { ExecutionStatus, Status, Step } from './create-step'
 export { Log, LogLevel, Logger } from './create-logger'
 export { Cache } from './create-cache'
 export {
@@ -38,7 +39,6 @@ async function main() {
   try {
     await startCli(process.argv)
   } finally {
-    console.error('stav11', process.env.NC_TEST_MODE, process.exitCode)
     // eslint-disable-next-line no-process-env
     if (process.env.NC_TEST_MODE) {
       // jest don't show last two console logs so we add this as a workaround
