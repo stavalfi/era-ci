@@ -8,7 +8,7 @@ require('source-map-support').install()
 import { startCli } from './configuration/cli'
 
 export { Artifact, ConfigFile, Step } from './types'
-export { StepExecutionStatus, StepStatus } from './create-step'
+export { StepExecutionStatus, Status } from './create-step'
 export { Log, LogLevel, Logger } from './create-logger'
 export { Cache } from './create-cache'
 export {

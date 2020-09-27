@@ -1,6 +1,6 @@
 import { createFile } from 'create-folder-structure'
 import { execaCommand } from '../utils'
-import { createStep, StepStatus } from '../create-step'
+import { createStep, Status } from '../create-step'
 import { getPackageTargetType, TargetType } from './utils'
 
 export type K8sGcloudDeploymentConfiguration = {
@@ -22,7 +22,7 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
         return {
           canRun: false,
           notes: [`k8s-gcloud deployment is disabled`],
-          stepStatus: StepStatus.skippedAsPassed,
+          stepStatus: Status.skippedAsPassed,
         }
       }
 
@@ -34,7 +34,7 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
         return {
           canRun: false,
           notes: [],
-          stepStatus: StepStatus.skippedAsPassed,
+          stepStatus: Status.skippedAsPassed,
         }
       }
 
@@ -101,7 +101,7 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
 
     return {
       notes: [],
-      status: StepStatus.passed,
+      status: Status.passed,
     }
   },
 })

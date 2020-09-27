@@ -1,5 +1,5 @@
 import { execaCommand } from '../utils'
-import { createStep, StepStatus } from '../create-step'
+import { createStep, Status } from '../create-step'
 
 export const test = createStep<{ testScriptName: string } | void, { testScriptName: string }>({
   stepName: 'test',
@@ -13,7 +13,7 @@ export const test = createStep<{ testScriptName: string } | void, { testScriptNa
         : {
             canRun: false,
             notes: [`skipping because missing test-script in package.json`],
-            stepStatus: StepStatus.skippedAsPassed,
+            stepStatus: Status.skippedAsPassed,
           },
   },
   runStepOnArtifact: async ({ currentArtifact, stepConfigurations, log }) => {
@@ -24,7 +24,7 @@ export const test = createStep<{ testScriptName: string } | void, { testScriptNa
     })
     return {
       notes: [],
-      status: StepStatus.passed,
+      status: Status.passed,
     }
   },
 })

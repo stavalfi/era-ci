@@ -12,7 +12,7 @@ export type Cache = {
     }) => Promise<
       | {
           didStepRun: true
-          status: Status
+          stepStatus: Status
           flowId: string
         }
       | { didStepRun: false }

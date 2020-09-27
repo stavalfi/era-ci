@@ -2,7 +2,7 @@ import Redis, { ValueType } from 'ioredis'
 import NodeCache from 'node-cache'
 import { enums, literal, object, string, union, validate, any } from 'superstruct'
 import { Cache, createCache } from './create-cache'
-import { StepStatus } from './create-step'
+import { Status } from './create-step'
 import redisUrlParse from 'redis-url-parse'
 import { promisify } from 'util'
 import zlib from 'zlib'
@@ -153,7 +153,7 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
     const getStepResultSchema = union([
       object({
         didStepRun: literal(true),
-        StepStatus: enums(Object.values(StepStatus)),
+        stepStatus: enums(Object.values(Status)),
       }),
       object({
         didStepRun: literal(false),
@@ -189,7 +189,7 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
           return {
             flowId: result.flowId,
             didStepRun: true,
-            StepStatus: result.value.StepStatus,
+            stepStatus: result.value.stepStatus,
           }
         } else {
           return {
@@ -203,7 +203,7 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
           value: JSON.stringify(
             {
               didStepRun: true,
-              StepStatus: options.stepStatus,
+              Status: options.stepStatus,
             },
             null,
             2,
