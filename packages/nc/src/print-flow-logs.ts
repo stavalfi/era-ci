@@ -1,5 +1,6 @@
+import { ConfigFile } from './configuration'
 import { Log } from './create-logger'
-import { Cleanup, ConfigFile } from './types'
+import { Cleanup } from './types'
 import { MISSING_FLOW_ID_ERROR, toFlowLogsContentKey } from './utils'
 
 export async function printFlowLogs(options: { flowId: string; configFile: ConfigFile; repoPath: string }) {

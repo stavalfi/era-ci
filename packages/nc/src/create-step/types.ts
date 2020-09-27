@@ -106,7 +106,9 @@ export type CanRunStepOnArtifactResult =
     }
 
 export type CanRunStepOnArtifact<StepConfigurations> = {
-  customPredicate?: (options: UserRunStepOptions<StepConfigurations>) => Promise<CanRunStepOnArtifactResult>
+  customPredicate?: (
+    options: UserRunStepOptions<StepConfigurations> & { currentArtifact: Node<{ artifact: Artifact }> },
+  ) => Promise<CanRunStepOnArtifactResult>
   options?: {
     skipIfSomeDirectPrevStepsFailedOnPackage?: boolean
     skipIfPackageResultsInCache?: boolean

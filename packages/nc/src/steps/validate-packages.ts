@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { IDependencyMap } from 'package-json-type'
 import semver from 'semver'
-import { createStep, StepStatus } from '../create-step'
+import { createStep, Status } from '../create-step'
 import { getPackageTargetType, TargetType } from './utils'
 
 export const validatePackages = createStep({
@@ -69,7 +69,7 @@ export const validatePackages = createStep({
 
     return {
       notes: problems,
-      status: problems.length === 0 ? StepStatus.passed : StepStatus.failed,
+      status: problems.length === 0 ? Status.passed : Status.failed,
     }
   },
 })

@@ -2,7 +2,7 @@ import execa from 'execa'
 import _ from 'lodash'
 import path from 'path'
 import { Log } from './create-logger'
-import { Step, Status, ExecutionStatus, StepInfo, StepsResultOfArtifacts } from './create-step'
+import { Step, Status, ExecutionStatus, StepInfo, StepsResultOfArtifactsByStep } from './create-step'
 import { Graph } from './types'
 
 export const didPassOrSkippedAsPassed = (status: Status) => [Status.passed, Status.skippedAsPassed].includes(status)
@@ -39,10 +39,10 @@ export function getStepsAsGraph(steps: Step[]): Graph<{ stepInfo: StepInfo; runS
   }))
 }
 
-export function getExitCode(stepsResultOfArtifacts: StepsResultOfArtifacts<unknown>): number {
+export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<unknown>): number {
   const finalStepsStatus = calculateCombinedStatus(
     _.flatMapDeep(
-      stepsResultOfArtifacts.map(s => {
+      stepsResultOfArtifactsByStep.map(s => {
         switch (s.data.stepExecutionStatus) {
           case ExecutionStatus.done:
             return s.data.stepExecutionStatus === ExecutionStatus.done

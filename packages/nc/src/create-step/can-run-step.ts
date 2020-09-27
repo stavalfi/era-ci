@@ -86,7 +86,7 @@ async function skipIfPackageResultsInCachePredicate<StepConfigurations>({
 }
 
 async function skipIfSomeDirectPrevStepsFailedOnPackage<StepConfigurations>({
-  stepsResultOfArtifacts,
+  stepsResultOfArtifactsByStep,
   currentStepInfo,
   canRunStepOnArtifact,
   currentArtifact,
@@ -96,7 +96,7 @@ async function skipIfSomeDirectPrevStepsFailedOnPackage<StepConfigurations>({
 }): Promise<CanRunStepOnArtifactResult> {
   const notes: string[] = []
   const didAllPrevPassed = await currentStepInfo.parentsIndexes
-    .map((_result, i) => stepsResultOfArtifacts[i].data)
+    .map((_result, i) => stepsResultOfArtifactsByStep[i].data)
     .every(
       step =>
         step.stepExecutionStatus === ExecutionStatus.done &&

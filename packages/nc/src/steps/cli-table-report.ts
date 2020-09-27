@@ -43,42 +43,43 @@ const STEP_EXECUTION_STATUS_COLORED = {
 }
 
 function generatePackagesStatusReport(jsonReport: JsonReport): string {
-  const orderedSteps = jsonReport.steps.map(step => step.data.stepInfo.stepName)
+  const stepsName = jsonReport.steps.map(step => step.data.stepInfo.stepName)
 
-  const rows = jsonReport.artifacts.map(node => {
-    const stepsStatus = node.data.stepsSummary.map(stepNode =>
-      stepNode.data.stepExecutionStatus === ExecutionStatus.done
-        ? STEP_RESULT_STATUS_COLORED[stepNode.data.stepSummary.status]
-        : STEP_EXECUTION_STATUS_COLORED[stepNode.data.stepExecutionStatus],
-    )
-
-    return {
-      packageName: node.data.artifact.packageJson.name as string,
-      stepsStatusOrdered: stepsStatus,
-      summaryStatus: STEP_RESULT_STATUS_COLORED[node.data.stepsSummary.status],
-      duration: prettyMs(node.data.stepsSummary.durationMs),
-      notes: node.data.stepsSummary.flatMap(stepNode =>
-        stepNode.data.stepExecutionStatus === ExecutionStatus.done
-          ? stepNode.data.stepSummary.notes.map(node => `${stepNode.data.stepInfo.stepName} - ${node}`)
-          : [],
-      ),
+  const rows = jsonReport.stepsResultOfArtifactsByArtifact.map(node => {
+    const data = node.data
+    if (data.artifactExecutionStatus === ExecutionStatus.done) {
+      return {
+        packageName: data.artifact.packageJson.name as string,
+        stepsStatus: jsonReport.steps.map(
+          (_, i) => STEP_RESULT_STATUS_COLORED[data.stepsResult[i].data.artifactStepResult.status],
+        ),
+        artifactStatus: STEP_RESULT_STATUS_COLORED[data.artifactResult.status],
+        duration: prettyMs(data.artifactResult.durationMs),
+        notes: data.artifactResult.notes,
+      }
+    } else {
+      return {
+        packageName: data.artifact.packageJson.name as string,
+        stepsStatus: jsonReport.steps.map(() => STEP_EXECUTION_STATUS_COLORED[data.artifactExecutionStatus]),
+        artifactStatus: STEP_EXECUTION_STATUS_COLORED[data.artifactExecutionStatus],
+        duration: '',
+        notes: [],
+      }
     }
   })
 
   const hasNotes = rows.some(row => row.notes.length > 0)
 
-  const colums: TableRow = ['', ...orderedSteps, 'duration', 'summary']
-    .concat(hasNotes ? ['notes'] : [])
-    .map(content => ({
-      vAlign: 'center',
-      hAlign: 'center',
-      content,
-    }))
+  const colums: TableRow = ['', ...stepsName, 'duration', 'summary'].concat(hasNotes ? ['notes'] : []).map(content => ({
+    vAlign: 'center',
+    hAlign: 'center',
+    content,
+  }))
 
   const rowsInTableFormat = rows.flatMap(row => {
     return [
       [
-        ...[row.packageName, ...row.stepsStatusOrdered, row.duration, row.summaryStatus].map<CellOptions>(content => ({
+        ...[row.packageName, ...row.stepsStatus, row.duration, row.artifactStatus].map<CellOptions>(content => ({
           rowSpan: Object.keys(row.notes).length || 1,
           vAlign: 'center',
           hAlign: 'center',
@@ -92,7 +93,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
 
   const stepsDurations = [
     '',
-    ...orderedSteps.map(stepName =>
+    ...stepsName.map(stepName =>
       // @ts-ignore - ts can't handle the basics :S
       prettyMs(jsonReport.steps[stepName].durationMs),
     ),
@@ -125,7 +126,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
       content,
     }),
   )
-  const notes = jsonReport.summary.notes
+  const notes = jsonReport.flowResult.notes
   const columns: TableRow[] = [
     [
       {
@@ -138,13 +139,13 @@ function generateSummaryReport(jsonReport: JsonReport): string {
         rowSpan: notes.length || 1,
         vAlign: 'center',
         hAlign: 'center',
-        content: STEP_RESULT_STATUS_COLORED[jsonReport.summary.status],
+        content: STEP_RESULT_STATUS_COLORED[jsonReport.flowResult.status],
       },
       {
         rowSpan: notes.length || 1,
         vAlign: 'center',
         hAlign: 'center',
-        content: prettyMs(jsonReport.summary.durationMs),
+        content: prettyMs(jsonReport.flowResult.durationMs),
       },
       ...notes.slice(0, 1),
     ],

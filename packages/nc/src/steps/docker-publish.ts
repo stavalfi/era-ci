@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import semver from 'semver'
 import { Log } from '../create-logger'
-import { createStep, StepStatus } from '../create-step'
+import { createStep, Status } from '../create-step'
 import { PackageJson } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
@@ -281,7 +281,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
         return {
           canRun: false,
           notes: [`docker-publish is disabled`],
-          stepStatus: StepStatus.skippedAsPassed,
+          stepStatus: Status.skippedAsPassed,
         }
       }
 
@@ -293,7 +293,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
         return {
           canRun: false,
           notes: [],
-          stepStatus: StepStatus.skippedAsPassed,
+          stepStatus: Status.skippedAsPassed,
         }
       }
 
@@ -332,7 +332,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
           notes: [
             `this package was already published in flow: "${dockerVersionResult.flowId}" with the same content as version: ${dockerVersionResult.value}`,
           ],
-          stepStatus: StepStatus.skippedAsPassed,
+          stepStatus: Status.skippedAsPassed,
         }
       }
 
@@ -445,7 +445,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
 
     return {
       notes: [],
-      status: StepStatus.passed,
+      status: Status.passed,
     }
   },
 })

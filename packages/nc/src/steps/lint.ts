@@ -1,5 +1,5 @@
 import { execaCommand } from '../utils'
-import { createStep, StepStatus } from '../create-step'
+import { createStep, Status } from '../create-step'
 
 export const lint = createStep<{ lintScriptName: string } | void, { lintScriptName: string }>({
   stepName: 'lint',
@@ -17,7 +17,7 @@ export const lint = createStep<{ lintScriptName: string } | void, { lintScriptNa
         return {
           canRun: false,
           notes: [],
-          stepStatus: StepStatus.skippedAsPassed,
+          stepStatus: Status.skippedAsPassed,
         }
       }
     },
@@ -30,7 +30,8 @@ export const lint = createStep<{ lintScriptName: string } | void, { lintScriptNa
     })
 
     return {
-      status: StepStatus.passed,
+      notes: [],
+      status: Status.passed,
     }
   },
 })
