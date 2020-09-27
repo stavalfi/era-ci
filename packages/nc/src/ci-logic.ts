@@ -39,7 +39,7 @@ export async function ci(options: { repoPath: string; configFile: ConfigFile }):
 
     const stepsToRun = getStepsAsGraph(options.configFile.steps)
 
-    const stepResultOfArtifacts = await runAllSteps({
+    const { stepsResultOfArtifactsByStep } = await runAllSteps({
       stepsToRun,
       cache,
       logger,
@@ -50,7 +50,7 @@ export async function ci(options: { repoPath: string; configFile: ConfigFile }):
       steps: stepsToRun.map(s => ({ ...s, data: { stepInfo: s.data.stepInfo } })),
     })
 
-    process.exitCode = getExitCode(stepResultOfArtifacts)
+    process.exitCode = getExitCode(stepsResultOfArtifactsByStep)
   } catch (error) {
     process.exitCode = 1
     log?.error(`CI failed unexpectedly`, error)

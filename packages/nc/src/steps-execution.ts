@@ -8,6 +8,7 @@ import {
   Status,
   Step,
   StepInfo,
+  StepResultOfArtifacts,
   StepsResultOfArtifact,
   StepsResultOfArtifactsByArtifact,
   StepsResultOfArtifactsByStep,
@@ -177,6 +178,11 @@ function toStepsResultOfArtifactsByArtifact({
   }))
 }
 
+type State = {
+  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<unknown>
+  stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact<unknown>
+}
+
 export async function runAllSteps({
   repoPath,
   stepsToRun,
@@ -195,7 +201,7 @@ export async function runAllSteps({
   cache: Cache
   logger: Logger
   artifacts: Graph<{ artifact: Artifact }>
-}): Promise<StepsResultOfArtifactsByStep<unknown>> {
+}): Promise<State> {
   const rootPackageJson: PackageJson = await fse.readJson(path.join(repoPath, 'package.json'))
 
   const stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<unknown> = steps.map(s => ({
@@ -205,36 +211,70 @@ export async function runAllSteps({
       stepExecutionStatus: ExecutionStatus.scheduled,
     },
   }))
-  type State = {
-    stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<unknown>
-    stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact<unknown>
-  }
+
   const state: State = {
     stepsResultOfArtifactsByStep,
     stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({ artifacts, stepsResultOfArtifactsByStep }),
   }
 
-  for (const [i, node] of stepsToRun.entries()) {
-    const stepResult = await node.data.runStep({
-      artifacts,
-      steps,
-      cache,
-      currentStepInfo: steps[i],
-      flowId,
-      logger,
-      repoPath,
-      rootPackageJson,
-      startFlowMs,
-      stepsResultOfArtifactsByArtifact: state.stepsResultOfArtifactsByArtifact,
-      stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep,
-    })
+  function updateState({
+    stepIndex,
+    stepResultOfArtifacts,
+  }: {
+    stepIndex: number
+    stepResultOfArtifacts: StepResultOfArtifacts<unknown>
+  }) {
     const clone = _.cloneDeep(stepsResultOfArtifactsByStep)
-    clone[i].data = stepResult
+    clone[stepIndex].data = stepResultOfArtifacts
     state.stepsResultOfArtifactsByStep = clone
     state.stepsResultOfArtifactsByArtifact = toStepsResultOfArtifactsByArtifact({
       artifacts,
       stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep,
     })
   }
-  return []
+
+  async function runStep(stepIndex: number): Promise<void> {
+    switch (stepsResultOfArtifactsByStep[stepIndex].data.stepExecutionStatus) {
+      case ExecutionStatus.done:
+        throw new Error(`circual steps graph is not supported (yet?)`)
+      case ExecutionStatus.running:
+        throw new Error(`circual steps graph is not supported (yet?)`)
+      case ExecutionStatus.aborted:
+        return
+      case ExecutionStatus.scheduled: {
+        const allPrevStepsDone = state.stepsResultOfArtifactsByStep[stepIndex].parentsIndexes.every(
+          pIndex => state.stepsResultOfArtifactsByStep[pIndex].data.stepExecutionStatus === ExecutionStatus.done,
+        )
+        if (allPrevStepsDone) {
+          const stepResultOfArtifacts = await stepsToRun[stepIndex].data.runStep({
+            artifacts,
+            steps,
+            cache,
+            currentStepInfo: steps[stepIndex],
+            flowId,
+            logger,
+            repoPath,
+            rootPackageJson,
+            startFlowMs,
+            stepsResultOfArtifactsByArtifact: state.stepsResultOfArtifactsByArtifact,
+            stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep,
+          })
+          updateState({ stepIndex, stepResultOfArtifacts })
+          await Promise.all(steps[stepIndex].childrenIndexes.map(runStep))
+        } else {
+          // when the last parent-step will be done, we will run this step
+          return
+        }
+      }
+    }
+  }
+
+  await Promise.all(
+    steps
+      .filter(s => s.parentsIndexes.length === 0)
+      .map(s => s.index)
+      .map(runStep),
+  )
+
+  return state
 }
