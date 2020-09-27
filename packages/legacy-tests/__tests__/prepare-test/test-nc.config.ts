@@ -15,7 +15,7 @@ import {
   test,
   validatePackages,
   winstonLogger,
-} from '../../src'
+} from '@tahini/nc'
 
 export default async (): Promise<ConfigFile> => {
   const {
@@ -48,7 +48,8 @@ export default async (): Promise<ConfigFile> => {
 
   const logger = winstonLogger({
     customLogLevel: LogLevel.verbose,
-    disable: false,
+    disabled: false,
+    logFilePath: './nc.log',
   })
 
   const cache = redisWithNodeCache({
@@ -82,7 +83,7 @@ export default async (): Promise<ConfigFile> => {
       shouldPublish: Boolean(SHOULD_PUBLISH_DOCKER),
       dockerOrganizationName: DOCKER_ORGANIZATION_NAME!,
       registry: DOCKER_REGISTRY!,
-      publishAuth: {
+      registryAuth: {
         username: DOCKER_HUB_USERNAME!,
         token: DOCKER_HUB_TOKEN!,
       },

@@ -5,34 +5,30 @@ import path from 'path'
 
 export type LoggerConfiguration = {
   customLogLevel: LogLevel
-  disable?: boolean
-  logFilePath?: string
+  disabled?: boolean
+  logFilePath: string
 }
 
 type NormalizedLoggerConfiguration = {
   customLogLevel: LogLevel
+  disabled: boolean
   logFilePath: string
-  disable: boolean
 }
 
 export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerConfiguration>({
   normalizeLoggerConfigurations: async ({
-    loggerConfigurations: { customLogLevel, disable, logFilePath },
+    loggerConfigurations: { customLogLevel, disabled, logFilePath },
     repoPath,
   }) => {
     let finalLogFilePath: string
-    if (logFilePath) {
-      if (path.isAbsolute(logFilePath)) {
-        finalLogFilePath = logFilePath
-      } else {
-        finalLogFilePath = path.join(repoPath, logFilePath)
-      }
+    if (path.isAbsolute(logFilePath)) {
+      finalLogFilePath = logFilePath
     } else {
-      finalLogFilePath = path.join(repoPath, 'nc.log')
+      finalLogFilePath = path.join(repoPath, logFilePath)
     }
     return {
       customLogLevel,
-      disable: Boolean(disable),
+      disabled: Boolean(disabled),
       logFilePath: finalLogFilePath,
     }
   },
@@ -43,22 +39,22 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
         createConsoleTransport(defaultFormat),
         createFileTransport(loggerConfigurations.logFilePath, defaultFormat),
       ],
-      silent: loggerConfigurations.disable,
+      silent: loggerConfigurations.disabled,
     })
 
     const noFormattingLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel,
       transports: [createConsoleTransport(noFormat), createFileTransport(loggerConfigurations.logFilePath, noFormat)],
-      silent: loggerConfigurations.disable,
+      silent: loggerConfigurations.disabled,
     })
 
     const noFormattingOnlyFileLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel,
       transports: [createFileTransport(loggerConfigurations.logFilePath, noFormat)],
-      silent: loggerConfigurations.disable,
+      silent: loggerConfigurations.disabled,
     })
 
-    return (module: string): Log => {
+    const createLog = (module: string): Log => {
       const log = mainLogger.child({ module })
       const base: Omit<Log, 'infoFromStream' | 'errorFromStream'> = {
         error: (message, error) => {
@@ -93,5 +89,6 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
         },
       }
     }
+    return { createLog, logFilePath: loggerConfigurations.logFilePath }
   },
 })

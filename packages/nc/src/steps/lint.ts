@@ -7,12 +7,8 @@ export const lint = createStep<{ lintScriptName: string } | void, { lintScriptNa
     lintScriptName: (typeof stepConfig === 'object' && stepConfig.lintScriptName) || 'lint',
   }),
   canRunStepOnArtifact: {
-    customPredicate: async ({ rootPackage }) => {
-      if (
-        rootPackage.packageJson.scripts &&
-        'lint' in rootPackage.packageJson.scripts &&
-        rootPackage.packageJson.scripts.lint
-      ) {
+    customPredicate: async ({ rootPackageJson }) => {
+      if (rootPackageJson.scripts && 'lint' in rootPackageJson.scripts && rootPackageJson.scripts.lint) {
         return {
           canRun: true,
           notes: [],

@@ -1,7 +1,6 @@
-import fse from 'fs-extra'
 import path from 'path'
 import { is, object, string, validate, func, array } from 'superstruct'
-import { ConfigFile } from '../types'
+import { ConfigFile } from './types'
 import execa from 'execa'
 
 function getConfigValidationObject() {
@@ -39,9 +38,9 @@ export async function readNcConfigurationFile(ciConfigFilePath: string): Promise
   const configGeneratorFunction = require(outputFilePath)
   const configuration = await configGeneratorFunction.default()
 
-  await fse.remove(outputFilePath).catch(() => {
-    // ignore error
-  })
+  // await fse.remove(outputFilePath).catch(() => {
+  //   // ignore error
+  // })
 
   if (validateConfiguration(configuration)) {
     return configuration

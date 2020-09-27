@@ -4,5 +4,9 @@
     "outDir": "dist"
   },
   "include": ["src", "__tests__"],
-  "references": []
+  "references": [
+    {
+     "path": "../nc/tsconfig-build.json"
+    }
+  ]
 }

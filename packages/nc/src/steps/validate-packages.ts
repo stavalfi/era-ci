@@ -6,7 +6,7 @@ import { getPackageTargetType, TargetType } from './utils'
 
 export const validatePackages = createStep({
   stepName: 'validate-packages',
-  runStepOnArtifact: async ({ currentArtifact, allArtifacts }) => {
+  runStepOnArtifact: async ({ currentArtifact, artifacts }) => {
     const problems: string[] = []
 
     if (!currentArtifact.data.artifact.packageJson.name) {
@@ -36,7 +36,7 @@ export const validatePackages = createStep({
 
     const depsProblems = await Promise.all(
       Object.entries(deps).map(async ([dep, versionRange]) => {
-        const depInMonoRepo = allArtifacts.find(a => a.data.artifact.packageJson.name === dep)?.data.artifact
+        const depInMonoRepo = artifacts.find(a => a.data.artifact.packageJson.name === dep)?.data.artifact
         if (!depInMonoRepo) {
           return []
         }

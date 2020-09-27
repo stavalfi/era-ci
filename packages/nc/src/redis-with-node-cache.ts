@@ -15,7 +15,7 @@ export type CacheConfiguration = {
     }
   }
   ttls?: {
-    stepResult?: number
+    stepSummary?: number
     flowLogs?: number
   }
 }
@@ -31,7 +31,7 @@ type NormalizedCacheConfiguration = {
     }
   }
   ttls: {
-    stepResult: number
+    stepSummary: number
     flowLogs: number
   }
 }
@@ -57,8 +57,8 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
         },
       },
       ttls: {
-        stepResult: ttls?.stepResult ?? 1000 * 60 * 60 * 24 * 7, // default-ttl = 1-week
-        flowLogs: ttls?.stepResult ?? 1000 * 60 * 60 * 24 * 3, // default-ttl = 3-days
+        stepSummary: ttls?.stepSummary ?? 1000 * 60 * 60 * 24 * 7, // default-ttl = 1-week
+        flowLogs: ttls?.stepSummary ?? 1000 * 60 * 60 * 24 * 3, // default-ttl = 3-days
       },
     }
   },
@@ -213,7 +213,10 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
         }),
     }
 
-    const cleanup = () => Promise.all([redisClient.quit(), nodeCache.close()])
+    const cleanup = async () => {
+      await redisClient.quit()
+      await nodeCache.close()
+    }
 
     return {
       step,

@@ -7,8 +7,11 @@ export async function printFlowLogs(options: { flowId: string; configFile: Confi
   let log: Log | undefined
   try {
     const logger = await options.configFile.logger.callInitializeLogger({ repoPath: options.repoPath })
-    log = logger('print-flow')
-    const cache = await options.configFile.cache.callInitializeCache({ flowId: options.flowId, log: logger('cache') })
+    log = logger.createLog('print-flow')
+    const cache = await options.configFile.cache.callInitializeCache({
+      flowId: options.flowId,
+      log: logger.createLog('cache'),
+    })
     cleanups.push(cache.cleanup)
 
     const flowLogsResult = await cache.get(toFlowLogsContentKey(options.flowId), r => {
@@ -32,7 +35,11 @@ export async function printFlowLogs(options: { flowId: string; configFile: Confi
       log?.error(`CI failed unexpectedly`, error)
     }
     process.exitCode = 1
-  } finally {
-    await Promise.all(cleanups.map(f => f().catch(e => log?.error(`cleanup function failed to run`, e))))
+  }
+  const result = await Promise.allSettled(
+    cleanups.map(f => f().catch(e => log?.error(`cleanup function failed to run`, e))),
+  )
+  if (result.some(r => r.status === 'rejected')) {
+    throw result
   }
 }

@@ -40,7 +40,6 @@ export async function startCli(processArgv: string[]) {
         })
       } else {
         await ci({
-          logFilePath: './nc.log',
           repoPath,
           configFile,
         })

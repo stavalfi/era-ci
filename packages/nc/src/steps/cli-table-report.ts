@@ -1,7 +1,7 @@
 import Table, { CellOptions } from 'cli-table3'
 import colors from 'colors/safe'
 import prettyMs from 'pretty-ms'
-import { createStep, StepExecutionStatus, StepStatus } from '../create-step'
+import { createStep, ExecutionStatus, Status } from '../create-step'
 import { JsonReport } from './json-report'
 
 // note: this file is not tested (or can't be tested). modify with caution!!!
@@ -30,25 +30,25 @@ const good = (word: string) => colors.green(word)
 const bad = (word: string) => colors.red(word)
 
 const STEP_RESULT_STATUS_COLORED = {
-  [StepStatus.passed]: good('Passed'),
-  [StepStatus.failed]: bad('Failed'),
-  [StepStatus.skippedAsPassed]: good('Skipped'),
-  [StepStatus.skippedAsFailed]: bad('Skipped'),
+  [Status.passed]: good('Passed'),
+  [Status.failed]: bad('Failed'),
+  [Status.skippedAsPassed]: good('Skipped'),
+  [Status.skippedAsFailed]: bad('Skipped'),
 }
 
 const STEP_EXECUTION_STATUS_COLORED = {
-  [StepExecutionStatus.aborted]: colors.bgCyan('aborted'),
-  [StepExecutionStatus.running]: colors.rainbow('running'),
-  [StepExecutionStatus.scheduled]: colors.america('scheduled'),
+  [ExecutionStatus.aborted]: colors.bgCyan('aborted'),
+  [ExecutionStatus.running]: colors.rainbow('running'),
+  [ExecutionStatus.scheduled]: colors.america('scheduled'),
 }
 
 function generatePackagesStatusReport(jsonReport: JsonReport): string {
   const orderedSteps = jsonReport.steps.map(step => step.data.stepInfo.stepName)
 
   const rows = jsonReport.artifacts.map(node => {
-    const stepsStatus = node.data.stepsResult.map(stepNode =>
-      stepNode.data.stepExecutionStatus === StepExecutionStatus.done
-        ? STEP_RESULT_STATUS_COLORED[stepNode.data.stepResult.status]
+    const stepsStatus = node.data.stepsSummary.map(stepNode =>
+      stepNode.data.stepExecutionStatus === ExecutionStatus.done
+        ? STEP_RESULT_STATUS_COLORED[stepNode.data.stepSummary.status]
         : STEP_EXECUTION_STATUS_COLORED[stepNode.data.stepExecutionStatus],
     )
 
@@ -57,9 +57,9 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
       stepsStatusOrdered: stepsStatus,
       summaryStatus: STEP_RESULT_STATUS_COLORED[node.data.stepsSummary.status],
       duration: prettyMs(node.data.stepsSummary.durationMs),
-      notes: node.data.stepsResult.flatMap(stepNode =>
-        stepNode.data.stepExecutionStatus === StepExecutionStatus.done
-          ? stepNode.data.stepResult.notes.map(node => `${stepNode.data.stepInfo.stepName} - ${node}`)
+      notes: node.data.stepsSummary.flatMap(stepNode =>
+        stepNode.data.stepExecutionStatus === ExecutionStatus.done
+          ? stepNode.data.stepSummary.notes.map(node => `${stepNode.data.stepInfo.stepName} - ${node}`)
           : [],
       ),
     }
@@ -186,7 +186,8 @@ export const cliTableReport = createStep<CliTableReportConfiguration>({
     log.noFormattingInfo(summaryReport)
 
     return {
-      status: StepStatus.passed,
+      notes: [],
+      status: Status.passed,
     }
   },
 })

@@ -17,7 +17,7 @@ module.exports = async function start() {
     // in ci, we run this script on time from bitbucket-pipelines.yml (to avoid running this on every package)
     await up().catch(async e => {
       // eslint-disable-next-line no-console
-      console.log('failed to use load resoruces using docker-compose. deleting all and loading them again...', e)
+      console.log('failed to load resoruces using docker-compose. deleting all and loading them again...', e)
       await down()
       return up()
     })

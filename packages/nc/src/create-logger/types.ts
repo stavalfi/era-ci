@@ -14,4 +14,7 @@ export type Log = {
   errorFromStream: (stream: NodeJS.ReadableStream) => void
 }
 
-export type Logger = (moduleName: string) => Log
+export type Logger = {
+  logFilePath: string
+  createLog: (moduleName: string) => Log
+}

@@ -34,8 +34,11 @@ export {
 export { LoggerConfiguration, winstonLogger } from './winston-logger'
 export { CacheConfiguration, redisWithNodeCache } from './redis-with-node-cache'
 
-if (require.main === module) {
-  startCli(process.argv).finally(() => {
+async function main() {
+  try {
+    await startCli(process.argv)
+  } finally {
+    console.error('stav11', process.env.NC_TEST_MODE, process.exitCode)
     // eslint-disable-next-line no-process-env
     if (process.env.NC_TEST_MODE) {
       // jest don't show last two console logs so we add this as a workaround
@@ -45,5 +48,10 @@ if (require.main === module) {
       // eslint-disable-next-line no-console
       console.log('---------------------------')
     }
-  })
+  }
+}
+
+if (require.main === module) {
+  // eslint-disable-next-line no-floating-promise/no-floating-promise
+  main()
 }

@@ -46,7 +46,8 @@ export default async (): Promise<ConfigFile> => {
 
   const logger = winstonLogger({
     customLogLevel: LogLevel.verbose,
-    disable: false,
+    disabled: false,
+    logFilePath: './nc.log',
   })
 
   const cache = redisWithNodeCache({
@@ -80,7 +81,7 @@ export default async (): Promise<ConfigFile> => {
       shouldPublish: isMasterBuild,
       dockerOrganizationName: 'stavalfi',
       registry: `https://registry.hub.docker.com/`,
-      publishAuth: {
+      registryAuth: {
         username: DOCKER_HUB_USERNAME!,
         token: DOCKER_HUB_TOKEN!,
       },
