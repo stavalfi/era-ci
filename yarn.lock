@@ -659,6 +659,13 @@
     "@types/yargs" "^15.0.0"
     chalk "^4.0.0"
 
+"@node-rs/helper@^0.4.0":
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/@node-rs/helper/-/helper-0.4.0.tgz#deec7d95aafa90535980a51cbd5336b8bbefe93a"
+  integrity sha512-fSyHEXmlt/FueKqAYiGFCnkohnQBMQwUr6VYPeZEeVBAzQzhioS1WaRe2fSpOuRKIimCQEvxhQ6fwsYxYakfGA==
+  dependencies:
+    tslib "^2.0.1"
+
 "@nodelib/fs.scandir@2.1.3":
   version "2.1.3"
   resolved "https://registry.yarnpkg.com/@nodelib/fs.scandir/-/fs.scandir-2.1.3.tgz#3a582bdb53804c6ba6d146579c46e52130cf4a3b"
@@ -724,6 +731,32 @@
     slash "^2.0.0"
     source-map "^0.7.3"
 
+"@swc/core-darwin@^1.2.34":
+  version "1.2.34"
+  resolved "https://registry.yarnpkg.com/@swc/core-darwin/-/core-darwin-1.2.34.tgz#dd69b1a12b7a2cb9e43a5e8a78a8d2d7ff392f53"
+  integrity sha512-OKOHOcqBgvBQiGC7doCa4CXKVDpO1QMIQogCFelqs82YbcQa6YEWvB6+ujiw1oUWaXP2fed1TFHDpHFJWorxIQ==
+
+"@swc/core-linux@^1.2.34":
+  version "1.2.34"
+  resolved "https://registry.yarnpkg.com/@swc/core-linux/-/core-linux-1.2.34.tgz#927fbdbfed1e842bbda4dc96d1407c5a0e67234d"
+  integrity sha512-85ryQe9M4xPY9R4mRfbU/Gk/z45GVPG1LiJhf99jA+7RmNiffwJXLRuD8SwkE5rKHO8My1mVCha8uBQnZIDhEg==
+
+"@swc/core-win32@^1.2.34":
+  version "1.2.34"
+  resolved "https://registry.yarnpkg.com/@swc/core-win32/-/core-win32-1.2.34.tgz#2eeba70a72bb71acf4efcfab099d4cb96826b587"
+  integrity sha512-DxxKEo9Q/jOGTXizPJXdKkfSjGU3cU4df9ZY7nslWVp0c7r+hnHcplh2A1CklOdLinUTBUP+3DHtLTyhLElPBg==
+
+"@swc/core@^1.2.30":
+  version "1.2.34"
+  resolved "https://registry.yarnpkg.com/@swc/core/-/core-1.2.34.tgz#bd1d64d219cf116667517aadd7eb804045743d7c"
+  integrity sha512-V0qMusSNpKUwkjN42zfeEEILldnAx+XFVH7q96ofrM/MRYDWjYZJU9eaCwAGNb/bLS7+UWq8e/nxxpOvKLnjdQ==
+  dependencies:
+    "@node-rs/helper" "^0.4.0"
+  optionalDependencies:
+    "@swc/core-darwin" "^1.2.34"
+    "@swc/core-linux" "^1.2.34"
+    "@swc/core-win32" "^1.2.34"
+
 "@swc/core@^1.2.9":
   version "1.2.9"
   resolved "https://registry.yarnpkg.com/@swc/core/-/core-1.2.9.tgz#e115b6f0a6b510894dfdb124befe15ee68d6fbb9"
@@ -734,12 +767,30 @@
     progress "^2.0.3"
     "true-case-path" "^1.0.3"
 
+"@swc/jest@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@swc/jest/-/jest-0.1.2.tgz#5195f2439c60430dff661b4a7b5c904483791eb7"
+  integrity sha512-14ju3wkSsTeKFivYzH222j4/y5UQWY5Wk9fOvPit6wyuZNyo4fP6AVYWwVzogmqQNe06IMs+aPJGQ3FbErRZjQ==
+  dependencies:
+    "@swc/core" "^1.2.30"
+
 "@szmarczak/http-timer@^4.0.5":
   version "4.0.5"
   resolved "https://registry.yarnpkg.com/@szmarczak/http-timer/-/http-timer-4.0.5.tgz#bfbd50211e9dfa51ba07da58a14cdfd333205152"
   integrity sha512-PyRA9sm1Yayuj5OIoJ1hGt2YISX45w9WcFbh6ddT0Z/0yaFxOtGLInr4jUfU1EAFVs0Yfyfev4RNwBlUaHdlDQ==
   dependencies:
     defer-to-connect "^2.0.0"
+
+"@tahini/log@^1.0.0":
+  version "1.2.92"
+  resolved "https://registry.yarnpkg.com/@tahini/log/-/log-1.2.92.tgz#c1271a5288e81493b15b31c6ca95f7b066c10bab"
+  integrity sha512-XpOQRo4oErJ7OQ5Zy+Mw10mC4mdAgYDg4DlgRy87hSJpjMnEW9ZrV1bGdpBnUkAAw9ASL4pP9EHnz+JoqO1oCw==
+  dependencies:
+    chalk "^4.1.0"
+    ci-info "https://github.com/watson/ci-info.git"
+    fs-extra "^9.0.0"
+    randomcolor "^0.6.2"
+    winston "^3.3.3"
 
 "@types/babel__core@^7.0.0", "@types/babel__core@^7.1.7":
   version "7.1.9"
@@ -1034,6 +1085,11 @@
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@types/tmp/-/tmp-0.1.0.tgz#19cf73a7bcf641965485119726397a096f0049bd"
   integrity sha512-6IwZ9HzWbCq6XoQWhxLpDjuADodH/MKXRUIDFudvgjcVdjFknvmR+DNsoUeer4XPrEnrZs04Jj+kfV9pFsrhmA==
+
+"@types/traverse@^0.6.32":
+  version "0.6.32"
+  resolved "https://registry.yarnpkg.com/@types/traverse/-/traverse-0.6.32.tgz#f9fdfa40cd4898deaa975a14511aec731de8235e"
+  integrity sha512-RBz2uRZVCXuMg93WD//aTS5B120QlT4lR/gL+935QtGsKHLS6sCtZBaKfWjIfk7ZXv/r8mtGbwjVIee6/3XTow==
 
 "@types/url-parse@^1.4.3":
   version "1.4.3"
@@ -5326,6 +5382,13 @@ semver@^6.0.0, semver@^6.1.2, semver@^6.3.0:
   resolved "https://registry.yarnpkg.com/semver/-/semver-6.3.0.tgz#ee0a64c8af5e8ceea67687b133761e1becbd1d3d"
   integrity sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw==
 
+serialize-error@^7.0.1:
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/serialize-error/-/serialize-error-7.0.1.tgz#f1360b0447f61ffb483ec4157c737fab7d778e18"
+  integrity sha512-8I8TjW5KMOKsZQTvoxjuSIa7foAwPWGOts+6o7sgjz41/qMD9VQHEDxi6PBvK2l0MXUmqZyNpUK+T2tQaaElvw==
+  dependencies:
+    type-fest "^0.13.1"
+
 set-blocking@^2.0.0, set-blocking@~2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/set-blocking/-/set-blocking-2.0.0.tgz#045f9782d011ae9a6803ddd382b24392b3d890f7"
@@ -5881,6 +5944,11 @@ tr46@^2.0.2:
   dependencies:
     punycode "^2.1.1"
 
+traverse@^0.6.6:
+  version "0.6.6"
+  resolved "https://registry.yarnpkg.com/traverse/-/traverse-0.6.6.tgz#cbdf560fd7b9af632502fed40f918c157ea97137"
+  integrity sha1-y99WD9e5r2MlAv7UD5GMFX6pcTc=
+
 triple-beam@^1.2.0, triple-beam@^1.3.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/triple-beam/-/triple-beam-1.3.0.tgz#a595214c7298db8339eeeee083e4d10bd8cb8dd9"
@@ -5925,6 +5993,11 @@ tslib@^1.8.1, tslib@^1.9.0:
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.12.0.tgz#d1fc9cacd06a1456c62f2902b361573e83d66473"
   integrity sha512-5rxCQkP0kytf4H1T4xz1imjxaUUPMvc5aWp0rJ/VMIN7ClRiH1FwFvBt8wOeMasp/epeUnmSW6CixSIePtiLqA==
 
+tslib@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.0.1.tgz#410eb0d113e5b6356490eec749603725b021b43e"
+  integrity sha512-SgIkNheinmEBgx1IUNirK0TUD4X9yjjBRTqqjggWCU3pUEqIk3/Uwl3yRixYKT6WjQuGiwDv4NomL3wqRCj+CQ==
+
 tsutils@^3.17.1:
   version "3.17.1"
   resolved "https://registry.yarnpkg.com/tsutils/-/tsutils-3.17.1.tgz#ed719917f11ca0dee586272b2ac49e015a2dd759"
@@ -5960,6 +6033,11 @@ type-fest@^0.11.0:
   version "0.11.0"
   resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-0.11.0.tgz#97abf0872310fed88a5c466b25681576145e33f1"
   integrity sha512-OdjXJxnCN1AvyLSzeKIgXTXxV+99ZuXl3Hpo9XpJAv9MBcHrrJOQ5kV7ypXOuQie+AmWG25hLbiKdwYTifzcfQ==
+
+type-fest@^0.13.1:
+  version "0.13.1"
+  resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-0.13.1.tgz#0172cb5bce80b0bd542ea348db50c7e21834d934"
+  integrity sha512-34R7HTnG0XIJcBSn5XhDd7nNFPRcXYRZrBB2O2jdKqYODldSzBAqzsWoZYYvduky73toYS/ESqxPvkDf/F0XMg==
 
 type-fest@^0.6.0:
   version "0.6.0"

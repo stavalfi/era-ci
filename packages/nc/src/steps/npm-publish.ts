@@ -287,7 +287,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
             artifactName: currentArtifact.data.artifact.packageJson.name,
           }),
           newVersion,
-          cache.ttls.stepResult,
+          cache.ttls.stepSummary,
         ),
       )
       .finally(() =>

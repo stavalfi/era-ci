@@ -2,29 +2,28 @@ import execa from 'execa'
 import _ from 'lodash'
 import path from 'path'
 import { Log } from './create-logger'
-import { StepExecutionStatus, StepStatus } from './create-step'
-import { Graph, RunStep, Step, StepNodeData, StepResultOfAllPackages } from './types'
+import { Step, Status, ExecutionStatus, StepInfo, StepsResultOfArtifacts } from './create-step'
+import { Graph } from './types'
 
-export const didPassOrSkippedAsPassed = (stepStatus: StepStatus) =>
-  [StepStatus.passed, StepStatus.skippedAsPassed].includes(stepStatus)
+export const didPassOrSkippedAsPassed = (status: Status) => [Status.passed, Status.skippedAsPassed].includes(status)
 
-export function calculateCombinedStatus(statuses: StepStatus[]): StepStatus {
+export function calculateCombinedStatus(statuses: Status[]): Status {
   if (statuses.length === 0) {
-    return StepStatus.skippedAsPassed
+    return Status.skippedAsPassed
   }
-  if (statuses.includes(StepStatus.failed)) {
-    return StepStatus.failed
+  if (statuses.includes(Status.failed)) {
+    return Status.failed
   }
-  if (statuses.includes(StepStatus.skippedAsFailed)) {
-    return StepStatus.skippedAsFailed
+  if (statuses.includes(Status.skippedAsFailed)) {
+    return Status.skippedAsFailed
   }
-  if (statuses.includes(StepStatus.skippedAsPassed)) {
-    return StepStatus.skippedAsPassed
+  if (statuses.includes(Status.skippedAsPassed)) {
+    return Status.skippedAsPassed
   }
-  return StepStatus.passed
+  return Status.passed
 }
 
-export function getStepsAsGraph(steps: Step[]): Graph<StepNodeData<StepResultOfAllPackages> & { runStep: RunStep }> {
+export function getStepsAsGraph(steps: Step[]): Graph<{ stepInfo: StepInfo; runStep: Step['runStep'] }> {
   return steps.map((step, i, array) => ({
     index: i,
     data: {
@@ -33,23 +32,33 @@ export function getStepsAsGraph(steps: Step[]): Graph<StepNodeData<StepResultOfA
         stepId: `${step.stepName}-${i}`,
       },
       runStep: step.runStep,
-      stepExecutionStatus: StepExecutionStatus.scheduled,
+      ExecutionStatus: ExecutionStatus.scheduled,
     },
     childrenIndexes: i === 0 ? [] : [i - 1],
     parentsIndexes: i === array.length - 1 ? [] : [i - 1],
   }))
 }
 
-export function getExitCode(steps: Graph<StepNodeData<StepResultOfAllPackages>>): number {
+export function getExitCode(stepsResultOfArtifacts: StepsResultOfArtifacts<unknown>): number {
   const finalStepsStatus = calculateCombinedStatus(
-    steps.map(n =>
-      n.data.stepExecutionStatus === StepExecutionStatus.done
-        ? n.data.stepResult.stepSummary.status
-        : StepStatus.failed,
+    _.flatMapDeep(
+      stepsResultOfArtifacts.map(s => {
+        switch (s.data.stepExecutionStatus) {
+          case ExecutionStatus.done:
+            return s.data.stepExecutionStatus === ExecutionStatus.done
+              ? s.data.artifactsResult.map(y => y.data.artifactStepResult.status)
+              : []
+          case ExecutionStatus.aborted:
+            return [Status.failed]
+          case ExecutionStatus.running:
+            return []
+          case ExecutionStatus.scheduled:
+            return []
+        }
+      }),
     ),
   )
-
-  if ([StepStatus.passed, StepStatus.skippedAsPassed].includes(finalStepsStatus)) {
+  if ([Status.passed, Status.skippedAsPassed].includes(finalStepsStatus)) {
     return 0
   } else {
     return 1
@@ -65,13 +74,16 @@ type SupportedExecaCommandOptions = Omit<execa.Options, 'stderr' | 'stdout' | 'a
   Required<Pick<execa.Options, 'stdio'>> & { log: Log }
 
 export async function execaCommand<Options extends SupportedExecaCommandOptions>(
-  command: string,
+  command: string | [string, ...string[]],
   options: Options['stdio'] extends 'inherit' ? SupportedExecaCommandOptions : Options,
 ): Promise<execa.ExecaReturnValue<string>> {
-  const subprocess = execa.command(command, {
+  const execaOptions = {
     ..._.omit(options, ['logLevel']),
     stdio: options.stdio === 'inherit' ? 'pipe' : options.stdio,
-  })
+  }
+  const subprocess = Array.isArray(command)
+    ? execa(command[0], command.slice(1), execaOptions)
+    : execa.command(command, execaOptions)
 
   if (options.stdio === 'ignore') {
     return subprocess

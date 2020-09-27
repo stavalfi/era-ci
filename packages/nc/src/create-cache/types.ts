@@ -1,7 +1,7 @@
 import { ValueType, Redis } from 'ioredis'
 import NodeCache from 'node-cache'
 import { Log } from '../create-logger'
-import { StepStatus } from '../create-step'
+import { ExecutionStatus, Status } from '../create-step'
 
 export type Cache = {
   step: {
@@ -12,7 +12,7 @@ export type Cache = {
     }) => Promise<
       | {
           didStepRun: true
-          StepStatus: StepStatus
+          status: Status
           flowId: string
         }
       | { didStepRun: false }
@@ -21,8 +21,9 @@ export type Cache = {
     setStepResult: (options: {
       stepId: string
       packageHash: string
-      stepStatus: StepStatus
       ttlMs: number
+      stepExecutionStatus: ExecutionStatus.done
+      stepStatus: Status
     }) => Promise<void>
   }
   get: <T>(key: string, mapper: (result: unknown) => T) => Promise<{ flowId: string; value: T } | undefined>
@@ -31,7 +32,7 @@ export type Cache = {
   nodeCache: NodeCache
   redisClient: Redis
   ttls: {
-    stepResult: number
+    stepSummary: number
     flowLogs: number
   }
   cleanup: () => Promise<unknown>

@@ -1,17 +1,7 @@
 import _ from 'lodash'
-import { Cache } from '../create-cache'
-import { Log } from '../create-logger'
-import {
-  Artifact,
-  CanRunStepOnArtifact,
-  CanRunStepOnArtifactResult,
-  RootPackage,
-  StepNodeData,
-  StepResultOfAllPackages,
-  Graph,
-} from '../types'
+import { Artifact, Node } from '../types'
 import { didPassOrSkippedAsPassed } from '../utils'
-import { StepExecutionStatus, StepStatus } from './types'
+import { CanRunStepOnArtifact, CanRunStepOnArtifactResult, ExecutionStatus, Status, UserRunStepOptions } from './types'
 
 const runAll = async (
   array: { checkName: string; predicate: () => Promise<CanRunStepOnArtifactResult> }[],
@@ -34,25 +24,25 @@ const runAll = async (
     return {
       canRun: false,
       notes,
-      stepStatus: results.reduce((acc: StepStatus, x) => {
+      stepStatus: results.reduce((acc: Status, x) => {
         if (x.canRun) {
           return acc
         } else {
-          if (acc === StepStatus.failed) {
+          if (acc === Status.failed) {
             return acc
           }
-          if (x.stepStatus === StepStatus.failed) {
+          if (x.stepStatus === Status.failed) {
             return x.stepStatus
           }
-          if (acc === StepStatus.skippedAsFailed) {
+          if (acc === Status.skippedAsFailed) {
             return acc
           }
-          if (x.stepStatus === StepStatus.skippedAsFailed) {
+          if (x.stepStatus === Status.skippedAsFailed) {
             return x.stepStatus
           }
-          return StepStatus.skippedAsPassed
+          return Status.skippedAsPassed
         }
-      }, StepStatus.skippedAsPassed),
+      }, Status.skippedAsPassed),
     }
   }
 }
@@ -60,24 +50,18 @@ const runAll = async (
 async function skipIfPackageResultsInCachePredicate<StepConfigurations>({
   canRunStepOnArtifact,
   cache,
-  allArtifacts,
-  currentArtifactIndex,
-  allSteps,
-  currentStepIndex,
-}: {
+  currentArtifact,
+  currentStepInfo,
+}: UserRunStepOptions<StepConfigurations> & {
+  currentArtifact: Node<{ artifact: Artifact }>
   canRunStepOnArtifact?: CanRunStepOnArtifact<StepConfigurations>
-  allArtifacts: Graph<{ artifact: Artifact }>
-  currentArtifactIndex: number
-  cache: Cache
-  currentStepIndex: number
-  allSteps: Graph<StepNodeData<StepResultOfAllPackages>>
 }): Promise<CanRunStepOnArtifactResult> {
   const result = await cache.step.getStepResult({
-    stepId: allSteps[currentStepIndex].data.stepInfo.stepId,
-    packageHash: allArtifacts[currentArtifactIndex].data.artifact.packageHash,
+    stepId: currentStepInfo.data.stepInfo.stepId,
+    packageHash: currentArtifact.data.artifact.packageHash,
   })
   if (result?.didStepRun) {
-    const isPassed = didPassOrSkippedAsPassed(result.StepStatus)
+    const isPassed = didPassOrSkippedAsPassed(result.status)
     const note = `step already run on this package with the same hash in flow-id: "${result.flowId}". result: "${
       isPassed ? 'passed' : 'failed'
     }"`
@@ -85,7 +69,7 @@ async function skipIfPackageResultsInCachePredicate<StepConfigurations>({
       return {
         canRun: false,
         notes: [note],
-        stepStatus: isPassed ? StepStatus.skippedAsPassed : StepStatus.skippedAsFailed,
+        stepStatus: isPassed ? Status.skippedAsPassed : Status.skippedAsFailed,
       }
     } else {
       return {
@@ -102,24 +86,22 @@ async function skipIfPackageResultsInCachePredicate<StepConfigurations>({
 }
 
 async function skipIfSomeDirectPrevStepsFailedOnPackage<StepConfigurations>({
-  allSteps,
-  currentStepIndex,
+  stepsResultOfArtifacts,
+  currentStepInfo,
   canRunStepOnArtifact,
-  currentArtifactIndex,
-}: {
-  currentStepIndex: number
-  allSteps: Graph<StepNodeData<StepResultOfAllPackages>>
+  currentArtifact,
+}: UserRunStepOptions<StepConfigurations> & {
+  currentArtifact: Node<{ artifact: Artifact }>
   canRunStepOnArtifact?: CanRunStepOnArtifact<StepConfigurations>
-  currentArtifactIndex: number
 }): Promise<CanRunStepOnArtifactResult> {
   const notes: string[] = []
-  const didAllPrevPassed = await allSteps[currentStepIndex].parentsIndexes
-    .map((_result, i) => allSteps[i].data)
+  const didAllPrevPassed = await currentStepInfo.parentsIndexes
+    .map((_result, i) => stepsResultOfArtifacts[i].data)
     .every(
       step =>
-        step.stepExecutionStatus === StepExecutionStatus.done &&
-        [StepStatus.passed, StepStatus.skippedAsPassed].includes(
-          step.stepResult.artifactsResult[currentArtifactIndex].data.stepResult.status,
+        step.stepExecutionStatus === ExecutionStatus.done &&
+        [Status.passed, Status.skippedAsPassed].includes(
+          step.artifactsResult[currentArtifact.index].data.artifactStepResult.status,
         ),
     )
   if (didAllPrevPassed) {
@@ -135,7 +117,7 @@ async function skipIfSomeDirectPrevStepsFailedOnPackage<StepConfigurations>({
       return {
         canRun: false,
         notes,
-        stepStatus: StepStatus.skippedAsFailed,
+        stepStatus: Status.skippedAsFailed,
       }
     } else {
       return {
@@ -146,34 +128,18 @@ async function skipIfSomeDirectPrevStepsFailedOnPackage<StepConfigurations>({
   }
 }
 
-export async function checkIfCanRunStepOnArtifact<StepConfigurations>(options: {
-  canRunStepOnArtifact?: CanRunStepOnArtifact<StepConfigurations>
-  allArtifacts: Graph<{ artifact: Artifact }>
-  currentArtifactIndex: number
-  cache: Cache
-  currentStepIndex: number
-  allSteps: Graph<StepNodeData<StepResultOfAllPackages>>
-  rootPackage: RootPackage
-  stepConfigurations: StepConfigurations
-  log: Log
-  repoPath: string
-}): Promise<CanRunStepOnArtifactResult> {
+export async function checkIfCanRunStepOnArtifact<StepConfigurations>(
+  options: UserRunStepOptions<StepConfigurations> & {
+    currentArtifact: Node<{ artifact: Artifact }>
+    canRunStepOnArtifact?: CanRunStepOnArtifact<StepConfigurations>
+  },
+): Promise<CanRunStepOnArtifactResult> {
   return runAll([
     {
       checkName: 'custom-step-predicate',
       predicate: async () =>
         options.canRunStepOnArtifact?.customPredicate
-          ? options.canRunStepOnArtifact.customPredicate({
-              cache: options.cache,
-              allArtifacts: options.allArtifacts,
-              allSteps: options.allSteps,
-              currentStepInfo: options.allSteps[options.currentStepIndex],
-              currentArtifact: options.allArtifacts[options.currentArtifactIndex],
-              rootPackage: options.rootPackage,
-              stepConfigurations: options.stepConfigurations,
-              log: options.log,
-              repoPath: options.repoPath,
-            })
+          ? options.canRunStepOnArtifact.customPredicate(_.omit(options, ['currentArtifact', 'canRunStepOnArtifact']))
           : { canRun: true, notes: [] },
     },
     {

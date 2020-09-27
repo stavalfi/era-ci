@@ -1,15 +1,11 @@
 import { execaCommand } from '../utils'
-import { createStep, StepStatus } from '../create-step'
+import { createStep, Status } from '../create-step'
 
 export const build = createStep({
   stepName: 'build',
   canRunStepOnArtifact: {
-    customPredicate: async ({ rootPackage }) => {
-      if (
-        rootPackage.packageJson.scripts &&
-        'build' in rootPackage.packageJson.scripts &&
-        rootPackage.packageJson.scripts.build
-      ) {
+    customPredicate: async ({ rootPackageJson }) => {
+      if (rootPackageJson.scripts && 'build' in rootPackageJson.scripts && rootPackageJson.scripts.build) {
         return {
           canRun: true,
           notes: [],
@@ -18,7 +14,7 @@ export const build = createStep({
         return {
           canRun: false,
           notes: [],
-          stepStatus: StepStatus.skippedAsPassed,
+          stepStatus: Status.skippedAsPassed,
         }
       }
     },
@@ -31,7 +27,8 @@ export const build = createStep({
     })
 
     return {
-      status: StepStatus.passed,
+      notes: [],
+      status: Status.passed,
     }
   },
 })

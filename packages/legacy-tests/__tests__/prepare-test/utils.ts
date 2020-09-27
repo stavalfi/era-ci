@@ -2,7 +2,7 @@ import ciInfo from 'ci-info'
 import execa, { StdioOption } from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
-import { Log } from '../../src'
+import { Log } from '@tahini/nc'
 import { latestNpmPackageVersion, publishedDockerImageTags, publishedNpmPackageVersions } from './seach-targets'
 import { CiResults, ResultingArtifact, TestOptions, ToActualName } from './types'
 
@@ -58,34 +58,29 @@ export async function runNcExecutable({
       stdio = 'inherit'
     }
   }
-
-  const configFilePath = path.join(__dirname, 'test-nc.config.ts')
-
-  return execa.command(
-    `node --unhandled-rejections=strict ${path.join(
-      __dirname,
-      '../../dist/src/index.js',
-    )} --config-file ${configFilePath} --repo-path ${repoPath} ${printFlowId ? `--print-flow ${printFlowId}` : ''}`,
-    {
-      stdio,
-      reject: testOptions?.execaOptions?.reject !== undefined ? testOptions.execaOptions?.reject : true,
-      env: {
-        SHOULD_PUBLISH_NPM: testOptions?.targetsInfo?.npm?.shouldPublish ? 'true' : '',
-        SHOULD_PUBLISH_DOCKER: testOptions?.targetsInfo?.docker?.shouldPublish ? 'true' : '',
-        DOCKER_ORGANIZATION_NAME: dockerOrganizationName,
-        DOCKER_REGISTRY: dockerRegistry,
-        NPM_REGISTRY: npmRegistry.address,
-        NPM_EMAIL: npmRegistry.auth.email,
-        NPM_USERNAME: npmRegistry.auth.username,
-        NPM_TOKEN: npmRegistry.auth.token,
-        DOCKER_HUB_USERNAME: '',
-        DOCKER_HUB_TOKEN: '',
-        REDIS_ENDPOINT: redisServer,
-        REDIS_PASSWORD: '',
-        TEST_SCRIPT_NAME: 'test',
-      },
+  const configFilePath = require.resolve('./test-nc.config.ts')
+  const nc = require.resolve('@tahini/nc')
+  const withFlowId = printFlowId ? `--print-flow ${printFlowId}` : ''
+  const command = `node --unhandled-rejections=strict ${nc} --config-file ${configFilePath} --repo-path ${repoPath} ${withFlowId}`
+  return execa.command(command, {
+    stdio,
+    reject: testOptions?.execaOptions?.reject !== undefined ? testOptions.execaOptions?.reject : true,
+    env: {
+      SHOULD_PUBLISH_NPM: testOptions?.targetsInfo?.npm?.shouldPublish ? 'true' : '',
+      SHOULD_PUBLISH_DOCKER: testOptions?.targetsInfo?.docker?.shouldPublish ? 'true' : '',
+      DOCKER_ORGANIZATION_NAME: dockerOrganizationName,
+      DOCKER_REGISTRY: dockerRegistry,
+      NPM_REGISTRY: npmRegistry.address,
+      NPM_EMAIL: npmRegistry.auth.email,
+      NPM_USERNAME: npmRegistry.auth.username,
+      NPM_TOKEN: npmRegistry.auth.token,
+      DOCKER_HUB_USERNAME: '',
+      DOCKER_HUB_TOKEN: '',
+      REDIS_ENDPOINT: redisServer,
+      REDIS_PASSWORD: '',
+      TEST_SCRIPT_NAME: 'test',
     },
-  )
+  })
 }
 
 export async function runCiUsingConfigFile({
@@ -95,12 +90,10 @@ export async function runCiUsingConfigFile({
   dockerRegistry,
   npmRegistry,
   toOriginalName,
-  logFilePath,
   redisServer,
   log,
   printFlowId,
 }: {
-  logFilePath: string
   repoPath: string
   testOptions?: TestOptions
   npmRegistry: { address: string; auth: { username: string; token: string; email: string } }
@@ -159,7 +152,7 @@ export async function runCiUsingConfigFile({
       artifact.docker.tags.length > 0 || artifact.npm.versions.length > 0 || artifact.npm.highestVersion,
   )
 
-  const ncLogfileContent = await fse.readFile(logFilePath, 'utf-8')
+  const ncLogfileContent = await fse.readFile(path.join(repoPath, 'nc.log'), 'utf-8')
 
   const flowIdResult = ncLogfileContent.match(/flow-id: "(.*)"/)
   let flowId: string | undefined

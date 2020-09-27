@@ -1,80 +1,71 @@
-import { Logger } from '../create-logger'
+import { Artifact, Graph } from '../types'
+import { calculateCombinedStatus } from '../utils'
+import { checkIfCanRunStepOnArtifact } from './can-run-step'
 import {
   CanRunStepOnArtifactResult,
   CreateStepOptions,
+  ExecutionStatus,
+  Result,
   RunStepOnArtifact,
+  RunStepOnArtifacts,
   RunStepOnRoot,
   RunStepOptions,
+  Status,
   Step,
-  StepResultOfAllPackages,
+  StepInfo,
+  StepResultOfArtifacts,
+  StepsResultOfArtifactsByStep,
+  StepsResultOfArtifactsByArtifact,
   UserArtifactResult,
   UserRunStepOptions,
   UserStepResult,
-} from '../types'
-import { calculateCombinedStatus } from '../utils'
-import { checkIfCanRunStepOnArtifact } from './can-run-step'
-import { StepExecutionStatus, StepStatus } from './types'
+  StepsResultOfArtifact,
+} from './types'
 import { validateUserStepResult } from './validations'
 
-export { StepStatus, StepExecutionStatus }
+export {
+  Status,
+  ExecutionStatus,
+  Step,
+  StepsResultOfArtifactsByStep,
+  StepsResultOfArtifactsByArtifact,
+  StepInfo,
+  StepResultOfArtifacts,
+  Result,
+  StepsResultOfArtifact,
+}
 
 async function runStepOnEveryArtifact<StepConfigurations>({
-  startMs,
   beforeAll,
   runStepOnArtifact,
   afterAll,
-  runStepOptions,
   canRunStepResultOnArtifacts,
-  stepConfigurations,
-  logger,
+  userRunStepOptions,
 }: {
-  startMs: number
+  userRunStepOptions: UserRunStepOptions<StepConfigurations>
   beforeAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
   runStepOnArtifact: RunStepOnArtifact<StepConfigurations>
   afterAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
-  runStepOptions: RunStepOptions
   canRunStepResultOnArtifacts: CanRunStepOnArtifactResult[]
-  stepConfigurations: StepConfigurations
-  logger: Logger
-}): Promise<UserStepResult> {
+}): ReturnType<RunStepOnArtifacts<StepConfigurations>> {
   if (beforeAll) {
-    await beforeAll({
-      allArtifacts: runStepOptions.allArtifacts,
-      cache: runStepOptions.cache,
-      log: logger(runStepOptions.stepName),
-      repoPath: runStepOptions.repoPath,
-      stepName: runStepOptions.stepName,
-      stepConfigurations,
-      flowId: runStepOptions.flowId,
-      startFlowMs: runStepOptions.startFlowMs,
-      stepId: runStepOptions.stepId,
-      steps: runStepOptions.allSteps,
-    })
+    await beforeAll(userRunStepOptions)
   }
   const artifactsResult: UserArtifactResult[] = []
-  for (const [i, artifact] of runStepOptions.allArtifacts.entries()) {
+  for (const [i, artifact] of userRunStepOptions.artifacts.entries()) {
     const canRunResult = canRunStepResultOnArtifacts[i]
     if (canRunResult.canRun) {
       try {
         const stepResult = await runStepOnArtifact({
-          allArtifacts: runStepOptions.allArtifacts,
-          cache: runStepOptions.cache,
-          currentArtifact: runStepOptions.allArtifacts[i],
-          log: logger(runStepOptions.stepName),
-          repoPath: runStepOptions.repoPath,
-          stepName: runStepOptions.stepName,
-          stepConfigurations,
-          flowId: runStepOptions.flowId,
-          startFlowMs: runStepOptions.startFlowMs,
-          stepId: runStepOptions.stepId,
-          steps: runStepOptions.allSteps,
+          ...userRunStepOptions,
+          currentArtifact: userRunStepOptions.artifacts[i],
         })
         artifactsResult.push({
           artifactName: artifact.data.artifact.packageJson.name!,
           stepResult: {
             status: stepResult.status,
             notes: [],
-            durationMs: Date.now() - startMs,
+            durationMs: Date.now() - userRunStepOptions.startStepMs,
             error: stepResult.error,
           },
         })
@@ -82,9 +73,9 @@ async function runStepOnEveryArtifact<StepConfigurations>({
         artifactsResult.push({
           artifactName: artifact.data.artifact.packageJson.name!,
           stepResult: {
-            status: StepStatus.failed,
+            status: Status.failed,
             notes: [],
-            durationMs: Date.now() - startMs,
+            durationMs: Date.now() - userRunStepOptions.startStepMs,
             error,
           },
         })
@@ -95,29 +86,18 @@ async function runStepOnEveryArtifact<StepConfigurations>({
         stepResult: {
           status: canRunResult.stepStatus,
           notes: [],
-          durationMs: Date.now() - startMs,
+          durationMs: Date.now() - userRunStepOptions.startStepMs,
         },
       })
     }
   }
 
   if (afterAll) {
-    await afterAll({
-      allArtifacts: runStepOptions.allArtifacts,
-      cache: runStepOptions.cache,
-      log: logger(runStepOptions.stepName),
-      repoPath: runStepOptions.repoPath,
-      stepName: runStepOptions.stepName,
-      stepConfigurations,
-      flowId: runStepOptions.flowId,
-      startFlowMs: runStepOptions.startFlowMs,
-      stepId: runStepOptions.stepId,
-      steps: runStepOptions.allSteps,
-    })
+    await afterAll(userRunStepOptions)
   }
 
   return {
-    stepSummary: {
+    stepResult: {
       notes: [],
     },
     artifactsResult,
@@ -125,42 +105,25 @@ async function runStepOnEveryArtifact<StepConfigurations>({
 }
 
 async function runStepOnRoot<StepConfigurations>({
-  startMs,
-  runStepOnRoot,
-  runStepOptions,
-  stepConfigurations,
-  logger,
+  runStep,
+  userRunStepOptions,
 }: {
-  startMs: number
-  runStepOnRoot: RunStepOnRoot<StepConfigurations>
-  runStepOptions: RunStepOptions
-  stepConfigurations: StepConfigurations
-  logger: Logger
+  runStep: RunStepOnRoot<StepConfigurations>
+  userRunStepOptions: UserRunStepOptions<StepConfigurations>
 }): Promise<UserStepResult> {
-  const result = await runStepOnRoot({
-    allArtifacts: runStepOptions.allArtifacts,
-    cache: runStepOptions.cache,
-    log: logger(runStepOptions.stepName),
-    repoPath: runStepOptions.repoPath,
-    stepName: runStepOptions.stepName,
-    stepConfigurations,
-    flowId: runStepOptions.flowId,
-    startFlowMs: runStepOptions.startFlowMs,
-    stepId: runStepOptions.stepId,
-    steps: runStepOptions.allSteps,
-  })
+  const result = await runStep(userRunStepOptions)
 
   return {
-    stepSummary: {
+    stepResult: {
       notes: result.notes || [],
       error: result.error,
     },
-    artifactsResult: runStepOptions.allArtifacts.map(node => ({
+    artifactsResult: userRunStepOptions.artifacts.map(node => ({
       artifactName: node.data.artifact.packageJson.name!,
       stepResult: {
         status: result.status,
         notes: [],
-        durationMs: Date.now() - startMs,
+        durationMs: Date.now() - userRunStepOptions.startStepMs,
       },
     })),
   }
@@ -176,139 +139,149 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
   createStepOptions: CreateStepOptions<StepConfigurations, NormalizedStepConfigurations>
   runStepOptions: RunStepOptions
   stepConfigurations: NormalizedStepConfigurations
-}): Promise<StepResultOfAllPackages> {
+}): Promise<StepResultOfArtifacts<unknown>> {
   try {
-    const log = runStepOptions.logger(runStepOptions.stepName)
+    const userRunStepOptions: UserRunStepOptions<NormalizedStepConfigurations> = {
+      ...runStepOptions,
+      log: runStepOptions.logger.createLog(runStepOptions.stepName),
+      stepConfigurations,
+      startStepMs: Date.now(),
+    }
     const canRunStepResultOnArtifacts = await Promise.all(
-      runStepOptions.allArtifacts.map(node =>
-        checkIfCanRunStepOnArtifact({
-          allArtifacts: runStepOptions.allArtifacts,
-          allSteps: runStepOptions.allSteps,
-          cache: runStepOptions.cache,
-          canRunStepOnArtifact: createStepOptions.canRunStepOnArtifact,
-          rootPackage: runStepOptions.rootPackage,
-          currentArtifactIndex: node.index,
-          currentStepIndex: runStepOptions.currentStepIndex,
-          stepConfigurations,
-          log,
-          repoPath: runStepOptions.repoPath,
-        }),
+      runStepOptions.artifacts.map(node =>
+        checkIfCanRunStepOnArtifact({ ...userRunStepOptions, currentArtifact: node }),
       ),
     )
+
     let userStepResult: UserStepResult
-    if ('runStepOnAllArtifacts' in createStepOptions) {
-      userStepResult = await createStepOptions.runStepOnAllArtifacts({
-        ...runStepOptions,
-        stepConfigurations,
-        log,
-        cache: runStepOptions.cache,
-        allArtifacts: runStepOptions.allArtifacts.map((node, i) => ({
-          ...node,
-          data: {
-            ...node.data,
-            ...canRunStepResultOnArtifacts[i],
-          },
-        })),
-        flowId: runStepOptions.flowId,
-        startFlowMs: runStepOptions.startFlowMs,
-        stepId: runStepOptions.stepId,
-        steps: runStepOptions.allSteps,
-      })
-    } else if ('runStepOnArtifact' in createStepOptions) {
-      userStepResult = await runStepOnEveryArtifact({
-        canRunStepResultOnArtifacts,
-        runStepOptions,
-        startMs,
-        beforeAll: createStepOptions.beforeAll,
-        runStepOnArtifact: createStepOptions.runStepOnArtifact,
-        afterAll: createStepOptions.afterAll,
-        stepConfigurations,
-        logger: runStepOptions.logger,
-      })
+
+    if (canRunStepResultOnArtifacts.every(x => !x.canRun)) {
+      userStepResult = {
+        stepResult: {
+          notes: [],
+        },
+        artifactsResult: runStepOptions.artifacts.map((node, i) => {
+          const canRun = canRunStepResultOnArtifacts[i]
+          if (canRun.canRun) {
+            throw new Error(`we can't be here. typescript dont get it`)
+          }
+          return {
+            artifactName: node.data.artifact.packageJson.name,
+            stepResult: {
+              durationMs: Date.now(),
+              status: canRun.stepStatus,
+              notes: canRun.notes,
+            },
+          }
+        }),
+      }
     } else {
-      userStepResult = await runStepOnRoot({
-        runStepOptions,
-        startMs,
-        runStepOnRoot: createStepOptions.runStepOnRoot,
-        stepConfigurations,
-        logger: runStepOptions.logger,
-      })
+      if ('runStepOnArtifacts' in createStepOptions) {
+        userStepResult = await createStepOptions.runStepOnArtifacts(userRunStepOptions)
+      } else if ('runStepOnArtifact' in createStepOptions) {
+        userStepResult = await runStepOnEveryArtifact({
+          canRunStepResultOnArtifacts,
+          beforeAll: createStepOptions.beforeAll,
+          runStepOnArtifact: createStepOptions.runStepOnArtifact,
+          afterAll: createStepOptions.afterAll,
+          userRunStepOptions,
+        })
+      } else {
+        userStepResult = await runStepOnRoot({
+          runStep: createStepOptions.runStepOnRoot,
+          userRunStepOptions,
+        })
+      }
     }
 
     const { problems } = validateUserStepResult(runStepOptions, userStepResult)
+    if (problems.length > 0) {
+      return {
+        stepInfo: {
+          stepId: runStepOptions.stepId,
+          stepName: runStepOptions.stepName,
+        },
+        stepExecutionStatus: ExecutionStatus.done,
+        stepResult: {
+          status: Status.failed,
+          durationMs: Date.now() - userRunStepOptions.startStepMs,
+          notes: problems,
+        },
+        artifactsResult: runStepOptions.artifacts.map(node => ({
+          ...node,
+          data: {
+            artifact: node.data.artifact,
+            artifactStepExecutionStatus: ExecutionStatus.done,
+            artifactStepResult: {
+              durationMs: Date.now() - startMs,
+              notes: [],
+              status: Status.failed,
+            },
+          },
+        })),
+      }
+    }
 
-    const endDurationMs = Date.now() - startMs
-    const result: StepResultOfAllPackages = {
-      stepSummary: {
+    const artifactsResult: Graph<{
+      artifact: Artifact
+      artifactStepExecutionStatus: ExecutionStatus.done
+      artifactStepResult: Result<unknown>
+    }> = runStepOptions.artifacts.map((node, i) => {
+      const result = userStepResult.artifactsResult.find(n => n.artifactName === node.data.artifact.packageJson.name)
+      if (!result) {
+        throw new Error(
+          `we can't be here. if there is a problem with 'userStepResult', it should have discovered in 'validateUserStepResult'`,
+        )
+      }
+      return {
+        ...node,
+        data: {
+          artifact: node.data.artifact,
+          artifactStepExecutionStatus: ExecutionStatus.done,
+          artifactStepResult: {
+            ...result.stepResult,
+            notes: Array.from(new Set([...result.stepResult.notes, ...canRunStepResultOnArtifacts[i].notes])),
+          },
+        },
+      }
+    })
+    const result: StepResultOfArtifacts<unknown> = {
+      stepInfo: {
         stepId: runStepOptions.stepId,
         stepName: runStepOptions.stepName,
-        durationMs: endDurationMs,
-        notes: [...problems, ...userStepResult.stepSummary.notes],
-        status:
-          problems.length > 0
-            ? StepStatus.failed
-            : calculateCombinedStatus(userStepResult.artifactsResult.map(n => n.stepResult.status)),
       },
-      artifactsResult: runStepOptions.allArtifacts.map((node, i) => {
-        const result = userStepResult.artifactsResult.find(n => n.artifactName === node.data.artifact.packageJson.name)
-        if (result) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              stepResult: {
-                ...result.stepResult,
-                stepId: runStepOptions.stepId,
-                stepName: runStepOptions.stepName,
-                notes: Array.from(new Set([...result.stepResult.notes, ...canRunStepResultOnArtifacts[i].notes])),
-              },
-            },
-          }
-        } else {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              stepResult: {
-                durationMs: endDurationMs,
-                notes: Array.from(
-                  new Set([
-                    'could not determine what is the result-status of this package',
-                    ...canRunStepResultOnArtifacts[i].notes,
-                  ]),
-                ),
-                status: StepStatus.failed,
-                stepId: runStepOptions.stepId,
-                stepName: runStepOptions.stepName,
-              },
-            },
-          }
-        }
-      }),
+      stepExecutionStatus: ExecutionStatus.done,
+      stepResult: {
+        durationMs: Date.now() - userRunStepOptions.startStepMs,
+        notes: userStepResult.stepResult.notes,
+        status: calculateCombinedStatus(userStepResult.artifactsResult.map(a => a.stepResult.status)),
+      },
+      artifactsResult,
     }
 
     return result
   } catch (error) {
     const endDurationMs = Date.now() - startMs
-    const result: StepResultOfAllPackages = {
-      stepSummary: {
+    const result: StepResultOfArtifacts<unknown> = {
+      stepInfo: {
         stepId: runStepOptions.stepId,
         stepName: runStepOptions.stepName,
-        durationMs: endDurationMs,
-        notes: ['step threw an error'],
-        status: StepStatus.failed,
-        error,
       },
-      artifactsResult: runStepOptions.allArtifacts.map(node => ({
+      stepExecutionStatus: ExecutionStatus.done,
+      stepResult: {
+        durationMs: endDurationMs,
+        notes: [],
+        status: Status.failed,
+      },
+      artifactsResult: runStepOptions.artifacts.map(node => ({
         ...node,
         data: {
-          ...node.data,
-          stepResult: {
+          artifact: node.data.artifact,
+          artifactStepExecutionStatus: ExecutionStatus.done,
+          artifactStepResult: {
             durationMs: endDurationMs,
             notes: [],
-            status: StepStatus.failed,
-            stepId: runStepOptions.stepId,
-            stepName: runStepOptions.stepName,
+            status: Status.failed,
           },
         },
       })),
@@ -334,17 +307,21 @@ export function createStep<StepConfigurations = void, NormalizedStepConfiguratio
         runStepOptions,
         stepConfigurations: normalizedStepConfigurations,
       })
-
-      await Promise.all(
-        result.artifactsResult.map(artifact =>
-          runStepOptions.cache.step.setStepResult({
-            packageHash: artifact.data.artifact.packageHash,
-            stepId: result.stepSummary.stepId,
-            stepStatus: artifact.data.stepResult.status,
-            ttlMs: runStepOptions.cache.ttls.stepResult,
-          }),
-        ),
-      )
+      if (result.stepExecutionStatus === ExecutionStatus.done) {
+        await Promise.all(
+          result.artifactsResult.map(artifact =>
+            artifact.data.artifactStepExecutionStatus === ExecutionStatus.done
+              ? runStepOptions.cache.step.setStepResult({
+                  packageHash: artifact.data.artifact.packageHash,
+                  stepId: runStepOptions.stepId,
+                  stepExecutionStatus: ExecutionStatus.done,
+                  stepStatus: artifact.data.artifactStepResult.status,
+                  ttlMs: runStepOptions.cache.ttls.stepSummary,
+                })
+              : Promise.resolve(),
+          ),
+        )
+      }
 
       return result
     },

@@ -1,5 +1,7 @@
+/// <reference path="../../../../declarations.d.ts" />
+
+import { buildFullDockerImageName, LogLevel, winstonLogger } from '@tahini/nc'
 import chance from 'chance'
-import { buildFullDockerImageName, winstonLogger } from '../../src'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'
 import {
@@ -16,10 +18,8 @@ import {
   renamePackageFolder,
   unpublishNpmPackage,
 } from './test-helpers'
-import { CreateAndManageRepo, MinimalNpmPackage, NewEnv, RunCi, GetFlowLogs } from './types'
+import { CreateAndManageRepo, GetFlowLogs, MinimalNpmPackage, NewEnv, RunCi } from './types'
 import { getPackagePath, runCiUsingConfigFile, runNcExecutable } from './utils'
-import path from 'path'
-import { LogLevel } from '../../src/create-logger'
 
 export const newEnv: NewEnv = () => {
   const testResources = prepareTestResources()
@@ -36,23 +36,20 @@ export const newEnv: NewEnv = () => {
 
     const { dockerRegistry, npmRegistry, gitServer, redisServer } = testResources.get()
 
-    const ncLogsFileName = 'nc.log'
     const { repoPath, repoName, repoOrg, subPackagesFolderPath } = await createRepo({
       repo,
       gitServer,
       toActualName,
-      ncLogsFileNameToIgnore: ncLogsFileName,
+      ncLogsFileNameToIgnore: './nc.log',
     })
 
     const testLog = (
       await winstonLogger({
         customLogLevel: LogLevel.verbose,
-        logFilePath: 'test-nc.log',
-        disable: true,
+        logFilePath: 'test-logs.log',
+        disabled: true,
       }).callInitializeLogger({ repoPath })
-    )('nc-tests')
-
-    const logFilePath = path.join(repoPath, ncLogsFileName)
+    ).createLog('nc-tests')
 
     const getFlowLogs: GetFlowLogs = async ({ flowId, execaOptions }) => {
       return runNcExecutable({
@@ -70,7 +67,6 @@ export const newEnv: NewEnv = () => {
 
     const runCi: RunCi = async ({ targetsInfo, execaOptions } = {}) => {
       return runCiUsingConfigFile({
-        logFilePath,
         repoPath,
         testOptions: {
           targetsInfo,

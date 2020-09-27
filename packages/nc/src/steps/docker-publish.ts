@@ -9,7 +9,7 @@ import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetTyp
 export type DockerPublishConfiguration = {
   shouldPublish: boolean
   registry: string
-  publishAuth: {
+  registryAuth: {
     username: string
     token: string
   }
@@ -47,29 +47,22 @@ export const buildFullDockerImageName = ({
 async function dockerRegistryLogin({
   repoPath,
   dockerRegistry,
-  dockerRegistryToken,
-  dockerRegistryUsername,
   log,
+  registryAuth,
 }: {
   repoPath: string
-  dockerRegistryUsername?: string
-  dockerRegistryToken?: string
   dockerRegistry: string
+  registryAuth?: {
+    username: string
+    token: string
+  }
   log: Log
 }) {
-  if (dockerRegistryUsername && dockerRegistryToken) {
+  if (registryAuth) {
     log.verbose(`logging in to docker-registry: ${dockerRegistry}`)
     // I need to login to read and push from `dockerRegistryUsername` repository
     await execaCommand(
-      ['docker', 'login', '--username', dockerRegistryUsername, '--password', dockerRegistryToken, dockerRegistry],
-      {
-        stdio: 'pipe',
-        cwd: repoPath,
-        log,
-      },
-    )
-    await execaCommand(
-      ['skopeo', 'login', dockerRegistry, '--username', dockerRegistryUsername, '--password', dockerRegistryToken],
+      ['docker', 'login', '--username', registryAuth.username, '--password', registryAuth.token, dockerRegistry],
       {
         stdio: 'pipe',
         cwd: repoPath,
@@ -87,12 +80,17 @@ async function isDockerVersionAlreadyPulished({
   dockerRegistry,
   repoPath,
   log,
+  registryAuth,
 }: {
   packageName: string
   imageTag: string
   dockerRegistry: string
   dockerOrganizationName: string
   repoPath: string
+  registryAuth?: {
+    username: string
+    token: string
+  }
   log: Log
 }) {
   const fullImageName = buildFullDockerImageName({
@@ -101,9 +99,12 @@ async function isDockerVersionAlreadyPulished({
     packageJsonName: packageName,
     imageTag,
   })
+  const withAuth = registryAuth ? `--creds ${registryAuth.username}:${registryAuth.token}` : ''
   try {
     await runSkopeoCommand(
-      `skopeo inspect ${dockerRegistry.includes('http://') ? '--tls-verify=false' : ''} docker://${fullImageName}`,
+      `skopeo inspect ${withAuth} ${
+        dockerRegistry.includes('http://') ? '--tls-verify=false' : ''
+      } docker://${fullImageName}`,
       repoPath,
       log,
     )
@@ -144,6 +145,7 @@ export async function getDockerImageLabelsAndTags({
   silent,
   repoPath,
   log,
+  registryAuth,
 }: {
   packageJsonName: string
   dockerOrganizationName: string
@@ -151,18 +153,24 @@ export async function getDockerImageLabelsAndTags({
   silent?: boolean
   repoPath: string
   log: Log
+  registryAuth?: {
+    username: string
+    token: string
+  }
 }): Promise<{ latestHash?: string; latestTag?: string; allTags: string[] } | undefined> {
   const fullImageNameWithoutTag = buildFullDockerImageName({
     dockerOrganizationName,
     dockerRegistry,
     packageJsonName,
   })
+  const withAuth = registryAuth ? `--creds ${registryAuth.username}:${registryAuth.token}` : ''
+
   try {
     if (!silent) {
       log.verbose(`searching for all tags for image: "${fullImageNameWithoutTag}"`)
     }
     const tagsResult = await runSkopeoCommand(
-      `skopeo list-tags ${
+      `skopeo list-tags ${withAuth} ${
         dockerRegistry.includes('http://') ? '--tls-verify=false' : ''
       } docker://${fullImageNameWithoutTag}`,
       repoPath,
@@ -185,7 +193,9 @@ export async function getDockerImageLabelsAndTags({
     }
 
     const stdout = await runSkopeoCommand(
-      `skopeo inspect ${dockerRegistry.includes('http://') ? '--tls-verify=false' : ''} docker://${fullImageName}`,
+      `skopeo inspect ${withAuth} ${
+        dockerRegistry.includes('http://') ? '--tls-verify=false' : ''
+      } docker://${fullImageName}`,
       repoPath,
       log,
     )
@@ -335,8 +345,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
   beforeAll: ({ stepConfigurations, repoPath, log }) =>
     dockerRegistryLogin({
       dockerRegistry: stepConfigurations.registry,
-      dockerRegistryToken: stepConfigurations.publishAuth.token,
-      dockerRegistryUsername: stepConfigurations.publishAuth.username,
+      registryAuth: stepConfigurations.registryAuth,
       repoPath,
       log,
     }),
@@ -357,7 +366,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
       imageTag: newVersion,
     })
 
-    const fullImageNameCacheTtl = cache.ttls.stepResult
+    const fullImageNameCacheTtl = cache.ttls.stepSummary
 
     await cache.set(
       stepConfigurations.fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),
@@ -412,7 +421,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
     await cache.set(
       getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
       newVersion,
-      cache.ttls.stepResult,
+      cache.ttls.stepSummary,
     )
 
     log.info(
