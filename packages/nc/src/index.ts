@@ -11,7 +11,7 @@ import { startCli } from './configuration/cli'
 export { createLinearStepsGraph } from './create-linear-steps-graph'
 export { Artifact, Graph, PackageJson } from './types'
 export { Config } from './configuration'
-export { ExecutionStatus, Status, Step, StepInfo } from './create-step'
+export { ExecutionStatus, Status, Step, StepInfo, createStep } from './create-step'
 export { Log, LogLevel, Logger, CreateLogger } from './create-logger'
 export { Cache, CreateCache } from './create-cache'
 export {

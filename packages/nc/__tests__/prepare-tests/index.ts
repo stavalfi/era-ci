@@ -137,12 +137,13 @@ type CreateRepo = (
 ) => Promise<{
   repoPath: string
   runCi: RunCi
+  toActualName: (packageName: string) => string
 }>
 
 const createRepo: CreateRepo = async repo => {
   const resourcesNamesPostfix = chance().hash().slice(0, 8)
 
-  const toActualName = (name: string) =>
+  const toActualName = (name: string): string =>
     name.endsWith(`-${resourcesNamesPostfix}`) ? name : `${name}-${resourcesNamesPostfix}`
 
   const { gitServer } = getResoureces()
@@ -156,6 +157,7 @@ const createRepo: CreateRepo = async repo => {
 
   return {
     repoPath,
+    toActualName,
     runCi: runCi({ repoPath }),
   }
 }
