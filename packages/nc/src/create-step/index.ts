@@ -275,6 +275,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         durationMs: endDurationMs,
         notes: [],
         status: Status.failed,
+        error,
       },
       artifactsResult: runStepOptions.artifacts.map(node => ({
         ...node,

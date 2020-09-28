@@ -63,3 +63,17 @@ test('flow should pass because there are no steps', async () => {
   expect(jsonReport.flowResult.error).toBeFalsy()
   expect(jsonReport.flowResult.status).toEqual(Status.passed)
 })
+
+test('verify artifact in json-report', async () => {
+  const { runCi, toActualName } = await createRepo({
+    packages: [
+      {
+        name: 'a',
+        version: '1.0.0',
+      },
+    ],
+  })
+  const { jsonReport } = await runCi()
+  expect(jsonReport.artifacts).toHaveLength(1)
+  expect(jsonReport.artifacts[0].data.artifact.packageJson.name).toEqual(toActualName('a'))
+})
