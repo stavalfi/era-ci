@@ -86,10 +86,7 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
           value: options.value,
         }),
       )
-      nodeCache.set(options.key, {
-        flowId,
-        zippedBuffer,
-      })
+      nodeCache.set(options.key, zippedBuffer)
       if (!options.onlySaveInNodeCache) {
         await redisClient.set(options.key, zippedBuffer, 'px', options.ttl)
       }

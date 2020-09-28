@@ -1,2 +1,2 @@
-export { ConfigFile } from './types'
+export { Config } from './types'
 export { startCli } from './cli'

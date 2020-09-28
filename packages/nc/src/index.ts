@@ -3,24 +3,26 @@
 /// <reference path="../../../declarations.d.ts" />
 
 // `require('source-map-support').install()` MUST be the first (executed) line in the project!!!
-require('source-map-support').install()
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+// require('source-map-support').install()
 //
 import { startCli } from './configuration/cli'
 
-export { Artifact } from './types'
-export { ConfigFile } from './configuration'
-export { ExecutionStatus, Status, Step } from './create-step'
-export { Log, LogLevel, Logger } from './create-logger'
-export { Cache } from './create-cache'
+export { createLinearStepsGraph } from './create-linear-steps-graph'
+export { Artifact, Graph, PackageJson } from './types'
+export { Config } from './configuration'
+export { ExecutionStatus, Status, Step, StepInfo } from './create-step'
+export { Log, LogLevel, Logger, CreateLogger } from './create-logger'
+export { Cache, CreateCache } from './create-cache'
 export {
   NpmScopeAccess,
   buildFullDockerImageName,
   getDockerImageLabelsAndTags,
   npmRegistryLogin,
   TargetType,
-  CliTableReportConfiguration,
-  cliTableReport,
-  jsonReport,
+  CliTableReporterConfiguration,
+  cliTableReporter,
+  jsonReporter,
   test,
   npmPublish,
   k8sGcloudDeployment,
@@ -52,6 +54,5 @@ async function main() {
 }
 
 if (require.main === module) {
-  // eslint-disable-next-line no-floating-promise/no-floating-promise
   main()
 }

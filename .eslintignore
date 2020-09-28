@@ -4,3 +4,4 @@
 **/dist/*
 .history
 nc.log
+compiled-nc.config.js

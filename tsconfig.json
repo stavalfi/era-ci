@@ -11,10 +11,6 @@
     "preserveSymlinks": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "composite": true,
-    "baseUrl": "packages",
-    "paths": {
-      "@tahini/log": ["log/src/index.ts"]
-    }
+    "composite": true
   }
 }

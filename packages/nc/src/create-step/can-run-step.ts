@@ -11,10 +11,7 @@ const runAll = async (
   }
   const results = await Promise.all(array.map(x => x.predicate()))
   const canRun = results.every(x => x.canRun)
-  const notes = _.flatMap(
-    results.map(x => x.notes),
-    x => x,
-  )
+  const notes = _.flatMapDeep(results.map(x => x.notes))
   if (canRun) {
     return {
       canRun: true,
@@ -37,12 +34,12 @@ const runAll = async (
           if (acc === Status.skippedAsFailed) {
             return acc
           }
-          if (x.stepStatus === Status.skippedAsFailed) {
+          if (x.stepStatus === Status.skippedAsPassed) {
             return x.stepStatus
           }
-          return Status.skippedAsPassed
+          return Status.passed
         }
-      }, Status.skippedAsPassed),
+      }, Status.passed),
     }
   }
 }
@@ -104,7 +101,7 @@ async function skipIfSomeDirectPrevStepsFailedOnPackage<StepConfigurations>({
           step.artifactsResult[currentArtifact.index].data.artifactStepResult.status,
         ),
     )
-  if (didAllPrevPassed) {
+  if (!didAllPrevPassed) {
     notes.push(`skipping step because not all previous steps passed`)
   }
   if (didAllPrevPassed) {

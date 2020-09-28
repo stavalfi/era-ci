@@ -41,7 +41,7 @@ export type StepResultOfArtifacts<ErrorType> = {
       }>
     }
   | {
-      stepExecutionStatus: ExecutionStatus.running | ExecutionStatus.aborted
+      stepExecutionStatus: ExecutionStatus.running
       artifactsResult: Graph<
         { artifact: Artifact } & (
           | {
@@ -50,6 +50,20 @@ export type StepResultOfArtifacts<ErrorType> = {
             }
           | {
               artifactStepExecutionStatus: ExecutionStatus.running | ExecutionStatus.aborted | ExecutionStatus.scheduled
+            }
+        )
+      >
+    }
+  | {
+      stepExecutionStatus: ExecutionStatus.aborted
+      artifactsResult: Graph<
+        { artifact: Artifact } & (
+          | {
+              artifactStepExecutionStatus: ExecutionStatus.done
+              artifactStepResult: Result<ErrorType>
+            }
+          | {
+              artifactStepExecutionStatus: ExecutionStatus.aborted
             }
         )
       >
@@ -74,7 +88,7 @@ export type StepsResultOfArtifact<ErrorType> = {
       }>
     }
   | {
-      artifactExecutionStatus: ExecutionStatus.running | ExecutionStatus.aborted
+      artifactExecutionStatus: ExecutionStatus.running
       stepsResult: Graph<
         { stepInfo: StepInfo } & (
           | {
@@ -83,6 +97,20 @@ export type StepsResultOfArtifact<ErrorType> = {
             }
           | {
               artifactStepExecutionStatus: ExecutionStatus.running | ExecutionStatus.aborted | ExecutionStatus.scheduled
+            }
+        )
+      >
+    }
+  | {
+      artifactExecutionStatus: ExecutionStatus.aborted
+      stepsResult: Graph<
+        { stepInfo: StepInfo } & (
+          | {
+              artifactStepExecutionStatus: ExecutionStatus.done
+              artifactStepResult: Result<ErrorType>
+            }
+          | {
+              artifactStepExecutionStatus: ExecutionStatus.aborted
             }
         )
       >

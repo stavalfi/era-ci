@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "license": "UNLICENSED",
   "scripts": {
-    "lint:code": "eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
+    "lint:code": "(rm packages/legacy-tests/__tests__/prepare-test/compiled-nc.config.js || true) && eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "lint:versions": "syncpack list-mismatches",
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
     "test": "jest --no-cache",
@@ -25,11 +25,10 @@
   ],
   "husky": {
     "hooks": {
-      "pre-commit": "yarn lint:staged-files"
+      "pre-commit": "(rm packages/legacy-tests/__tests__/prepare-test/compiled-nc.config.js || true) && yarn lint:staged-files"
     }
   },
   "devDependencies": {
-    "@swc/jest": "^0.1.2",
     "@types/chance": "^1.0.8",
     "@types/ci-info": "^2.0.0",
     "@types/debug": "^4.1.5",
@@ -44,39 +43,38 @@
     "@types/node": "^14.0.13",
     "@types/randomcolor": "^0.5.5",
     "@types/semver": "^7.2.0",
-    "@types/traverse": "^0.6.32",
     "@types/url-parse": "^1.4.3",
-    "@typescript-eslint/eslint-plugin": "^2.14.0",
-    "@typescript-eslint/parser": "^2.14.0",
+    "@typescript-eslint/eslint-plugin": "4.0.1",
+    "@typescript-eslint/parser": "4.0.1",
     "chance": "^1.1.5",
     "ci-info": "https://github.com/watson/ci-info.git",
     "create-folder-structure": "^3.0.5",
-    "eslint": "6.5.1",
+    "eslint": "7.8.1",
     "eslint-config-prettier": "4.3.0",
     "eslint-plugin-jest": "22.6.4",
     "eslint-plugin-json": "^2.0.1",
-    "eslint-plugin-no-floating-promise": "https://github.com/SebastienGllmt/eslint-plugin-no-floating-promise.git",
-    "eslint-plugin-prettier": "^3.1.2",
+    "eslint-plugin-prettier": "3.1.4",
     "eslint-plugin-spellcheck": "^0.0.17",
     "execa": "^4.0.1",
     "fast-glob": "^3.2.2",
     "fs-extra": "^9.0.0",
     "husky": "^4.2.5",
     "ioredis": "^4.17.1",
-    "jest": "^26.1.0",
-    "jest-circus": "^26.1.0",
+    "jest": "26.4.2",
+    "jest-circus": "26.4.2",
     "js-base64": "^3.4.5",
     "lint-staged": "^9.5.0",
     "node-git-server": "^0.6.1",
     "npm-login-noninteractive": "^0.1.4",
     "package-json-type": "^1.0.3",
-    "prettier": "^2.0.5",
-    "pretty-quick": "^1.11.0",
+    "prettier": "2.1.1",
+    "pretty-quick": "3.0.0",
     "semver": "^7.3.2",
     "syncpack": "^5.0.1",
-    "ts-jest": "^26.1.1",
-    "ts-node": "^8.10.2",
-    "typescript": "^3.9.7"
+    "ts-jest": "26.3.0",
+    "ts-node": "9.0.0",
+    "typescript": "4.0.2",
+    "@types/traverse": "^0.6.32"
   },
   "engines": {
     "node": ">=12.0.0"

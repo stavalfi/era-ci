@@ -42,7 +42,10 @@ function fillParentsInGraph(packageHashInfoByPath: Map<string, PackageHashInfo>)
       parent.children.forEach(visit)
     }
   }
-  ;[...packageHashInfoByPath.keys()].forEach(visit)
+
+  for (const packagePath of packageHashInfoByPath.keys()) {
+    visit(packagePath)
+  }
 }
 
 // this method must be implemented in BFS (DFS will cause a bug) because dfs dont cover

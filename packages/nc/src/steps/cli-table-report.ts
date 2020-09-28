@@ -2,7 +2,7 @@ import Table, { CellOptions } from 'cli-table3'
 import colors from 'colors/safe'
 import prettyMs from 'pretty-ms'
 import { createStep, ExecutionStatus, Status } from '../create-step'
-import { JsonReport } from './json-report'
+import { JsonReport, jsonReporterStepName } from './json-reporter'
 
 // note: this file is not tested (or can't be tested). modify with caution!!!
 
@@ -37,14 +37,13 @@ const STEP_RESULT_STATUS_COLORED = {
 }
 
 const STEP_EXECUTION_STATUS_COLORED = {
-  [ExecutionStatus.aborted]: colors.bgCyan('aborted'),
-  [ExecutionStatus.running]: colors.rainbow('running'),
-  [ExecutionStatus.scheduled]: colors.america('scheduled'),
+  [ExecutionStatus.aborted]: colors.red('aborted'),
+  [ExecutionStatus.running]: colors.magenta('running'),
+  [ExecutionStatus.scheduled]: colors.cyan('scheduled'),
 }
 
 function generatePackagesStatusReport(jsonReport: JsonReport): string {
   const stepsName = jsonReport.steps.map(step => step.data.stepInfo.stepName)
-
   const rows = jsonReport.stepsResultOfArtifactsByArtifact.map(node => {
     const data = node.data
     if (data.artifactExecutionStatus === ExecutionStatus.done) {
@@ -93,9 +92,8 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
 
   const stepsDurations = [
     '',
-    ...stepsName.map(stepName =>
-      // @ts-ignore - ts can't handle the basics :S
-      prettyMs(jsonReport.steps[stepName].durationMs),
+    ...jsonReport.stepsResultOfArtifactsByStep.map(s =>
+      s.data.stepExecutionStatus === ExecutionStatus.done ? prettyMs(s.data.stepResult.durationMs) : '',
     ),
   ].map<CellOptions>(content => ({
     rowSpan: 1,
@@ -159,16 +157,20 @@ function generateSummaryReport(jsonReport: JsonReport): string {
   return ciTable.toString()
 }
 
-export type CliTableReportConfiguration = {
-  jsonReportCacheKey: (options: { flowId: string; stepId: string }) => string
+export type CliTableReporterConfiguration = {
+  jsonReporterCacheKey: (options: { flowId: string; stepId: string }) => string
   stringToJsonReport: (options: { jsonReportAsString: string }) => JsonReport
 }
 
-export const cliTableReport = createStep<CliTableReportConfiguration>({
-  stepName: 'cli-table-report',
-  runStepOnRoot: async ({ cache, flowId, stepConfigurations, log, currentStepInfo }) => {
+export const cliTableReporter = createStep<CliTableReporterConfiguration>({
+  stepName: 'cli-table-reporter',
+  runStepOnRoot: async ({ cache, flowId, stepConfigurations, log, steps }) => {
+    const jsonReporterStepId = steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data.stepInfo.stepId
+    if (!jsonReporterStepId) {
+      throw new Error(`cli-table-reporter can't find json-reporter-step-id. is it part of the flow?`)
+    }
     const jsonReportResult = await cache.get(
-      stepConfigurations.jsonReportCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
+      stepConfigurations.jsonReporterCacheKey({ flowId, stepId: jsonReporterStepId }),
       r => {
         if (typeof r === 'string') {
           return stepConfigurations.stringToJsonReport({ jsonReportAsString: r })

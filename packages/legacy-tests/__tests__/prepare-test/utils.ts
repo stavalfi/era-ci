@@ -114,43 +114,47 @@ export async function runCiUsingConfigFile({
     printFlowId,
   })
 
-  // the test can add/remove/modify packages between the creation of the repo until
-  // the call of the ci so we need to find all the packages again
-  const packagesPaths = await getPackages(repoPath)
-  const packages = await Promise.all(
-    packagesPaths // todo: need to search in runtime which packages I have NOW
-      .map(packagePath => require(path.join(packagePath, 'package.json')).name)
-      .map<Promise<[string, ResultingArtifact]>>(async (packageName: string) => {
-        const [versions, highestVersion, tags] = await Promise.all([
-          publishedNpmPackageVersions(packageName, npmRegistry.address),
-          latestNpmPackageVersion(packageName, npmRegistry.address),
-          publishedDockerImageTags({
-            packageJsonName: packageName,
-            dockerOrganizationName,
-            dockerRegistry,
-            repoPath,
-            log,
-          }),
-        ])
-        return [
-          toOriginalName(packageName),
-          {
-            npm: {
-              versions,
-              highestVersion,
+  async function getPublishResult() {
+    // the test can add/remove/modify packages between the creation of the repo until
+    // the call of the ci so we need to find all the packages again
+    const packagesPaths = await getPackages(repoPath)
+    const packages = await Promise.all(
+      packagesPaths // todo: need to search in runtime which packages I have NOW
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        .map(packagePath => require(path.join(packagePath, 'package.json')).name)
+        .map<Promise<[string, ResultingArtifact]>>(async (packageName: string) => {
+          const [versions, highestVersion, tags] = await Promise.all([
+            publishedNpmPackageVersions(packageName, npmRegistry.address),
+            latestNpmPackageVersion(packageName, npmRegistry.address),
+            publishedDockerImageTags({
+              packageJsonName: packageName,
+              dockerOrganizationName,
+              dockerRegistry,
+              repoPath,
+              log,
+            }),
+          ])
+          return [
+            toOriginalName(packageName),
+            {
+              npm: {
+                versions,
+                highestVersion,
+              },
+              docker: {
+                tags,
+              },
             },
-            docker: {
-              tags,
-            },
-          },
-        ]
-      }),
-  )
+          ]
+        }),
+    )
 
-  const published = packages.filter(
-    ([, artifact]) =>
-      artifact.docker.tags.length > 0 || artifact.npm.versions.length > 0 || artifact.npm.highestVersion,
-  )
+    const published = packages.filter(
+      ([, artifact]) =>
+        artifact.docker.tags.length > 0 || artifact.npm.versions.length > 0 || artifact.npm.highestVersion,
+    )
+    return published
+  }
 
   const ncLogfileContent = await fse.readFile(path.join(repoPath, 'nc.log'), 'utf-8')
 
@@ -165,7 +169,9 @@ export async function runCiUsingConfigFile({
   }
 
   return {
-    published: new Map(published),
+    published: new Map(
+      Object.values(testOptions?.targetsInfo || {}).some(x => x?.shouldPublish) ? await getPublishResult() : [],
+    ),
     ciProcessResult,
     ncLogfileContent,
     flowId,

@@ -29,13 +29,16 @@ export const defaultFormat = combine(
 
 export const noFormat = combine(printf(log => log.message))
 
-export const createConsoleTransport = (format: winston.Logform.Format) =>
+export const createConsoleTransport = (format: winston.Logform.Format): winston.transports.ConsoleTransportInstance =>
   new winston.transports.Console({
     stderrLevels: ['error'],
     format: format,
   })
 
-export const createFileTransport = (ncLogFilePath: string, format?: winston.Logform.Format) =>
+export const createFileTransport = (
+  ncLogFilePath: string,
+  format?: winston.Logform.Format,
+): winston.transports.FileTransportInstance =>
   new winston.transports.File({
     format,
     filename: ncLogFilePath,

@@ -5,11 +5,12 @@ import { Log } from './create-logger'
 import { Step, Status, ExecutionStatus, StepInfo, StepsResultOfArtifactsByStep } from './create-step'
 import { Graph } from './types'
 
-export const didPassOrSkippedAsPassed = (status: Status) => [Status.passed, Status.skippedAsPassed].includes(status)
+export const didPassOrSkippedAsPassed = (status: Status): boolean =>
+  [Status.passed, Status.skippedAsPassed].includes(status)
 
 export function calculateCombinedStatus(statuses: Status[]): Status {
   if (statuses.length === 0) {
-    return Status.skippedAsPassed
+    return Status.passed
   }
   if (statuses.includes(Status.failed)) {
     return Status.failed
@@ -34,8 +35,8 @@ export function getStepsAsGraph(steps: Step[]): Graph<{ stepInfo: StepInfo; runS
       runStep: step.runStep,
       ExecutionStatus: ExecutionStatus.scheduled,
     },
-    childrenIndexes: i === 0 ? [] : [i - 1],
-    parentsIndexes: i === array.length - 1 ? [] : [i - 1],
+    parentsIndexes: i === 0 ? [] : [i - 1],
+    childrenIndexes: i === array.length - 1 ? [] : [i - 1],
   }))
 }
 
@@ -65,7 +66,7 @@ export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifacts
   }
 }
 
-export const toFlowLogsContentKey = (flowId: string) => `flow-logs-content-${flowId}`
+export const toFlowLogsContentKey = (flowId: string): string => `flow-logs-content-${flowId}`
 
 export const MISSING_FLOW_ID_ERROR = `flow-id was not found`
 export const INVALIDATE_CACHE_HASH = '1'
