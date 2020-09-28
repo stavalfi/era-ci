@@ -49,7 +49,8 @@ export type TestOptions = {
         ? {
             npmScopeAccess?: NpmScopeAccess
           }
-        : {})
+        : // eslint-disable-next-line @typescript-eslint/ban-types
+          {})
   }
   execaOptions?: {
     stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]

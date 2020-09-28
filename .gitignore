@@ -20,3 +20,4 @@ dist-all
 yarn-error.log
 .history
 nc.log
+compiled-nc.config.js

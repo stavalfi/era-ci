@@ -1,6 +1,6 @@
 import path from 'path'
 import { is, object, string, validate, func, array } from 'superstruct'
-import { ConfigFile } from './types'
+import { Config } from './types'
 import execa from 'execa'
 
 function getConfigValidationObject() {
@@ -20,11 +20,11 @@ function getConfigValidationObject() {
   })
 }
 
-function validateConfiguration(configuration: unknown): configuration is ConfigFile {
+function validateConfiguration(configuration: unknown): configuration is Config {
   return is(configuration, getConfigValidationObject())
 }
 
-export async function readNcConfigurationFile(ciConfigFilePath: string): Promise<ConfigFile> {
+export async function readNcConfigurationFile(ciConfigFilePath: string): Promise<Config> {
   const outputFilePath = path.join(path.dirname(ciConfigFilePath), `compiled-nc.config.js`)
   const swcConfigFile = require.resolve('@tahini/nc/.nc-swcrc.config')
   const swcPath = require.resolve('.bin/swc')

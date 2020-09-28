@@ -1,15 +1,15 @@
-import { ConfigFile } from './configuration'
+import { Config } from './configuration'
 import { Log } from './create-logger'
 import { Cleanup } from './types'
 import { MISSING_FLOW_ID_ERROR, toFlowLogsContentKey } from './utils'
 
-export async function printFlowLogs(options: { flowId: string; configFile: ConfigFile; repoPath: string }) {
+export async function printFlowLogs(options: { flowId: string; config: Config; repoPath: string }): Promise<void> {
   const cleanups: Cleanup[] = []
   let log: Log | undefined
   try {
-    const logger = await options.configFile.logger.callInitializeLogger({ repoPath: options.repoPath })
+    const logger = await options.config.logger.callInitializeLogger({ repoPath: options.repoPath })
     log = logger.createLog('print-flow')
-    const cache = await options.configFile.cache.callInitializeCache({
+    const cache = await options.config.cache.callInitializeCache({
       flowId: options.flowId,
       log: logger.createLog('cache'),
     })

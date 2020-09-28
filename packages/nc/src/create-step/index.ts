@@ -14,12 +14,12 @@ import {
   Step,
   StepInfo,
   StepResultOfArtifacts,
-  StepsResultOfArtifactsByStep,
+  StepsResultOfArtifact,
   StepsResultOfArtifactsByArtifact,
+  StepsResultOfArtifactsByStep,
   UserArtifactResult,
   UserRunStepOptions,
   UserStepResult,
-  StepsResultOfArtifact,
 } from './types'
 import { validateUserStepResult } from './validations'
 
@@ -34,6 +34,8 @@ export {
   Result,
   StepsResultOfArtifact,
 }
+
+export { toStepsResultOfArtifactsByArtifact } from './utils'
 
 async function runStepOnEveryArtifact<StepConfigurations>({
   beforeAll,
@@ -195,6 +197,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
     }
 
     const { problems } = validateUserStepResult(runStepOptions, userStepResult)
+
     if (problems.length > 0) {
       return {
         stepInfo: {

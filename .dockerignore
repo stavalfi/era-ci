@@ -1,3 +1,4 @@
 node_modules
 .history
 nc.log
+compiled-nc.config.js

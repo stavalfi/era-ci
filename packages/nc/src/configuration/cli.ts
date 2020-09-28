@@ -5,7 +5,7 @@ import { readNcConfigurationFile } from './config-file'
 import { ci } from '../ci-logic'
 import { printFlowLogs } from '../print-flow-logs'
 
-export async function startCli(processArgv: string[]) {
+export async function startCli(processArgv: string[]): Promise<void> {
   const app = command({
     name: 'scripts',
     args: {
@@ -31,17 +31,17 @@ export async function startCli(processArgv: string[]) {
       const configFilePath = args['config-file']
         ? path.resolve(args['config-file'])
         : path.join(repoPath, 'nc.config.ts')
-      const configFile = await readNcConfigurationFile(configFilePath)
+      const config = await readNcConfigurationFile(configFilePath)
       if (args['print-flow']) {
         await printFlowLogs({
           flowId: args['print-flow'],
           repoPath,
-          configFile,
+          config,
         })
       } else {
         await ci({
           repoPath,
-          configFile,
+          config,
         })
       }
     },

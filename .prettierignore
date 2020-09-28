@@ -2,3 +2,4 @@ node_modules
 target
 .history
 nc.log
+compiled-nc.config.js

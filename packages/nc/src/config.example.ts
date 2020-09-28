@@ -1,15 +1,16 @@
 import ciInfo from 'ci-info'
 import _ from 'lodash'
-import { ConfigFile } from './configuration'
-import { LogLevel } from './create-logger'
-import { Step } from './create-step'
-import { redisWithNodeCache } from './redis-with-node-cache'
 import {
+  createLinearStepsGraph,
+  Config,
+  LogLevel,
+  redisWithNodeCache,
   build,
-  cliTableReport,
+  winstonLogger,
+  cliTableReporter,
   dockerPublish,
   install,
-  jsonReport,
+  jsonReporter,
   JsonReport,
   k8sGcloudDeployment,
   lint,
@@ -17,10 +18,9 @@ import {
   NpmScopeAccess,
   test,
   validatePackages,
-} from './steps'
-import { winstonLogger } from './winston-logger'
+} from '.'
 
-export default async (): Promise<ConfigFile> => {
+export default async (): Promise<Config> => {
   const {
     NPM_USERNAME,
     NPM_TOKEN,
@@ -37,7 +37,7 @@ export default async (): Promise<ConfigFile> => {
   const fullImageNameCacheKey = ({ packageHash }: { packageHash: string }) =>
     `full_image_name_of_artifact_hash-${packageHash}`
 
-  const jsonReportCacheKey = ({ flowId, stepId }: { flowId: string; stepId: string }) =>
+  const jsonReporterCacheKey = ({ flowId, stepId }: { flowId: string; stepId: string }) =>
     `json-report-cache-key-${flowId}-${stepId}`
 
   const jsonReportToString = ({ jsonReport }: { jsonReport: JsonReport }) => JSON.stringify(jsonReport)
@@ -60,7 +60,7 @@ export default async (): Promise<ConfigFile> => {
     },
   })
 
-  const steps: Step[] = [
+  const steps = createLinearStepsGraph([
     install(),
     validatePackages(),
     lint(),
@@ -98,15 +98,15 @@ export default async (): Promise<ConfigFile> => {
       artifactNameToContainerName: _.identity,
       artifactNameToDeploymentName: _.identity,
     }),
-    jsonReport({
-      jsonReportCacheKey,
+    jsonReporter({
+      jsonReporterCacheKey,
       jsonReportToString,
     }),
-    cliTableReport({
-      jsonReportCacheKey,
+    cliTableReporter({
+      jsonReporterCacheKey,
       stringToJsonReport,
     }),
-  ]
+  ])
 
   return {
     steps,

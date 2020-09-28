@@ -1,23 +1,23 @@
 import {
   build,
-  cliTableReport,
-  ConfigFile,
+  cliTableReporter,
+  Config,
   dockerPublish,
   install,
-  jsonReport,
   JsonReport,
+  jsonReporter,
   lint,
   LogLevel,
   npmPublish,
   NpmScopeAccess,
   redisWithNodeCache,
-  Step,
   test,
   validatePackages,
   winstonLogger,
+  createLinearStepsGraph,
 } from '@tahini/nc'
 
-export default async (): Promise<ConfigFile> => {
+export default async (): Promise<Config> => {
   const {
     SHOULD_PUBLISH_NPM,
     SHOULD_PUBLISH_DOCKER,
@@ -38,7 +38,7 @@ export default async (): Promise<ConfigFile> => {
   const fullImageNameCacheKey = ({ packageHash }: { packageHash: string }) =>
     `full_image_name_of_artifact_hash-${packageHash}`
 
-  const jsonReportCacheKey = ({ flowId, stepId }: { flowId: string; stepId: string }) =>
+  const jsonReporterCacheKey = ({ flowId, stepId }: { flowId: string; stepId: string }) =>
     `json-report-cache-key-${flowId}-${stepId}`
 
   const jsonReportToString = ({ jsonReport }: { jsonReport: JsonReport }) => JSON.stringify(jsonReport)
@@ -61,7 +61,7 @@ export default async (): Promise<ConfigFile> => {
     },
   })
 
-  const steps: Step[] = [
+  const steps = createLinearStepsGraph([
     install(),
     validatePackages(),
     lint(),
@@ -89,15 +89,15 @@ export default async (): Promise<ConfigFile> => {
       },
       fullImageNameCacheKey,
     }),
-    jsonReport({
-      jsonReportCacheKey,
+    jsonReporter({
+      jsonReporterCacheKey,
       jsonReportToString,
     }),
-    cliTableReport({
-      jsonReportCacheKey,
+    cliTableReporter({
+      jsonReporterCacheKey,
       stringToJsonReport,
     }),
-  ]
+  ])
 
   return {
     steps,

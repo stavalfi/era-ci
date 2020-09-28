@@ -8,7 +8,7 @@ module.exports = {
     es6: true,
     node: true,
   },
-  plugins: ['@typescript-eslint', 'json', 'prettier', 'jest', 'spellcheck', 'no-floating-promise'],
+  plugins: ['@typescript-eslint', 'json', 'prettier', 'jest', 'spellcheck'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -17,7 +17,7 @@ module.exports = {
     'plugin:jest/recommended',
   ],
   globals: {
-    globalThis: false, // means it is not writeable
+    globalThis: false, // it means that it is not writeable
   },
   rules: {
     'no-process-exit': 'error',
@@ -31,7 +31,8 @@ module.exports = {
     '@typescript-eslint/ban-ts-ignore': 'off',
     '@typescript-eslint/triple-slash-reference': 'off',
     '@typescript-eslint/no-non-null-assertion': 'off',
-    'no-floating-promise/no-floating-promise': 'error',
+    '@typescript-eslint/no-non-null-asserted-optional-chain': 'off',
+    '@typescript-eslint/ban-ts-comment': 'off',
   },
   overrides: [
     {

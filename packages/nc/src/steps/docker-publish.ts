@@ -39,7 +39,7 @@ export const buildFullDockerImageName = ({
   dockerOrganizationName: string
   packageJsonName: string
   imageTag?: string
-}) => {
+}): string => {
   const withImageTag = imageTag ? `:${imageTag}` : ''
   return `${dockerRegistry}/${dockerOrganizationName}/${buildDockerImageName(packageJsonName)}${withImageTag}`
 }

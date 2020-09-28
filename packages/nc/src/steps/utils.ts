@@ -3,7 +3,13 @@ import fse from 'fs-extra'
 import semver from 'semver'
 import { PackageJson, Artifact } from '../types'
 
-export const setPackageVersion = async ({ toVersion, artifact }: { toVersion: string; artifact: Artifact }) => {
+export const setPackageVersion = async ({
+  toVersion,
+  artifact,
+}: {
+  toVersion: string
+  artifact: Artifact
+}): Promise<void> => {
   const packageJsonPath = path.join(artifact.packagePath, 'package.json')
   const fromVersion = artifact.packageJson.version
   if (!fromVersion) {

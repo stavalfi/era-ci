@@ -4,7 +4,7 @@ import { GitServer } from './git-server-testkit'
 import { Repo, TargetType, ToActualName, Package } from './types'
 import chance from 'chance'
 import path from 'path'
-import { PackageJson } from '@tahini/nc'
+import { PackageJson } from '../../src'
 
 async function initializeGitRepo({
   gitServer,
@@ -119,7 +119,7 @@ function createPackages({
   )
 }
 
-export async function createRepo({
+export async function createGitRepo({
   toActualName,
   repo,
   gitServer,

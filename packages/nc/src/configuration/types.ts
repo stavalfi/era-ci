@@ -1,9 +1,10 @@
 import { CreateCache } from '../create-cache'
 import { CreateLogger } from '../create-logger'
-import { Step } from '../create-step'
+import { Step, StepInfo } from '../create-step'
+import { Graph } from '../types'
 
-export type ConfigFile = {
+export type Config = {
   cache: CreateCache
   logger: CreateLogger
-  steps: Step[]
+  steps: Graph<{ stepInfo: StepInfo; runStep: Step['runStep'] }>
 }

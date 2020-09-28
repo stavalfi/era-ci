@@ -3,10 +3,10 @@
   "files": [],
   "references": [
     {
-      "path": "packages/nc/tsconfig-build.json"
+      "path": "packages/legacy-tests/tsconfig-build.json"
     },
     {
-      "path": "packages/legacy-tests/tsconfig-build.json"
+      "path": "packages/nc/tsconfig-build.json"
     }
   ]
 }
