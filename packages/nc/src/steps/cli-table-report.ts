@@ -190,7 +190,7 @@ function generateStepsErrorsReport(jsonReport: JsonReport): string {
         const isStepAppearsMultipleTimes =
           jsonReport.steps.filter(s => s.data.stepInfo.stepName === data.stepInfo.stepName).length > 1
         return {
-          stepName: isStepAppearsMultipleTimes ? data.stepInfo.stepName : data.stepInfo.stepId,
+          stepName: isStepAppearsMultipleTimes ? data.stepInfo.stepId : data.stepInfo.stepName,
           errors: data.stepResult.error ? [errorToString(data.stepResult.error)] : [],
         }
       } else {
