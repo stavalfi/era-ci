@@ -1,6 +1,8 @@
 import Table, { CellOptions } from 'cli-table3'
 import colors from 'colors/safe'
+import _ from 'lodash'
 import prettyMs from 'pretty-ms'
+import { ErrorObject } from 'serialize-error'
 import { createStep, ExecutionStatus, Status } from '../create-step'
 import { JsonReport, jsonReporterStepName } from './json-reporter'
 
@@ -48,7 +50,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
     const data = node.data
     if (data.artifactExecutionStatus === ExecutionStatus.done) {
       return {
-        packageName: data.artifact.packageJson.name as string,
+        packageName: data.artifact.packageJson.name,
         stepsStatus: jsonReport.steps.map(
           (_, i) => STEP_RESULT_STATUS_COLORED[data.stepsResult[i].data.artifactStepResult.status],
         ),
@@ -58,7 +60,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
       }
     } else {
       return {
-        packageName: data.artifact.packageJson.name as string,
+        packageName: data.artifact.packageJson.name,
         stepsStatus: jsonReport.steps.map(() => STEP_EXECUTION_STATUS_COLORED[data.artifactExecutionStatus]),
         artifactStatus: STEP_EXECUTION_STATUS_COLORED[data.artifactExecutionStatus],
         duration: '',
@@ -111,6 +113,131 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
   return packagesStatusTable.toString()
 }
 
+function errorToString(error: ErrorObject): string {
+  if (error.name) {
+    return `${error.name} - ${error.message}`
+  } else {
+    return error.message || ''
+  }
+}
+
+function generatePackagesErrorsReport(jsonReport: JsonReport): string {
+  const rows = jsonReport.stepsResultOfArtifactsByArtifact
+    .map(node => {
+      const data = node.data
+      if (data.artifactExecutionStatus === ExecutionStatus.done) {
+        return {
+          packageName: data.artifact.packageJson.name,
+          errors: _.flatten([
+            data.artifactResult.error ? [errorToString(data.artifactResult.error)] : [],
+            ...data.stepsResult.map(r =>
+              r.data.artifactStepExecutionStatus === ExecutionStatus.done && r.data.artifactStepResult.error
+                ? [errorToString(r.data.artifactStepResult.error)]
+                : [],
+            ),
+          ]),
+        }
+      } else {
+        return {
+          packageName: data.artifact.packageJson.name,
+          errors: [],
+        }
+      }
+    })
+    .filter(r => r.errors.length > 0)
+
+  const hasErrors = rows.some(row => row.errors.length > 0)
+
+  if (!hasErrors) {
+    return ''
+  }
+
+  const colums: TableRow = [''].concat(hasErrors ? ['errors'] : []).map(content => ({
+    vAlign: 'center',
+    hAlign: 'center',
+    content,
+  }))
+
+  const rowsInTableFormat = rows.flatMap(row => {
+    return [
+      [
+        ...[row.packageName].map<CellOptions>(content => ({
+          rowSpan: Object.keys(row.errors).length || 1,
+          vAlign: 'center',
+          hAlign: 'center',
+          content,
+        })),
+        ...row.errors.slice(0, 1),
+      ],
+      ...row.errors.slice(1).map(error => [error]),
+    ]
+  })
+
+  const packagesErrorsTable = new Table({
+    chars: DEFAULT_CHART,
+  })
+
+  packagesErrorsTable.push(colums, ...rowsInTableFormat)
+
+  return packagesErrorsTable.toString()
+}
+
+function generateStepsErrorsReport(jsonReport: JsonReport): string {
+  const rows = jsonReport.stepsResultOfArtifactsByStep
+    .map(node => {
+      const data = node.data
+      if (data.stepExecutionStatus === ExecutionStatus.done) {
+        const isStepAppearsMultipleTimes =
+          jsonReport.steps.filter(s => s.data.stepInfo.stepName === data.stepInfo.stepName).length > 1
+        return {
+          stepName: isStepAppearsMultipleTimes ? data.stepInfo.stepName : data.stepInfo.stepId,
+          errors: data.stepResult.error ? [errorToString(data.stepResult.error)] : [],
+        }
+      } else {
+        return {
+          stepName: data.stepInfo.stepName,
+          errors: [],
+        }
+      }
+    })
+    .filter(r => r.errors.length > 0)
+
+  const hasErrors = rows.some(row => row.errors.length > 0)
+
+  if (!hasErrors) {
+    return ''
+  }
+
+  const colums: TableRow = [''].concat(hasErrors ? ['errors'] : []).map(content => ({
+    vAlign: 'center',
+    hAlign: 'center',
+    content,
+  }))
+
+  const rowsInTableFormat = rows.flatMap(row => {
+    return [
+      [
+        ...[row.stepName].map<CellOptions>(content => ({
+          rowSpan: Object.keys(row.errors).length || 1,
+          vAlign: 'center',
+          hAlign: 'center',
+          content,
+        })),
+        ...row.errors.slice(0, 1),
+      ],
+      ...row.errors.slice(1).map(error => [error]),
+    ]
+  })
+
+  const stepsErrorsTable = new Table({
+    chars: DEFAULT_CHART,
+  })
+
+  stepsErrorsTable.push(colums, ...rowsInTableFormat)
+
+  return stepsErrorsTable.toString()
+}
+
 function generateSummaryReport(jsonReport: JsonReport): string {
   const flowId: TableRow = ['flow-id', jsonReport.flow.flowId].map(content => ({
     vAlign: 'center',
@@ -124,6 +251,11 @@ function generateSummaryReport(jsonReport: JsonReport): string {
       content,
     }),
   )
+  const duration: TableRow = ['duration', prettyMs(jsonReport.flowResult.durationMs)].map(content => ({
+    vAlign: 'center',
+    hAlign: 'center',
+    content,
+  }))
   const notes = jsonReport.flowResult.notes
   const columns: TableRow[] = [
     [
@@ -139,12 +271,6 @@ function generateSummaryReport(jsonReport: JsonReport): string {
         hAlign: 'center',
         content: STEP_RESULT_STATUS_COLORED[jsonReport.flowResult.status],
       },
-      {
-        rowSpan: notes.length || 1,
-        vAlign: 'center',
-        hAlign: 'center',
-        content: prettyMs(jsonReport.flowResult.durationMs),
-      },
       ...notes.slice(0, 1),
     ],
     ...notes.slice(1).map(note => [note]),
@@ -153,7 +279,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
   const ciTable = new Table({
     chars: DEFAULT_CHART,
   })
-  ciTable.push(flowId, flowStartFlowDateUtc, ...columns)
+  ciTable.push(flowId, flowStartFlowDateUtc, duration, ...columns)
   return ciTable.toString()
 }
 
@@ -186,9 +312,17 @@ export const cliTableReporter = createStep<CliTableReporterConfiguration>({
     }
 
     const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value)
+    const packagesErrorsReport = generatePackagesErrorsReport(jsonReportResult.value)
+    const stepsErrorsReport = generateStepsErrorsReport(jsonReportResult.value)
     const summaryReport = generateSummaryReport(jsonReportResult.value)
 
     log.noFormattingInfo(packagesStatusReport)
+    if (packagesErrorsReport) {
+      log.noFormattingInfo(packagesErrorsReport)
+    }
+    if (stepsErrorsReport) {
+      log.noFormattingInfo(stepsErrorsReport)
+    }
     log.noFormattingInfo(summaryReport)
 
     return {
