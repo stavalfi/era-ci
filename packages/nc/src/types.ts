@@ -1,8 +1,17 @@
-import { IPackageJson } from 'package-json-type'
+import { IDependencyMap, IScriptsMap } from 'package-json-type'
 
 export type Cleanup = () => Promise<unknown>
 
-export type PackageJson = Omit<IPackageJson, 'name' | 'version'> & Required<Pick<IPackageJson, 'name' | 'version'>>
+export type PackageJson = {
+  name: string
+  version: string
+  private?: boolean
+  scripts?: Partial<IScriptsMap> & { build?: string; lint?: string }
+  dependencies?: IDependencyMap
+  devDependencies?: IDependencyMap
+  peerDependencies?: IDependencyMap
+  main?: string
+}
 
 export type Node<T> = {
   data: T

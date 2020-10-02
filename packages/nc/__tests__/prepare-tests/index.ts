@@ -21,6 +21,9 @@ import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterAll } from './prepare-test-resources'
 import { Repo, TestResources } from './types'
 
+export { isDeepSubsetOf, isDeepSubsetOfOrPrint } from './utils'
+export { DeepPartial } from './types'
+
 const { getResoureces } = resourcesBeforeAfterAll()
 
 const jsonReporterCacheKey = ({ flowId, stepId }: { flowId: string; stepId: string }): string =>
