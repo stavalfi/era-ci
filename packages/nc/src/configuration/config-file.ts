@@ -1,7 +1,7 @@
-import path from 'path'
-import { is, object, string, validate, func, array } from 'superstruct'
-import { Config } from './types'
 import execa from 'execa'
+import path from 'path'
+import { array, func, is, number, object, string, validate } from 'superstruct'
+import { Config } from './types'
 
 function getConfigValidationObject() {
   return object({
@@ -13,8 +13,16 @@ function getConfigValidationObject() {
     }),
     steps: array(
       object({
-        stepName: string(),
-        runStep: func(),
+        data: object({
+          runStep: func(),
+          stepInfo: object({
+            stepId: string(),
+            stepName: string(),
+          }),
+        }),
+        index: number(),
+        parentsIndexes: array(number()),
+        childrenIndexes: array(number()),
       }),
     ),
   })

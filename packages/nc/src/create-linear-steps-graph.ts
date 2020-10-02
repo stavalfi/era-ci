@@ -1,4 +1,4 @@
-import { ExecutionStatus, Step, StepInfo } from './create-step'
+import { Step, StepInfo } from './create-step'
 import { Graph } from './types'
 
 export function createLinearStepsGraph(steps: Step[]): Graph<{ stepInfo: StepInfo; runStep: Step['runStep'] }> {
@@ -10,7 +10,6 @@ export function createLinearStepsGraph(steps: Step[]): Graph<{ stepInfo: StepInf
         stepId: `${step.stepName}-${i}`,
       },
       runStep: step.runStep,
-      ExecutionStatus: ExecutionStatus.scheduled,
     },
     parentsIndexes: i === 0 ? [] : [i - 1],
     childrenIndexes: i === array.length - 1 ? [] : [i + 1],
