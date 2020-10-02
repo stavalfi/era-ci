@@ -2,8 +2,8 @@ import Table, { CellOptions } from 'cli-table3'
 import colors from 'colors/safe'
 import _ from 'lodash'
 import prettyMs from 'pretty-ms'
-import { ErrorObject } from 'serialize-error'
-import { createStep, ExecutionStatus, Status } from '../create-step'
+import { deserializeError } from 'serialize-error'
+import { createStep, ExecutionStatus, Status, stepToString } from '../create-step'
 import { JsonReport, jsonReporterStepName } from './json-reporter'
 
 // note: this file is not tested (or can't be tested). modify with caution!!!
@@ -61,11 +61,9 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
           ..._.flatten(
             data.stepsResult.map(s =>
               s.data.artifactStepExecutionStatus === ExecutionStatus.done
-                ? s.data.artifactStepResult.notes.map(n => {
-                    const isStepAppearsMultipleTimes =
-                      jsonReport.steps.filter(s => s.data.stepInfo.stepName === s.data.stepInfo.stepName).length > 1
-                    return `${isStepAppearsMultipleTimes ? s.data.stepInfo.stepName : s.data.stepInfo.stepId} - ${n}`
-                  })
+                ? s.data.artifactStepResult.notes.map(
+                    n => `${stepToString({ stepInfo: s.data.stepInfo, steps: jsonReport.steps })} - ${n}`,
+                  )
                 : [],
             ),
           ),
@@ -126,14 +124,6 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
   return packagesStatusTable.toString()
 }
 
-function errorToString(error: ErrorObject): string {
-  if (error.name) {
-    return `${error.name} - ${error.message}`
-  } else {
-    return error.message || ''
-  }
-}
-
 function generatePackagesErrorsReport(jsonReport: JsonReport): string {
   const rows = jsonReport.stepsResultOfArtifactsByArtifact
     .map(node => {
@@ -142,10 +132,10 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
         return {
           packageName: data.artifact.packageJson.name,
           errors: _.flatten([
-            data.artifactResult.error ? [errorToString(data.artifactResult.error)] : [],
+            data.artifactResult.error ? [`${deserializeError(data.artifactResult.error)}`] : [],
             ...data.stepsResult.map(r =>
               r.data.artifactStepExecutionStatus === ExecutionStatus.done && r.data.artifactStepResult.error
-                ? [errorToString(r.data.artifactStepResult.error)]
+                ? [`${deserializeError(r.data.artifactStepResult.error)}`]
                 : [],
             ),
           ]),
@@ -200,11 +190,9 @@ function generateStepsErrorsReport(jsonReport: JsonReport): string {
     .map(node => {
       const data = node.data
       if (data.stepExecutionStatus === ExecutionStatus.done) {
-        const isStepAppearsMultipleTimes =
-          jsonReport.steps.filter(s => s.data.stepInfo.stepName === data.stepInfo.stepName).length > 1
         return {
-          stepName: isStepAppearsMultipleTimes ? data.stepInfo.stepId : data.stepInfo.stepName,
-          errors: data.stepResult.error ? [errorToString(data.stepResult.error)] : [],
+          stepName: stepToString({ stepInfo: data.stepInfo, steps: jsonReport.steps }),
+          errors: data.stepResult.error ? [`${deserializeError(data.stepResult.error)}`] : [],
         }
       } else {
         return {
@@ -303,6 +291,11 @@ export type CliTableReporterConfiguration = {
 
 export const cliTableReporter = createStep<CliTableReporterConfiguration>({
   stepName: 'cli-table-reporter',
+  canRunStepOnArtifact: {
+    options: {
+      runIfPackageResultsInCache: true,
+    },
+  },
   runStepOnRoot: async ({ cache, flowId, stepConfigurations, log, steps }) => {
     const jsonReporterStepId = steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data.stepInfo.stepId
     if (!jsonReporterStepId) {

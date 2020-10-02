@@ -34,8 +34,7 @@ export {
   Result,
   StepsResultOfArtifact,
 }
-
-export { toStepsResultOfArtifactsByArtifact } from './utils'
+export { toStepsResultOfArtifactsByArtifact, stepToString } from './utils'
 
 async function runStepOnEveryArtifact<StepConfigurations>({
   beforeAll,
@@ -158,7 +157,6 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         }),
       ),
     )
-
     let userStepResult: UserStepResult
 
     if (canRunStepResultOnArtifacts.every(x => !x.canRun)) {

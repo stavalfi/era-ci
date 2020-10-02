@@ -235,8 +235,8 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
       }
     },
     options: {
-      // maybe the publish already succeed but someone deleted the target from the registry so we need to check that manually as well
-      skipIfPackageResultsInCache: false,
+      // maybe the publish already succeed but someone manually deleted the target from the registry so we need to check that manually as well
+      runIfPackageResultsInCache: true,
     },
   },
   beforeAll: ({ stepConfigurations, repoPath, log }) =>
@@ -259,6 +259,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
 
     await setPackageVersion({
       artifact: currentArtifact.data.artifact,
+      fromVersion: currentArtifact.data.artifact.packageJson.version,
       toVersion: newVersion,
     })
 
@@ -290,11 +291,12 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
           cache.ttls.stepSummary,
         ),
       )
-      .finally(() =>
+      .finally(async () =>
         // revert version to what it was before we changed it
         setPackageVersion({
           artifact: currentArtifact.data.artifact,
-          toVersion: currentArtifact.data.artifact.packageJson.version!,
+          fromVersion: newVersion,
+          toVersion: currentArtifact.data.artifact.packageJson.version,
         }),
       )
 

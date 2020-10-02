@@ -1,5 +1,5 @@
-import { createStep, ExecutionStatus, JsonReport, Status } from '../../src'
-import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '../prepare-tests'
+import { createStep, ExecutionStatus, JsonReport, Status } from '../src'
+import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
 
 const { createRepo } = createTest()
 

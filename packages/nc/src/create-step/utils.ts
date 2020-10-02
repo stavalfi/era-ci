@@ -1,14 +1,14 @@
 import _ from 'lodash'
-import {
-  StepsResultOfArtifactsByStep,
-  ExecutionStatus,
-  StepsResultOfArtifact,
-  Status,
-  StepsResultOfArtifactsByArtifact,
-} from './types'
+import { StepInfo } from '.'
 import { Artifact, Graph } from '..'
 import { Node } from '../types'
 import { calculateCombinedStatus } from '../utils'
+import {
+  ExecutionStatus,
+  StepsResultOfArtifact,
+  StepsResultOfArtifactsByArtifact,
+  StepsResultOfArtifactsByStep,
+} from './types'
 
 function getArtifactExecutionStatus({
   artifact,
@@ -64,10 +64,12 @@ function getStepsResultOfArtifact({
         artifact: artifact.data.artifact,
         artifactResult: {
           status: calculateCombinedStatus(
-            stepsResultOfArtifactsByStep.map(s =>
-              s.data.stepExecutionStatus === ExecutionStatus.done
-                ? s.data.artifactsResult[artifact.index].data.artifactStepResult.status
-                : Status.failed,
+            _.flatten(
+              stepsResultOfArtifactsByStep.map(s =>
+                s.data.stepExecutionStatus === ExecutionStatus.done
+                  ? [s.data.artifactsResult[artifact.index].data.artifactStepResult.status]
+                  : [],
+              ),
             ),
           ),
           notes: [], // we don't support (yet) notes about a artifact
@@ -172,4 +174,15 @@ export function toStepsResultOfArtifactsByArtifact({
     ...a,
     data: getStepsResultOfArtifact({ artifact: a, stepsResultOfArtifactsByStep }),
   }))
+}
+
+export function stepToString({
+  steps,
+  stepInfo,
+}: {
+  stepInfo: StepInfo
+  steps: Graph<{ stepInfo: StepInfo }>
+}): string {
+  const isStepAppearsMultipleTimes = steps.filter(s => s.data.stepInfo.stepName === stepInfo.stepName).length > 1
+  return isStepAppearsMultipleTimes ? stepInfo.stepId : stepInfo.stepName
 }

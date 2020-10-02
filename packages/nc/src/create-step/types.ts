@@ -138,8 +138,8 @@ export type CanRunStepOnArtifact<StepConfigurations> = {
     options: UserRunStepOptions<StepConfigurations> & { currentArtifact: Node<{ artifact: Artifact }> },
   ) => Promise<true | CanRunStepOnArtifactResult>
   options?: {
-    skipIfSomeDirectPrevStepsFailedOnPackage?: boolean
-    skipIfPackageResultsInCache?: boolean
+    runIfSomeDirectParentStepFailedOnPackage?: boolean
+    runIfPackageResultsInCache?: boolean
   }
 }
 

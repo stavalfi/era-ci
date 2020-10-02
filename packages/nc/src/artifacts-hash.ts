@@ -122,7 +122,7 @@ function createOrderGraph(
     }))
 }
 
-async function calculateHashOfPackage(packagePath: string, filesPath: string[]): Promise<string> {
+async function calculateHashOfFiles(packagePath: string, filesPath: string[]): Promise<string> {
   const hasher = (
     await Promise.all(
       filesPath.map(async filePath => ({
@@ -192,7 +192,7 @@ export async function calculateArtifactsHash({
     await Promise.all(
       packagesWithPackageJson.map<Promise<[string, TempArtifact]>>(async ({ packagePath, packageJson }) => {
         const packageFiles = repoFilesPath.filter(filePath => isInParent(packagePath, filePath))
-        const packageHash = await calculateHashOfPackage(packagePath, packageFiles)
+        const packageHash = await calculateHashOfFiles(packagePath, packageFiles)
         return [
           packagePath,
           {
@@ -211,7 +211,7 @@ export async function calculateArtifactsHash({
   fillParentsInGraph(packageHashInfoByPath)
 
   const rootFilesInfo = repoFilesPath.filter(filePath => isRootFile(repoPath, filePath))
-  const rootFilesHash = await calculateHashOfPackage(repoPath, rootFilesInfo)
+  const rootFilesHash = await calculateHashOfFiles(repoPath, rootFilesInfo)
 
   calculateConbinedHashes(rootFilesHash, packageHashInfoByPath)
 

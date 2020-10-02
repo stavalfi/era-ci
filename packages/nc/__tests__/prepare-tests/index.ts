@@ -155,7 +155,7 @@ const createRepo: CreateRepo = async repo => {
     repo,
     gitServer,
     toActualName,
-    ncLogsFileNameToIgnore: './nc.log',
+    gitIgnoreFiles: ['nc.log'],
   })
 
   return {
