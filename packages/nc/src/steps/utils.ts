@@ -6,17 +6,13 @@ import { PackageJson, Artifact } from '../types'
 export const setPackageVersion = async ({
   toVersion,
   artifact,
+  fromVersion,
 }: {
+  fromVersion: string
   toVersion: string
   artifact: Artifact
 }): Promise<void> => {
   const packageJsonPath = path.join(artifact.packagePath, 'package.json')
-  const fromVersion = artifact.packageJson.version
-  if (!fromVersion) {
-    throw new Error(
-      `package.json: ${packageJsonPath} must have a version property. set it up to any valid version you want. for example: "1.0.0"`,
-    )
-  }
   const packageJsonAsString = await fse.readFile(packageJsonPath, 'utf-8')
   const from = `"version": "${fromVersion}"`
   const to = `"version": "${toVersion}"`

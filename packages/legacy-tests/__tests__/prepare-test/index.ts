@@ -40,7 +40,7 @@ export const newEnv: NewEnv = () => {
       repo,
       gitServer,
       toActualName,
-      ncLogsFileNameToIgnore: './nc.log',
+      gitIgnoreFiles: ['nc.log', 'test-logs.log'],
     })
 
     const testLog = (

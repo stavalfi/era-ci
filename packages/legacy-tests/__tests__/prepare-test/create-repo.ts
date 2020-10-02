@@ -123,12 +123,12 @@ export async function createRepo({
   toActualName,
   repo,
   gitServer,
-  ncLogsFileNameToIgnore,
+  gitIgnoreFiles,
 }: {
   repo: Repo
   gitServer: GitServer
   toActualName: ToActualName
-  ncLogsFileNameToIgnore: string
+  gitIgnoreFiles: string[]
 }): Promise<{
   repoPath: string
   repoName: string
@@ -151,7 +151,7 @@ export async function createRepo({
     '.dockerignore': `node_modules`,
     '.gitignore': `\
 node_modules
-${ncLogsFileNameToIgnore}\
+${gitIgnoreFiles.join('\n')}\
     `,
     packages: {
       ...createPackages({

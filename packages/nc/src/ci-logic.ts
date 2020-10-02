@@ -56,7 +56,6 @@ export async function ci(options: {
     })
 
     process.exitCode = getExitCode(stepsResultOfArtifactsByStep)
-    // log.noFormattingInfo(JSON.stringify(stepsResultOfArtifactsByStep, null, 2))
   } catch (error) {
     process.exitCode = 1
     log?.error(`CI failed unexpectedly`, error)

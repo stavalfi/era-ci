@@ -200,7 +200,7 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
           value: JSON.stringify(
             {
               didStepRun: true,
-              Status: options.stepStatus,
+              stepStatus: options.stepStatus,
             },
             null,
             2,

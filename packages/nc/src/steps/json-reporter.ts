@@ -125,8 +125,10 @@ export const jsonReporter = createStep<JsonReportConfiguration>({
         ),
         durationMs: Date.now() - startFlowMs,
         status: calculateCombinedStatus(
-          withoutThisStep.stepsResultOfArtifactsByStep.map(s =>
-            s.data.stepExecutionStatus === ExecutionStatus.done ? s.data.stepResult.status : Status.passed,
+          _.flatten(
+            withoutThisStep.stepsResultOfArtifactsByStep.map(s =>
+              s.data.stepExecutionStatus === ExecutionStatus.done ? [s.data.stepResult.status] : [],
+            ),
           ),
         ),
       },

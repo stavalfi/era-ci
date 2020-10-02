@@ -383,6 +383,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
 
     await setPackageVersion({
       artifact: currentArtifact.data.artifact,
+      fromVersion: currentArtifact.data.artifact.packageJson.version,
       toVersion: newVersion,
     })
 
@@ -403,7 +404,8 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
       // revert version to what it was before we changed it
       await setPackageVersion({
         artifact: currentArtifact.data.artifact,
-        toVersion: currentArtifact.data.artifact.packageJson.version!,
+        fromVersion: newVersion,
+        toVersion: currentArtifact.data.artifact.packageJson.version,
       })
       throw error
     }

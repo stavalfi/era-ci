@@ -9,19 +9,16 @@ export const didPassOrSkippedAsPassed = (status: Status): boolean =>
   [Status.passed, Status.skippedAsPassed].includes(status)
 
 export function calculateCombinedStatus(statuses: Status[]): Status {
-  if (statuses.length === 0) {
-    return Status.passed
-  }
   if (statuses.includes(Status.failed)) {
     return Status.failed
   }
   if (statuses.includes(Status.skippedAsFailed)) {
     return Status.skippedAsFailed
   }
-  if (statuses.includes(Status.skippedAsPassed)) {
-    return Status.skippedAsPassed
+  if (statuses.includes(Status.passed)) {
+    return Status.passed
   }
-  return Status.passed
+  return Status.skippedAsPassed
 }
 
 export function getStepsAsGraph(steps: Step[]): Graph<{ stepInfo: StepInfo; runStep: Step['runStep'] }> {
@@ -42,7 +39,7 @@ export function getStepsAsGraph(steps: Step[]): Graph<{ stepInfo: StepInfo; runS
 
 export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<unknown>): number {
   const finalStepsStatus = calculateCombinedStatus(
-    _.flatMapDeep(
+    _.flatten(
       stepsResultOfArtifactsByStep.map(s => {
         switch (s.data.stepExecutionStatus) {
           case ExecutionStatus.done:
@@ -52,14 +49,14 @@ export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifacts
           case ExecutionStatus.aborted:
             return [Status.failed]
           case ExecutionStatus.running:
-            return []
+            return [Status.failed]
           case ExecutionStatus.scheduled:
-            return []
+            return [Status.failed]
         }
       }),
     ),
   )
-  if ([Status.passed, Status.skippedAsPassed].includes(finalStepsStatus)) {
+  if (didPassOrSkippedAsPassed(finalStepsStatus)) {
     return 0
   } else {
     return 1
@@ -79,7 +76,7 @@ export async function execaCommand<Options extends SupportedExecaCommandOptions>
   options: Options['stdio'] extends 'inherit' ? SupportedExecaCommandOptions : Options,
 ): Promise<execa.ExecaReturnValue<string>> {
   const execaOptions = {
-    ..._.omit(options, ['logLevel']),
+    ..._.omit(options, ['logLevel', 'log']),
     stdio: options.stdio === 'inherit' ? 'pipe' : options.stdio,
   }
   options.log.verbose(

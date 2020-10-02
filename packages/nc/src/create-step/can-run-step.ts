@@ -35,7 +35,7 @@ const runAll = async (
   }
 }
 
-async function skipIfPackageResultsInCachePredicate<StepConfigurations>({
+async function runIfPackageResultsInCache<StepConfigurations>({
   canRunStepOnArtifact,
   cache,
   currentArtifact,
@@ -53,16 +53,16 @@ async function skipIfPackageResultsInCachePredicate<StepConfigurations>({
     const note = `step already run on this package with the same hash in flow-id: "${result.flowId}". result: "${
       isPassed ? 'passed' : 'failed'
     }"`
-    if (canRunStepOnArtifact?.options?.skipIfPackageResultsInCache) {
+    if (canRunStepOnArtifact?.options?.runIfPackageResultsInCache) {
+      return {
+        canRun: true,
+        notes: [`rerun step but ${note}`],
+      }
+    } else {
       return {
         canRun: false,
         notes: [note],
         stepStatus: isPassed ? Status.skippedAsPassed : Status.skippedAsFailed,
-      }
-    } else {
-      return {
-        canRun: true,
-        notes: [`rerun step but ${note}`],
       }
     }
   } else {
@@ -73,7 +73,7 @@ async function skipIfPackageResultsInCachePredicate<StepConfigurations>({
   }
 }
 
-async function skipIfSomeDirectPrevStepsFailedOnPackage<StepConfigurations>({
+async function runIfSomeDirectParentStepFailedOnPackage<StepConfigurations>({
   stepsResultOfArtifactsByStep,
   currentStepInfo,
   canRunStepOnArtifact,
@@ -95,23 +95,16 @@ async function skipIfSomeDirectPrevStepsFailedOnPackage<StepConfigurations>({
   if (!didAllPrevPassed) {
     notes.push(`skipping step because not all previous steps passed`)
   }
-  if (didAllPrevPassed) {
+  if (didAllPrevPassed || canRunStepOnArtifact?.options?.runIfSomeDirectParentStepFailedOnPackage) {
     return {
       canRun: true,
       notes,
     }
   } else {
-    if (canRunStepOnArtifact?.options?.skipIfSomeDirectPrevStepsFailedOnPackage) {
-      return {
-        canRun: false,
-        notes,
-        stepStatus: Status.skippedAsFailed,
-      }
-    } else {
-      return {
-        canRun: true,
-        notes,
-      }
+    return {
+      canRun: false,
+      notes,
+      stepStatus: Status.skippedAsFailed,
     }
   }
 }
@@ -140,11 +133,11 @@ export async function checkIfCanRunStepOnArtifact<StepConfigurations>(
     },
     {
       checkName: 'skip-if-package-results-in-cache',
-      predicate: () => skipIfPackageResultsInCachePredicate(options),
+      predicate: () => runIfPackageResultsInCache(options),
     },
     {
       checkName: 'skip-if-some-direct-prev-steps-failed-on-package',
-      predicate: () => skipIfSomeDirectPrevStepsFailedOnPackage(options),
+      predicate: () => runIfSomeDirectParentStepFailedOnPackage(options),
     },
   ])
 }
