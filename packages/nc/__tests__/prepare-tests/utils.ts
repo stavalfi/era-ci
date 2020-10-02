@@ -1,13 +1,19 @@
-export function isDeepSubsetOf(
-  fullObj: unknown,
-  subset: unknown,
-): { result: true } | { result: false; problem: string; fullObj: unknown; subset: unknown } {
+export function isDeepSubsetOf({
+  subset,
+  fullObj,
+  path,
+}: {
+  fullObj: unknown
+  subset: unknown
+  path: string[]
+}): { result: true } | { result: false; problem: string; fullObj: unknown; subset: unknown; path: string[] } {
   if (typeof fullObj !== typeof subset) {
     return {
       result: false,
       fullObj,
       subset,
       problem: 'not equal',
+      path,
     }
   }
   switch (typeof fullObj) {
@@ -24,6 +30,7 @@ export function isDeepSubsetOf(
           fullObj,
           subset,
           problem: 'not equal',
+          path,
         }
       } else {
         return {
@@ -38,15 +45,21 @@ export function isDeepSubsetOf(
             fullObj,
             subset,
             problem: 'subset is not array as well',
+            path,
           }
         } else {
-          for (const element of subset) {
-            if (fullObj.every(e => !isDeepSubsetOf(e, element).result)) {
+          for (const [key, element] of subset.entries()) {
+            if (
+              fullObj.every(
+                e => !isDeepSubsetOf({ fullObj: e, subset: element, path: [...path, key.toString()] }).result,
+              )
+            ) {
               return {
                 result: false,
                 fullObj,
                 subset: element,
                 problem: 'subset is element of array that can not be found in fullObj array',
+                path,
               }
             }
           }
@@ -61,6 +74,7 @@ export function isDeepSubsetOf(
             fullObj,
             subset,
             problem: 'not equal',
+            path,
           }
         } else {
           if (fullObj === null && subset === null) {
@@ -74,7 +88,7 @@ export function isDeepSubsetOf(
           for (const [key, value] of Object.entries(subset || {})) {
             // @ts-ignore
             const fullObjValue: unknown = (fullObj || {})[key]
-            const result = isDeepSubsetOf(fullObjValue, value)
+            const result = isDeepSubsetOf({ fullObj: fullObjValue, subset: value, path: [...path, key] })
             if (!result.result) {
               return result
             }
@@ -89,7 +103,7 @@ export function isDeepSubsetOf(
 }
 
 export function isDeepSubsetOfOrPrint(fullObj: unknown, subset: unknown): boolean {
-  const result = isDeepSubsetOf(fullObj, subset)
+  const result = isDeepSubsetOf({ fullObj, subset, path: [] })
 
   if (result.result) {
     return true
