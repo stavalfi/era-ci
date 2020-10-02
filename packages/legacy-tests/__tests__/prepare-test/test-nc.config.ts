@@ -62,8 +62,8 @@ export default async (): Promise<Config> => {
   })
 
   const steps = createLinearStepsGraph([
-    install(),
     validatePackages(),
+    install(),
     lint(),
     build(),
     test({
