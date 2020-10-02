@@ -9,7 +9,7 @@ import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetTyp
 export type DockerPublishConfiguration = {
   shouldPublish: boolean
   registry: string
-  registryAuth: {
+  registryAuth?: {
     username: string
     token: string
   }
@@ -41,7 +41,9 @@ export const buildFullDockerImageName = ({
   imageTag?: string
 }): string => {
   const withImageTag = imageTag ? `:${imageTag}` : ''
-  return `${dockerRegistry}/${dockerOrganizationName}/${buildDockerImageName(packageJsonName)}${withImageTag}`
+  return `${dockerRegistry
+    .replace(`http://`, '')
+    .replace(`https://`, '')}/${dockerOrganizationName}/${buildDockerImageName(packageJsonName)}${withImageTag}`
 }
 
 async function dockerRegistryLogin({
@@ -58,13 +60,14 @@ async function dockerRegistryLogin({
   }
   log: Log
 }) {
-  if (registryAuth) {
+  if (registryAuth?.username && registryAuth.username) {
     log.verbose(`logging in to docker-registry: ${dockerRegistry}`)
     // I need to login to read and push from `dockerRegistryUsername` repository
     await execaCommand(
       ['docker', 'login', '--username', registryAuth.username, '--password', registryAuth.token, dockerRegistry],
       {
         stdio: 'pipe',
+        shell: true,
         cwd: repoPath,
         log,
       },

@@ -70,13 +70,7 @@ function getStepsResultOfArtifact({
                 : Status.failed,
             ),
           ),
-          notes: _.flatMapDeep(
-            stepsResultOfArtifactsByStep.map(s =>
-              s.data.stepExecutionStatus === ExecutionStatus.done
-                ? s.data.artifactsResult[artifact.index].data.artifactStepResult.notes
-                : [],
-            ),
-          ),
+          notes: [], // we don't support (yet) notes about a artifact
           durationMs: _.sum(
             stepsResultOfArtifactsByStep.map(s =>
               s.data.stepExecutionStatus === ExecutionStatus.done

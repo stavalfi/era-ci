@@ -56,7 +56,20 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
         ),
         artifactStatus: STEP_RESULT_STATUS_COLORED[data.artifactResult.status],
         duration: prettyMs(data.artifactResult.durationMs),
-        notes: data.artifactResult.notes,
+        notes: [
+          ...data.artifactResult.notes,
+          ..._.flatten(
+            data.stepsResult.map(s =>
+              s.data.artifactStepExecutionStatus === ExecutionStatus.done
+                ? s.data.artifactStepResult.notes.map(n => {
+                    const isStepAppearsMultipleTimes =
+                      jsonReport.steps.filter(s => s.data.stepInfo.stepName === s.data.stepInfo.stepName).length > 1
+                    return `${isStepAppearsMultipleTimes ? s.data.stepInfo.stepName : s.data.stepInfo.stepId} - ${n}`
+                  })
+                : [],
+            ),
+          ),
+        ],
       }
     } else {
       return {
