@@ -1,4 +1,4 @@
-import { TargetType } from '../../src'
+import { PackageJson, TargetType } from '../../src'
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap } from 'package-json-type'
 import { GitServer } from './git-server-testkit'
@@ -15,10 +15,7 @@ export type Package = {
   src?: FolderStructure
   tests?: FolderStructure
   additionalFiles?: FolderStructure
-  scripts?: {
-    test?: string
-    postpublish?: string
-  }
+  scripts?: PackageJson['scripts']
 }
 
 export type Repo = {
@@ -41,3 +38,7 @@ export type TestResources = {
 }
 
 export type ToActualName = (name: string) => string
+
+export type DeepPartial<T> = {
+  [P in keyof T]?: DeepPartial<T[P]>
+}
