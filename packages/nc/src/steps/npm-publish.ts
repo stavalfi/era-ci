@@ -167,14 +167,6 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
   stepName: 'npm-publish',
   canRunStepOnArtifact: {
     customPredicate: async ({ currentArtifact, stepConfigurations, repoPath, cache, log }) => {
-      if (!stepConfigurations.shouldPublish) {
-        return {
-          canRun: false,
-          notes: [`npm-publish is disabled`],
-          stepStatus: Status.skippedAsPassed,
-        }
-      }
-
       const targetType = await getPackageTargetType(
         currentArtifact.data.artifact.packagePath,
         currentArtifact.data.artifact.packageJson,
@@ -184,6 +176,14 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
         return {
           canRun: false,
           notes: [],
+          stepStatus: Status.skippedAsPassed,
+        }
+      }
+
+      if (!stepConfigurations.shouldPublish) {
+        return {
+          canRun: false,
+          notes: [`npm-publish is disabled`],
           stepStatus: Status.skippedAsPassed,
         }
       }

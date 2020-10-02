@@ -277,14 +277,6 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
   stepName: 'docker-publish',
   canRunStepOnArtifact: {
     customPredicate: async ({ currentArtifact, stepConfigurations, cache, repoPath, log }) => {
-      if (!stepConfigurations.shouldPublish) {
-        return {
-          canRun: false,
-          notes: [`docker-publish is disabled`],
-          stepStatus: Status.skippedAsPassed,
-        }
-      }
-
       const targetType = await getPackageTargetType(
         currentArtifact.data.artifact.packagePath,
         currentArtifact.data.artifact.packageJson,
@@ -293,6 +285,14 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
         return {
           canRun: false,
           notes: [],
+          stepStatus: Status.skippedAsPassed,
+        }
+      }
+
+      if (!stepConfigurations.shouldPublish) {
+        return {
+          canRun: false,
+          notes: [`docker-publish is disabled`],
           stepStatus: Status.skippedAsPassed,
         }
       }

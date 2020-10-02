@@ -132,12 +132,12 @@ async function runStepOnRoot<StepConfigurations>({
 }
 
 async function runStep<StepConfigurations, NormalizedStepConfigurations>({
-  startMs,
+  startStepMs,
   createStepOptions,
   runStepOptions,
   stepConfigurations,
 }: {
-  startMs: number
+  startStepMs: number
   createStepOptions: CreateStepOptions<StepConfigurations, NormalizedStepConfigurations>
   runStepOptions: RunStepOptions
   stepConfigurations: NormalizedStepConfigurations
@@ -147,7 +147,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
       ...runStepOptions,
       log: runStepOptions.logger.createLog(runStepOptions.currentStepInfo.data.stepInfo.stepName),
       stepConfigurations,
-      startStepMs: Date.now(),
+      startStepMs,
     }
     const canRunStepResultOnArtifacts = await Promise.all(
       runStepOptions.artifacts.map(node =>
@@ -174,7 +174,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
           return {
             artifactName: node.data.artifact.packageJson.name,
             stepResult: {
-              durationMs: Date.now(),
+              durationMs: Date.now() - startStepMs,
               status: canRun.stepStatus,
               notes: canRun.notes,
             },
@@ -211,7 +211,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         stepExecutionStatus: ExecutionStatus.done,
         stepResult: {
           status: Status.failed,
-          durationMs: Date.now() - userRunStepOptions.startStepMs,
+          durationMs: Date.now() - startStepMs,
           notes: problems,
         },
         artifactsResult: runStepOptions.artifacts.map(node => ({
@@ -220,7 +220,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
             artifact: node.data.artifact,
             artifactStepExecutionStatus: ExecutionStatus.done,
             artifactStepResult: {
-              durationMs: Date.now() - startMs,
+              durationMs: Date.now() - startStepMs,
               notes: [],
               status: Status.failed,
             },
@@ -259,7 +259,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
       },
       stepExecutionStatus: ExecutionStatus.done,
       stepResult: {
-        durationMs: Date.now() - userRunStepOptions.startStepMs,
+        durationMs: Date.now() - startStepMs,
         notes: userStepResult.stepResult.notes,
         status: calculateCombinedStatus(userStepResult.artifactsResult.map(a => a.stepResult.status)),
       },
@@ -268,7 +268,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
 
     return result
   } catch (error) {
-    const endDurationMs = Date.now() - startMs
+    const endDurationMs = Date.now() - startStepMs
     const result: StepResultOfArtifacts<unknown> = {
       stepInfo: {
         stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
@@ -304,18 +304,17 @@ export function createStep<StepConfigurations = void, NormalizedStepConfiguratio
   return (stepConfigurations: StepConfigurations): Step => ({
     stepName: createStepOptions.stepName,
     runStep: async runStepOptions => {
-      const startMs = Date.now()
+      const startStepMs = Date.now()
       // @ts-ignore - we need to find a way to ensure that if NormalizedStepConfigurations is defined, also normalizeStepConfigurations is defined.
       const normalizedStepConfigurations: NormalizedStepConfigurations = createStepOptions.normalizeStepConfigurations
         ? await createStepOptions.normalizeStepConfigurations(stepConfigurations)
         : stepConfigurations
       const result = await runStep({
-        startMs,
+        startStepMs,
         createStepOptions,
         runStepOptions,
         stepConfigurations: normalizedStepConfigurations,
       })
-
       if (result.stepExecutionStatus === ExecutionStatus.done) {
         await Promise.all(
           result.artifactsResult.map(artifact =>
