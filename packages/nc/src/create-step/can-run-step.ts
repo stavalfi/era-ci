@@ -1,45 +1,36 @@
 import _ from 'lodash'
 import { Artifact, Node } from '../types'
-import { didPassOrSkippedAsPassed } from '../utils'
+import { calculateCombinedStatus, didPassOrSkippedAsPassed } from '../utils'
 import { CanRunStepOnArtifact, CanRunStepOnArtifactResult, ExecutionStatus, Status, UserRunStepOptions } from './types'
 
 const runAll = async (
   array: { checkName: string; predicate: () => Promise<CanRunStepOnArtifactResult> }[],
 ): Promise<CanRunStepOnArtifactResult> => {
-  if (array.length === 0) {
-    throw new Error(`nothing to run. possible bug?`)
-  }
   const results = await Promise.all(array.map(x => x.predicate()))
   const canRun = results.every(x => x.canRun)
-  const notes = _.flatMapDeep(results.map(x => x.notes))
+  const notes = _.uniq(
+    _.flatMapDeep(
+      results.map((x, i) =>
+        x.notes.map(note =>
+          array[i].checkName === 'custom-step-predicate' ? note : `${array[i].checkName} - ${note}`,
+        ),
+      ),
+    ),
+  )
   if (canRun) {
     return {
       canRun: true,
       notes,
     }
   } else {
+    const stepStatus = calculateCombinedStatus(_.flatten(results.map(r => (r.canRun ? [] : [r.stepStatus]))))
+    if (stepStatus !== Status.skippedAsFailed && stepStatus !== Status.skippedAsPassed) {
+      throw new Error(`we can't be here`)
+    }
     return {
       canRun: false,
       notes,
-      stepStatus: results.reduce((acc: Status, x) => {
-        if (x.canRun) {
-          return acc
-        } else {
-          if (acc === Status.failed) {
-            return acc
-          }
-          if (x.stepStatus === Status.failed) {
-            return x.stepStatus
-          }
-          if (acc === Status.skippedAsFailed) {
-            return acc
-          }
-          if (x.stepStatus === Status.skippedAsPassed) {
-            return x.stepStatus
-          }
-          return Status.passed
-        }
-      }, Status.passed),
+      stepStatus,
     }
   }
 }
@@ -134,10 +125,18 @@ export async function checkIfCanRunStepOnArtifact<StepConfigurations>(
   return runAll([
     {
       checkName: 'custom-step-predicate',
-      predicate: async () =>
-        options.canRunStepOnArtifact?.customPredicate
-          ? options.canRunStepOnArtifact.customPredicate(_.omit(options, ['canRunStepOnArtifact']))
-          : { canRun: true, notes: [] },
+      predicate: async () => {
+        if (options.canRunStepOnArtifact?.customPredicate) {
+          const result = await options.canRunStepOnArtifact.customPredicate(_.omit(options, ['canRunStepOnArtifact']))
+          if (result === true) {
+            return { canRun: true, notes: [] }
+          } else {
+            return result
+          }
+        } else {
+          return { canRun: true, notes: [] }
+        }
+      },
     },
     {
       checkName: 'skip-if-package-results-in-cache',

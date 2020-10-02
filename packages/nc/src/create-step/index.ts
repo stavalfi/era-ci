@@ -151,7 +151,11 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
     }
     const canRunStepResultOnArtifacts = await Promise.all(
       runStepOptions.artifacts.map(node =>
-        checkIfCanRunStepOnArtifact({ ...userRunStepOptions, currentArtifact: node }),
+        checkIfCanRunStepOnArtifact({
+          ...userRunStepOptions,
+          currentArtifact: node,
+          canRunStepOnArtifact: createStepOptions.canRunStepOnArtifact,
+        }),
       ),
     )
 
@@ -311,6 +315,7 @@ export function createStep<StepConfigurations = void, NormalizedStepConfiguratio
         runStepOptions,
         stepConfigurations: normalizedStepConfigurations,
       })
+
       if (result.stepExecutionStatus === ExecutionStatus.done) {
         await Promise.all(
           result.artifactsResult.map(artifact =>
