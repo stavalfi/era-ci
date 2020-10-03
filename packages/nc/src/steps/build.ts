@@ -8,13 +8,17 @@ export const build = createStep({
       if (rootPackageJson.scripts && 'build' in rootPackageJson.scripts && rootPackageJson.scripts.build) {
         return {
           canRun: true,
-          notes: [],
+          artifactStepResult: {
+            notes: [],
+          },
         }
       } else {
         return {
           canRun: false,
-          notes: ['skipping because missing build-script in package.json'],
-          stepStatus: Status.skippedAsPassed,
+          artifactStepResult: {
+            notes: ['skipping because missing build-script in package.json'],
+            status: Status.skippedAsPassed,
+          },
         }
       }
     },

@@ -287,16 +287,20 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
       if (targetType !== TargetType.docker) {
         return {
           canRun: false,
-          notes: [],
-          stepStatus: Status.skippedAsPassed,
+          artifactStepResult: {
+            notes: [],
+            status: Status.skippedAsPassed,
+          },
         }
       }
 
       if (!stepConfigurations.shouldPublish) {
         return {
           canRun: false,
-          notes: [`docker-publish is disabled`],
-          stepStatus: Status.skippedAsPassed,
+          artifactStepResult: {
+            notes: [`docker-publish is disabled`],
+            status: Status.skippedAsPassed,
+          },
         }
       }
 
@@ -316,7 +320,9 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
       if (!dockerVersionResult) {
         return {
           canRun: true,
-          notes: [],
+          artifactStepResult: {
+            notes: [],
+          },
         }
       }
 
@@ -332,16 +338,20 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
       ) {
         return {
           canRun: false,
-          notes: [
-            `this package was already published in flow: "${dockerVersionResult.flowId}" with the same content as version: ${dockerVersionResult.value}`,
-          ],
-          stepStatus: Status.skippedAsPassed,
+          artifactStepResult: {
+            notes: [
+              `this package was already published in flow: "${dockerVersionResult.flowId}" with the same content as version: ${dockerVersionResult.value}`,
+            ],
+            status: Status.skippedAsPassed,
+          },
         }
       }
 
       return {
         canRun: true,
-        notes: [],
+        artifactStepResult: {
+          notes: [],
+        },
       }
     },
     options: {

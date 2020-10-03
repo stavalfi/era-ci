@@ -175,16 +175,20 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
       if (targetType !== TargetType.npm) {
         return {
           canRun: false,
-          notes: [],
-          stepStatus: Status.skippedAsPassed,
+          artifactStepResult: {
+            notes: [],
+            status: Status.skippedAsPassed,
+          },
         }
       }
 
       if (!stepConfigurations.shouldPublish) {
         return {
           canRun: false,
-          notes: [`npm-publish is disabled`],
-          stepStatus: Status.skippedAsPassed,
+          artifactStepResult: {
+            notes: [`npm-publish is disabled`],
+            status: Status.skippedAsPassed,
+          },
         }
       }
 
@@ -207,7 +211,9 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
       if (!npmVersionResult) {
         return {
           canRun: true,
-          notes: [],
+          artifactStepResult: {
+            notes: [],
+          },
         }
       }
 
@@ -222,16 +228,20 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
       ) {
         return {
           canRun: false,
-          notes: [
-            `this package was already published in flow: "${npmVersionResult.flowId}" with the same content as version: ${npmVersionResult.value}`,
-          ],
-          stepStatus: Status.skippedAsPassed,
+          artifactStepResult: {
+            notes: [
+              `this package was already published in flow: "${npmVersionResult.flowId}" with the same content as version: ${npmVersionResult.value}`,
+            ],
+            status: Status.skippedAsPassed,
+          },
         }
       }
 
       return {
         canRun: true,
-        notes: [],
+        artifactStepResult: {
+          notes: [],
+        },
       }
     },
     options: {
