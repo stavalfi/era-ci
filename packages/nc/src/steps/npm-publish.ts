@@ -282,14 +282,15 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
       },
     )
       .then(() =>
-        cache.set(
-          getVersionCacheKey({
+        cache.set({
+          key: getVersionCacheKey({
             artifactHash: currentArtifact.data.artifact.packageHash,
             artifactName: currentArtifact.data.artifact.packageJson.name,
           }),
-          newVersion,
-          cache.ttls.stepSummary,
-        ),
+          value: newVersion,
+          ttl: cache.ttls.stepSummary,
+          allowOverride: false,
+        }),
       )
       .finally(async () =>
         // revert version to what it was before we changed it

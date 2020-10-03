@@ -48,7 +48,7 @@ const getJsonReport = async ({
   jsonReportStepId: string
 }): Promise<JsonReport> => {
   const logger = await createLogger.callInitializeLogger({ repoPath })
-  const cache = await createCache.callInitializeCache({ flowId, log: logger.createLog('test-logger') })
+  const cache = await createCache.callInitializeCache({ flowId, log: logger.createLog('test-logger'), artifacts: [] })
 
   try {
     const jsonReportResult = await cache.get(jsonReporterCacheKey({ flowId, stepId: jsonReportStepId }), r => {

@@ -39,17 +39,15 @@ export function getStepsAsGraph(steps: Step[]): Graph<{ stepInfo: StepInfo; runS
   }))
 }
 
-export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<unknown>): number {
+export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep): number {
   const finalStepsStatus = calculateCombinedStatus(
     _.flatten(
       stepsResultOfArtifactsByStep.map(s => {
         switch (s.data.stepExecutionStatus) {
           case ExecutionStatus.done:
-            return s.data.stepExecutionStatus === ExecutionStatus.done
-              ? s.data.artifactsResult.map(y => y.data.artifactStepResult.status)
-              : []
+            return s.data.artifactsResult.map(y => y.data.artifactStepResult.status)
           case ExecutionStatus.aborted:
-            return [Status.failed]
+            return s.data.artifactsResult.map(y => y.data.artifactStepResult.status)
           case ExecutionStatus.running:
             return [Status.failed]
           case ExecutionStatus.scheduled:

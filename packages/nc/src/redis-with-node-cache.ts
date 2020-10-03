@@ -1,11 +1,12 @@
+import crypto from 'crypto'
 import Redis, { ValueType } from 'ioredis'
 import NodeCache from 'node-cache'
-import { enums, literal, object, string, union, validate, any } from 'superstruct'
-import { Cache, createCache } from './create-cache'
-import { Status } from './create-step'
 import redisUrlParse from 'redis-url-parse'
+import { any, object, string, validate } from 'superstruct'
 import { promisify } from 'util'
 import zlib from 'zlib'
+import { Cache, createCache } from './create-cache'
+import { StepResultOfArtifacts } from './create-step'
 
 export type CacheConfiguration = {
   redis: {
@@ -17,6 +18,7 @@ export type CacheConfiguration = {
   ttls?: {
     stepSummary?: number
     flowLogs?: number
+    stepResult?: number
   }
 }
 
@@ -33,6 +35,7 @@ type NormalizedCacheConfiguration = {
   ttls: {
     stepSummary: number
     flowLogs: number
+    stepResult: number
   }
 }
 
@@ -59,10 +62,11 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
       ttls: {
         stepSummary: ttls?.stepSummary ?? 1000 * 60 * 60 * 24 * 7, // default-ttl = 1-week
         flowLogs: ttls?.stepSummary ?? 1000 * 60 * 60 * 24 * 3, // default-ttl = 3-days
+        stepResult: ttls?.stepSummary ?? 1000 * 60 * 60 * 24 * 3, // default-ttl = 3-days
       },
     }
   },
-  initializeCache: async ({ cacheConfigurations, flowId }) => {
+  initializeCache: async ({ cacheConfigurations, flowId, artifacts }) => {
     const nodeCache = new NodeCache()
 
     const redisClient = new Redis({
@@ -72,13 +76,12 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
     })
 
     async function set(
-      options:
+      options: { key: string; value: ValueType; allowOverride: boolean } & (
         | {
-            key: string
-            value: ValueType
             onlySaveInNodeCache: true
           }
-        | { key: string; value: ValueType; ttl: number; onlySaveInNodeCache: false },
+        | { ttl: number; onlySaveInNodeCache: false }
+      ),
     ): Promise<void> {
       const zippedBuffer = await zip(
         JSON.stringify({
@@ -88,7 +91,11 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
       )
       nodeCache.set(options.key, zippedBuffer)
       if (!options.onlySaveInNodeCache) {
-        await redisClient.set(options.key, zippedBuffer, 'px', options.ttl)
+        const setOptions = ['px'] // ttl in milliseconds
+        if (!options.allowOverride) {
+          setOptions.push('nx') // set if not exists
+        }
+        await redisClient.set(options.key, zippedBuffer, setOptions, options.ttl)
       }
     }
 
@@ -129,17 +136,7 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
         return result
       } else {
         const fromRedis = await redisClient.getBuffer(key)
-        const result = await transformFromCache(fromRedis, mapper)
-        if (result) {
-          await set({
-            key,
-            value: JSON.stringify(result),
-            onlySaveInNodeCache: true,
-          })
-          return result
-        } else {
-          return undefined
-        }
+        return transformFromCache(fromRedis, mapper)
       }
     }
 
@@ -147,67 +144,81 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
       return nodeCache.has(key) || (await redisClient.exists(key).then(result => result === 1))
     }
 
-    const getStepResultSchema = union([
-      object({
-        didStepRun: literal(true),
-        stepStatus: enums(Object.values(Status)),
-      }),
-      object({
-        didStepRun: literal(false),
-      }),
-    ])
-
-    function toStepKey({ packageHash, stepId }: { stepId: string; packageHash: string }) {
-      return `${stepId}-${packageHash}`
+    function toStepKey({ artifactHash, stepId }: { stepId: string; artifactHash: string }) {
+      return `${stepId}-${artifactHash}`
     }
 
     const step: Cache['step'] = {
-      didStepRun: options => has(toStepKey({ stepId: options.stepId, packageHash: options.packageHash })),
+      didStepRun: options => has(toStepKey({ stepId: options.stepId, artifactHash: options.artifactHash })),
       getStepResult: async options => {
-        const result = await get(toStepKey({ stepId: options.stepId, packageHash: options.packageHash }), r => {
-          if (typeof r !== 'string') {
-            throw new Error(
-              `(2) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
-            )
-          }
-          const [error, parsedResult] = validate(JSON.parse(r), getStepResultSchema)
-          if (parsedResult) {
-            return parsedResult
-          } else {
-            throw new Error(
-              `(3) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
-            )
-          }
-        })
-        if (!result) {
+        const stepResultOfArtifactsKeyResult = await get(
+          toStepKey({ stepId: options.stepId, artifactHash: options.artifactHash }),
+          r => {
+            if (typeof r !== 'string') {
+              throw new Error(
+                `(2) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
+              )
+            }
+            const [error, parsedResult] = validate(JSON.parse(r), string())
+            if (parsedResult) {
+              return parsedResult
+            } else {
+              throw new Error(
+                `(3) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
+              )
+            }
+          },
+        )
+        if (!stepResultOfArtifactsKeyResult) {
           return undefined
         }
-        if (result.value.didStepRun) {
-          return {
-            flowId: result.flowId,
-            didStepRun: true,
-            stepStatus: result.value.stepStatus,
+
+        const stepResultOfArtifactsResult = await get(stepResultOfArtifactsKeyResult.value, r => {
+          if (typeof r !== 'string') {
+            throw new Error(
+              `(4) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
+            )
           }
-        } else {
-          return {
-            didStepRun: false,
-          }
+          return JSON.parse(r) as StepResultOfArtifacts
+        })
+        if (!stepResultOfArtifactsResult) {
+          return undefined
+        }
+        return {
+          flowId: stepResultOfArtifactsResult.flowId,
+          stepResultOfArtifacts: stepResultOfArtifactsResult.value,
         }
       },
-      setStepResult: options =>
-        set({
-          key: toStepKey({ stepId: options.stepId, packageHash: options.packageHash }),
-          value: JSON.stringify(
-            {
-              didStepRun: true,
-              stepStatus: options.stepStatus,
-            },
-            null,
-            2,
+      setStepResult: async stepResultOfArtifacts => {
+        const asString = JSON.stringify(stepResultOfArtifacts, null, 2)
+        const hasher = crypto.createHash('sha224')
+        hasher.update(asString)
+        const stepResultOfArtifactsKey = `step-result-of-artifacts---${
+          stepResultOfArtifacts.stepInfo.stepId
+        }-${Buffer.from(hasher.digest()).toString('hex')}`
+
+        await Promise.all([
+          await set({
+            key: stepResultOfArtifactsKey,
+            value: asString,
+            ttl: cacheConfigurations.ttls.stepResult,
+            onlySaveInNodeCache: false,
+            allowOverride: false,
+          }),
+          ...artifacts.map(a =>
+            set({
+              key: toStepKey({
+                stepId: stepResultOfArtifacts.stepInfo.stepId,
+                artifactHash: a.data.artifact.packageHash,
+              }),
+              value: stepResultOfArtifactsKey,
+              ttl: cacheConfigurations.ttls.stepResult,
+              onlySaveInNodeCache: false,
+              allowOverride: false,
+            }),
           ),
-          ttl: options.ttlMs,
-          onlySaveInNodeCache: false,
-        }),
+        ])
+      },
     }
 
     const cleanup = async () => {
@@ -221,7 +232,14 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
       redisClient,
       get,
       has,
-      set: (key: string, value: ValueType, ttl: number) => set({ key, value, ttl, onlySaveInNodeCache: false }),
+      set: options =>
+        set({
+          key: options.key,
+          value: options.value,
+          ttl: options.ttl,
+          onlySaveInNodeCache: false,
+          allowOverride: options.allowOverride,
+        }),
       cleanup,
       ttls: cacheConfigurations.ttls,
     }

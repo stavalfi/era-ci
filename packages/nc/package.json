@@ -47,7 +47,6 @@
     "serialize-error": "^7.0.1",
     "source-map-support": "^0.5.19",
     "superstruct": "^0.10.12",
-    "traverse": "^0.6.6",
     "ts-node": "9.0.0",
     "url-parse": "^1.4.7",
     "winston": "^3.3.3"

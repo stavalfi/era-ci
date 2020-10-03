@@ -22,6 +22,7 @@ import {
   UserStepResult,
 } from './types'
 import { validateUserStepResult } from './validations'
+import { serializeError } from 'serialize-error'
 
 export {
   Status,
@@ -70,14 +71,14 @@ async function runStepOnEveryArtifact<StepConfigurations>({
             error: stepResult.error,
           },
         })
-      } catch (error) {
+      } catch (error: unknown) {
         artifactsResult.push({
           artifactName: artifact.data.artifact.packageJson.name!,
           stepResult: {
             status: Status.failed,
             notes: [],
             durationMs: Date.now() - userRunStepOptions.startStepMs,
-            error,
+            error: serializeError(error),
           },
         })
       }
@@ -140,7 +141,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
   createStepOptions: CreateStepOptions<StepConfigurations, NormalizedStepConfigurations>
   runStepOptions: RunStepOptions
   stepConfigurations: NormalizedStepConfigurations
-}): Promise<StepResultOfArtifacts<unknown>> {
+}): Promise<StepResultOfArtifacts> {
   try {
     const userRunStepOptions: UserRunStepOptions<NormalizedStepConfigurations> = {
       ...runStepOptions,
@@ -158,7 +159,6 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
       ),
     )
     let userStepResult: UserStepResult
-
     if (canRunStepResultOnArtifacts.every(x => !x.canRun)) {
       userStepResult = {
         stepResult: {
@@ -231,16 +231,16 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
       | {
           artifact: Artifact
           artifactStepExecutionStatus: ExecutionStatus.done
-          artifactStepResult: Result<unknown, Status.passed | Status.failed>
+          artifactStepResult: Result<Status.passed | Status.failed>
         }
       | ({ artifact: Artifact } & (
           | {
               artifactStepExecutionStatus: ExecutionStatus.done
-              artifactStepResult: Result<unknown, Status.passed | Status.failed>
+              artifactStepResult: Result<Status.passed | Status.failed>
             }
           | {
               artifactStepExecutionStatus: ExecutionStatus.aborted
-              artifactStepResult: Result<unknown, Status.skippedAsFailed | Status.skippedAsPassed>
+              artifactStepResult: Result<Status.skippedAsFailed | Status.skippedAsPassed>
             }
         ))
     > = runStepOptions.artifacts.map((node, i) => {
@@ -284,7 +284,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
 
     const areAllDone = artifactsResult.every(a => a.data.artifactStepExecutionStatus === ExecutionStatus.done)
 
-    const stepResultOfArtifacts: StepResultOfArtifacts<unknown> = {
+    const stepResultOfArtifacts: StepResultOfArtifacts = {
       stepInfo: {
         stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
         stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,
@@ -302,7 +302,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
             artifactsResult: artifactsResult as Graph<{
               artifact: Artifact
               artifactStepExecutionStatus: ExecutionStatus.done
-              artifactStepResult: Result<unknown, Status.passed | Status.failed>
+              artifactStepResult: Result<Status.passed | Status.failed>
             }>,
           }
         : {
@@ -315,11 +315,11 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
             artifactsResult,
           }),
     }
-
+    console.log('stav3', JSON.stringify(stepResultOfArtifacts, null, 2))
     return stepResultOfArtifacts
-  } catch (error) {
+  } catch (error: unknown) {
     const endDurationMs = Date.now() - startStepMs
-    const result: StepResultOfArtifacts<unknown> = {
+    const result: StepResultOfArtifacts = {
       stepInfo: {
         stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
         stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,
@@ -329,7 +329,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         durationMs: endDurationMs,
         notes: [],
         status: Status.failed,
-        error,
+        error: serializeError(error),
       },
       artifactsResult: runStepOptions.artifacts.map(node => ({
         ...node,
@@ -365,20 +365,11 @@ export function createStep<StepConfigurations = void, NormalizedStepConfiguratio
         runStepOptions,
         stepConfigurations: normalizedStepConfigurations,
       })
-      if (result.stepExecutionStatus === ExecutionStatus.done) {
-        await Promise.all(
-          result.artifactsResult.map(artifact =>
-            artifact.data.artifactStepExecutionStatus === ExecutionStatus.done
-              ? runStepOptions.cache.step.setStepResult({
-                  packageHash: artifact.data.artifact.packageHash,
-                  stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
-                  stepExecutionStatus: ExecutionStatus.done,
-                  stepStatus: artifact.data.artifactStepResult.status,
-                  ttlMs: runStepOptions.cache.ttls.stepSummary,
-                })
-              : Promise.resolve(),
-          ),
-        )
+      if (
+        result.stepExecutionStatus === ExecutionStatus.done ||
+        result.stepExecutionStatus === ExecutionStatus.aborted
+      ) {
+        await runStepOptions.cache.step.setStepResult(result)
       }
 
       return result
