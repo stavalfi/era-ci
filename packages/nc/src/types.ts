@@ -28,3 +28,5 @@ export type Artifact = {
   packageHash: string
   packageJson: PackageJson
 }
+
+export type UnionArrayValues<T, Array extends T[]> = Array[number]

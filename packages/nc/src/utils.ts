@@ -3,12 +3,14 @@ import _ from 'lodash'
 import path from 'path'
 import { Log } from './create-logger'
 import { Step, Status, ExecutionStatus, StepInfo, StepsResultOfArtifactsByStep } from './create-step'
-import { Graph } from './types'
+import { Graph, UnionArrayValues } from './types'
 
 export const didPassOrSkippedAsPassed = (status: Status): boolean =>
   [Status.passed, Status.skippedAsPassed].includes(status)
 
-export function calculateCombinedStatus(statuses: Status[]): Status {
+export function calculateCombinedStatus<StatusesArray extends Status[]>(
+  statuses: StatusesArray,
+): UnionArrayValues<Status, StatusesArray> {
   if (statuses.includes(Status.failed)) {
     return Status.failed
   }

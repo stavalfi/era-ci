@@ -21,7 +21,7 @@ export type JsonReport = {
   }
   steps: Graph<{ stepInfo: StepInfo }>
   artifacts: Graph<{ artifact: Artifact }>
-  flowResult: Result<ErrorObject>
+  flowResult: Result<ErrorObject, Status>
   stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<ErrorObject>
   stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact<ErrorObject>
 }

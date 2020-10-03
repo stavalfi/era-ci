@@ -120,7 +120,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             stepInfo: {
               stepName: 'step1',
             },
-            stepExecutionStatus: ExecutionStatus.done,
+            stepExecutionStatus: ExecutionStatus.aborted,
             stepResult: {
               error: undefined,
               notes: [],
@@ -129,7 +129,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             artifactsResult: [
               {
                 data: {
-                  artifactStepExecutionStatus: ExecutionStatus.done,
+                  artifactStepExecutionStatus: ExecutionStatus.aborted,
                   artifact: {
                     packageJson: {
                       name: toActualName('a'),
@@ -196,7 +196,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             stepInfo: {
               stepName: 'step1',
             },
-            stepExecutionStatus: ExecutionStatus.done,
+            stepExecutionStatus: ExecutionStatus.aborted,
             stepResult: {
               error: undefined,
               notes: [],
@@ -205,7 +205,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             artifactsResult: [
               {
                 data: {
-                  artifactStepExecutionStatus: ExecutionStatus.done,
+                  artifactStepExecutionStatus: ExecutionStatus.aborted,
                   artifact: {
                     packageJson: {
                       name: toActualName('a'),
@@ -272,7 +272,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             stepInfo: {
               stepName: 'step1',
             },
-            stepExecutionStatus: ExecutionStatus.done,
+            stepExecutionStatus: ExecutionStatus.aborted,
             stepResult: {
               error: undefined,
               notes: [],
@@ -281,7 +281,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             artifactsResult: [
               {
                 data: {
-                  artifactStepExecutionStatus: ExecutionStatus.done,
+                  artifactStepExecutionStatus: ExecutionStatus.aborted,
                   artifact: {
                     packageJson: {
                       name: toActualName('a'),
