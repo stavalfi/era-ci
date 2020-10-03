@@ -15,8 +15,8 @@ import {
 import { Artifact, Graph, PackageJson } from './types'
 
 type State = {
-  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<unknown>
-  stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact<unknown>
+  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
+  stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact
 }
 
 function updateState({
@@ -27,7 +27,7 @@ function updateState({
 }: {
   state: State
   stepIndex: number
-  stepResultOfArtifacts: StepResultOfArtifacts<unknown>
+  stepResultOfArtifacts: StepResultOfArtifacts
   artifacts: Graph<{ artifact: Artifact }>
 }) {
   const clone = _.cloneDeep(state.stepsResultOfArtifactsByStep)
@@ -60,7 +60,7 @@ export async function runAllSteps({
 }): Promise<State> {
   const rootPackageJson: PackageJson = await fse.readJson(path.join(repoPath, 'package.json'))
 
-  const stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<unknown> = steps.map(s => ({
+  const stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep = steps.map(s => ({
     ...s,
     data: {
       stepInfo: s.data.stepInfo,
@@ -89,10 +89,12 @@ export async function runAllSteps({
       case ExecutionStatus.aborted:
         return
       case ExecutionStatus.scheduled: {
-        const allPrevStepsDone = state.stepsResultOfArtifactsByStep[stepIndex].parentsIndexes.every(
-          pIndex => state.stepsResultOfArtifactsByStep[pIndex].data.stepExecutionStatus === ExecutionStatus.done,
+        const canRunStep = state.stepsResultOfArtifactsByStep[stepIndex].parentsIndexes.every(pIndex =>
+          [ExecutionStatus.done, ExecutionStatus.aborted].includes(
+            state.stepsResultOfArtifactsByStep[pIndex].data.stepExecutionStatus,
+          ),
         )
-        if (allPrevStepsDone) {
+        if (canRunStep) {
           const stepResultOfArtifacts = await stepsToRun[stepIndex].data.runStep({
             artifacts,
             steps,

@@ -46,10 +46,15 @@ async function runIfPackageResultsInCache<StepConfigurations>({
 }): Promise<CanRunStepOnArtifactResult> {
   const result = await cache.step.getStepResult({
     stepId: currentStepInfo.data.stepInfo.stepId,
-    packageHash: currentArtifact.data.artifact.packageHash,
+    artifactHash: currentArtifact.data.artifact.packageHash,
   })
-  if (result?.didStepRun) {
-    const isPassed = didPassOrSkippedAsPassed(result.stepStatus)
+  if (
+    result?.stepResultOfArtifacts.stepExecutionStatus === ExecutionStatus.aborted ||
+    result?.stepResultOfArtifacts.stepExecutionStatus === ExecutionStatus.done
+  ) {
+    const isPassed = didPassOrSkippedAsPassed(
+      result.stepResultOfArtifacts.artifactsResult[currentArtifact.index].data.artifactStepResult.status,
+    )
     const note = `step already run on this package with the same hash in flow-id: "${result.flowId}". result: "${
       isPassed ? 'passed' : 'failed'
     }"`
@@ -87,11 +92,12 @@ async function runIfSomeDirectParentStepFailedOnPackage<StepConfigurations>({
     .map((_result, i) => stepsResultOfArtifactsByStep[i].data)
     .every(
       step =>
-        step.stepExecutionStatus === ExecutionStatus.done &&
+        (step.stepExecutionStatus === ExecutionStatus.done || step.stepExecutionStatus === ExecutionStatus.aborted) &&
         [Status.passed, Status.skippedAsPassed].includes(
           step.artifactsResult[currentArtifact.index].data.artifactStepResult.status,
         ),
     )
+
   if (!didAllPrevPassed) {
     notes.push(`skipping step because not all previous steps passed`)
   }

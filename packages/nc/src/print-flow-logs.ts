@@ -1,7 +1,8 @@
+import { calculateArtifactsHash } from './artifacts-hash'
 import { Config } from './configuration'
 import { Log } from './create-logger'
 import { Cleanup } from './types'
-import { MISSING_FLOW_ID_ERROR, toFlowLogsContentKey } from './utils'
+import { getPackages, MISSING_FLOW_ID_ERROR, toFlowLogsContentKey } from './utils'
 
 export async function printFlowLogs(options: { flowId: string; config: Config; repoPath: string }): Promise<void> {
   const cleanups: Cleanup[] = []
@@ -9,9 +10,19 @@ export async function printFlowLogs(options: { flowId: string; config: Config; r
   try {
     const logger = await options.config.logger.callInitializeLogger({ repoPath: options.repoPath })
     log = logger.createLog('print-flow')
+
+    const packagesPath = await getPackages({ repoPath: options.repoPath, log })
+
+    const { artifacts } = await calculateArtifactsHash({
+      repoPath: options.repoPath,
+      packagesPath,
+      log: logger.createLog('calculate-hashes'),
+    })
+
     const cache = await options.config.cache.callInitializeCache({
       flowId: options.flowId,
       log: logger.createLog('cache'),
+      artifacts,
     })
     cleanups.push(cache.cleanup)
 
@@ -30,7 +41,7 @@ export async function printFlowLogs(options: { flowId: string; config: Config; r
     }
     log.noFormattingInfo(flowLogsResult.value)
   } catch (error) {
-    if (error.message === MISSING_FLOW_ID_ERROR) {
+    if (error?.message === MISSING_FLOW_ID_ERROR) {
       log?.error(error)
     } else {
       log?.error(`CI failed unexpectedly`, error)

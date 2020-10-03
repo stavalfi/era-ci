@@ -375,11 +375,12 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
 
     const fullImageNameCacheTtl = cache.ttls.stepSummary
 
-    await cache.set(
-      stepConfigurations.fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),
-      fullImageNameNewVersion,
-      fullImageNameCacheTtl,
-    )
+    await cache.set({
+      key: stepConfigurations.fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),
+      value: fullImageNameNewVersion,
+      ttl: fullImageNameCacheTtl,
+      allowOverride: false,
+    })
 
     log.info(
       `building docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,
@@ -404,7 +405,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
           log,
         },
       )
-    } catch (error) {
+    } catch (error: unknown) {
       // revert version to what it was before we changed it
       await setPackageVersion({
         artifact: currentArtifact.data.artifact,
@@ -427,11 +428,12 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
       log,
     })
 
-    await cache.set(
-      getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
-      newVersion,
-      cache.ttls.stepSummary,
-    )
+    await cache.set({
+      key: getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
+      value: newVersion,
+      ttl: cache.ttls.stepSummary,
+      allowOverride: false,
+    })
 
     log.info(
       `published docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,

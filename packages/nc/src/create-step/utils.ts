@@ -17,7 +17,7 @@ function getArtifactExecutionStatus({
   artifact: Node<{
     artifact: Artifact
   }>
-  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<unknown>
+  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
 }): ExecutionStatus {
   // the 'if' order doesn't matter
   if (
@@ -54,8 +54,8 @@ function getStepsResultOfArtifact({
   artifact: Node<{
     artifact: Artifact
   }>
-  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<unknown>
-}): StepsResultOfArtifact<unknown> {
+  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
+}): StepsResultOfArtifact {
   const artifactExecutionStatus = getArtifactExecutionStatus({ artifact, stepsResultOfArtifactsByStep })
   switch (artifactExecutionStatus) {
     case ExecutionStatus.done:
@@ -236,8 +236,8 @@ export function toStepsResultOfArtifactsByArtifact({
   stepsResultOfArtifactsByStep,
 }: {
   artifacts: Graph<{ artifact: Artifact }>
-  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<unknown>
-}): StepsResultOfArtifactsByArtifact<unknown> {
+  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
+}): StepsResultOfArtifactsByArtifact {
   return artifacts.map(a => ({
     ...a,
     data: getStepsResultOfArtifact({ artifact: a, stepsResultOfArtifactsByStep }),

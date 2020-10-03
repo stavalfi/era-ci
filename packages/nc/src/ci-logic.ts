@@ -39,7 +39,7 @@ export async function ci(options: {
 
     log.info(`flow-id: "${flowId}"`)
 
-    cache = await options.config.cache.callInitializeCache({ flowId, log: logger.createLog('cache') })
+    cache = await options.config.cache.callInitializeCache({ flowId, log: logger.createLog('cache'), artifacts })
     cleanups.push(cache.cleanup)
 
     steps = options.config.steps.map(s => ({ ...s, data: { stepInfo: s.data.stepInfo } }))
@@ -56,12 +56,17 @@ export async function ci(options: {
     })
 
     process.exitCode = getExitCode(stepsResultOfArtifactsByStep)
-  } catch (error) {
+  } catch (error: unknown) {
     process.exitCode = 1
     log?.error(`CI failed unexpectedly`, error)
   }
   if (cache && flowId && logger) {
-    await cache.set(toFlowLogsContentKey(flowId), await fse.readFile(logger.logFilePath, 'utf-8'), cache.ttls.flowLogs)
+    await cache.set({
+      key: toFlowLogsContentKey(flowId),
+      value: await fse.readFile(logger.logFilePath, 'utf-8'),
+      ttl: cache.ttls.flowLogs,
+      allowOverride: false,
+    })
   }
   await Promise.all(cleanups.map(f => f().catch(e => log?.error(`cleanup function failed to run`, e))))
 

@@ -1,6 +1,4 @@
 import _ from 'lodash'
-import { ErrorObject, serializeError } from 'serialize-error'
-import traverse from 'traverse'
 import {
   createStep,
   ExecutionStatus,
@@ -21,24 +19,15 @@ export type JsonReport = {
   }
   steps: Graph<{ stepInfo: StepInfo }>
   artifacts: Graph<{ artifact: Artifact }>
-  flowResult: Result<ErrorObject, Status>
-  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep<ErrorObject>
-  stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact<ErrorObject>
+  flowResult: Result<Status>
+  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
+  stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact
 }
 
 export type JsonReportConfiguration = {
   jsonReporterCacheKey: (options: { flowId: string; stepId: string }) => string
   jsonReportToString: (options: { jsonReport: JsonReport }) => string
 }
-
-const normalizeErrors = <T>(t: T) =>
-  traverse.map(t, function (value: unknown) {
-    if (this.key === 'error') {
-      return serializeError(value)
-    } else {
-      return value
-    }
-  })
 
 function removeNodeFromGraph<T>({
   graph,
@@ -132,22 +121,21 @@ export const jsonReporter = createStep<JsonReportConfiguration>({
           ),
         ),
       },
-      stepsResultOfArtifactsByStep: normalizeErrors(withoutThisStep.stepsResultOfArtifactsByStep),
-      stepsResultOfArtifactsByArtifact: normalizeErrors(
-        toStepsResultOfArtifactsByArtifact({
-          artifacts,
-          stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
-        }),
-      ),
+      stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
+      stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
+        artifacts,
+        stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
+      }),
     }
 
     const jsonReportTtl = cache.ttls.stepSummary
 
-    await cache.set(
-      stepConfigurations.jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
-      stepConfigurations.jsonReportToString({ jsonReport }),
-      jsonReportTtl,
-    )
+    await cache.set({
+      key: stepConfigurations.jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
+      value: stepConfigurations.jsonReportToString({ jsonReport }),
+      ttl: jsonReportTtl,
+      allowOverride: false,
+    })
 
     return {
       notes: [],
