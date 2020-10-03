@@ -153,18 +153,22 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
         case ExecutionStatus.done:
           return {
             packageName: data.artifact.packageJson.name,
-            errors: [
+            errors: _.flatten([
               ...(data.artifactResult.error ? [`${deserializeError(data.artifactResult.error)}`] : []),
-              ...data.stepsResult.map(r => `${deserializeError(r.data.artifactStepResult.error)}`),
-            ],
+              ...data.stepsResult.map(r =>
+                r.data.artifactStepResult.error ? [`${deserializeError(r.data.artifactStepResult.error)}`] : [],
+              ),
+            ]),
           }
         case ExecutionStatus.aborted:
           return {
             packageName: data.artifact.packageJson.name,
-            errors: [
+            errors: _.flatten([
               ...(data.artifactResult.error ? [`${deserializeError(data.artifactResult.error)}`] : []),
-              ...data.stepsResult.map(r => `${deserializeError(r.data.artifactStepResult.error)}`),
-            ],
+              ...data.stepsResult.map(r =>
+                r.data.artifactStepResult.error ? [`${deserializeError(r.data.artifactStepResult.error)}`] : [],
+              ),
+            ]),
           }
         case ExecutionStatus.running:
         case ExecutionStatus.scheduled:
