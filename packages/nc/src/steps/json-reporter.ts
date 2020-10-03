@@ -109,14 +109,20 @@ export const jsonReporter = createStep<JsonReportConfiguration>({
       flowResult: {
         notes: _.flatMapDeep(
           withoutThisStep.stepsResultOfArtifactsByStep.map(s =>
-            s.data.stepExecutionStatus === ExecutionStatus.done ? s.data.stepResult.notes : [],
+            s.data.stepExecutionStatus === ExecutionStatus.done ||
+            s.data.stepExecutionStatus === ExecutionStatus.aborted
+              ? s.data.stepResult.notes
+              : [],
           ),
         ),
         durationMs: Date.now() - startFlowMs,
         status: calculateCombinedStatus(
           _.flatten(
             withoutThisStep.stepsResultOfArtifactsByStep.map(s =>
-              s.data.stepExecutionStatus === ExecutionStatus.done ? [s.data.stepResult.status] : [],
+              s.data.stepExecutionStatus === ExecutionStatus.done ||
+              s.data.stepExecutionStatus === ExecutionStatus.aborted
+                ? [s.data.stepResult.status]
+                : [],
             ),
           ),
         ),
