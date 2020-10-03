@@ -16,7 +16,7 @@ export const lint = createStep<{ lintScriptName: string } | void, { lintScriptNa
       } else {
         return {
           canRun: false,
-          notes: [],
+          notes: ['skipping because missing lint-script in package.json'],
           stepStatus: Status.skippedAsPassed,
         }
       }
