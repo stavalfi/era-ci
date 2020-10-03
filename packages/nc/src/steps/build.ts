@@ -13,7 +13,7 @@ export const build = createStep({
       } else {
         return {
           canRun: false,
-          notes: [],
+          notes: ['skipping because missing build-script in package.json'],
           stepStatus: Status.skippedAsPassed,
         }
       }
