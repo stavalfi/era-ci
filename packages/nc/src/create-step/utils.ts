@@ -95,38 +95,29 @@ function getStepsResultOfArtifact({
           }
         }),
       }
-    case ExecutionStatus.running:
-      return {
-        artifactExecutionStatus: artifactExecutionStatus,
-        artifact: artifact.data.artifact,
-        stepsResult: stepsResultOfArtifactsByStep.map(s => {
-          switch (s.data.stepExecutionStatus) {
-            case ExecutionStatus.done:
-              return {
-                ...s,
-                data: {
-                  stepInfo: s.data.stepInfo,
-                  artifactStepExecutionStatus: ExecutionStatus.done,
-                  artifactStepResult: s.data.artifactsResult[artifact.index].data.artifactStepResult,
-                },
-              }
-            case ExecutionStatus.aborted:
-            case ExecutionStatus.running:
-            case ExecutionStatus.scheduled:
-              return {
-                ...s,
-                data: {
-                  stepInfo: s.data.stepInfo,
-                  artifactStepExecutionStatus: s.data.stepExecutionStatus,
-                },
-              }
-          }
-        }),
-      }
     case ExecutionStatus.aborted: {
       return {
-        artifactExecutionStatus: artifactExecutionStatus,
+        artifactExecutionStatus: ExecutionStatus.aborted,
         artifact: artifact.data.artifact,
+        artifactResult: {
+          status: calculateCombinedStatus(
+            _.flatten(
+              stepsResultOfArtifactsByStep.map(s =>
+                s.data.stepExecutionStatus === ExecutionStatus.done
+                  ? [s.data.artifactsResult[artifact.index].data.artifactStepResult.status]
+                  : [],
+              ),
+            ),
+          ),
+          notes: [], // we don't support (yet) notes about a artifact
+          durationMs: _.sum(
+            stepsResultOfArtifactsByStep.map(s =>
+              s.data.stepExecutionStatus === ExecutionStatus.done
+                ? s.data.artifactsResult[artifact.index].data.artifactStepResult.durationMs
+                : 0,
+            ),
+          ),
+        },
         stepsResult: stepsResultOfArtifactsByStep.map(s => {
           switch (s.data.stepExecutionStatus) {
             case ExecutionStatus.done:
@@ -138,14 +129,30 @@ function getStepsResultOfArtifact({
                   artifactStepResult: s.data.artifactsResult[artifact.index].data.artifactStepResult,
                 },
               }
-            case ExecutionStatus.aborted:
-              return {
-                ...s,
-                data: {
-                  stepInfo: s.data.stepInfo,
-                  artifactStepExecutionStatus: ExecutionStatus.aborted,
-                },
+            case ExecutionStatus.aborted: {
+              const sResult = s.data.artifactsResult[artifact.index].data
+              switch (sResult.artifactStepExecutionStatus) {
+                case ExecutionStatus.done:
+                  return {
+                    ...s,
+                    data: {
+                      stepInfo: s.data.stepInfo,
+                      artifactStepExecutionStatus: ExecutionStatus.done,
+                      artifactStepResult: sResult.artifactStepResult,
+                    },
+                  }
+                case ExecutionStatus.aborted:
+                  return {
+                    ...s,
+                    data: {
+                      stepInfo: s.data.stepInfo,
+                      artifactStepExecutionStatus: ExecutionStatus.aborted,
+                      artifactStepResult: sResult.artifactStepResult,
+                    },
+                  }
               }
+              throw new Error(`we can't be here but typescript wants us to use 'break' command`)
+            }
             case ExecutionStatus.running:
             case ExecutionStatus.scheduled:
               throw new Error(
@@ -155,10 +162,71 @@ function getStepsResultOfArtifact({
         }),
       }
     }
+    case ExecutionStatus.running:
+      return {
+        artifactExecutionStatus: ExecutionStatus.running,
+        artifact: artifact.data.artifact,
+        stepsResult: stepsResultOfArtifactsByStep.map(s => {
+          switch (s.data.stepExecutionStatus) {
+            case ExecutionStatus.done:
+              return {
+                ...s,
+                data: {
+                  stepInfo: s.data.stepInfo,
+                  artifactStepExecutionStatus: ExecutionStatus.done,
+                  artifactStepResult: s.data.artifactsResult[artifact.index].data.artifactStepResult,
+                },
+              }
+            case ExecutionStatus.aborted: {
+              const sResult = s.data.artifactsResult[artifact.index].data
+              switch (sResult.artifactStepExecutionStatus) {
+                case ExecutionStatus.done:
+                  return {
+                    ...s,
+                    data: {
+                      stepInfo: s.data.stepInfo,
+                      artifactStepExecutionStatus: ExecutionStatus.done,
+                      artifactStepResult: sResult.artifactStepResult,
+                    },
+                  }
+                case ExecutionStatus.aborted:
+                  return {
+                    ...s,
+                    data: {
+                      stepInfo: s.data.stepInfo,
+                      artifactStepExecutionStatus: ExecutionStatus.aborted,
+                      artifactStepResult: sResult.artifactStepResult,
+                    },
+                  }
+              }
+              throw new Error(`we can't be here but typescript wants us to use 'break' command`)
+            }
+            case ExecutionStatus.running:
+            case ExecutionStatus.scheduled:
+              return {
+                ...s,
+                data: {
+                  stepInfo: s.data.stepInfo,
+                  artifactStepExecutionStatus: s.data.stepExecutionStatus,
+                  artifactStepResult: s.data.artifactsResult,
+                },
+              }
+          }
+        }),
+      }
     case ExecutionStatus.scheduled:
       return {
         artifactExecutionStatus: ExecutionStatus.scheduled,
         artifact: artifact.data.artifact,
+        stepsResult: stepsResultOfArtifactsByStep.map(s => {
+          return {
+            ...s,
+            data: {
+              artifactStepExecutionStatus: ExecutionStatus.scheduled,
+              stepInfo: s.data.stepInfo,
+            },
+          }
+        }),
       }
   }
 }

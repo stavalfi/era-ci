@@ -47,7 +47,7 @@ test('skippedAsPassed,passed => passed', async () => {
           stepInfo: {
             stepName: 'step1',
           },
-          stepExecutionStatus: ExecutionStatus.done,
+          stepExecutionStatus: ExecutionStatus.aborted,
           stepResult: {
             error: undefined,
             notes: [],
@@ -56,7 +56,7 @@ test('skippedAsPassed,passed => passed', async () => {
           artifactsResult: [
             {
               data: {
-                artifactStepExecutionStatus: ExecutionStatus.done,
+                artifactStepExecutionStatus: ExecutionStatus.aborted,
                 artifact: {
                   packageJson: {
                     name: toActualName('a'),

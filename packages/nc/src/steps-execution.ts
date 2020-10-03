@@ -65,6 +65,13 @@ export async function runAllSteps({
     data: {
       stepInfo: s.data.stepInfo,
       stepExecutionStatus: ExecutionStatus.scheduled,
+      artifactsResult: artifacts.map(a => ({
+        ...a,
+        data: {
+          ...a.data,
+          artifactStepExecutionStatus: ExecutionStatus.scheduled,
+        },
+      })),
     },
   }))
 

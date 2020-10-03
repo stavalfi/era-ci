@@ -344,6 +344,10 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
         notes: [],
       }
     },
+    options: {
+      // maybe the publish already succeed but someone manually deleted the target from the registry so we need to check that manually as well
+      runIfPackageResultsInCache: true,
+    },
   },
   beforeAll: ({ stepConfigurations, repoPath, log }) =>
     dockerRegistryLogin({
