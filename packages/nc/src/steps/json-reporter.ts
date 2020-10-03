@@ -81,6 +81,11 @@ export const jsonReporterStepName = 'json-reporter'
 
 export const jsonReporter = createStep<JsonReportConfiguration>({
   stepName: jsonReporterStepName,
+  canRunStepOnArtifact: {
+    options: {
+      runIfSomeDirectParentStepFailedOnPackage: true,
+    },
+  },
   runStepOnRoot: async ({
     cache,
     flowId,
