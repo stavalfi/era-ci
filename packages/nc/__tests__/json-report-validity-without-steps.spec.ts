@@ -47,7 +47,7 @@ test('ensure json-report contains the all the steps until it (not included)', as
   expect(jsonReport.steps).toEqual(expect.arrayContaining(jsonReport.steps))
 })
 
-test('flow should pass because there are no steps', async () => {
+test('flow should be skippedAsPassed because there are no steps', async () => {
   const { runCi } = await createRepo({
     packages: [
       {
@@ -61,7 +61,7 @@ test('flow should pass because there are no steps', async () => {
 
   expect(jsonReport.flowResult.notes).toHaveLength(0)
   expect(jsonReport.flowResult.error).toBeFalsy()
-  expect(jsonReport.flowResult.status).toEqual(Status.passed)
+  expect(jsonReport.flowResult.status).toEqual(Status.skippedAsPassed)
 })
 
 test('verify artifact in json-report', async () => {

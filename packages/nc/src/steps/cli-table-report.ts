@@ -321,6 +321,7 @@ export const cliTableReporter = createStep<CliTableReporterConfiguration>({
   canRunStepOnArtifact: {
     options: {
       runIfPackageResultsInCache: true,
+      runIfSomeDirectParentStepFailedOnPackage: true,
     },
   },
   runStepOnRoot: async ({ cache, flowId, stepConfigurations, log, steps }) => {

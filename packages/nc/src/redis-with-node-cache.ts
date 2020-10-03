@@ -91,11 +91,7 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
       )
       nodeCache.set(options.key, zippedBuffer)
       if (!options.onlySaveInNodeCache) {
-        const setOptions = ['px'] // ttl in milliseconds
-        if (!options.allowOverride) {
-          setOptions.push('nx') // set if not exists
-        }
-        await redisClient.set(options.key, zippedBuffer, setOptions, options.ttl)
+        await redisClient.set(options.key, zippedBuffer, 'px', options.ttl, options.allowOverride ? undefined : 'nx')
       }
     }
 

@@ -69,7 +69,7 @@ test('step should pass in json-report', async () => {
   expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('flow should fail because step failed without throwing error from the step', async () => {
+test('flow should fail because step failed (without throwing error from the step)', async () => {
   const { runCi, toActualName } = await createRepo({
     packages: [
       {
@@ -137,7 +137,7 @@ test('flow should fail because step failed without throwing error from the step'
   expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('flow should fail because step failed while throwing error from the step', async () => {
+test('flow should fail because step failed (while throwing error from the step)', async () => {
   const { runCi, toActualName } = await createRepo({
     packages: [
       {

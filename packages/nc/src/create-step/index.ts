@@ -315,7 +315,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
             artifactsResult,
           }),
     }
-    console.log('stav3', JSON.stringify(stepResultOfArtifacts, null, 2))
+
     return stepResultOfArtifacts
   } catch (error: unknown) {
     const endDurationMs = Date.now() - startStepMs
@@ -365,6 +365,7 @@ export function createStep<StepConfigurations = void, NormalizedStepConfiguratio
         runStepOptions,
         stepConfigurations: normalizedStepConfigurations,
       })
+
       if (
         result.stepExecutionStatus === ExecutionStatus.done ||
         result.stepExecutionStatus === ExecutionStatus.aborted
