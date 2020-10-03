@@ -146,12 +146,11 @@ export type StepsResultOfArtifactsByArtifact = Graph<StepsResultOfArtifact>
 export type CanRunStepOnArtifactResult =
   | {
       canRun: true
-      notes: string[]
+      artifactStepResult: Omit<Result<never>, 'durationMs' | 'status'>
     }
   | {
       canRun: false
-      notes: string[]
-      stepStatus: Status.skippedAsFailed | Status.skippedAsPassed
+      artifactStepResult: Omit<Result<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
     }
 
 export type CanRunStepOnArtifact<StepConfigurations> = {

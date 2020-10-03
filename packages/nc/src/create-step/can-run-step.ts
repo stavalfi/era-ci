@@ -11,7 +11,7 @@ const runAll = async (
   const notes = _.uniq(
     _.flatMapDeep(
       results.map((x, i) =>
-        x.notes.map(note =>
+        x.artifactStepResult.notes.map(note =>
           array[i].checkName === 'custom-step-predicate' ? note : `${array[i].checkName} - ${note}`,
         ),
       ),
@@ -20,17 +20,20 @@ const runAll = async (
   if (canRun) {
     return {
       canRun: true,
-      notes,
+      artifactStepResult: {
+        notes,
+      },
     }
   } else {
-    const stepStatus = calculateCombinedStatus(_.flatten(results.map(r => (r.canRun ? [] : [r.stepStatus]))))
-    if (stepStatus !== Status.skippedAsFailed && stepStatus !== Status.skippedAsPassed) {
-      throw new Error(`we can't be here`)
-    }
+    const artifactStepResultStatus = calculateCombinedStatus(
+      _.flatten(results.map(r => (r.canRun ? [] : [r.artifactStepResult.status]))),
+    )
     return {
       canRun: false,
-      notes,
-      stepStatus,
+      artifactStepResult: {
+        notes,
+        status: artifactStepResultStatus,
+      },
     }
   }
 }
@@ -61,19 +64,25 @@ async function runIfPackageResultsInCache<StepConfigurations>({
     if (canRunStepOnArtifact?.options?.runIfPackageResultsInCache) {
       return {
         canRun: true,
-        notes: [`rerun step but ${note}`],
+        artifactStepResult: {
+          notes: [`rerun step but ${note}`],
+        },
       }
     } else {
       return {
         canRun: false,
-        notes: [note],
-        stepStatus: isPassed ? Status.skippedAsPassed : Status.skippedAsFailed,
+        artifactStepResult: {
+          notes: [note],
+          status: isPassed ? Status.skippedAsPassed : Status.skippedAsFailed,
+        },
       }
     }
   } else {
     return {
       canRun: true,
-      notes: [],
+      artifactStepResult: {
+        notes: [],
+      },
     }
   }
 }
@@ -87,7 +96,6 @@ async function runIfSomeDirectParentStepFailedOnPackage<StepConfigurations>({
   currentArtifact: Node<{ artifact: Artifact }>
   canRunStepOnArtifact?: CanRunStepOnArtifact<StepConfigurations>
 }): Promise<CanRunStepOnArtifactResult> {
-  const notes: string[] = []
   const didAllPrevPassed = await currentStepInfo.parentsIndexes
     .map((_result, i) => stepsResultOfArtifactsByStep[i].data)
     .every(
@@ -98,19 +106,20 @@ async function runIfSomeDirectParentStepFailedOnPackage<StepConfigurations>({
         ),
     )
 
-  if (!didAllPrevPassed) {
-    notes.push(`skipping step because not all previous steps passed`)
-  }
   if (didAllPrevPassed || canRunStepOnArtifact?.options?.runIfSomeDirectParentStepFailedOnPackage) {
     return {
       canRun: true,
-      notes,
+      artifactStepResult: {
+        notes: [],
+      },
     }
   } else {
     return {
       canRun: false,
-      notes,
-      stepStatus: Status.skippedAsFailed,
+      artifactStepResult: {
+        notes: [`skipping step because not all previous steps passed`],
+        status: Status.skippedAsFailed,
+      },
     }
   }
 }
@@ -128,12 +137,17 @@ export async function checkIfCanRunStepOnArtifact<StepConfigurations>(
         if (options.canRunStepOnArtifact?.customPredicate) {
           const result = await options.canRunStepOnArtifact.customPredicate(_.omit(options, ['canRunStepOnArtifact']))
           if (result === true) {
-            return { canRun: true, notes: [] }
+            return { canRun: true, artifactStepResult: { notes: [] } }
           } else {
             return result
           }
         } else {
-          return { canRun: true, notes: [] }
+          return {
+            canRun: true,
+            artifactStepResult: {
+              notes: [],
+            },
+          }
         }
       },
     },

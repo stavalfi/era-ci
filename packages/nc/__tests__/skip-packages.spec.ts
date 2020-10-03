@@ -92,8 +92,10 @@ describe('define custom predicate to check if we need to run the step on a packa
             customPredicate: async () => {
               return {
                 canRun: false,
-                notes: [],
-                stepStatus: Status.skippedAsPassed,
+                artifactStepResult: {
+                  notes: [],
+                  status: Status.skippedAsPassed,
+                },
               }
             },
           },
@@ -168,8 +170,10 @@ describe('define custom predicate to check if we need to run the step on a packa
             customPredicate: async () => {
               return {
                 canRun: false,
-                notes: ['note1', 'note2'],
-                stepStatus: Status.skippedAsPassed,
+                artifactStepResult: {
+                  notes: ['note1', 'note2'],
+                  status: Status.skippedAsPassed,
+                },
               }
             },
           },
@@ -244,8 +248,10 @@ describe('define custom predicate to check if we need to run the step on a packa
             customPredicate: async () => {
               return {
                 canRun: false,
-                notes: ['note1', 'note2', 'note1', 'note2'],
-                stepStatus: Status.skippedAsPassed,
+                artifactStepResult: {
+                  notes: ['note1', 'note2', 'note1', 'note2'],
+                  status: Status.skippedAsPassed,
+                },
               }
             },
           },

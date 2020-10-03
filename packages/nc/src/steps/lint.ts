@@ -11,13 +11,17 @@ export const lint = createStep<{ lintScriptName: string } | void, { lintScriptNa
       if (rootPackageJson.scripts && 'lint' in rootPackageJson.scripts && rootPackageJson.scripts.lint) {
         return {
           canRun: true,
-          notes: [],
+          artifactStepResult: {
+            notes: [],
+          },
         }
       } else {
         return {
           canRun: false,
-          notes: ['skipping because missing lint-script in package.json'],
-          stepStatus: Status.skippedAsPassed,
+          artifactStepResult: {
+            notes: ['skipping because missing lint-script in package.json'],
+            status: Status.skippedAsPassed,
+          },
         }
       }
     },

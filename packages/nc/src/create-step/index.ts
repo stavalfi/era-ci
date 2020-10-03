@@ -86,7 +86,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
       artifactsResult.push({
         artifactName: artifact.data.artifact.packageJson.name!,
         stepResult: {
-          status: canRunResult.stepStatus,
+          status: canRunResult.artifactStepResult.status,
           notes: [],
           durationMs: Date.now() - userRunStepOptions.startStepMs,
         },
@@ -173,8 +173,8 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
             artifactName: node.data.artifact.packageJson.name,
             stepResult: {
               durationMs: Date.now() - startStepMs,
-              status: canRun.stepStatus,
-              notes: canRun.notes,
+              status: canRun.artifactStepResult.status,
+              notes: canRun.artifactStepResult.notes,
             },
           }
         }),
@@ -261,7 +261,9 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
               status: result.stepResult.status,
               durationMs: result.stepResult.durationMs,
               error: result.stepResult.error,
-              notes: Array.from(new Set([...result.stepResult.notes, ...canRunStepResultOnArtifacts[i].notes])),
+              notes: Array.from(
+                new Set([...result.stepResult.notes, ...canRunStepResultOnArtifacts[i].artifactStepResult.notes]),
+              ),
             },
           },
         }
@@ -275,7 +277,9 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
               status: result.stepResult.status,
               durationMs: result.stepResult.durationMs,
               error: result.stepResult.error,
-              notes: Array.from(new Set([...result.stepResult.notes, ...canRunStepResultOnArtifacts[i].notes])),
+              notes: Array.from(
+                new Set([...result.stepResult.notes, ...canRunStepResultOnArtifacts[i].artifactStepResult.notes]),
+              ),
             },
           },
         }

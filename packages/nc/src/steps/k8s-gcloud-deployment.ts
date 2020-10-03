@@ -18,14 +18,6 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
   stepName: 'k8s-gcloud-deployment',
   canRunStepOnArtifact: {
     customPredicate: async ({ currentArtifact, stepConfigurations }) => {
-      if (!stepConfigurations.shouldDeploy) {
-        return {
-          canRun: false,
-          notes: [`k8s-gcloud deployment is disabled`],
-          stepStatus: Status.skippedAsPassed,
-        }
-      }
-
       const targetType = await getPackageTargetType(
         currentArtifact.data.artifact.packagePath,
         currentArtifact.data.artifact.packageJson,
@@ -33,14 +25,28 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
       if (targetType !== TargetType.docker) {
         return {
           canRun: false,
-          notes: [],
-          stepStatus: Status.skippedAsPassed,
+          artifactStepResult: {
+            notes: [],
+            status: Status.skippedAsPassed,
+          },
+        }
+      }
+
+      if (!stepConfigurations.shouldDeploy) {
+        return {
+          canRun: false,
+          artifactStepResult: {
+            notes: [`k8s-gcloud deployment is disabled`],
+            status: Status.skippedAsPassed,
+          },
         }
       }
 
       return {
         canRun: true,
-        notes: [],
+        artifactStepResult: {
+          notes: [],
+        },
       }
     },
   },

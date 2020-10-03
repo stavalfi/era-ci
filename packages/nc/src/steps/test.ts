@@ -9,11 +9,18 @@ export const test = createStep<{ testScriptName: string } | void, { testScriptNa
   canRunStepOnArtifact: {
     customPredicate: async ({ currentArtifact, stepConfigurations }) =>
       stepConfigurations.testScriptName in (currentArtifact.data.artifact.packageJson.scripts || {})
-        ? { canRun: true, notes: [] }
+        ? {
+            canRun: true,
+            artifactStepResult: {
+              notes: [],
+            },
+          }
         : {
             canRun: false,
-            notes: [`skipping because missing test-script in package.json`],
-            stepStatus: Status.skippedAsPassed,
+            artifactStepResult: {
+              notes: [`skipping because missing test-script in package.json`],
+              status: Status.skippedAsPassed,
+            },
           },
   },
   runStepOnArtifact: async ({ currentArtifact, stepConfigurations, log }) => {
