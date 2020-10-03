@@ -48,35 +48,54 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
   const stepsName = jsonReport.steps.map(step => step.data.stepInfo.stepName)
   const rows = jsonReport.stepsResultOfArtifactsByArtifact.map(node => {
     const data = node.data
-    if (data.artifactExecutionStatus === ExecutionStatus.done) {
-      return {
-        packageName: data.artifact.packageJson.name,
-        stepsStatus: jsonReport.steps.map(
-          (_, i) => STEP_RESULT_STATUS_COLORED[data.stepsResult[i].data.artifactStepResult.status],
-        ),
-        artifactStatus: STEP_RESULT_STATUS_COLORED[data.artifactResult.status],
-        duration: prettyMs(data.artifactResult.durationMs),
-        notes: [
-          ...data.artifactResult.notes,
-          ..._.flatten(
-            data.stepsResult.map(s =>
-              s.data.artifactStepExecutionStatus === ExecutionStatus.done
-                ? s.data.artifactStepResult.notes.map(
-                    n => `${stepToString({ stepInfo: s.data.stepInfo, steps: jsonReport.steps })} - ${n}`,
-                  )
-                : [],
-            ),
+    switch (data.artifactExecutionStatus) {
+      case ExecutionStatus.done:
+        return {
+          packageName: data.artifact.packageJson.name,
+          stepsStatus: jsonReport.steps.map(
+            (_, i) => STEP_RESULT_STATUS_COLORED[data.stepsResult[i].data.artifactStepResult.status],
           ),
-        ],
-      }
-    } else {
-      return {
-        packageName: data.artifact.packageJson.name,
-        stepsStatus: jsonReport.steps.map(() => STEP_EXECUTION_STATUS_COLORED[data.artifactExecutionStatus]),
-        artifactStatus: STEP_EXECUTION_STATUS_COLORED[data.artifactExecutionStatus],
-        duration: '',
-        notes: [],
-      }
+          artifactStatus: STEP_RESULT_STATUS_COLORED[data.artifactResult.status],
+          duration: prettyMs(data.artifactResult.durationMs),
+          notes: [
+            ...data.artifactResult.notes,
+            ..._.flatten(
+              data.stepsResult.map(s => {
+                return s.data.artifactStepResult.notes.map(
+                  n => `${stepToString({ stepInfo: s.data.stepInfo, steps: jsonReport.steps })} - ${n}`,
+                )
+              }),
+            ),
+          ],
+        }
+      case ExecutionStatus.aborted:
+        return {
+          packageName: data.artifact.packageJson.name,
+          stepsStatus: jsonReport.steps.map(
+            (_, i) => STEP_RESULT_STATUS_COLORED[data.stepsResult[i].data.artifactStepResult.status],
+          ),
+          artifactStatus: STEP_RESULT_STATUS_COLORED[data.artifactResult.status],
+          duration: prettyMs(data.artifactResult.durationMs),
+          notes: [
+            ...data.artifactResult.notes,
+            ..._.flatten(
+              data.stepsResult.map(s => {
+                return s.data.artifactStepResult.notes.map(
+                  n => `${stepToString({ stepInfo: s.data.stepInfo, steps: jsonReport.steps })} - ${n}`,
+                )
+              }),
+            ),
+          ],
+        }
+      case ExecutionStatus.running:
+      case ExecutionStatus.scheduled:
+        return {
+          packageName: data.artifact.packageJson.name,
+          stepsStatus: jsonReport.steps.map(() => STEP_EXECUTION_STATUS_COLORED[data.artifactExecutionStatus]),
+          artifactStatus: STEP_EXECUTION_STATUS_COLORED[data.artifactExecutionStatus],
+          duration: '',
+          notes: [],
+        }
     }
   })
 
@@ -106,7 +125,9 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
   const stepsDurations = [
     '',
     ...jsonReport.stepsResultOfArtifactsByStep.map(s =>
-      s.data.stepExecutionStatus === ExecutionStatus.done ? prettyMs(s.data.stepResult.durationMs) : '',
+      s.data.stepExecutionStatus === ExecutionStatus.done || s.data.stepExecutionStatus === ExecutionStatus.aborted
+        ? prettyMs(s.data.stepResult.durationMs)
+        : '',
     ),
   ].map<CellOptions>(content => ({
     rowSpan: 1,
@@ -128,23 +149,29 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
   const rows = jsonReport.stepsResultOfArtifactsByArtifact
     .map(node => {
       const data = node.data
-      if (data.artifactExecutionStatus === ExecutionStatus.done) {
-        return {
-          packageName: data.artifact.packageJson.name,
-          errors: _.flatten([
-            data.artifactResult.error ? [`${deserializeError(data.artifactResult.error)}`] : [],
-            ...data.stepsResult.map(r =>
-              r.data.artifactStepExecutionStatus === ExecutionStatus.done && r.data.artifactStepResult.error
-                ? [`${deserializeError(r.data.artifactStepResult.error)}`]
-                : [],
-            ),
-          ]),
-        }
-      } else {
-        return {
-          packageName: data.artifact.packageJson.name,
-          errors: [],
-        }
+      switch (data.artifactExecutionStatus) {
+        case ExecutionStatus.done:
+          return {
+            packageName: data.artifact.packageJson.name,
+            errors: [
+              ...(data.artifactResult.error ? [`${deserializeError(data.artifactResult.error)}`] : []),
+              ...data.stepsResult.map(r => `${deserializeError(r.data.artifactStepResult.error)}`),
+            ],
+          }
+        case ExecutionStatus.aborted:
+          return {
+            packageName: data.artifact.packageJson.name,
+            errors: [
+              ...(data.artifactResult.error ? [`${deserializeError(data.artifactResult.error)}`] : []),
+              ...data.stepsResult.map(r => `${deserializeError(r.data.artifactStepResult.error)}`),
+            ],
+          }
+        case ExecutionStatus.running:
+        case ExecutionStatus.scheduled:
+          return {
+            packageName: data.artifact.packageJson.name,
+            errors: [],
+          }
       }
     })
     .filter(r => r.errors.length > 0)
@@ -189,7 +216,7 @@ function generateStepsErrorsReport(jsonReport: JsonReport): string {
   const rows = jsonReport.stepsResultOfArtifactsByStep
     .map(node => {
       const data = node.data
-      if (data.stepExecutionStatus === ExecutionStatus.done) {
+      if (data.stepExecutionStatus === ExecutionStatus.done || data.stepExecutionStatus === ExecutionStatus.aborted) {
         return {
           stepName: stepToString({ stepInfo: data.stepInfo, steps: jsonReport.steps }),
           errors: data.stepResult.error ? [`${deserializeError(data.stepResult.error)}`] : [],

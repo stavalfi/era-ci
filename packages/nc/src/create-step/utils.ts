@@ -64,21 +64,21 @@ function getStepsResultOfArtifact({
         artifact: artifact.data.artifact,
         artifactResult: {
           status: calculateCombinedStatus(
-            _.flatten(
-              stepsResultOfArtifactsByStep.map(s =>
-                s.data.stepExecutionStatus === ExecutionStatus.done
-                  ? [s.data.artifactsResult[artifact.index].data.artifactStepResult.status]
-                  : [],
-              ),
-            ),
+            stepsResultOfArtifactsByStep.map(s => {
+              if (s.data.stepExecutionStatus !== ExecutionStatus.done) {
+                throw new Error(`we can't be here because artifactExecutionStatus===done`)
+              }
+              return s.data.artifactsResult[artifact.index].data.artifactStepResult.status
+            }),
           ),
           notes: [], // we don't support (yet) notes about a artifact
           durationMs: _.sum(
-            stepsResultOfArtifactsByStep.map(s =>
-              s.data.stepExecutionStatus === ExecutionStatus.done
-                ? s.data.artifactsResult[artifact.index].data.artifactStepResult.durationMs
-                : 0,
-            ),
+            stepsResultOfArtifactsByStep.map(s => {
+              if (s.data.stepExecutionStatus !== ExecutionStatus.done) {
+                throw new Error(`we can't be here because artifactExecutionStatus===done`)
+              }
+              return s.data.artifactsResult[artifact.index].data.artifactStepResult.durationMs
+            }),
           ),
         },
         stepsResult: stepsResultOfArtifactsByStep.map(s => {
@@ -103,7 +103,8 @@ function getStepsResultOfArtifact({
           status: calculateCombinedStatus(
             _.flatten(
               stepsResultOfArtifactsByStep.map(s =>
-                s.data.stepExecutionStatus === ExecutionStatus.done
+                s.data.stepExecutionStatus === ExecutionStatus.done ||
+                s.data.stepExecutionStatus === ExecutionStatus.aborted
                   ? [s.data.artifactsResult[artifact.index].data.artifactStepResult.status]
                   : [],
               ),
@@ -112,7 +113,8 @@ function getStepsResultOfArtifact({
           notes: [], // we don't support (yet) notes about a artifact
           durationMs: _.sum(
             stepsResultOfArtifactsByStep.map(s =>
-              s.data.stepExecutionStatus === ExecutionStatus.done
+              s.data.stepExecutionStatus === ExecutionStatus.done ||
+              s.data.stepExecutionStatus === ExecutionStatus.aborted
                 ? s.data.artifactsResult[artifact.index].data.artifactStepResult.durationMs
                 : 0,
             ),
