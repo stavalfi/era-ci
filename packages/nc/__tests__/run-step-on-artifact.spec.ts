@@ -64,6 +64,38 @@ test('step should pass in json-report', async () => {
         },
       },
     ],
+    stepsResultOfArtifactsByArtifact: [
+      {
+        data: {
+          artifact: {
+            packageJson: {
+              name: toActualName('a'),
+            },
+          },
+          artifactExecutionStatus: ExecutionStatus.done,
+          artifactResult: {
+            error: undefined,
+            notes: [],
+            status: Status.passed,
+          },
+          stepsResult: [
+            {
+              data: {
+                stepInfo: {
+                  stepName: 'step1',
+                },
+                artifactStepExecutionStatus: ExecutionStatus.done,
+                artifactStepResult: {
+                  error: undefined,
+                  notes: [],
+                  status: Status.passed,
+                },
+              },
+            },
+          ],
+        },
+      },
+    ],
   }
 
   expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
@@ -132,6 +164,38 @@ test('flow should fail because step failed (without throwing error from the step
         },
       },
     ],
+    stepsResultOfArtifactsByArtifact: [
+      {
+        data: {
+          artifact: {
+            packageJson: {
+              name: toActualName('a'),
+            },
+          },
+          artifactExecutionStatus: ExecutionStatus.done,
+          artifactResult: {
+            error: undefined,
+            notes: [],
+            status: Status.failed,
+          },
+          stepsResult: [
+            {
+              data: {
+                stepInfo: {
+                  stepName: 'step1',
+                },
+                artifactStepExecutionStatus: ExecutionStatus.done,
+                artifactStepResult: {
+                  error: undefined,
+                  notes: [],
+                  status: Status.failed,
+                },
+              },
+            },
+          ],
+        },
+      },
+    ],
   }
 
   expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
@@ -186,6 +250,40 @@ test('flow should fail because step failed (while throwing error from the step)'
                     name: toActualName('a'),
                   },
                 },
+                artifactStepResult: {
+                  error: {
+                    message: 'error123',
+                  },
+                  notes: [],
+                  status: Status.failed,
+                },
+              },
+            },
+          ],
+        },
+      },
+    ],
+    stepsResultOfArtifactsByArtifact: [
+      {
+        data: {
+          artifact: {
+            packageJson: {
+              name: toActualName('a'),
+            },
+          },
+          artifactExecutionStatus: ExecutionStatus.done,
+          artifactResult: {
+            error: undefined,
+            notes: [],
+            status: Status.failed,
+          },
+          stepsResult: [
+            {
+              data: {
+                stepInfo: {
+                  stepName: 'step1',
+                },
+                artifactStepExecutionStatus: ExecutionStatus.done,
                 artifactStepResult: {
                   error: {
                     message: 'error123',

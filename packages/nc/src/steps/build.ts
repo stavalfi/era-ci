@@ -1,5 +1,5 @@
 import { execaCommand } from '../utils'
-import { createStep, Status } from '../create-step'
+import { createStep, ExecutionStatus, Status } from '../create-step'
 
 export const build = createStep({
   stepName: 'build',
@@ -16,8 +16,9 @@ export const build = createStep({
         return {
           canRun: false,
           artifactStepResult: {
-            notes: ['skipping because missing build-script in package.json'],
+            executionStatus: ExecutionStatus.aborted,
             status: Status.skippedAsPassed,
+            notes: ['skipping because missing build-script in package.json'],
           },
         }
       }
@@ -32,6 +33,7 @@ export const build = createStep({
 
     return {
       notes: [],
+      executionStatus: ExecutionStatus.done,
       status: Status.passed,
     }
   },

@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import semver from 'semver'
 import { Log } from '../create-logger'
-import { createStep, Status } from '../create-step'
+import { createStep, ExecutionStatus, Status } from '../create-step'
 import { PackageJson } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
@@ -289,6 +289,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
           canRun: false,
           artifactStepResult: {
             notes: [],
+            executionStatus: ExecutionStatus.aborted,
             status: Status.skippedAsPassed,
           },
         }
@@ -299,6 +300,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
           canRun: false,
           artifactStepResult: {
             notes: [`docker-publish is disabled`],
+            executionStatus: ExecutionStatus.aborted,
             status: Status.skippedAsPassed,
           },
         }
@@ -342,6 +344,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
             notes: [
               `this package was already published in flow: "${dockerVersionResult.flowId}" with the same content as version: ${dockerVersionResult.value}`,
             ],
+            executionStatus: ExecutionStatus.aborted,
             status: Status.skippedAsPassed,
           },
         }
@@ -379,7 +382,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
     const fullImageNameNewVersion = buildFullDockerImageName({
       dockerOrganizationName: stepConfigurations.dockerOrganizationName,
       dockerRegistry: stepConfigurations.registry,
-      packageJsonName: currentArtifact.data.artifact.packageJson.name!,
+      packageJsonName: currentArtifact.data.artifact.packageJson.name,
       imageTag: newVersion,
     })
 
@@ -466,6 +469,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
 
     return {
       notes: [],
+      executionStatus: ExecutionStatus.done,
       status: Status.passed,
     }
   },

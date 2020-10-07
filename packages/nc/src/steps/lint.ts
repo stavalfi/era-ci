@@ -1,5 +1,5 @@
 import { execaCommand } from '../utils'
-import { createStep, Status } from '../create-step'
+import { createStep, ExecutionStatus, Status } from '../create-step'
 
 export const lint = createStep<{ lintScriptName: string } | void, { lintScriptName: string }>({
   stepName: 'lint',
@@ -20,6 +20,7 @@ export const lint = createStep<{ lintScriptName: string } | void, { lintScriptNa
           canRun: false,
           artifactStepResult: {
             notes: ['skipping because missing lint-script in package.json'],
+            executionStatus: ExecutionStatus.aborted,
             status: Status.skippedAsPassed,
           },
         }
@@ -35,6 +36,7 @@ export const lint = createStep<{ lintScriptName: string } | void, { lintScriptNa
 
     return {
       notes: [],
+      executionStatus: ExecutionStatus.done,
       status: Status.passed,
     }
   },

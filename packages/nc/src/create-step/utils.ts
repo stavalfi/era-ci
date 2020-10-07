@@ -2,50 +2,13 @@ import _ from 'lodash'
 import { StepInfo } from '.'
 import { Artifact, Graph } from '..'
 import { Node } from '../types'
-import { calculateCombinedStatus } from '../utils'
+import { calculateCombinedStatus, calculateExecutionStatus } from '../utils'
 import {
   ExecutionStatus,
   StepsResultOfArtifact,
   StepsResultOfArtifactsByArtifact,
   StepsResultOfArtifactsByStep,
 } from './types'
-
-function getArtifactExecutionStatus({
-  artifact,
-  stepsResultOfArtifactsByStep,
-}: {
-  artifact: Node<{
-    artifact: Artifact
-  }>
-  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
-}): ExecutionStatus {
-  // the 'if' order doesn't matter
-  if (
-    stepsResultOfArtifactsByStep.every(
-      s =>
-        s.data.stepExecutionStatus === ExecutionStatus.done &&
-        s.data.artifactsResult[artifact.index].data.artifactStepExecutionStatus === ExecutionStatus.done,
-    )
-  ) {
-    return ExecutionStatus.done
-  }
-
-  if (stepsResultOfArtifactsByStep.every(s => s.data.stepExecutionStatus === ExecutionStatus.scheduled)) {
-    return ExecutionStatus.scheduled
-  }
-
-  if (
-    stepsResultOfArtifactsByStep.every(
-      s =>
-        s.data.stepExecutionStatus === ExecutionStatus.done || s.data.stepExecutionStatus === ExecutionStatus.aborted,
-    )
-  ) {
-    // all `artifactStepExecutionStatus` in this case are equal to `done` or `aborted`
-    return ExecutionStatus.aborted
-  }
-
-  return ExecutionStatus.running
-}
 
 function getStepsResultOfArtifact({
   artifact,
@@ -56,176 +19,125 @@ function getStepsResultOfArtifact({
   }>
   stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
 }): StepsResultOfArtifact {
-  const artifactExecutionStatus = getArtifactExecutionStatus({ artifact, stepsResultOfArtifactsByStep })
+  const artifactExecutionStatus = calculateExecutionStatus(
+    stepsResultOfArtifactsByStep.map(
+      s => s.data.artifactsResult[artifact.index].data.artifactStepResult.executionStatus,
+    ),
+  )
+
   switch (artifactExecutionStatus) {
     case ExecutionStatus.done:
       return {
-        artifactExecutionStatus: ExecutionStatus.done,
         artifact: artifact.data.artifact,
         artifactResult: {
+          executionStatus: ExecutionStatus.done,
           status: calculateCombinedStatus(
-            stepsResultOfArtifactsByStep.map(s => {
-              if (s.data.stepExecutionStatus !== ExecutionStatus.done) {
-                throw new Error(`we can't be here because artifactExecutionStatus===done`)
-              }
-              return s.data.artifactsResult[artifact.index].data.artifactStepResult.status
-            }),
+            stepsResultOfArtifactsByStep
+              .map(s => s.data.artifactsResult[artifact.index].data.artifactStepResult)
+              .map(artifactStepResult => {
+                if (artifactStepResult.executionStatus !== ExecutionStatus.done) {
+                  throw new Error(`we can't be here`)
+                }
+                return artifactStepResult.status
+              }),
           ),
           notes: [], // we don't support (yet) notes about a artifact
           durationMs: _.sum(
             stepsResultOfArtifactsByStep.map(s => {
-              if (s.data.stepExecutionStatus !== ExecutionStatus.done) {
-                throw new Error(`we can't be here because artifactExecutionStatus===done`)
+              const a = s.data.artifactsResult[artifact.index].data.artifactStepResult
+              if (a.executionStatus !== ExecutionStatus.done) {
+                throw new Error(`we can't be here`)
               }
-              return s.data.artifactsResult[artifact.index].data.artifactStepResult.durationMs
+              return a.durationMs
             }),
           ),
         },
         stepsResult: stepsResultOfArtifactsByStep.map(s => {
-          if (s.data.stepExecutionStatus !== ExecutionStatus.done) {
+          const artifactStepResult = s.data.artifactsResult[artifact.index].data.artifactStepResult
+          if (artifactStepResult.executionStatus !== ExecutionStatus.done) {
             throw new Error(`we can't be here`)
           }
           return {
             ...s,
             data: {
               stepInfo: s.data.stepInfo,
-              artifactStepExecutionStatus: s.data.artifactsResult[artifact.index].data.artifactStepExecutionStatus,
-              artifactStepResult: s.data.artifactsResult[artifact.index].data.artifactStepResult,
+              artifactStepResult,
             },
           }
         }),
       }
     case ExecutionStatus.aborted: {
       return {
-        artifactExecutionStatus: ExecutionStatus.aborted,
         artifact: artifact.data.artifact,
         artifactResult: {
+          executionStatus: ExecutionStatus.aborted,
           status: calculateCombinedStatus(
-            _.flatten(
-              stepsResultOfArtifactsByStep.map(s =>
-                s.data.stepExecutionStatus === ExecutionStatus.done ||
-                s.data.stepExecutionStatus === ExecutionStatus.aborted
-                  ? [s.data.artifactsResult[artifact.index].data.artifactStepResult.status]
-                  : [],
-              ),
-            ),
+            stepsResultOfArtifactsByStep.map(s => {
+              const a = s.data.artifactsResult[artifact.index].data.artifactStepResult
+              if (a.executionStatus !== ExecutionStatus.done && a.executionStatus !== ExecutionStatus.aborted) {
+                throw new Error(`we can't be here`)
+              }
+              return a.status
+            }),
           ),
           notes: [], // we don't support (yet) notes about a artifact
           durationMs: _.sum(
-            stepsResultOfArtifactsByStep.map(s =>
-              s.data.stepExecutionStatus === ExecutionStatus.done ||
-              s.data.stepExecutionStatus === ExecutionStatus.aborted
-                ? s.data.artifactsResult[artifact.index].data.artifactStepResult.durationMs
-                : 0,
-            ),
+            stepsResultOfArtifactsByStep.map(s => {
+              const a = s.data.artifactsResult[artifact.index].data.artifactStepResult
+              if (a.executionStatus !== ExecutionStatus.done && a.executionStatus !== ExecutionStatus.aborted) {
+                throw new Error(`we can't be here`)
+              }
+              return a.durationMs
+            }),
           ),
         },
         stepsResult: stepsResultOfArtifactsByStep.map(s => {
-          switch (s.data.stepExecutionStatus) {
-            case ExecutionStatus.done:
-              return {
-                ...s,
-                data: {
-                  stepInfo: s.data.stepInfo,
-                  artifactStepExecutionStatus: ExecutionStatus.done,
-                  artifactStepResult: s.data.artifactsResult[artifact.index].data.artifactStepResult,
-                },
-              }
-            case ExecutionStatus.aborted: {
-              const sResult = s.data.artifactsResult[artifact.index].data
-              switch (sResult.artifactStepExecutionStatus) {
-                case ExecutionStatus.done:
-                  return {
-                    ...s,
-                    data: {
-                      stepInfo: s.data.stepInfo,
-                      artifactStepExecutionStatus: ExecutionStatus.done,
-                      artifactStepResult: sResult.artifactStepResult,
-                    },
-                  }
-                case ExecutionStatus.aborted:
-                  return {
-                    ...s,
-                    data: {
-                      stepInfo: s.data.stepInfo,
-                      artifactStepExecutionStatus: ExecutionStatus.aborted,
-                      artifactStepResult: sResult.artifactStepResult,
-                    },
-                  }
-              }
-              throw new Error(`we can't be here but typescript wants us to use 'break' command`)
-            }
-            case ExecutionStatus.running:
-            case ExecutionStatus.scheduled:
-              throw new Error(
-                `we can't be here. if artifactExecutionStatus===ExecutionStatus.aborted then s.data.stepExecutionStatus===done/aborted only. if we are here, then this statement is false`,
-              )
+          const a = s.data.artifactsResult[artifact.index].data.artifactStepResult
+          if (a.executionStatus !== ExecutionStatus.done && a.executionStatus !== ExecutionStatus.aborted) {
+            throw new Error(`we can't be here`)
+          }
+          return {
+            ...s,
+            data: {
+              stepInfo: s.data.stepInfo,
+              artifactStepResult: a,
+            },
           }
         }),
       }
     }
     case ExecutionStatus.running:
       return {
-        artifactExecutionStatus: ExecutionStatus.running,
         artifact: artifact.data.artifact,
+        artifactResult: {
+          executionStatus: ExecutionStatus.running,
+        },
         stepsResult: stepsResultOfArtifactsByStep.map(s => {
-          switch (s.data.stepExecutionStatus) {
-            case ExecutionStatus.done:
-              return {
-                ...s,
-                data: {
-                  stepInfo: s.data.stepInfo,
-                  artifactStepExecutionStatus: ExecutionStatus.done,
-                  artifactStepResult: s.data.artifactsResult[artifact.index].data.artifactStepResult,
-                },
-              }
-            case ExecutionStatus.aborted: {
-              const sResult = s.data.artifactsResult[artifact.index].data
-              switch (sResult.artifactStepExecutionStatus) {
-                case ExecutionStatus.done:
-                  return {
-                    ...s,
-                    data: {
-                      stepInfo: s.data.stepInfo,
-                      artifactStepExecutionStatus: ExecutionStatus.done,
-                      artifactStepResult: sResult.artifactStepResult,
-                    },
-                  }
-                case ExecutionStatus.aborted:
-                  return {
-                    ...s,
-                    data: {
-                      stepInfo: s.data.stepInfo,
-                      artifactStepExecutionStatus: ExecutionStatus.aborted,
-                      artifactStepResult: sResult.artifactStepResult,
-                    },
-                  }
-              }
-              throw new Error(`we can't be here but typescript wants us to use 'break' command`)
-            }
-            case ExecutionStatus.running:
-            case ExecutionStatus.scheduled:
-              return {
-                ...s,
-                data: {
-                  stepInfo: s.data.stepInfo,
-                  artifactStepExecutionStatus: s.data.stepExecutionStatus,
-                  artifactStepResult: s.data.artifactsResult,
-                },
-              }
+          return {
+            ...s,
+            data: {
+              stepInfo: s.data.stepInfo,
+              artifactStepResult: s.data.artifactsResult[artifact.index].data.artifactStepResult,
+            },
           }
         }),
       }
     case ExecutionStatus.scheduled:
       return {
-        artifactExecutionStatus: ExecutionStatus.scheduled,
         artifact: artifact.data.artifact,
+        artifactResult: {
+          executionStatus: ExecutionStatus.scheduled,
+        },
         stepsResult: stepsResultOfArtifactsByStep.map(s => {
+          const a = s.data.artifactsResult[artifact.index].data.artifactStepResult
+          if (a.executionStatus !== ExecutionStatus.scheduled) {
+            throw new Error(`we can't be here`)
+          }
           return {
             ...s,
             data: {
-              artifactStepExecutionStatus: ExecutionStatus.scheduled,
               stepInfo: s.data.stepInfo,
+              artifactStepResult: a,
             },
           }
         }),

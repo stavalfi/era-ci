@@ -14,13 +14,34 @@ export function calculateCombinedStatus<StatusesArray extends Status[]>(
   if (statuses.includes(Status.failed)) {
     return Status.failed
   }
+
   if (statuses.includes(Status.skippedAsFailed)) {
     return Status.skippedAsFailed
   }
+
   if (statuses.includes(Status.passed)) {
     return Status.passed
   }
+
   return Status.skippedAsPassed
+}
+
+export function calculateExecutionStatus<ExecutionStatusArray extends ExecutionStatus[]>(
+  executionStatuses: ExecutionStatusArray,
+): UnionArrayValues<ExecutionStatus, ExecutionStatusArray> {
+  if (executionStatuses.includes(ExecutionStatus.running)) {
+    return ExecutionStatus.running
+  }
+
+  if (executionStatuses.includes(ExecutionStatus.scheduled)) {
+    return ExecutionStatus.scheduled
+  }
+
+  if (executionStatuses.every(e => e === ExecutionStatus.done)) {
+    return ExecutionStatus.done
+  }
+
+  return ExecutionStatus.aborted
 }
 
 export function getStepsAsGraph(steps: Step[]): Graph<{ stepInfo: StepInfo; runStep: Step['runStep'] }> {

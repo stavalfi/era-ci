@@ -1,12 +1,11 @@
-import crypto from 'crypto'
 import Redis, { ValueType } from 'ioredis'
 import NodeCache from 'node-cache'
 import redisUrlParse from 'redis-url-parse'
-import { any, object, string, validate } from 'superstruct'
+import { any, array, enums, number, object, optional, string, type, validate } from 'superstruct'
 import { promisify } from 'util'
 import zlib from 'zlib'
 import { Cache, createCache } from './create-cache'
-import { StepResultOfArtifacts } from './create-step'
+import { AbortResult, DoneResult, ExecutionStatus, Status } from './create-step'
 
 export type CacheConfiguration = {
   redis: {
@@ -140,80 +139,68 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
       return nodeCache.has(key) || (await redisClient.exists(key).then(result => result === 1))
     }
 
-    function toStepKey({ artifactHash, stepId }: { stepId: string; artifactHash: string }) {
+    function toArtifactStepResultKey({ artifactHash, stepId }: { stepId: string; artifactHash: string }) {
       return `${stepId}-${artifactHash}`
     }
 
     const step: Cache['step'] = {
-      didStepRun: options => has(toStepKey({ stepId: options.stepId, artifactHash: options.artifactHash })),
-      getStepResult: async options => {
-        const stepResultOfArtifactsKeyResult = await get(
-          toStepKey({ stepId: options.stepId, artifactHash: options.artifactHash }),
-          r => {
-            if (typeof r !== 'string') {
-              throw new Error(
-                `(2) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
-              )
-            }
-            const [error, parsedResult] = validate(JSON.parse(r), string())
-            if (parsedResult) {
-              return parsedResult
-            } else {
-              throw new Error(
-                `(3) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
-              )
-            }
-          },
-        )
-        if (!stepResultOfArtifactsKeyResult) {
-          return undefined
-        }
-
-        const stepResultOfArtifactsResult = await get(stepResultOfArtifactsKeyResult.value, r => {
+      didStepRun: options =>
+        has(toArtifactStepResultKey({ stepId: options.stepId, artifactHash: options.artifactHash })),
+      getArtifactStepResult: async ({ stepId, artifactHash }) => {
+        const artifactStepResult = await get(toArtifactStepResultKey({ stepId, artifactHash }), r => {
           if (typeof r !== 'string') {
             throw new Error(
-              `(4) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
+              `(2) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
             )
           }
-          return JSON.parse(r) as StepResultOfArtifacts
+
+          const [error, parsedResult] = validate(
+            JSON.parse(r),
+            object({
+              executionStatus: enums([ExecutionStatus.done, ExecutionStatus.aborted]),
+              status: enums(Object.values(Status)),
+              durationMs: number(),
+              notes: array(string()),
+              error: optional(
+                type({
+                  name: optional(string()),
+                  stack: optional(string()),
+                  message: optional(string()),
+                  code: optional(string()),
+                }),
+              ),
+            }),
+          )
+          if (parsedResult) {
+            return parsedResult
+          } else {
+            throw new Error(
+              `(3) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
+            )
+          }
         })
-        if (!stepResultOfArtifactsResult) {
+        if (!artifactStepResult) {
           return undefined
         }
+
         return {
-          flowId: stepResultOfArtifactsResult.flowId,
-          stepResultOfArtifacts: stepResultOfArtifactsResult.value,
+          flowId: artifactStepResult.flowId,
+          artifactStepResult: artifactStepResult.value as
+            | DoneResult
+            | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>,
         }
       },
-      setStepResult: async stepResultOfArtifacts => {
-        const asString = JSON.stringify(stepResultOfArtifacts, null, 2)
-        const hasher = crypto.createHash('sha224')
-        hasher.update(asString)
-        const stepResultOfArtifactsKey = `step-result-of-artifacts---${
-          stepResultOfArtifacts.stepInfo.stepId
-        }-${Buffer.from(hasher.digest()).toString('hex')}`
-
-        await Promise.all([
-          await set({
-            key: stepResultOfArtifactsKey,
-            value: asString,
-            ttl: cacheConfigurations.ttls.stepResult,
-            onlySaveInNodeCache: false,
-            allowOverride: false,
+      setArtifactStepResult: async ({ artifactHash, stepId, artifactStepResult }) => {
+        await set({
+          key: toArtifactStepResultKey({
+            stepId,
+            artifactHash,
           }),
-          ...artifacts.map(a =>
-            set({
-              key: toStepKey({
-                stepId: stepResultOfArtifacts.stepInfo.stepId,
-                artifactHash: a.data.artifact.packageHash,
-              }),
-              value: stepResultOfArtifactsKey,
-              ttl: cacheConfigurations.ttls.stepResult,
-              onlySaveInNodeCache: false,
-              allowOverride: false,
-            }),
-          ),
-        ])
+          value: JSON.stringify(artifactStepResult),
+          ttl: cacheConfigurations.ttls.stepResult,
+          onlySaveInNodeCache: false,
+          allowOverride: false,
+        })
       },
     }
 
