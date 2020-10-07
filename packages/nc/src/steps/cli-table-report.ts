@@ -48,7 +48,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
   const stepsName = jsonReport.steps.map(step => step.data.stepInfo.stepName)
   const rows = jsonReport.stepsResultOfArtifactsByArtifact.map(node => {
     const data = node.data
-    switch (data.artifactExecutionStatus) {
+    switch (data.artifactResult.executionStatus) {
       case ExecutionStatus.done:
         return {
           packageName: data.artifact.packageJson.name,

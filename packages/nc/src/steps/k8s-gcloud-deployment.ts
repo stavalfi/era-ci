@@ -1,6 +1,6 @@
 import { createFile } from 'create-folder-structure'
 import { execaCommand } from '../utils'
-import { createStep, Status } from '../create-step'
+import { createStep, ExecutionStatus, Status } from '../create-step'
 import { getPackageTargetType, TargetType } from './utils'
 
 export type K8sGcloudDeploymentConfiguration = {
@@ -27,6 +27,7 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
           canRun: false,
           artifactStepResult: {
             notes: [],
+            executionStatus: ExecutionStatus.aborted,
             status: Status.skippedAsPassed,
           },
         }
@@ -37,6 +38,7 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
           canRun: false,
           artifactStepResult: {
             notes: [`k8s-gcloud deployment is disabled`],
+            executionStatus: ExecutionStatus.aborted,
             status: Status.skippedAsPassed,
           },
         }
@@ -78,7 +80,7 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
     )
   },
   runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, cache }) => {
-    const packageName = currentArtifact.data.artifact.packageJson.name!
+    const packageName = currentArtifact.data.artifact.packageJson.name
     const deploymentName = stepConfigurations.artifactNameToDeploymentName(packageName)
     const containerName = stepConfigurations.artifactNameToContainerName(packageName)
 
@@ -107,6 +109,7 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
 
     return {
       notes: [],
+      executionStatus: ExecutionStatus.done,
       status: Status.passed,
     }
   },

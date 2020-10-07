@@ -64,12 +64,16 @@ export async function runAllSteps({
     ...s,
     data: {
       stepInfo: s.data.stepInfo,
-      stepExecutionStatus: ExecutionStatus.scheduled,
+      stepResult: {
+        executionStatus: ExecutionStatus.scheduled,
+      },
       artifactsResult: artifacts.map(a => ({
         ...a,
         data: {
-          ...a.data,
-          artifactStepExecutionStatus: ExecutionStatus.scheduled,
+          artifact: a.data.artifact,
+          artifactStepResult: {
+            executionStatus: ExecutionStatus.scheduled,
+          },
         },
       })),
     },
@@ -81,7 +85,7 @@ export async function runAllSteps({
   }
 
   async function runStep(stepIndex: number): Promise<void> {
-    switch (stepsResultOfArtifactsByStep[stepIndex].data.stepExecutionStatus) {
+    switch (stepsResultOfArtifactsByStep[stepIndex].data.stepResult.executionStatus) {
       case ExecutionStatus.done:
         throw new Error(`circual steps graph is not supported (yet?)`)
       case ExecutionStatus.running:
@@ -91,7 +95,7 @@ export async function runAllSteps({
       case ExecutionStatus.scheduled: {
         const canRunStep = state.stepsResultOfArtifactsByStep[stepIndex].parentsIndexes.every(pIndex =>
           [ExecutionStatus.done, ExecutionStatus.aborted].includes(
-            state.stepsResultOfArtifactsByStep[pIndex].data.stepExecutionStatus,
+            state.stepsResultOfArtifactsByStep[pIndex].data.stepResult.executionStatus,
           ),
         )
         if (canRunStep) {

@@ -1,7 +1,7 @@
 import fse from 'fs-extra'
 import path from 'path'
 import { execaCommand } from '../utils'
-import { createStep, Status } from '../create-step'
+import { createStep, ExecutionStatus, Status } from '../create-step'
 
 export const install = createStep({
   stepName: 'install',
@@ -20,6 +20,7 @@ export const install = createStep({
 
     return {
       notes: [],
+      executionStatus: ExecutionStatus.done,
       status: Status.passed,
     }
   },

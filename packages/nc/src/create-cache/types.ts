@@ -1,23 +1,27 @@
 import { Redis, ValueType } from 'ioredis'
 import NodeCache from 'node-cache'
 import { Log } from '../create-logger'
-import { StepResultOfArtifacts } from '../create-step'
+import { AbortResult, DoneResult, Status } from '../create-step'
 import { Artifact, Graph } from '../types'
 
 export type Cache = {
   step: {
     didStepRun: (options: { stepId: string; artifactHash: string }) => Promise<boolean>
-    getStepResult: (options: {
+    getArtifactStepResult: (options: {
       stepId: string
-      artifactHash: string // one of the artifacts-hash that may have run in this step
+      artifactHash: string
     }) => Promise<
       | {
           flowId: string
-          stepResultOfArtifacts: StepResultOfArtifacts
+          artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
         }
       | undefined
     >
-    setStepResult: (stepResultOfArtifacts: StepResultOfArtifacts) => Promise<void>
+    setArtifactStepResult: (options: {
+      stepId: string
+      artifactHash: string
+      artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+    }) => Promise<void>
   }
   get: <T>(key: string, mapper: (result: unknown) => T) => Promise<{ flowId: string; value: T } | undefined>
   set: (options: { key: string; value: ValueType; allowOverride: boolean; ttl: number }) => Promise<void>

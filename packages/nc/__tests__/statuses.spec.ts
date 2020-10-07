@@ -3,7 +3,7 @@ import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
 
 const { createRepo } = createTest()
 
-test('skippedAsPassed,passed => passed', async () => {
+test('passed,passed => passed', async () => {
   const { runCi, toActualName } = await createRepo({
     packages: [
       {
@@ -19,7 +19,7 @@ test('skippedAsPassed,passed => passed', async () => {
         runStepOnArtifact: async () => {
           return {
             notes: [],
-            status: Status.skippedAsPassed,
+            status: Status.passed,
           }
         },
       })(),
@@ -47,16 +47,16 @@ test('skippedAsPassed,passed => passed', async () => {
           stepInfo: {
             stepName: 'step1',
           },
-          stepExecutionStatus: ExecutionStatus.aborted,
+          stepExecutionStatus: ExecutionStatus.done,
           stepResult: {
             error: undefined,
             notes: [],
-            status: Status.skippedAsPassed,
+            status: Status.passed,
           },
           artifactsResult: [
             {
               data: {
-                artifactStepExecutionStatus: ExecutionStatus.aborted,
+                artifactStepExecutionStatus: ExecutionStatus.done,
                 artifact: {
                   packageJson: {
                     name: toActualName('a'),
@@ -65,7 +65,7 @@ test('skippedAsPassed,passed => passed', async () => {
                 artifactStepResult: {
                   error: undefined,
                   notes: [],
-                  status: Status.skippedAsPassed,
+                  status: Status.passed,
                 },
               },
             },

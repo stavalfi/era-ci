@@ -22,135 +22,134 @@ export type StepInfo = {
   stepId: string
 }
 
-export type Result<StatusType> = {
+export type DoneResult = {
+  executionStatus: ExecutionStatus.done
+  status: Status.passed | Status.failed
+  durationMs: number
+  notes: string[]
+  error?: ErrorObject
+}
+
+export type AbortResult<StatusType extends Status> = {
+  executionStatus: ExecutionStatus.aborted
   status: StatusType
   durationMs: number
   notes: string[]
   error?: ErrorObject
 }
 
-export type StepResultOfArtifacts = {
+export type RunningResult = {
+  executionStatus: ExecutionStatus.running
+}
+
+export type ScheduledResult = {
+  executionStatus: ExecutionStatus.scheduled
+}
+
+export type DoneStepResultOfArtifacts = {
   stepInfo: StepInfo
-} & (
-  | {
-      stepExecutionStatus: ExecutionStatus.done
-      stepResult: Result<Status.passed | Status.failed>
-      artifactsResult: Graph<{
-        artifact: Artifact
-        artifactStepExecutionStatus: ExecutionStatus.done
-        artifactStepResult: Result<Status.passed | Status.failed>
-      }>
-    }
-  | {
-      stepExecutionStatus: ExecutionStatus.aborted
-      // stepResult depends if any artifact run (as passed/failed) or not. it's weird to say that stepResult=skipped but some artifact(s) has passed/failed.
-      stepResult: Result<Status>
-      artifactsResult: Graph<
-        { artifact: Artifact } & (
-          | {
-              artifactStepExecutionStatus: ExecutionStatus.done
-              artifactStepResult: Result<Status.passed | Status.failed>
-            }
-          | {
-              artifactStepExecutionStatus: ExecutionStatus.aborted
-              artifactStepResult: Result<Status.skippedAsFailed | Status.skippedAsPassed>
-            }
-        )
-      >
-    }
-  | {
-      stepExecutionStatus: ExecutionStatus.running
-      artifactsResult: Graph<
-        { artifact: Artifact } & (
-          | {
-              artifactStepExecutionStatus: ExecutionStatus.done
-              artifactStepResult: Result<Status.passed | Status.failed>
-            }
-          | {
-              artifactStepExecutionStatus: ExecutionStatus.aborted
-              artifactStepResult: Result<Status.skippedAsFailed | Status.skippedAsPassed>
-            }
-          | {
-              artifactStepExecutionStatus: ExecutionStatus.running | ExecutionStatus.scheduled
-              artifactStepResult: Graph<{ artifact: Artifact }>
-            }
-        )
-      >
-    }
-  | {
-      stepExecutionStatus: ExecutionStatus.scheduled
-      artifactsResult: Graph<{ artifact: Artifact; artifactStepExecutionStatus: ExecutionStatus.scheduled }>
-    }
-)
+  stepResult: DoneResult
+  artifactsResult: Graph<{
+    artifact: Artifact
+    artifactStepResult: DoneResult
+  }>
+}
+
+export type AbortStepResultOfArtifacts = {
+  stepInfo: StepInfo
+  stepResult: AbortResult<Status>
+  artifactsResult: Graph<{
+    artifact: Artifact
+    artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+  }>
+}
+
+export type RunningStepResultOfArtifacts = {
+  stepInfo: StepInfo
+  stepResult: RunningResult
+  artifactsResult: Graph<{
+    artifact: Artifact
+    artifactStepResult:
+      | DoneResult
+      | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+      | RunningResult
+      | ScheduledResult
+  }>
+}
+
+export type ScheduledStepResultOfArtifacts = {
+  stepInfo: StepInfo
+  stepResult: ScheduledResult
+  artifactsResult: Graph<{ artifact: Artifact; artifactStepResult: ScheduledResult }>
+}
+
+export type StepResultOfArtifacts =
+  | DoneStepResultOfArtifacts
+  | AbortStepResultOfArtifacts
+  | RunningStepResultOfArtifacts
+  | ScheduledStepResultOfArtifacts
 
 export type StepsResultOfArtifactsByStep = Graph<StepResultOfArtifacts>
 
-export type StepsResultOfArtifact = {
+export type DoneStepsResultOfArtifact = {
   artifact: Artifact
-} & (
-  | {
-      artifactExecutionStatus: ExecutionStatus.done
-      artifactResult: Result<Status.passed | Status.failed>
-      stepsResult: Graph<{
-        stepInfo: StepInfo
-        artifactStepExecutionStatus: ExecutionStatus.done
-        artifactStepResult: Result<Status.passed | Status.failed>
-      }>
-    }
-  | {
-      artifactExecutionStatus: ExecutionStatus.aborted
-      // artifactResult depends if any step run (as passed/failed) or not. it's weird to say that artifactResult=skipped but some step(s) has passed/failed.
-      artifactResult: Result<Status>
-      stepsResult: Graph<
-        {
-          stepInfo: StepInfo
-        } & (
-          | {
-              artifactStepExecutionStatus: ExecutionStatus.done
-              artifactStepResult: Result<Status.passed | Status.failed>
-            }
-          | {
-              artifactStepExecutionStatus: ExecutionStatus.aborted
-              artifactStepResult: Result<Status.skippedAsFailed | Status.skippedAsPassed>
-            }
-        )
-      >
-    }
-  | {
-      artifactExecutionStatus: ExecutionStatus.running
-      stepsResult: Graph<
-        { stepInfo: StepInfo } & (
-          | {
-              artifactStepExecutionStatus: ExecutionStatus.done
-              artifactStepResult: Result<Status.passed | Status.failed>
-            }
-          | {
-              artifactStepExecutionStatus: ExecutionStatus.aborted
-              artifactStepResult: Result<Status.skippedAsFailed | Status.skippedAsPassed>
-            }
-          | {
-              artifactStepExecutionStatus: ExecutionStatus.running | ExecutionStatus.scheduled
-              artifactStepResult: Graph<{ artifact: Artifact }>
-            }
-        )
-      >
-    }
-  | {
-      artifactExecutionStatus: ExecutionStatus.scheduled
-      stepsResult: Graph<{ stepInfo: StepInfo; artifactStepExecutionStatus: ExecutionStatus.scheduled }>
-    }
-)
+  artifactResult: DoneResult
+  stepsResult: Graph<{
+    stepInfo: StepInfo
+    artifactStepResult: DoneResult
+  }>
+}
+
+export type AbortStepsResultOfArtifact = {
+  artifact: Artifact
+  artifactResult: AbortResult<Status>
+  stepsResult: Graph<{
+    stepInfo: StepInfo
+    artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+  }>
+}
+
+export type RunningStepsResultOfArtifact = {
+  artifact: Artifact
+  artifactResult: RunningResult
+  stepsResult: Graph<{
+    stepInfo: StepInfo
+    artifactStepResult:
+      | DoneResult
+      | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+      | RunningResult
+      | ScheduledResult
+  }>
+}
+
+export type ScheduledStepsResultOfArtifact = {
+  artifact: Artifact
+  artifactResult: ScheduledResult
+  stepsResult: Graph<{
+    stepInfo: StepInfo
+    artifactStepResult: ScheduledResult
+  }>
+}
+
+export type StepsResultOfArtifact =
+  | DoneStepsResultOfArtifact
+  | AbortStepsResultOfArtifact
+  | RunningStepsResultOfArtifact
+  | ScheduledStepsResultOfArtifact
 
 export type StepsResultOfArtifactsByArtifact = Graph<StepsResultOfArtifact>
 
 export type CanRunStepOnArtifactResult =
   | {
       canRun: true
-      artifactStepResult: Omit<Result<never>, 'durationMs' | 'status'>
+      artifactStepResult: {
+        notes: string[]
+        error?: ErrorObject
+      }
     }
   | {
       canRun: false
-      artifactStepResult: Omit<Result<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
+      artifactStepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
     }
 
 export type CanRunStepOnArtifact<StepConfigurations> = {
@@ -185,7 +184,7 @@ export type UserRunStepOptions<StepConfigurations> = RunStepOptions & {
 
 export type UserArtifactResult = {
   artifactName: string
-  stepResult: Result<Status>
+  stepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
 }
 
 export type UserStepResult = {
@@ -202,11 +201,11 @@ export type RunStepOnArtifacts<StepConfigurations> = (
 
 export type RunStepOnArtifact<StepConfigurations> = (
   options: UserRunStepOptions<StepConfigurations> & { currentArtifact: Node<{ artifact: Artifact }> },
-) => Promise<Omit<Result<Status>, 'durationMs'>>
+) => Promise<Omit<DoneResult, 'durationMs'>>
 
 export type RunStepOnRoot<StepConfigurations> = (
   options: UserRunStepOptions<StepConfigurations>,
-) => Promise<Omit<Result<Status>, 'durationMs'>>
+) => Promise<Omit<DoneResult, 'durationMs'>>
 
 export type Step = {
   stepName: string

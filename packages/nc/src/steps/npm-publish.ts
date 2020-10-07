@@ -3,7 +3,7 @@ import _ from 'lodash'
 import os from 'os'
 import path from 'path'
 import { Log } from '../create-logger'
-import { createStep, Status } from '../create-step'
+import { createStep, ExecutionStatus, Status } from '../create-step'
 import { PackageJson } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
@@ -177,6 +177,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
           canRun: false,
           artifactStepResult: {
             notes: [],
+            executionStatus: ExecutionStatus.aborted,
             status: Status.skippedAsPassed,
           },
         }
@@ -187,6 +188,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
           canRun: false,
           artifactStepResult: {
             notes: [`npm-publish is disabled`],
+            executionStatus: ExecutionStatus.aborted,
             status: Status.skippedAsPassed,
           },
         }
@@ -232,6 +234,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
             notes: [
               `this package was already published in flow: "${npmVersionResult.flowId}" with the same content as version: ${npmVersionResult.value}`,
             ],
+            executionStatus: ExecutionStatus.aborted,
             status: Status.skippedAsPassed,
           },
         }
@@ -315,6 +318,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
 
     return {
       notes: [],
+      executionStatus: ExecutionStatus.done,
       status: Status.passed,
     }
   },

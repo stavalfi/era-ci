@@ -32,6 +32,7 @@ const runAll = async (
       canRun: false,
       artifactStepResult: {
         notes,
+        executionStatus: ExecutionStatus.aborted,
         status: artifactStepResultStatus,
       },
     }
@@ -47,41 +48,56 @@ async function runIfPackageResultsInCache<StepConfigurations>({
   currentArtifact: Node<{ artifact: Artifact }>
   canRunStepOnArtifact?: CanRunStepOnArtifact<StepConfigurations>
 }): Promise<CanRunStepOnArtifactResult> {
-  const result = await cache.step.getStepResult({
+  const result = await cache.step.getArtifactStepResult({
     stepId: currentStepInfo.data.stepInfo.stepId,
     artifactHash: currentArtifact.data.artifact.packageHash,
   })
-  if (
-    result?.stepResultOfArtifacts.stepExecutionStatus === ExecutionStatus.aborted ||
-    result?.stepResultOfArtifacts.stepExecutionStatus === ExecutionStatus.done
-  ) {
-    const isPassed = didPassOrSkippedAsPassed(
-      result.stepResultOfArtifacts.artifactsResult[currentArtifact.index].data.artifactStepResult.status,
-    )
-    const note = `step already run on this package with the same hash in flow-id: "${result.flowId}". result: "${
-      isPassed ? 'passed' : 'failed'
-    }"`
-    if (canRunStepOnArtifact?.options?.runIfPackageResultsInCache) {
-      return {
-        canRun: true,
-        artifactStepResult: {
-          notes: [`rerun step but ${note}`],
-        },
-      }
-    } else {
-      return {
-        canRun: false,
-        artifactStepResult: {
-          notes: [note],
-          status: isPassed ? Status.skippedAsPassed : Status.skippedAsFailed,
-        },
-      }
-    }
-  } else {
+
+  if (!result) {
     return {
       canRun: true,
       artifactStepResult: {
         notes: [],
+      },
+    }
+  }
+
+  if (
+    result.artifactStepResult.executionStatus !== ExecutionStatus.aborted &&
+    result.artifactStepResult.executionStatus !== ExecutionStatus.done
+  ) {
+    return {
+      canRun: true,
+      artifactStepResult: {
+        notes: [],
+      },
+    }
+  }
+
+  const isPassed = didPassOrSkippedAsPassed(result.artifactStepResult.status)
+
+  if (canRunStepOnArtifact?.options?.runIfPackageResultsInCache) {
+    return {
+      canRun: true,
+      artifactStepResult: {
+        notes: [
+          `rerun step but step already run on this package with the same hash in flow-id: "${
+            result.flowId
+          }". result: "${isPassed ? 'passed' : 'failed'}"`,
+        ],
+      },
+    }
+  } else {
+    return {
+      canRun: false,
+      artifactStepResult: {
+        notes: [
+          `step already run on this package with the same hash in flow-id: "${result.flowId}". result: "${
+            isPassed ? 'passed' : 'failed'
+          }"`,
+        ],
+        executionStatus: ExecutionStatus.aborted,
+        status: isPassed ? Status.skippedAsPassed : Status.skippedAsFailed,
       },
     }
   }
@@ -97,13 +113,15 @@ async function runIfSomeDirectParentStepFailedOnPackage<StepConfigurations>({
   canRunStepOnArtifact?: CanRunStepOnArtifact<StepConfigurations>
 }): Promise<CanRunStepOnArtifactResult> {
   const didAllPrevPassed = await currentStepInfo.parentsIndexes
-    .map((_result, i) => stepsResultOfArtifactsByStep[i].data)
+    .map(
+      (_result, i) =>
+        stepsResultOfArtifactsByStep[i].data.artifactsResult[currentArtifact.index].data.artifactStepResult,
+    )
     .every(
-      step =>
-        (step.stepExecutionStatus === ExecutionStatus.done || step.stepExecutionStatus === ExecutionStatus.aborted) &&
-        [Status.passed, Status.skippedAsPassed].includes(
-          step.artifactsResult[currentArtifact.index].data.artifactStepResult.status,
-        ),
+      artifactStepResult =>
+        (artifactStepResult.executionStatus === ExecutionStatus.done ||
+          artifactStepResult.executionStatus === ExecutionStatus.aborted) &&
+        didPassOrSkippedAsPassed(artifactStepResult.status),
     )
 
   if (didAllPrevPassed || canRunStepOnArtifact?.options?.runIfSomeDirectParentStepFailedOnPackage) {
@@ -117,8 +135,9 @@ async function runIfSomeDirectParentStepFailedOnPackage<StepConfigurations>({
     return {
       canRun: false,
       artifactStepResult: {
-        notes: [`skipping step because not all previous steps passed`],
+        executionStatus: ExecutionStatus.aborted,
         status: Status.skippedAsFailed,
+        notes: [`skipping step because not all previous steps passed`],
       },
     }
   }
