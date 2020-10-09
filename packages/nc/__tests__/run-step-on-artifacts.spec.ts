@@ -27,6 +27,7 @@ test('step should pass in json-report', async () => {
                 stepResult: {
                   durationMs: 1,
                   notes: [],
+                  executionStatus: ExecutionStatus.done,
                   status: Status.passed,
                 },
               },
@@ -41,6 +42,7 @@ test('step should pass in json-report', async () => {
     flowResult: {
       error: undefined,
       notes: [],
+      executionStatus: ExecutionStatus.done,
       status: Status.passed,
     },
     stepsResultOfArtifactsByStep: [
@@ -49,16 +51,15 @@ test('step should pass in json-report', async () => {
           stepInfo: {
             stepName: 'step1',
           },
-          stepExecutionStatus: ExecutionStatus.done,
           stepResult: {
             error: undefined,
             notes: [],
+            executionStatus: ExecutionStatus.done,
             status: Status.passed,
           },
           artifactsResult: [
             {
               data: {
-                artifactStepExecutionStatus: ExecutionStatus.done,
                 artifact: {
                   packageJson: {
                     name: toActualName('a'),
@@ -67,6 +68,7 @@ test('step should pass in json-report', async () => {
                 artifactStepResult: {
                   error: undefined,
                   notes: [],
+                  executionStatus: ExecutionStatus.done,
                   status: Status.passed,
                 },
               },
@@ -104,6 +106,7 @@ test('flow should fail because step failed (without throwing error from the step
                 stepResult: {
                   durationMs: 1,
                   notes: [],
+                  executionStatus: ExecutionStatus.done,
                   status: Status.failed,
                 },
               },
@@ -120,6 +123,7 @@ test('flow should fail because step failed (without throwing error from the step
     flowResult: {
       error: undefined,
       notes: [],
+      executionStatus: ExecutionStatus.done,
       status: Status.failed,
     },
     stepsResultOfArtifactsByStep: [
@@ -128,16 +132,15 @@ test('flow should fail because step failed (without throwing error from the step
           stepInfo: {
             stepName: 'step1',
           },
-          stepExecutionStatus: ExecutionStatus.done,
           stepResult: {
             error: undefined,
             notes: [],
+            executionStatus: ExecutionStatus.done,
             status: Status.failed,
           },
           artifactsResult: [
             {
               data: {
-                artifactStepExecutionStatus: ExecutionStatus.done,
                 artifact: {
                   packageJson: {
                     name: toActualName('a'),
@@ -146,6 +149,7 @@ test('flow should fail because step failed (without throwing error from the step
                 artifactStepResult: {
                   error: undefined,
                   notes: [],
+                  executionStatus: ExecutionStatus.done,
                   status: Status.failed,
                 },
               },
@@ -185,6 +189,7 @@ test('flow should fail because step failed (while throwing error from the step)'
     flowResult: {
       error: undefined,
       notes: [],
+      executionStatus: ExecutionStatus.done,
       status: Status.failed,
     },
     stepsResultOfArtifactsByStep: [
@@ -193,18 +198,17 @@ test('flow should fail because step failed (while throwing error from the step)'
           stepInfo: {
             stepName: 'step1',
           },
-          stepExecutionStatus: ExecutionStatus.done,
           stepResult: {
             error: {
               message: 'error123',
             },
             notes: [],
+            executionStatus: ExecutionStatus.done,
             status: Status.failed,
           },
           artifactsResult: [
             {
               data: {
-                artifactStepExecutionStatus: ExecutionStatus.done,
                 artifact: {
                   packageJson: {
                     name: toActualName('a'),
@@ -213,6 +217,7 @@ test('flow should fail because step failed (while throwing error from the step)'
                 artifactStepResult: {
                   error: undefined,
                   notes: [],
+                  executionStatus: ExecutionStatus.done,
                   status: Status.failed,
                 },
               },

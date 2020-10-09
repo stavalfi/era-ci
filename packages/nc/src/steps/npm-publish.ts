@@ -40,7 +40,7 @@ async function getNpmhighestVersionInfo({
 }): Promise<
   | {
       highestVersion?: string
-      allVersions: string[]
+      allVersions: Array<string>
     }
   | undefined
 > {
@@ -49,7 +49,7 @@ async function getNpmhighestVersionInfo({
     log.verbose(`searching the latest tag and hash: "${command}"`)
     const result = await execaCommand(command, { cwd: repoPath, stdio: 'pipe', log })
     const resultJson = JSON.parse(result.stdout) || {}
-    const allVersions: string[] = resultJson['versions'] || []
+    const allVersions: Array<string> = resultJson['versions'] || []
     const distTags = resultJson['dist-tags'] as { [key: string]: string }
     const highestVersion = distTags['latest']
 

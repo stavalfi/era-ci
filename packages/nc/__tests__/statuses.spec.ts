@@ -19,6 +19,7 @@ test('passed,passed => passed', async () => {
         runStepOnArtifact: async () => {
           return {
             notes: [],
+            executionStatus: ExecutionStatus.done,
             status: Status.passed,
           }
         },
@@ -28,6 +29,7 @@ test('passed,passed => passed', async () => {
         runStepOnArtifact: async () => {
           return {
             notes: [],
+            executionStatus: ExecutionStatus.done,
             status: Status.passed,
           }
         },
@@ -39,6 +41,7 @@ test('passed,passed => passed', async () => {
     flowResult: {
       error: undefined,
       notes: [],
+      executionStatus: ExecutionStatus.done,
       status: Status.passed,
     },
     stepsResultOfArtifactsByStep: [
@@ -47,16 +50,15 @@ test('passed,passed => passed', async () => {
           stepInfo: {
             stepName: 'step1',
           },
-          stepExecutionStatus: ExecutionStatus.done,
           stepResult: {
             error: undefined,
             notes: [],
+            executionStatus: ExecutionStatus.done,
             status: Status.passed,
           },
           artifactsResult: [
             {
               data: {
-                artifactStepExecutionStatus: ExecutionStatus.done,
                 artifact: {
                   packageJson: {
                     name: toActualName('a'),
@@ -65,6 +67,7 @@ test('passed,passed => passed', async () => {
                 artifactStepResult: {
                   error: undefined,
                   notes: [],
+                  executionStatus: ExecutionStatus.done,
                   status: Status.passed,
                 },
               },
@@ -77,16 +80,15 @@ test('passed,passed => passed', async () => {
           stepInfo: {
             stepName: 'step2',
           },
-          stepExecutionStatus: ExecutionStatus.done,
           stepResult: {
             error: undefined,
             notes: [],
+            executionStatus: ExecutionStatus.done,
             status: Status.passed,
           },
           artifactsResult: [
             {
               data: {
-                artifactStepExecutionStatus: ExecutionStatus.done,
                 artifact: {
                   packageJson: {
                     name: toActualName('a'),
@@ -95,6 +97,7 @@ test('passed,passed => passed', async () => {
                 artifactStepResult: {
                   error: undefined,
                   notes: [],
+                  executionStatus: ExecutionStatus.done,
                   status: Status.passed,
                 },
               },

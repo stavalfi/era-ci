@@ -7,7 +7,7 @@ import { getPackageTargetType, TargetType } from './utils'
 export const validatePackages = createStep({
   stepName: 'validate-packages',
   runStepOnArtifact: async ({ currentArtifact, artifacts }) => {
-    const problems: string[] = []
+    const problems: Array<string> = []
 
     if (!currentArtifact.data.artifact.packageJson.name) {
       problems.push(`missing name property in package.json`)
@@ -42,7 +42,7 @@ export const validatePackages = createStep({
         }
         const depVersion = depInMonoRepo.packageJson.version
 
-        const depProblems: string[] = []
+        const depProblems: Array<string> = []
 
         if (depVersion) {
           const isInRange = semver.satisfies(depVersion, versionRange)

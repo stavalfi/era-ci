@@ -128,7 +128,7 @@ export async function createRepo({
   repo: Repo
   gitServer: GitServer
   toActualName: ToActualName
-  gitIgnoreFiles: string[]
+  gitIgnoreFiles: Array<string>
 }): Promise<{
   repoPath: string
   repoName: string

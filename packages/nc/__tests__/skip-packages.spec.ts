@@ -25,6 +25,7 @@ describe('define custom predicate to check if we need to run the step on a packa
           runStepOnArtifact: async () => {
             return {
               notes: [],
+              executionStatus: ExecutionStatus.done,
               status: Status.passed,
             }
           },
@@ -36,6 +37,7 @@ describe('define custom predicate to check if we need to run the step on a packa
       flowResult: {
         error: undefined,
         notes: [],
+        executionStatus: ExecutionStatus.done,
         status: Status.passed,
       },
       stepsResultOfArtifactsByStep: [
@@ -44,8 +46,8 @@ describe('define custom predicate to check if we need to run the step on a packa
             stepInfo: {
               stepName: 'step1',
             },
-            stepExecutionStatus: ExecutionStatus.done,
             stepResult: {
+              executionStatus: ExecutionStatus.done,
               error: undefined,
               notes: [],
               status: Status.passed,
@@ -53,13 +55,13 @@ describe('define custom predicate to check if we need to run the step on a packa
             artifactsResult: [
               {
                 data: {
-                  artifactStepExecutionStatus: ExecutionStatus.done,
                   artifact: {
                     packageJson: {
                       name: toActualName('a'),
                     },
                   },
                   artifactStepResult: {
+                    executionStatus: ExecutionStatus.done,
                     error: undefined,
                     notes: [],
                     status: Status.passed,
@@ -94,6 +96,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                 canRun: false,
                 artifactStepResult: {
                   notes: [],
+                  executionStatus: ExecutionStatus.aborted,
                   status: Status.skippedAsPassed,
                 },
               }
@@ -103,6 +106,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             // we will never be here
             return {
               notes: [],
+              executionStatus: ExecutionStatus.done,
               status: Status.failed,
             }
           },
@@ -114,6 +118,7 @@ describe('define custom predicate to check if we need to run the step on a packa
       flowResult: {
         error: undefined,
         notes: [],
+        executionStatus: ExecutionStatus.aborted,
         status: Status.skippedAsPassed,
       },
       stepsResultOfArtifactsByStep: [
@@ -122,8 +127,8 @@ describe('define custom predicate to check if we need to run the step on a packa
             stepInfo: {
               stepName: 'step1',
             },
-            stepExecutionStatus: ExecutionStatus.aborted,
             stepResult: {
+              executionStatus: ExecutionStatus.aborted,
               error: undefined,
               notes: [],
               status: Status.skippedAsPassed,
@@ -131,13 +136,13 @@ describe('define custom predicate to check if we need to run the step on a packa
             artifactsResult: [
               {
                 data: {
-                  artifactStepExecutionStatus: ExecutionStatus.aborted,
                   artifact: {
                     packageJson: {
                       name: toActualName('a'),
                     },
                   },
                   artifactStepResult: {
+                    executionStatus: ExecutionStatus.aborted,
                     error: undefined,
                     notes: [],
                     status: Status.skippedAsPassed,
@@ -172,6 +177,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                 canRun: false,
                 artifactStepResult: {
                   notes: ['note1', 'note2'],
+                  executionStatus: ExecutionStatus.aborted,
                   status: Status.skippedAsPassed,
                 },
               }
@@ -181,6 +187,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             // we will never be here
             return {
               notes: [],
+              executionStatus: ExecutionStatus.done,
               status: Status.failed,
             }
           },
@@ -192,6 +199,7 @@ describe('define custom predicate to check if we need to run the step on a packa
       flowResult: {
         error: undefined,
         notes: [],
+        executionStatus: ExecutionStatus.aborted,
         status: Status.skippedAsPassed,
       },
       stepsResultOfArtifactsByStep: [
@@ -200,8 +208,8 @@ describe('define custom predicate to check if we need to run the step on a packa
             stepInfo: {
               stepName: 'step1',
             },
-            stepExecutionStatus: ExecutionStatus.aborted,
             stepResult: {
+              executionStatus: ExecutionStatus.aborted,
               error: undefined,
               notes: [],
               status: Status.skippedAsPassed,
@@ -209,13 +217,13 @@ describe('define custom predicate to check if we need to run the step on a packa
             artifactsResult: [
               {
                 data: {
-                  artifactStepExecutionStatus: ExecutionStatus.aborted,
                   artifact: {
                     packageJson: {
                       name: toActualName('a'),
                     },
                   },
                   artifactStepResult: {
+                    executionStatus: ExecutionStatus.aborted,
                     error: undefined,
                     notes: ['note1', 'note2'],
                     status: Status.skippedAsPassed,
@@ -250,6 +258,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                 canRun: false,
                 artifactStepResult: {
                   notes: ['note1', 'note2', 'note1', 'note2'],
+                  executionStatus: ExecutionStatus.aborted,
                   status: Status.skippedAsPassed,
                 },
               }
@@ -259,6 +268,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             // we will never be here
             return {
               notes: [],
+              executionStatus: ExecutionStatus.done,
               status: Status.failed,
             }
           },
@@ -278,16 +288,15 @@ describe('define custom predicate to check if we need to run the step on a packa
             stepInfo: {
               stepName: 'step1',
             },
-            stepExecutionStatus: ExecutionStatus.aborted,
             stepResult: {
               error: undefined,
               notes: [],
+              executionStatus: ExecutionStatus.aborted,
               status: Status.skippedAsPassed,
             },
             artifactsResult: [
               {
                 data: {
-                  artifactStepExecutionStatus: ExecutionStatus.aborted,
                   artifact: {
                     packageJson: {
                       name: toActualName('a'),
@@ -296,6 +305,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                   artifactStepResult: {
                     error: undefined,
                     notes: ['note1', 'note2'],
+                    executionStatus: ExecutionStatus.aborted,
                     status: Status.skippedAsPassed,
                   },
                 },

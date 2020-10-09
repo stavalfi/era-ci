@@ -16,11 +16,11 @@ export type PackageJson = {
 export type Node<T> = {
   data: T
   index: number
-  parentsIndexes: number[]
-  childrenIndexes: number[]
+  parentsIndexes: Array<number>
+  childrenIndexes: Array<number>
 }
 
-export type Graph<T> = Node<T>[]
+export type Graph<T> = Array<Node<T>>
 
 export type Artifact = {
   relativePackagePath: string
@@ -29,4 +29,4 @@ export type Artifact = {
   packageJson: PackageJson
 }
 
-export type UnionArrayValues<T, Array extends T[]> = Array[number]
+export type UnionArrayValues<T, Array1 extends Array<T>> = Array1[number]

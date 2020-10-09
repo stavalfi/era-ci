@@ -16,10 +16,10 @@ export type PackageHashInfo = {
   packageHash: string
   packageJson: PackageJson
   parents: PackageHashInfo[] // who depends on me
-  children: string[] // who I depend on
+  children: Array<string> // who I depend on
 }
 
-function combineHashes(hashes: string[]): string {
+function combineHashes(hashes: Array<string>): string {
   const hasher = hashes.reduce((hasher, hash) => {
     hasher.update(hash)
     return hasher
@@ -122,7 +122,7 @@ function createOrderGraph(
     }))
 }
 
-async function calculateHashOfFiles(packagePath: string, filesPath: string[]): Promise<string> {
+async function calculateHashOfFiles(packagePath: string, filesPath: Array<string>): Promise<string> {
   const hasher = (
     await Promise.all(
       filesPath.map(async filePath => ({
@@ -148,7 +148,7 @@ export async function calculateArtifactsHash({
   log,
 }: {
   repoPath: string
-  packagesPath: string[]
+  packagesPath: Array<string>
   log: Log
 }): Promise<{
   artifacts: Graph<{
@@ -173,7 +173,7 @@ export async function calculateArtifactsHash({
     })),
   )
 
-  const getDepsPaths = (deps?: { [key: string]: string }): string[] =>
+  const getDepsPaths = (deps?: { [key: string]: string }): Array<string> =>
     Object.keys(deps || {})
       .map(dependencyName => packagesWithPackageJson.find(({ packageJson }) => packageJson.name === dependencyName))
       .filter(Boolean)
@@ -184,7 +184,7 @@ export async function calculateArtifactsHash({
     packagePath: string
     packageJson: PackageJson
     packageHash: string
-    children: string[]
+    children: Array<string>
     parents: []
   }
 

@@ -25,7 +25,7 @@ export async function latestNpmPackageVersion(packageName: string, npmRegistry: 
   return distTags?.['latest']
 }
 
-export async function publishedNpmPackageVersions(packageName: string, npmRegistry: string): Promise<string[]> {
+export async function publishedNpmPackageVersions(packageName: string, npmRegistry: string): Promise<Array<string>> {
   try {
     const npmRegistryAddress = npmRegistry
     const command = `npm view ${packageName} --json --registry ${npmRegistryAddress}`
@@ -53,7 +53,7 @@ export async function publishedDockerImageTags({
   dockerRegistry: string
   repoPath: string
   log: Log
-}): Promise<string[]> {
+}): Promise<Array<string>> {
   try {
     const result = await getDockerImageLabelsAndTags({
       dockerOrganizationName,

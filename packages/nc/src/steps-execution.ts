@@ -63,6 +63,7 @@ export async function runAllSteps({
   const stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep = steps.map(s => ({
     ...s,
     data: {
+      type: ExecutionStatus.scheduled,
       stepInfo: s.data.stepInfo,
       stepResult: {
         executionStatus: ExecutionStatus.scheduled,
