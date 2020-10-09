@@ -78,7 +78,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
           stepResult: {
             executionStatus: ExecutionStatus.done,
             status: stepResult.status,
-            notes: [],
+            notes: stepResult.notes,
             durationMs: Date.now() - userRunStepOptions.startStepMs,
             error: stepResult.error,
           },
@@ -101,7 +101,8 @@ async function runStepOnEveryArtifact<StepConfigurations>({
         stepResult: {
           executionStatus: ExecutionStatus.aborted,
           status: canRunResult.artifactStepResult.status,
-          notes: [],
+          notes: canRunResult.artifactStepResult.notes,
+          error: canRunResult.artifactStepResult.error,
           durationMs: Date.now() - userRunStepOptions.startStepMs,
         },
       })

@@ -409,28 +409,27 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
       toVersion: newVersion,
     })
 
-    try {
-      await execaCommand(
-        `docker build --label latest-hash=${currentArtifact.data.artifact.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
-        {
-          cwd: currentArtifact.data.artifact.packagePath,
-          stdio: 'inherit',
-          env: {
-            // eslint-disable-next-line no-process-env
-            ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
-          },
-          log,
+    await execaCommand(
+      `docker build --label latest-hash=${currentArtifact.data.artifact.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
+      {
+        cwd: currentArtifact.data.artifact.packagePath,
+        stdio: 'inherit',
+        env: {
+          // eslint-disable-next-line no-process-env
+          ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
         },
-      )
-    } catch (error: unknown) {
-      // revert version to what it was before we changed it
-      await setPackageVersion({
-        artifact: currentArtifact.data.artifact,
-        fromVersion: newVersion,
-        toVersion: currentArtifact.data.artifact.packageJson.version,
-      })
-      throw error
-    }
+        log,
+      },
+    )
+
+    // revert version to what it was before we changed it
+    await setPackageVersion({
+      artifact: currentArtifact.data.artifact,
+      fromVersion: newVersion,
+      toVersion: currentArtifact.data.artifact.packageJson.version,
+    }).catch(e => {
+      log.error(`could not revert the package-version in package.json but the flow won't fail because of that`, e)
+    })
 
     log.info(
       `built docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,
@@ -472,7 +471,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
     )
 
     return {
-      notes: [],
+      notes: [`published: "${fullImageNameNewVersion}"`],
       executionStatus: ExecutionStatus.done,
       status: Status.passed,
     }

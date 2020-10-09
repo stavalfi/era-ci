@@ -2,6 +2,7 @@ import { createLogger, Log, LogLevel } from '../create-logger'
 import { createConsoleTransport, createFileTransport, defaultFormat, noFormat } from './transports'
 import winston from 'winston'
 import path from 'path'
+import fse from 'fs-extra'
 
 export type LoggerConfiguration = {
   customLogLevel: LogLevel
@@ -33,6 +34,8 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
     }
   },
   initializeLogger: async ({ loggerConfigurations }) => {
+    await fse.remove(loggerConfigurations.logFilePath)
+
     const mainLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel,
       transports: [

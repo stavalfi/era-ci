@@ -206,5 +206,6 @@ test('run ci -> change packageJson.version to invalid version -> run ci', async 
       reject: false,
     },
   })
-  expect(result.ciProcessResult.stderr).toEqual(expect.stringContaining('is invalid: lalalal'))
+
+  expect(result.ciProcessResult.stdout).toEqual(expect.stringContaining('is invalid: "lalalal"'))
 })
