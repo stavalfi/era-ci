@@ -30,21 +30,25 @@ export type JsonReport = {
   artifacts: Graph<{ artifact: Artifact }>
 } & (
   | {
+      flowExecutionStatus: ExecutionStatus.done // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
       flowResult: DoneResult
       stepsResultOfArtifactsByStep: Graph<DoneStepResultOfArtifacts>
       stepsResultOfArtifactsByArtifact: Graph<DoneStepsResultOfArtifact>
     }
   | {
+      flowExecutionStatus: ExecutionStatus.aborted // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
       flowResult: AbortResult<Status>
       stepsResultOfArtifactsByStep: Graph<DoneStepResultOfArtifacts | AbortStepResultOfArtifacts>
       stepsResultOfArtifactsByArtifact: Graph<DoneStepsResultOfArtifact | AbortStepsResultOfArtifact>
     }
   | {
+      flowExecutionStatus: ExecutionStatus.running // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
       flowResult: RunningResult
       stepsResultOfArtifactsByStep: Graph<StepResultOfArtifacts>
       stepsResultOfArtifactsByArtifact: Graph<StepsResultOfArtifact>
     }
   | {
+      flowExecutionStatus: ExecutionStatus.scheduled // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
       flowResult: ScheduledResult
       stepsResultOfArtifactsByStep: Graph<ScheduledStepResultOfArtifacts>
       stepsResultOfArtifactsByArtifact: Graph<ScheduledStepsResultOfArtifact>
@@ -136,6 +140,7 @@ function getJsonReport({
           flowId: flowId,
           startFlowMs,
         },
+        flowExecutionStatus: ExecutionStatus.done,
         flowResult: {
           executionStatus: ExecutionStatus.done,
           notes: _.flatMapDeep(
@@ -167,6 +172,7 @@ function getJsonReport({
           flowId: flowId,
           startFlowMs,
         },
+        flowExecutionStatus: ExecutionStatus.aborted,
         flowResult: {
           executionStatus: ExecutionStatus.aborted,
           notes: _.flatMapDeep(
@@ -208,6 +214,7 @@ function getJsonReport({
           flowId: flowId,
           startFlowMs,
         },
+        flowExecutionStatus: ExecutionStatus.running,
         flowResult: {
           executionStatus: ExecutionStatus.running,
         },
@@ -222,6 +229,7 @@ function getJsonReport({
           flowId: flowId,
           startFlowMs,
         },
+        flowExecutionStatus: ExecutionStatus.scheduled,
         flowResult: {
           executionStatus: ExecutionStatus.scheduled,
         },
