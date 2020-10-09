@@ -1,51 +1,23 @@
-import { Cache } from '../create-cache'
-import { Log, Logger } from '../create-logger'
-import { Artifact, Graph, Node, PackageJson } from '../types'
 import { ErrorObject } from 'serialize-error'
+import { Cache } from '../create-cache'
+import { CanRunStepOnArtifactsPredicate } from '../create-can-run-step-on-artifacts-predicate'
+import { Log, Logger } from '../create-logger'
+import {
+  AbortResult,
+  Artifact,
+  DoneResult,
+  ExecutionStatus,
+  Graph,
+  Node,
+  PackageJson,
+  RunningResult,
+  ScheduledResult,
+  Status,
+} from '../types'
 
 export type StepInfo = {
   stepName: string
   stepId: string
-}
-
-export enum Status {
-  passed = 'passed',
-  skippedAsPassed = 'skipped-as-passed',
-  skippedAsFailed = 'skipped-as-failed',
-  failed = 'failed',
-}
-
-export enum ExecutionStatus {
-  scheduled = 'scheduled',
-  running = 'running',
-  done = 'done',
-  aborted = 'aborted',
-}
-
-// ------------------------
-
-export type DoneResult = {
-  executionStatus: ExecutionStatus.done
-  status: Status.passed | Status.failed
-  durationMs: number
-  notes: Array<string>
-  error?: ErrorObject
-}
-
-export type AbortResult<StatusType extends Status> = {
-  executionStatus: ExecutionStatus.aborted
-  status: StatusType
-  durationMs: number
-  notes: Array<string>
-  error?: ErrorObject
-}
-
-export type RunningResult = {
-  executionStatus: ExecutionStatus.running
-}
-
-export type ScheduledResult = {
-  executionStatus: ExecutionStatus.scheduled
 }
 
 // ------------------------
@@ -160,7 +132,7 @@ export type CanRunStepOnArtifactResult =
       canRun: true
       artifactStepResult: {
         notes: Array<string>
-        error?: ErrorObject
+        errors?: Array<ErrorObject>
       }
     }
   | {
@@ -208,7 +180,7 @@ export type UserArtifactResult = {
 export type UserStepResult = {
   stepResult: {
     notes: Array<string>
-    error?: unknown
+    errors?: Array<ErrorObject>
   }
   artifactsResult: Array<UserArtifactResult>
 }
@@ -234,20 +206,37 @@ export type SkipStepOnArtifactPredicate<StepConfigurations> = (
   options: UserRunStepOptions<StepConfigurations> & { currentArtifact: Node<{ artifact: Artifact }> },
 ) => Promise<true | CanRunStepOnArtifactResult>
 
+export enum RunStrategy {
+  perArtifact = 'per-artifact',
+  allArtifacts = 'all-artfifacts',
+  root = 'root',
+}
+
+export type Run<StepConfigurations> = {
+  onStepDone?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
+} & (
+  | {
+      runStrategy: RunStrategy.perArtifact
+      beforeAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
+      runStepOnArtifact: RunStepOnArtifact<StepConfigurations>
+      afterAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
+    }
+  | {
+      runStrategy: RunStrategy.allArtifacts
+      runStepOnArtifacts: RunStepOnArtifacts<StepConfigurations>
+    }
+  | {
+      runStrategy: RunStrategy.root
+      runStepOnRoot: RunStepOnRoot<StepConfigurations>
+    }
+)
+
 export type CreateStepOptions<StepConfigurations, NormalizedStepConfigurations = StepConfigurations> = {
   stepName: string
   normalizeStepConfigurations?: (stepConfigurations: StepConfigurations) => Promise<NormalizedStepConfigurations>
-  canRunStepOnArtifact?: CanRunStepOnArtifact<NormalizedStepConfigurations>
-  skipStepOnArtifactPredicates?: Array<SkipStepOnArtifactPredicate<NormalizedStepConfigurations>>
-  onStepDone?: (options: UserRunStepOptions<NormalizedStepConfigurations>) => Promise<void>
-} & (
-  | { runStepOnArtifacts: RunStepOnArtifacts<NormalizedStepConfigurations> }
-  | {
-      beforeAll?: (options: UserRunStepOptions<NormalizedStepConfigurations>) => Promise<void>
-      runStepOnArtifact: RunStepOnArtifact<NormalizedStepConfigurations>
-      afterAll?: (options: UserRunStepOptions<NormalizedStepConfigurations>) => Promise<void>
-    }
-  | {
-      runStepOnRoot: RunStepOnRoot<NormalizedStepConfigurations>
-    }
-)
+  skip?: {
+    canRunStepOnArtifact?: CanRunStepOnArtifact<NormalizedStepConfigurations>
+    canRunStepOnArtifacts?: Array<CanRunStepOnArtifactsPredicate>
+  }
+  run: Run<NormalizedStepConfigurations>
+}

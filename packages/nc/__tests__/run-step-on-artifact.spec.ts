@@ -1,4 +1,4 @@
-import { createStep, ExecutionStatus, JsonReport, Status } from '../src'
+import { createStep, ExecutionStatus, JsonReport, RunStrategy, Status } from '../src'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
 
 const { createRepo } = createTest()
@@ -16,12 +16,15 @@ test('step should pass in json-report', async () => {
     steps: [
       createStep({
         stepName: 'step1',
-        runStepOnArtifact: async () => {
-          return {
-            notes: [],
-            executionStatus: ExecutionStatus.done,
-            status: Status.passed,
-          }
+        run: {
+          runStrategy: RunStrategy.perArtifact,
+          runStepOnArtifact: async () => {
+            return {
+              notes: [],
+              executionStatus: ExecutionStatus.done,
+              status: Status.passed,
+            }
+          },
         },
       })(),
     ],
@@ -29,7 +32,7 @@ test('step should pass in json-report', async () => {
 
   const expectedJsonReport: DeepPartial<JsonReport> = {
     flowResult: {
-      error: undefined,
+      errors: [],
       notes: [],
       executionStatus: ExecutionStatus.done,
       status: Status.passed,
@@ -41,7 +44,7 @@ test('step should pass in json-report', async () => {
             stepName: 'step1',
           },
           stepResult: {
-            error: undefined,
+            errors: [],
             notes: [],
             executionStatus: ExecutionStatus.done,
             status: Status.passed,
@@ -55,7 +58,7 @@ test('step should pass in json-report', async () => {
                   },
                 },
                 artifactStepResult: {
-                  error: undefined,
+                  errors: [],
                   notes: [],
                   executionStatus: ExecutionStatus.done,
                   status: Status.passed,
@@ -75,7 +78,7 @@ test('step should pass in json-report', async () => {
             },
           },
           artifactResult: {
-            error: undefined,
+            errors: [],
             notes: [],
             executionStatus: ExecutionStatus.done,
             status: Status.passed,
@@ -87,7 +90,7 @@ test('step should pass in json-report', async () => {
                   stepName: 'step1',
                 },
                 artifactStepResult: {
-                  error: undefined,
+                  errors: [],
                   notes: [],
                   executionStatus: ExecutionStatus.done,
                   status: Status.passed,
@@ -116,12 +119,15 @@ test('flow should fail because step failed (without throwing error from the step
     steps: [
       createStep({
         stepName: 'step1',
-        runStepOnArtifact: async () => {
-          return {
-            notes: [],
-            executionStatus: ExecutionStatus.done,
-            status: Status.failed,
-          }
+        run: {
+          runStrategy: RunStrategy.perArtifact,
+          runStepOnArtifact: async () => {
+            return {
+              notes: [],
+              executionStatus: ExecutionStatus.done,
+              status: Status.failed,
+            }
+          },
         },
       })(),
     ],
@@ -131,7 +137,7 @@ test('flow should fail because step failed (without throwing error from the step
 
   const expectedJsonReport: DeepPartial<JsonReport> = {
     flowResult: {
-      error: undefined,
+      errors: [],
       notes: [],
       executionStatus: ExecutionStatus.done,
       status: Status.failed,
@@ -143,7 +149,7 @@ test('flow should fail because step failed (without throwing error from the step
             stepName: 'step1',
           },
           stepResult: {
-            error: undefined,
+            errors: [],
             notes: [],
             executionStatus: ExecutionStatus.done,
             status: Status.failed,
@@ -157,7 +163,7 @@ test('flow should fail because step failed (without throwing error from the step
                   },
                 },
                 artifactStepResult: {
-                  error: undefined,
+                  errors: [],
                   notes: [],
                   executionStatus: ExecutionStatus.done,
                   status: Status.failed,
@@ -177,7 +183,7 @@ test('flow should fail because step failed (without throwing error from the step
             },
           },
           artifactResult: {
-            error: undefined,
+            errors: [],
             notes: [],
             executionStatus: ExecutionStatus.done,
             status: Status.failed,
@@ -189,7 +195,7 @@ test('flow should fail because step failed (without throwing error from the step
                   stepName: 'step1',
                 },
                 artifactStepResult: {
-                  error: undefined,
+                  errors: [],
                   executionStatus: ExecutionStatus.done,
                   notes: [],
                   status: Status.failed,
@@ -218,8 +224,11 @@ test('flow should fail because step failed (while throwing error from the step)'
     steps: [
       createStep({
         stepName: 'step1',
-        runStepOnArtifact: async () => {
-          throw new Error('error123')
+        run: {
+          runStrategy: RunStrategy.perArtifact,
+          runStepOnArtifact: async () => {
+            throw new Error('error123')
+          },
         },
       })(),
     ],
@@ -228,9 +237,11 @@ test('flow should fail because step failed (while throwing error from the step)'
   expect(passed).toBeFalsy()
 
   const expectedJsonReport: DeepPartial<JsonReport> = {
+    flowExecutionStatus: ExecutionStatus.done,
     flowResult: {
-      error: undefined,
+      errors: [],
       notes: [],
+      executionStatus: ExecutionStatus.done,
       status: Status.failed,
     },
     stepsResultOfArtifactsByStep: [
@@ -240,7 +251,7 @@ test('flow should fail because step failed (while throwing error from the step)'
             stepName: 'step1',
           },
           stepResult: {
-            error: undefined,
+            errors: [],
             notes: [],
             executionStatus: ExecutionStatus.done,
             status: Status.failed,
@@ -254,9 +265,11 @@ test('flow should fail because step failed (while throwing error from the step)'
                   },
                 },
                 artifactStepResult: {
-                  error: {
-                    message: 'error123',
-                  },
+                  errors: [
+                    {
+                      message: 'error123',
+                    },
+                  ],
                   notes: [],
                   executionStatus: ExecutionStatus.done,
                   status: Status.failed,
@@ -276,7 +289,7 @@ test('flow should fail because step failed (while throwing error from the step)'
             },
           },
           artifactResult: {
-            error: undefined,
+            errors: [],
             notes: [],
             executionStatus: ExecutionStatus.done,
             status: Status.failed,
@@ -288,9 +301,11 @@ test('flow should fail because step failed (while throwing error from the step)'
                   stepName: 'step1',
                 },
                 artifactStepResult: {
-                  error: {
-                    message: 'error123',
-                  },
+                  errors: [
+                    {
+                      message: 'error123',
+                    },
+                  ],
                   notes: [],
                   executionStatus: ExecutionStatus.done,
                   status: Status.failed,

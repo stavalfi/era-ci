@@ -1,20 +1,26 @@
+import _ from 'lodash'
 import { serializeError } from 'serialize-error'
-import { Artifact, Graph } from '../types'
-import { calculateCombinedStatus } from '../utils'
-import { checkIfCanRunStepOnArtifact } from './can-run-step'
+import { runCanRunStepOnArtifactsPredicates } from '../create-can-run-step-on-artifacts-predicate'
 import {
   AbortResult,
-  CanRunStepOnArtifactResult,
-  CreateStepOptions,
+  Artifact,
   DoneResult,
   ExecutionStatus,
+  Graph,
   RunningResult,
+  ScheduledResult,
+  Status,
+} from '../types'
+import { calculateCombinedStatus } from '../utils'
+import { checkIfCanRunStepOnArtifact } from './can-run-step-on-artifact'
+import {
+  CanRunStepOnArtifactResult,
+  CreateStepOptions,
   RunStepOnArtifact,
   RunStepOnArtifacts,
   RunStepOnRoot,
   RunStepOptions,
-  ScheduledResult,
-  Status,
+  RunStrategy,
   Step,
   StepResultOfArtifacts,
   UserArtifactResult,
@@ -24,12 +30,6 @@ import {
 import { validateUserStepResult } from './validations'
 
 export {
-  ExecutionStatus,
-  DoneResult,
-  RunningResult,
-  AbortResult,
-  ScheduledResult,
-  Status,
   Step,
   StepInfo,
   StepResultOfArtifacts,
@@ -44,6 +44,8 @@ export {
   AbortStepsResultOfArtifact,
   RunningStepsResultOfArtifact,
   ScheduledStepsResultOfArtifact,
+  UserRunStepOptions,
+  RunStrategy,
 } from './types'
 
 export { stepToString, toStepsResultOfArtifactsByArtifact } from './utils'
@@ -80,7 +82,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
             status: stepResult.status,
             notes: stepResult.notes,
             durationMs: Date.now() - userRunStepOptions.startStepMs,
-            error: stepResult.error,
+            errors: stepResult.errors,
           },
         })
       } catch (error: unknown) {
@@ -91,7 +93,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
             status: Status.failed,
             notes: [],
             durationMs: Date.now() - userRunStepOptions.startStepMs,
-            error: serializeError(error),
+            errors: [serializeError(error)],
           },
         })
       }
@@ -102,7 +104,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
           executionStatus: ExecutionStatus.aborted,
           status: canRunResult.artifactStepResult.status,
           notes: canRunResult.artifactStepResult.notes,
-          error: canRunResult.artifactStepResult.error,
+          errors: canRunResult.artifactStepResult.errors,
           durationMs: Date.now() - userRunStepOptions.startStepMs,
         },
       })
@@ -133,7 +135,7 @@ async function runStepOnRoot<StepConfigurations>({
   return {
     stepResult: {
       notes: result.notes || [],
-      error: result.error,
+      errors: result.errors,
     },
     artifactsResult: userRunStepOptions.artifacts.map(node => ({
       artifactName: node.data.artifact.packageJson.name,
@@ -144,6 +146,99 @@ async function runStepOnRoot<StepConfigurations>({
         durationMs: Date.now() - userRunStepOptions.startStepMs,
       },
     })),
+  }
+}
+
+async function getUserStepResult<StepConfigurations, NormalizedStepConfigurations>({
+  startStepMs,
+  createStepOptions,
+  userRunStepOptions,
+}: {
+  startStepMs: number
+  createStepOptions: CreateStepOptions<StepConfigurations, NormalizedStepConfigurations>
+  userRunStepOptions: UserRunStepOptions<NormalizedStepConfigurations>
+}): Promise<UserStepResult> {
+  const [canRunPerArtifact, canRunAllArtifacts] = await Promise.all([
+    Promise.all(
+      userRunStepOptions.artifacts.map(node =>
+        checkIfCanRunStepOnArtifact({
+          ...userRunStepOptions,
+          currentArtifact: node,
+          canRunStepOnArtifact: createStepOptions.skip?.canRunStepOnArtifact,
+        }),
+      ),
+    ),
+    runCanRunStepOnArtifactsPredicates({
+      predicates: createStepOptions.skip?.canRunStepOnArtifacts || [],
+      userRunStepOptions,
+    }),
+  ])
+
+  if (canRunPerArtifact.every(x => !x.canRun) || !canRunAllArtifacts.canRun) {
+    return {
+      stepResult: {
+        notes: canRunAllArtifacts.stepResult.notes,
+        errors: canRunAllArtifacts.stepResult.errors,
+      },
+      artifactsResult: userRunStepOptions.artifacts.map((node, i) => {
+        const canRun = canRunPerArtifact[i]
+        if (canRun.canRun) {
+          if (canRunAllArtifacts.canRun) {
+            throw new Error(`we can't be here`)
+          }
+          return {
+            artifactName: node.data.artifact.packageJson.name,
+            stepResult: {
+              executionStatus: canRunAllArtifacts.stepResult.executionStatus,
+              status: canRunAllArtifacts.stepResult.status,
+              durationMs: Date.now() - startStepMs,
+              notes: canRun.artifactStepResult.notes,
+              errors: canRun.artifactStepResult.errors,
+            },
+          }
+        } else {
+          return {
+            artifactName: node.data.artifact.packageJson.name,
+            stepResult: {
+              executionStatus: ExecutionStatus.aborted,
+              status: canRun.artifactStepResult.status,
+              durationMs: Date.now() - startStepMs,
+              notes: canRun.artifactStepResult.notes,
+            },
+          }
+        }
+      }),
+    }
+  } else {
+    let userStepResult: UserStepResult
+    switch (createStepOptions.run.runStrategy) {
+      case RunStrategy.allArtifacts:
+        userStepResult = await createStepOptions.run.runStepOnArtifacts(userRunStepOptions)
+        break
+      case RunStrategy.perArtifact:
+        userStepResult = await runStepOnEveryArtifact({
+          canRunStepResultOnArtifacts: canRunPerArtifact,
+          beforeAll: createStepOptions.run.beforeAll,
+          runStepOnArtifact: createStepOptions.run.runStepOnArtifact,
+          afterAll: createStepOptions.run.afterAll,
+          userRunStepOptions,
+        })
+        break
+      case RunStrategy.root:
+        userStepResult = await runStepOnRoot({
+          runStep: createStepOptions.run.runStepOnRoot,
+          userRunStepOptions,
+        })
+        break
+    }
+    const copy = _.cloneDeep(userStepResult)
+    copy.stepResult.notes.push(...canRunAllArtifacts.stepResult.notes)
+    copy.stepResult.errors?.push(...(canRunAllArtifacts.stepResult.errors || []))
+    copy.artifactsResult.forEach((a, i) => {
+      a.stepResult.notes.push(...canRunPerArtifact[i].artifactStepResult.notes)
+      a.stepResult.errors?.push(...(canRunPerArtifact[i].artifactStepResult.errors || []))
+    })
+    return copy
   }
 }
 
@@ -165,55 +260,12 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
       stepConfigurations,
       startStepMs,
     }
-    const canRunStepResultOnArtifacts = await Promise.all(
-      runStepOptions.artifacts.map(node =>
-        checkIfCanRunStepOnArtifact({
-          ...userRunStepOptions,
-          currentArtifact: node,
-          canRunStepOnArtifact: createStepOptions.canRunStepOnArtifact,
-        }),
-      ),
-    )
-    let userStepResult: UserStepResult
-    if (canRunStepResultOnArtifacts.every(x => !x.canRun)) {
-      userStepResult = {
-        stepResult: {
-          notes: [],
-        },
-        artifactsResult: runStepOptions.artifacts.map((node, i) => {
-          const canRun = canRunStepResultOnArtifacts[i]
-          if (canRun.canRun) {
-            throw new Error(`we can't be here. typescript dont get it`)
-          }
-          return {
-            artifactName: node.data.artifact.packageJson.name,
-            stepResult: {
-              executionStatus: ExecutionStatus.aborted,
-              status: canRun.artifactStepResult.status,
-              durationMs: Date.now() - startStepMs,
-              notes: canRun.artifactStepResult.notes,
-            },
-          }
-        }),
-      }
-    } else {
-      if ('runStepOnArtifacts' in createStepOptions) {
-        userStepResult = await createStepOptions.runStepOnArtifacts(userRunStepOptions)
-      } else if ('runStepOnArtifact' in createStepOptions) {
-        userStepResult = await runStepOnEveryArtifact({
-          canRunStepResultOnArtifacts,
-          beforeAll: createStepOptions.beforeAll,
-          runStepOnArtifact: createStepOptions.runStepOnArtifact,
-          afterAll: createStepOptions.afterAll,
-          userRunStepOptions,
-        })
-      } else {
-        userStepResult = await runStepOnRoot({
-          runStep: createStepOptions.runStepOnRoot,
-          userRunStepOptions,
-        })
-      }
-    }
+
+    const userStepResult = await getUserStepResult({
+      createStepOptions,
+      userRunStepOptions,
+      startStepMs,
+    })
 
     const { problems } = validateUserStepResult(runStepOptions, userStepResult)
 
@@ -259,10 +311,8 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
               executionStatus: ExecutionStatus.done,
               status: result.stepResult.status,
               durationMs: result.stepResult.durationMs,
-              error: result.stepResult.error,
-              notes: Array.from(
-                new Set([...result.stepResult.notes, ...canRunStepResultOnArtifacts[i].artifactStepResult.notes]),
-              ),
+              errors: result.stepResult.errors,
+              notes: result.stepResult.notes,
             },
           },
         }
@@ -275,10 +325,8 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
               executionStatus: ExecutionStatus.aborted,
               status: result.stepResult.status,
               durationMs: result.stepResult.durationMs,
-              error: result.stepResult.error,
-              notes: Array.from(
-                new Set([...result.stepResult.notes, ...canRunStepResultOnArtifacts[i].artifactStepResult.notes]),
-              ),
+              errors: result.stepResult.errors,
+              notes: result.stepResult.notes,
             },
           },
         }
@@ -352,7 +400,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         durationMs: endDurationMs,
         notes: [],
         status: Status.failed,
-        error: serializeError(error),
+        errors: [serializeError(error)],
       },
       artifactsResult: runStepOptions.artifacts.map(node => ({
         ...node,
@@ -382,6 +430,7 @@ export function createStep<StepConfigurations = void, NormalizedStepConfiguratio
       const normalizedStepConfigurations: NormalizedStepConfigurations = createStepOptions.normalizeStepConfigurations
         ? await createStepOptions.normalizeStepConfigurations(stepConfigurations)
         : stepConfigurations
+
       const result = await runStep({
         startStepMs,
         createStepOptions,

@@ -1,7 +1,7 @@
 import _ from 'lodash'
-import { Artifact, Node } from '../types'
+import { Artifact, ExecutionStatus, Node, Status } from '../types'
 import { calculateCombinedStatus, didPassOrSkippedAsPassed } from '../utils'
-import { CanRunStepOnArtifact, CanRunStepOnArtifactResult, ExecutionStatus, Status, UserRunStepOptions } from './types'
+import { CanRunStepOnArtifact, CanRunStepOnArtifactResult, UserRunStepOptions } from './types'
 
 const runAll = async (
   array: { checkName: string; predicate: () => Promise<CanRunStepOnArtifactResult> }[],
@@ -26,7 +26,7 @@ const runAll = async (
     }
   } else {
     const artifactStepResultStatus = calculateCombinedStatus(
-      _.flatten(results.map(r => (r.canRun ? [] : [r.artifactStepResult.status]))),
+      _.flatMapDeep(results.map(r => (r.canRun ? [] : [r.artifactStepResult.status]))),
     )
     return {
       canRun: false,
@@ -74,30 +74,24 @@ async function runIfPackageResultsInCache<StepConfigurations>({
     }
   }
 
-  const isPassed = didPassOrSkippedAsPassed(result.artifactStepResult.status)
+  const note = `step already run on this package with the same hash in flow-id: "${result.flowId}". result: "${result.artifactStepResult.status}"`
 
   if (canRunStepOnArtifact?.options?.runIfPackageResultsInCache) {
     return {
       canRun: true,
       artifactStepResult: {
-        notes: [
-          `rerun step but step already run on this package with the same hash in flow-id: "${
-            result.flowId
-          }". result: "${isPassed ? 'passed' : 'failed'}"`,
-        ],
+        notes: [note],
       },
     }
   } else {
     return {
       canRun: false,
       artifactStepResult: {
-        notes: [
-          `step already run on this package with the same hash in flow-id: "${result.flowId}". result: "${
-            isPassed ? 'passed' : 'failed'
-          }"`,
-        ],
+        notes: [note],
         executionStatus: ExecutionStatus.aborted,
-        status: isPassed ? Status.skippedAsPassed : Status.skippedAsFailed,
+        status: didPassOrSkippedAsPassed(result.artifactStepResult.status)
+          ? Status.skippedAsPassed
+          : Status.skippedAsFailed,
       },
     }
   }

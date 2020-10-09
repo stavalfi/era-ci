@@ -4,7 +4,6 @@ import path from 'path'
 import { Cache } from './create-cache'
 import { Logger } from './create-logger'
 import {
-  ExecutionStatus,
   Step,
   StepInfo,
   StepResultOfArtifacts,
@@ -12,7 +11,7 @@ import {
   StepsResultOfArtifactsByStep,
   toStepsResultOfArtifactsByArtifact,
 } from './create-step'
-import { Artifact, Graph, PackageJson } from './types'
+import { Artifact, ExecutionStatus, Graph, PackageJson } from './types'
 
 type State = {
   stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
@@ -114,6 +113,7 @@ export async function runAllSteps({
             stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep,
           })
           updateState({ stepIndex, stepResultOfArtifacts, artifacts, state })
+
           await Promise.all(steps[stepIndex].childrenIndexes.map(runStep))
         } else {
           // when the last parent-step will be done, we will run this step

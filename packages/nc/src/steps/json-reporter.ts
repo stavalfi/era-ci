@@ -1,24 +1,28 @@
 import _ from 'lodash'
 import {
-  AbortResult,
   AbortStepResultOfArtifacts,
   AbortStepsResultOfArtifact,
   createStep,
-  DoneResult,
   DoneStepResultOfArtifacts,
   DoneStepsResultOfArtifact,
-  ExecutionStatus,
-  RunningResult,
-  ScheduledResult,
+  RunStrategy,
   ScheduledStepResultOfArtifacts,
   ScheduledStepsResultOfArtifact,
-  Status,
   StepInfo,
   StepResultOfArtifacts,
   StepsResultOfArtifact,
   toStepsResultOfArtifactsByArtifact,
 } from '../create-step'
-import { Artifact, Graph } from '../types'
+import {
+  AbortResult,
+  Artifact,
+  DoneResult,
+  ExecutionStatus,
+  Graph,
+  RunningResult,
+  ScheduledResult,
+  Status,
+} from '../types'
 import { calculateCombinedStatus, calculateExecutionStatus } from '../utils'
 
 export type JsonReport = {
@@ -243,53 +247,58 @@ export const jsonReporterStepName = 'json-reporter'
 
 export const jsonReporter = createStep<JsonReportConfiguration>({
   stepName: jsonReporterStepName,
-  canRunStepOnArtifact: {
-    options: {
-      runIfSomeDirectParentStepFailedOnPackage: true,
+  skip: {
+    canRunStepOnArtifact: {
+      options: {
+        runIfSomeDirectParentStepFailedOnPackage: true,
+      },
     },
   },
-  runStepOnRoot: async ({
-    cache,
-    flowId,
-    startFlowMs,
-    steps,
-    artifacts,
-    stepConfigurations,
-    stepsResultOfArtifactsByStep,
-    currentStepInfo,
-  }) => {
-    const withoutThisStep = {
-      steps: removeNodeFromGraph({ graph: steps, nodeIndexToRemove: currentStepInfo.index }),
-      stepsResultOfArtifactsByStep: removeNodeFromGraph({
-        graph: stepsResultOfArtifactsByStep,
-        nodeIndexToRemove: currentStepInfo.index,
-      }),
-    }
-    const jsonReport = getJsonReport({
-      startFlowMs,
-      artifacts,
+  run: {
+    runStrategy: RunStrategy.root,
+    runStepOnRoot: async ({
+      cache,
       flowId,
-      steps: withoutThisStep.steps,
-      stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
-      stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
+      startFlowMs,
+      steps,
+      artifacts,
+      stepConfigurations,
+      stepsResultOfArtifactsByStep,
+      currentStepInfo,
+    }) => {
+      const withoutThisStep = {
+        steps: removeNodeFromGraph({ graph: steps, nodeIndexToRemove: currentStepInfo.index }),
+        stepsResultOfArtifactsByStep: removeNodeFromGraph({
+          graph: stepsResultOfArtifactsByStep,
+          nodeIndexToRemove: currentStepInfo.index,
+        }),
+      }
+      const jsonReport = getJsonReport({
+        startFlowMs,
         artifacts,
+        flowId,
+        steps: withoutThisStep.steps,
         stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
-      }),
-    })
+        stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
+          artifacts,
+          stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
+        }),
+      })
 
-    const jsonReportTtl = cache.ttls.stepSummary
+      const jsonReportTtl = cache.ttls.stepSummary
 
-    await cache.set({
-      key: stepConfigurations.jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
-      value: stepConfigurations.jsonReportToString({ jsonReport }),
-      ttl: jsonReportTtl,
-      allowOverride: false,
-    })
+      await cache.set({
+        key: stepConfigurations.jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
+        value: stepConfigurations.jsonReportToString({ jsonReport }),
+        ttl: jsonReportTtl,
+        allowOverride: false,
+      })
 
-    return {
-      notes: [],
-      executionStatus: ExecutionStatus.done,
-      status: Status.passed,
-    }
+      return {
+        notes: [],
+        executionStatus: ExecutionStatus.done,
+        status: Status.passed,
+      }
+    },
   },
 })

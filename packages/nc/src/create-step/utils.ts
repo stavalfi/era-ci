@@ -1,14 +1,8 @@
 import _ from 'lodash'
 import { StepInfo } from '.'
-import { Artifact, Graph } from '..'
-import { Node } from '../types'
+import { Artifact, ExecutionStatus, Graph, Node } from '../types'
 import { calculateCombinedStatus, calculateExecutionStatus } from '../utils'
-import {
-  ExecutionStatus,
-  StepsResultOfArtifact,
-  StepsResultOfArtifactsByArtifact,
-  StepsResultOfArtifactsByStep,
-} from './types'
+import { StepsResultOfArtifact, StepsResultOfArtifactsByArtifact, StepsResultOfArtifactsByStep } from './types'
 
 function getStepsResultOfArtifact({
   artifact,
