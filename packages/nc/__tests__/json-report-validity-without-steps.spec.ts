@@ -62,7 +62,7 @@ test('flow should be skippedAsPassed because there are no steps', async () => {
   const expectedJsonReport: DeepPartial<JsonReport> = {
     flowResult: {
       notes: [],
-      error: undefined,
+      errors: [],
       executionStatus: ExecutionStatus.aborted,
       status: Status.skippedAsPassed,
     },

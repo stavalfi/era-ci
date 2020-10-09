@@ -5,7 +5,7 @@ import { any, array, enums, number, object, optional, string, type, validate } f
 import { promisify } from 'util'
 import zlib from 'zlib'
 import { Cache, createCache } from './create-cache'
-import { AbortResult, DoneResult, ExecutionStatus, Status } from './create-step'
+import { AbortResult, DoneResult, ExecutionStatus, Status } from './types'
 
 export type CacheConfiguration = {
   redis: {

@@ -1,10 +1,11 @@
 import _ from 'lodash'
 import semver from 'semver'
 import { Log } from '../create-logger'
-import { createStep, ExecutionStatus, Status } from '../create-step'
+import { createStep, RunStrategy } from '../create-step'
 import { PackageJson } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
+import { ExecutionStatus, Status } from '../types'
 
 export type DockerPublishConfiguration = {
   shouldPublish: boolean
@@ -282,136 +283,162 @@ async function calculateNextVersion({
 
 export const dockerPublish = createStep<DockerPublishConfiguration>({
   stepName: 'docker-publish',
-  canRunStepOnArtifact: {
-    customPredicate: async ({ currentArtifact, stepConfigurations, cache, repoPath, log }) => {
-      const targetType = await getPackageTargetType(
-        currentArtifact.data.artifact.packagePath,
-        currentArtifact.data.artifact.packageJson,
-      )
-      if (targetType !== TargetType.docker) {
-        return {
-          canRun: false,
-          artifactStepResult: {
-            notes: [],
-            executionStatus: ExecutionStatus.aborted,
-            status: Status.skippedAsPassed,
-          },
-        }
-      }
-
-      if (!stepConfigurations.shouldPublish) {
-        return {
-          canRun: false,
-          artifactStepResult: {
-            notes: [`docker-publish is disabled`],
-            executionStatus: ExecutionStatus.aborted,
-            status: Status.skippedAsPassed,
-          },
-        }
-      }
-
-      const dockerVersionResult = await cache.get(
-        getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
-        r => {
-          if (typeof r === 'string') {
-            return r
-          } else {
-            throw new Error(
-              `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-            )
+  skip: {
+    canRunStepOnArtifact: {
+      customPredicate: async ({ currentArtifact, stepConfigurations, cache, repoPath, log }) => {
+        const targetType = await getPackageTargetType(
+          currentArtifact.data.artifact.packagePath,
+          currentArtifact.data.artifact.packageJson,
+        )
+        if (targetType !== TargetType.docker) {
+          return {
+            canRun: false,
+            artifactStepResult: {
+              notes: [],
+              executionStatus: ExecutionStatus.aborted,
+              status: Status.skippedAsPassed,
+            },
           }
-        },
-      )
+        }
 
-      if (!dockerVersionResult) {
+        if (!stepConfigurations.shouldPublish) {
+          return {
+            canRun: false,
+            artifactStepResult: {
+              notes: [`docker-publish is disabled`],
+              executionStatus: ExecutionStatus.aborted,
+              status: Status.skippedAsPassed,
+            },
+          }
+        }
+
+        const dockerVersionResult = await cache.get(
+          getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
+          r => {
+            if (typeof r === 'string') {
+              return r
+            } else {
+              throw new Error(
+                `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+              )
+            }
+          },
+        )
+
+        if (!dockerVersionResult) {
+          return {
+            canRun: true,
+            artifactStepResult: {
+              notes: [],
+            },
+          }
+        }
+
+        if (
+          await isDockerVersionAlreadyPulished({
+            dockerRegistry: stepConfigurations.registry,
+            packageName: currentArtifact.data.artifact.packageJson.name,
+            imageTag: dockerVersionResult.value,
+            dockerOrganizationName: stepConfigurations.dockerOrganizationName,
+            repoPath,
+            log,
+          })
+        ) {
+          return {
+            canRun: false,
+            artifactStepResult: {
+              notes: [
+                `this package was already published in flow: "${dockerVersionResult.flowId}" with the same content as version: ${dockerVersionResult.value}`,
+              ],
+              executionStatus: ExecutionStatus.aborted,
+              status: Status.skippedAsPassed,
+            },
+          }
+        }
+
         return {
           canRun: true,
           artifactStepResult: {
             notes: [],
           },
         }
-      }
-
-      if (
-        await isDockerVersionAlreadyPulished({
-          dockerRegistry: stepConfigurations.registry,
-          packageName: currentArtifact.data.artifact.packageJson.name,
-          imageTag: dockerVersionResult.value,
-          dockerOrganizationName: stepConfigurations.dockerOrganizationName,
-          repoPath,
-          log,
-        })
-      ) {
-        return {
-          canRun: false,
-          artifactStepResult: {
-            notes: [
-              `this package was already published in flow: "${dockerVersionResult.flowId}" with the same content as version: ${dockerVersionResult.value}`,
-            ],
-            executionStatus: ExecutionStatus.aborted,
-            status: Status.skippedAsPassed,
-          },
-        }
-      }
-
-      return {
-        canRun: true,
-        artifactStepResult: {
-          notes: [],
-        },
-      }
-    },
-    options: {
-      // maybe the publish already succeed but someone manually deleted the target from the registry so we need to check that manually as well
-      runIfPackageResultsInCache: true,
+      },
+      options: {
+        // TODO: we need to rerun only if the last time we run this step on this package-hash, the step failed.
+      },
     },
   },
-  beforeAll: ({ stepConfigurations, repoPath, log }) =>
-    dockerRegistryLogin({
-      dockerRegistry: stepConfigurations.registry,
-      registryAuth: stepConfigurations.registryAuth,
-      repoPath,
-      log,
-    }),
-  runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, cache }) => {
-    const newVersion = await calculateNextVersion({
-      dockerRegistry: stepConfigurations.registry,
-      dockerOrganizationName: stepConfigurations.dockerOrganizationName,
-      packageJson: currentArtifact.data.artifact.packageJson,
-      packagePath: currentArtifact.data.artifact.packagePath,
-      repoPath,
-      log,
-    })
+  run: {
+    runStrategy: RunStrategy.perArtifact,
+    beforeAll: ({ stepConfigurations, repoPath, log }) =>
+      dockerRegistryLogin({
+        dockerRegistry: stepConfigurations.registry,
+        registryAuth: stepConfigurations.registryAuth,
+        repoPath,
+        log,
+      }),
+    runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, cache }) => {
+      const newVersion = await calculateNextVersion({
+        dockerRegistry: stepConfigurations.registry,
+        dockerOrganizationName: stepConfigurations.dockerOrganizationName,
+        packageJson: currentArtifact.data.artifact.packageJson,
+        packagePath: currentArtifact.data.artifact.packagePath,
+        repoPath,
+        log,
+      })
 
-    const fullImageNameNewVersion = buildFullDockerImageName({
-      dockerOrganizationName: stepConfigurations.dockerOrganizationName,
-      dockerRegistry: stepConfigurations.registry,
-      packageJsonName: currentArtifact.data.artifact.packageJson.name,
-      imageTag: newVersion,
-    })
+      const fullImageNameNewVersion = buildFullDockerImageName({
+        dockerOrganizationName: stepConfigurations.dockerOrganizationName,
+        dockerRegistry: stepConfigurations.registry,
+        packageJsonName: currentArtifact.data.artifact.packageJson.name,
+        imageTag: newVersion,
+      })
 
-    const fullImageNameCacheTtl = cache.ttls.stepSummary
+      const fullImageNameCacheTtl = cache.ttls.stepSummary
 
-    await cache.set({
-      key: stepConfigurations.fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),
-      value: fullImageNameNewVersion,
-      ttl: fullImageNameCacheTtl,
-      allowOverride: false,
-    })
+      await cache.set({
+        key: stepConfigurations.fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),
+        value: fullImageNameNewVersion,
+        ttl: fullImageNameCacheTtl,
+        allowOverride: false,
+      })
 
-    log.info(
-      `building docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,
-    )
+      log.info(
+        `building docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,
+      )
 
-    await setPackageVersion({
-      artifact: currentArtifact.data.artifact,
-      fromVersion: currentArtifact.data.artifact.packageJson.version,
-      toVersion: newVersion,
-    })
+      await setPackageVersion({
+        artifact: currentArtifact.data.artifact,
+        fromVersion: currentArtifact.data.artifact.packageJson.version,
+        toVersion: newVersion,
+      })
 
-    await execaCommand(
-      `docker build --label latest-hash=${currentArtifact.data.artifact.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
-      {
+      await execaCommand(
+        `docker build --label latest-hash=${currentArtifact.data.artifact.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
+        {
+          cwd: currentArtifact.data.artifact.packagePath,
+          stdio: 'inherit',
+          env: {
+            // eslint-disable-next-line no-process-env
+            ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
+          },
+          log,
+        },
+      )
+
+      // revert version to what it was before we changed it
+      await setPackageVersion({
+        artifact: currentArtifact.data.artifact,
+        fromVersion: newVersion,
+        toVersion: currentArtifact.data.artifact.packageJson.version,
+      }).catch(e => {
+        log.error(`could not revert the package-version in package.json but the flow won't fail because of that`, e)
+      })
+
+      log.info(
+        `built docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,
+      )
+      await execaCommand(`docker push ${fullImageNameNewVersion}`, {
         cwd: currentArtifact.data.artifact.packagePath,
         stdio: 'inherit',
         env: {
@@ -419,61 +446,39 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
           ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
         },
         log,
-      },
-    )
+      })
 
-    // revert version to what it was before we changed it
-    await setPackageVersion({
-      artifact: currentArtifact.data.artifact,
-      fromVersion: newVersion,
-      toVersion: currentArtifact.data.artifact.packageJson.version,
-    }).catch(e => {
-      log.error(`could not revert the package-version in package.json but the flow won't fail because of that`, e)
-    })
+      await cache.set({
+        key: getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
+        value: newVersion,
+        ttl: cache.ttls.stepSummary,
+        allowOverride: false,
+      })
 
-    log.info(
-      `built docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,
-    )
-    await execaCommand(`docker push ${fullImageNameNewVersion}`, {
-      cwd: currentArtifact.data.artifact.packagePath,
-      stdio: 'inherit',
-      env: {
-        // eslint-disable-next-line no-process-env
-        ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
-      },
-      log,
-    })
+      log.info(
+        `published docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,
+      )
 
-    await cache.set({
-      key: getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
-      value: newVersion,
-      ttl: cache.ttls.stepSummary,
-      allowOverride: false,
-    })
+      await execaCommand(`docker rmi ${fullImageNameNewVersion}`, {
+        stdio: 'pipe',
+        env: {
+          // eslint-disable-next-line no-process-env
+          ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
+        },
+        cwd: repoPath,
+        log,
+      }).catch(e =>
+        log.error(
+          `couldn't remove image: "${fullImageNameNewVersion}" after pushing it. this failure won't fail the build.`,
+          e,
+        ),
+      )
 
-    log.info(
-      `published docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,
-    )
-
-    await execaCommand(`docker rmi ${fullImageNameNewVersion}`, {
-      stdio: 'pipe',
-      env: {
-        // eslint-disable-next-line no-process-env
-        ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
-      },
-      cwd: repoPath,
-      log,
-    }).catch(e =>
-      log.error(
-        `couldn't remove image: "${fullImageNameNewVersion}" after pushing it. this failure won't fail the build.`,
-        e,
-      ),
-    )
-
-    return {
-      notes: [`published: "${fullImageNameNewVersion}"`],
-      executionStatus: ExecutionStatus.done,
-      status: Status.passed,
-    }
+      return {
+        notes: [`published: "${fullImageNameNewVersion}"`],
+        executionStatus: ExecutionStatus.done,
+        status: Status.passed,
+      }
+    },
   },
 })

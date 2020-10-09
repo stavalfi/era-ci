@@ -1,4 +1,4 @@
-import { createStep, ExecutionStatus, JsonReport, Status } from '../src'
+import { createStep, ExecutionStatus, JsonReport, RunStrategy, Status } from '../src'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
 
 const { createRepo } = createTest()
@@ -17,17 +17,22 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          canRunStepOnArtifact: {
-            customPredicate: async () => {
-              return true
+          skip: {
+            canRunStepOnArtifact: {
+              customPredicate: async () => {
+                return true
+              },
             },
           },
-          runStepOnArtifact: async () => {
-            return {
-              notes: [],
-              executionStatus: ExecutionStatus.done,
-              status: Status.passed,
-            }
+          run: {
+            runStrategy: RunStrategy.perArtifact,
+            runStepOnArtifact: async () => {
+              return {
+                notes: [],
+                executionStatus: ExecutionStatus.done,
+                status: Status.passed,
+              }
+            },
           },
         })(),
       ],
@@ -35,7 +40,7 @@ describe('define custom predicate to check if we need to run the step on a packa
 
     const expectedJsonReport: DeepPartial<JsonReport> = {
       flowResult: {
-        error: undefined,
+        errors: [],
         notes: [],
         executionStatus: ExecutionStatus.done,
         status: Status.passed,
@@ -48,7 +53,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             },
             stepResult: {
               executionStatus: ExecutionStatus.done,
-              error: undefined,
+              errors: [],
               notes: [],
               status: Status.passed,
             },
@@ -62,7 +67,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                   },
                   artifactStepResult: {
                     executionStatus: ExecutionStatus.done,
-                    error: undefined,
+                    errors: [],
                     notes: [],
                     status: Status.passed,
                   },
@@ -90,25 +95,30 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          canRunStepOnArtifact: {
-            customPredicate: async () => {
-              return {
-                canRun: false,
-                artifactStepResult: {
-                  notes: [],
-                  executionStatus: ExecutionStatus.aborted,
-                  status: Status.skippedAsPassed,
-                },
-              }
+          skip: {
+            canRunStepOnArtifact: {
+              customPredicate: async () => {
+                return {
+                  canRun: false,
+                  artifactStepResult: {
+                    notes: [],
+                    executionStatus: ExecutionStatus.aborted,
+                    status: Status.skippedAsPassed,
+                  },
+                }
+              },
             },
           },
-          runStepOnArtifact: async () => {
-            // we will never be here
-            return {
-              notes: [],
-              executionStatus: ExecutionStatus.done,
-              status: Status.failed,
-            }
+          run: {
+            runStrategy: RunStrategy.perArtifact,
+            runStepOnArtifact: async () => {
+              // we will never be here
+              return {
+                notes: [],
+                executionStatus: ExecutionStatus.done,
+                status: Status.failed,
+              }
+            },
           },
         })(),
       ],
@@ -116,7 +126,7 @@ describe('define custom predicate to check if we need to run the step on a packa
 
     const expectedJsonReport: DeepPartial<JsonReport> = {
       flowResult: {
-        error: undefined,
+        errors: [],
         notes: [],
         executionStatus: ExecutionStatus.aborted,
         status: Status.skippedAsPassed,
@@ -129,7 +139,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             },
             stepResult: {
               executionStatus: ExecutionStatus.aborted,
-              error: undefined,
+              errors: [],
               notes: [],
               status: Status.skippedAsPassed,
             },
@@ -143,7 +153,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                   },
                   artifactStepResult: {
                     executionStatus: ExecutionStatus.aborted,
-                    error: undefined,
+                    errors: [],
                     notes: [],
                     status: Status.skippedAsPassed,
                   },
@@ -171,25 +181,30 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          canRunStepOnArtifact: {
-            customPredicate: async () => {
-              return {
-                canRun: false,
-                artifactStepResult: {
-                  notes: ['note1', 'note2'],
-                  executionStatus: ExecutionStatus.aborted,
-                  status: Status.skippedAsPassed,
-                },
-              }
+          skip: {
+            canRunStepOnArtifact: {
+              customPredicate: async () => {
+                return {
+                  canRun: false,
+                  artifactStepResult: {
+                    notes: ['note1', 'note2'],
+                    executionStatus: ExecutionStatus.aborted,
+                    status: Status.skippedAsPassed,
+                  },
+                }
+              },
             },
           },
-          runStepOnArtifact: async () => {
-            // we will never be here
-            return {
-              notes: [],
-              executionStatus: ExecutionStatus.done,
-              status: Status.failed,
-            }
+          run: {
+            runStrategy: RunStrategy.perArtifact,
+            runStepOnArtifact: async () => {
+              // we will never be here
+              return {
+                notes: [],
+                executionStatus: ExecutionStatus.done,
+                status: Status.failed,
+              }
+            },
           },
         })(),
       ],
@@ -197,7 +212,7 @@ describe('define custom predicate to check if we need to run the step on a packa
 
     const expectedJsonReport: DeepPartial<JsonReport> = {
       flowResult: {
-        error: undefined,
+        errors: [],
         notes: [],
         executionStatus: ExecutionStatus.aborted,
         status: Status.skippedAsPassed,
@@ -210,7 +225,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             },
             stepResult: {
               executionStatus: ExecutionStatus.aborted,
-              error: undefined,
+              errors: [],
               notes: [],
               status: Status.skippedAsPassed,
             },
@@ -224,7 +239,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                   },
                   artifactStepResult: {
                     executionStatus: ExecutionStatus.aborted,
-                    error: undefined,
+                    errors: [],
                     notes: ['note1', 'note2'],
                     status: Status.skippedAsPassed,
                   },
@@ -252,25 +267,30 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          canRunStepOnArtifact: {
-            customPredicate: async () => {
-              return {
-                canRun: false,
-                artifactStepResult: {
-                  notes: ['note1', 'note2', 'note1', 'note2'],
-                  executionStatus: ExecutionStatus.aborted,
-                  status: Status.skippedAsPassed,
-                },
-              }
+          skip: {
+            canRunStepOnArtifact: {
+              customPredicate: async () => {
+                return {
+                  canRun: false,
+                  artifactStepResult: {
+                    notes: ['note1', 'note2', 'note1', 'note2'],
+                    executionStatus: ExecutionStatus.aborted,
+                    status: Status.skippedAsPassed,
+                  },
+                }
+              },
             },
           },
-          runStepOnArtifact: async () => {
-            // we will never be here
-            return {
-              notes: [],
-              executionStatus: ExecutionStatus.done,
-              status: Status.failed,
-            }
+          run: {
+            runStrategy: RunStrategy.perArtifact,
+            runStepOnArtifact: async () => {
+              // we will never be here
+              return {
+                notes: [],
+                executionStatus: ExecutionStatus.done,
+                status: Status.failed,
+              }
+            },
           },
         })(),
       ],
@@ -278,7 +298,7 @@ describe('define custom predicate to check if we need to run the step on a packa
 
     const expectedJsonReport: DeepPartial<JsonReport> = {
       flowResult: {
-        error: undefined,
+        errors: [],
         notes: [],
         status: Status.skippedAsPassed,
       },
@@ -289,7 +309,7 @@ describe('define custom predicate to check if we need to run the step on a packa
               stepName: 'step1',
             },
             stepResult: {
-              error: undefined,
+              errors: [],
               notes: [],
               executionStatus: ExecutionStatus.aborted,
               status: Status.skippedAsPassed,
@@ -303,7 +323,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                     },
                   },
                   artifactStepResult: {
-                    error: undefined,
+                    errors: [],
                     notes: ['note1', 'note2'],
                     executionStatus: ExecutionStatus.aborted,
                     status: Status.skippedAsPassed,

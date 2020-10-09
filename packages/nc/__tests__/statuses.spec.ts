@@ -1,4 +1,4 @@
-import { createStep, ExecutionStatus, JsonReport, Status } from '../src'
+import { createStep, ExecutionStatus, JsonReport, RunStrategy, Status } from '../src'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
 
 const { createRepo } = createTest()
@@ -16,22 +16,28 @@ test('passed,passed => passed', async () => {
     steps: [
       createStep({
         stepName: 'step1',
-        runStepOnArtifact: async () => {
-          return {
-            notes: [],
-            executionStatus: ExecutionStatus.done,
-            status: Status.passed,
-          }
+        run: {
+          runStrategy: RunStrategy.perArtifact,
+          runStepOnArtifact: async () => {
+            return {
+              notes: [],
+              executionStatus: ExecutionStatus.done,
+              status: Status.passed,
+            }
+          },
         },
       })(),
       createStep({
         stepName: 'step2',
-        runStepOnArtifact: async () => {
-          return {
-            notes: [],
-            executionStatus: ExecutionStatus.done,
-            status: Status.passed,
-          }
+        run: {
+          runStrategy: RunStrategy.perArtifact,
+          runStepOnArtifact: async () => {
+            return {
+              notes: [],
+              executionStatus: ExecutionStatus.done,
+              status: Status.passed,
+            }
+          },
         },
       })(),
     ],
@@ -39,7 +45,7 @@ test('passed,passed => passed', async () => {
 
   const expectedJsonReport: DeepPartial<JsonReport> = {
     flowResult: {
-      error: undefined,
+      errors: [],
       notes: [],
       executionStatus: ExecutionStatus.done,
       status: Status.passed,
@@ -51,7 +57,7 @@ test('passed,passed => passed', async () => {
             stepName: 'step1',
           },
           stepResult: {
-            error: undefined,
+            errors: [],
             notes: [],
             executionStatus: ExecutionStatus.done,
             status: Status.passed,
@@ -65,7 +71,7 @@ test('passed,passed => passed', async () => {
                   },
                 },
                 artifactStepResult: {
-                  error: undefined,
+                  errors: [],
                   notes: [],
                   executionStatus: ExecutionStatus.done,
                   status: Status.passed,
@@ -81,7 +87,7 @@ test('passed,passed => passed', async () => {
             stepName: 'step2',
           },
           stepResult: {
-            error: undefined,
+            errors: [],
             notes: [],
             executionStatus: ExecutionStatus.done,
             status: Status.passed,
@@ -95,7 +101,7 @@ test('passed,passed => passed', async () => {
                   },
                 },
                 artifactStepResult: {
-                  error: undefined,
+                  errors: [],
                   notes: [],
                   executionStatus: ExecutionStatus.done,
                   status: Status.passed,

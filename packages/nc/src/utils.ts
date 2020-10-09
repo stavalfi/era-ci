@@ -2,8 +2,8 @@ import execa from 'execa'
 import _ from 'lodash'
 import path from 'path'
 import { Log } from './create-logger'
-import { ExecutionStatus, Status, Step, StepInfo, StepsResultOfArtifactsByStep } from './create-step'
-import { Graph, UnionArrayValues } from './types'
+import { Step, StepInfo, StepsResultOfArtifactsByStep } from './create-step'
+import { ExecutionStatus, Graph, Status, UnionArrayValues } from './types'
 
 export const didPassOrSkippedAsPassed = (status: Status): boolean =>
   [Status.passed, Status.skippedAsPassed].includes(status)
@@ -66,7 +66,7 @@ export function getStepsAsGraph(steps: Step[]): Graph<{ stepInfo: StepInfo; runS
 
 export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep): number {
   const finalStepsStatus = calculateCombinedStatus(
-    _.flatten(
+    _.flatMapDeep(
       stepsResultOfArtifactsByStep.map(s => {
         switch (s.data.stepExecutionStatus) {
           case ExecutionStatus.done:

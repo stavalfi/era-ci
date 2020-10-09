@@ -162,7 +162,7 @@ test(`no publish if the package folder moved`, async () => {
   expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
 })
 
-test(`no publish of other packags if a package was deleted`, async () => {
+test(`no publish of other packages if a package was deleted`, async () => {
   const { runCi, deletePackage } = await createRepo({
     packages: [
       {
@@ -201,7 +201,7 @@ test(`no publish of other packags if a package was deleted`, async () => {
   expect(master2.published.get('b')?.npm?.versions).toEqual(['2.0.0'])
 })
 
-test(`no publish of other packags if addtional package was created`, async () => {
+test(`no publish of other packages if addtional package was created`, async () => {
   const { runCi, createNewPackage } = await createRepo({
     packages: [
       {

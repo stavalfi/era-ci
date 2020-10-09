@@ -2,9 +2,10 @@ import Table, { CellOptions } from 'cli-table3'
 import colors from 'colors/safe'
 import _ from 'lodash'
 import prettyMs from 'pretty-ms'
-import { deserializeError } from 'serialize-error'
-import { createStep, ExecutionStatus, Status, stepToString } from '../create-step'
+import { deserializeError, ErrorObject } from 'serialize-error'
+import { createStep, RunStrategy, stepToString } from '../create-step'
 import { JsonReport, jsonReporterStepName } from './json-reporter'
+import { ExecutionStatus, Status } from '../types'
 
 // note: this file is not tested (or can't even be tested?). modify with caution!!!
 
@@ -60,7 +61,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
             duration: prettyMs(node.data.artifactResult.durationMs),
             notes: [
               ...node.data.artifactResult.notes,
-              ..._.flatten(
+              ..._.flatMapDeep(
                 node.data.stepsResult.map(s => {
                   return s.data.artifactStepResult.notes.map(
                     n => `${stepToString({ stepInfo: s.data.stepInfo, steps: jsonReport.steps })} - ${n}`,
@@ -81,7 +82,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
             duration: prettyMs(node.data.artifactResult.durationMs),
             notes: [
               ...node.data.artifactResult.notes,
-              ..._.flatten(
+              ..._.flatMapDeep(
                 (() => {
                   // both of the cases are identical but needed beacuse of https://github.com/microsoft/TypeScript/issues/7294
                   switch (node.data.artifactExecutionStatus) {
@@ -221,6 +222,15 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
   return packagesStatusTable.toString()
 }
 
+function formatErrors(errors?: Array<ErrorObject>) {
+  return (
+    errors
+      ?.filter(Boolean)
+      .map(deserializeError)
+      .map(e => `${e}`) || []
+  )
+}
+
 function generatePackagesErrorsReport(jsonReport: JsonReport): string {
   function getRows() {
     switch (jsonReport.flowExecutionStatus) {
@@ -228,11 +238,9 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
         return jsonReport.stepsResultOfArtifactsByArtifact.map(node => {
           return {
             packageName: node.data.artifact.packageJson.name,
-            errors: _.flatten([
-              ...(node.data.artifactResult.error ? [`${deserializeError(node.data.artifactResult.error)}`] : []),
-              ...node.data.stepsResult.map(r =>
-                r.data.artifactStepResult.error ? [`${deserializeError(r.data.artifactStepResult.error)}`] : [],
-              ),
+            errors: _.flatMapDeep([
+              ...formatErrors(node.data.artifactResult.errors),
+              ...node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors)),
             ]),
           }
         })
@@ -240,18 +248,14 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
         return jsonReport.stepsResultOfArtifactsByArtifact.map(node => {
           return {
             packageName: node.data.artifact.packageJson.name,
-            errors: _.flatten([
-              ...(node.data.artifactResult.error ? [`${deserializeError(node.data.artifactResult.error)}`] : []),
+            errors: _.flatMapDeep([
+              ...formatErrors(node.data.artifactResult.errors),
               ...(() => {
                 switch (node.data.artifactExecutionStatus) {
                   case ExecutionStatus.done:
-                    return node.data.stepsResult.map(r =>
-                      r.data.artifactStepResult.error ? [`${deserializeError(r.data.artifactStepResult.error)}`] : [],
-                    )
+                    return node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors))
                   case ExecutionStatus.aborted:
-                    return node.data.stepsResult.map(r =>
-                      r.data.artifactStepResult.error ? [`${deserializeError(r.data.artifactStepResult.error)}`] : [],
-                    )
+                    return node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors))
                 }
               })(),
             ]),
@@ -263,32 +267,27 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
             case ExecutionStatus.done:
               return {
                 packageName: node.data.artifact.packageJson.name,
-                errors: _.flatten([
-                  ...(node.data.artifactResult.error ? [`${deserializeError(node.data.artifactResult.error)}`] : []),
-                  ...node.data.stepsResult.map(r =>
-                    r.data.artifactStepResult.error ? [`${deserializeError(r.data.artifactStepResult.error)}`] : [],
-                  ),
+                errors: _.flatMapDeep([
+                  ...formatErrors(node.data.artifactResult.errors),
+                  ...node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors)),
                 ]),
               }
             case ExecutionStatus.aborted:
               return {
                 packageName: node.data.artifact.packageJson.name,
-                errors: _.flatten([
-                  ...(node.data.artifactResult.error ? [`${deserializeError(node.data.artifactResult.error)}`] : []),
-                  ...node.data.stepsResult.map(r =>
-                    r.data.artifactStepResult.error ? [`${deserializeError(r.data.artifactStepResult.error)}`] : [],
-                  ),
+                errors: _.flatMapDeep([
+                  ...formatErrors(node.data.artifactResult.errors),
+                  ...node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors)),
                 ]),
               }
             case ExecutionStatus.running:
               return {
                 packageName: node.data.artifact.packageJson.name,
-                errors: _.flatten([
+                errors: _.flatMapDeep([
                   ...node.data.stepsResult.map(r =>
-                    (r.data.artifactStepResult.executionStatus === ExecutionStatus.done ||
-                      r.data.artifactStepResult.executionStatus === ExecutionStatus.aborted) &&
-                    r.data.artifactStepResult.error
-                      ? [`${deserializeError(r.data.artifactStepResult.error)}`]
+                    r.data.artifactStepResult.executionStatus === ExecutionStatus.done ||
+                    r.data.artifactStepResult.executionStatus === ExecutionStatus.aborted
+                      ? formatErrors(r.data.artifactStepResult.errors)
                       : [],
                   ),
                 ]),
@@ -355,7 +354,7 @@ function generateStepsErrorsReport(jsonReport: JsonReport): string {
         return jsonReport.stepsResultOfArtifactsByStep.map(node => {
           return {
             stepName: stepToString({ stepInfo: node.data.stepInfo, steps: jsonReport.steps }),
-            errors: node.data.stepResult.error ? [`${deserializeError(node.data.stepResult.error)}`] : [],
+            errors: formatErrors(node.data.stepResult.errors),
           }
         })
       case ExecutionStatus.aborted:
@@ -366,7 +365,7 @@ function generateStepsErrorsReport(jsonReport: JsonReport): string {
           ) {
             return {
               stepName: stepToString({ stepInfo: node.data.stepInfo, steps: jsonReport.steps }),
-              errors: node.data.stepResult.error ? [`${deserializeError(node.data.stepResult.error)}`] : [],
+              errors: formatErrors(node.data.stepResult.errors),
             }
           } else {
             return {
@@ -499,51 +498,57 @@ export type CliTableReporterConfiguration = {
 
 export const cliTableReporter = createStep<CliTableReporterConfiguration>({
   stepName: 'cli-table-reporter',
-  canRunStepOnArtifact: {
-    options: {
-      runIfPackageResultsInCache: true,
-      runIfSomeDirectParentStepFailedOnPackage: true,
+  skip: {
+    canRunStepOnArtifact: {
+      options: {
+        runIfPackageResultsInCache: true,
+        runIfSomeDirectParentStepFailedOnPackage: true,
+      },
     },
   },
-  runStepOnRoot: async ({ cache, flowId, stepConfigurations, log, steps }) => {
-    const jsonReporterStepId = steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data.stepInfo.stepId
-    if (!jsonReporterStepId) {
-      throw new Error(`cli-table-reporter can't find json-reporter-step-id. is it part of the flow?`)
-    }
-    const jsonReportResult = await cache.get(
-      stepConfigurations.jsonReporterCacheKey({ flowId, stepId: jsonReporterStepId }),
-      r => {
-        if (typeof r === 'string') {
-          return stepConfigurations.stringToJsonReport({ jsonReportAsString: r })
-        } else {
-          throw new Error(
-            `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-          )
-        }
-      },
-    )
-    if (!jsonReportResult) {
-      throw new Error(`can't find json-report in the cache. printing the report is aborted`)
-    }
+  run: {
+    runStrategy: RunStrategy.root,
+    runStepOnRoot: async ({ cache, flowId, stepConfigurations, log, steps }) => {
+      const jsonReporterStepId = steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data.stepInfo
+        .stepId
+      if (!jsonReporterStepId) {
+        throw new Error(`cli-table-reporter can't find json-reporter-step-id. is it part of the flow?`)
+      }
+      const jsonReportResult = await cache.get(
+        stepConfigurations.jsonReporterCacheKey({ flowId, stepId: jsonReporterStepId }),
+        r => {
+          if (typeof r === 'string') {
+            return stepConfigurations.stringToJsonReport({ jsonReportAsString: r })
+          } else {
+            throw new Error(
+              `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+            )
+          }
+        },
+      )
+      if (!jsonReportResult) {
+        throw new Error(`can't find json-report in the cache. printing the report is aborted`)
+      }
 
-    const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value)
-    const packagesErrorsReport = generatePackagesErrorsReport(jsonReportResult.value)
-    const stepsErrorsReport = generateStepsErrorsReport(jsonReportResult.value)
-    const summaryReport = generateSummaryReport(jsonReportResult.value)
+      const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value)
+      const packagesErrorsReport = generatePackagesErrorsReport(jsonReportResult.value)
+      const stepsErrorsReport = generateStepsErrorsReport(jsonReportResult.value)
+      const summaryReport = generateSummaryReport(jsonReportResult.value)
 
-    log.noFormattingInfo(packagesStatusReport)
-    if (packagesErrorsReport) {
-      log.noFormattingInfo(packagesErrorsReport)
-    }
-    if (stepsErrorsReport) {
-      log.noFormattingInfo(stepsErrorsReport)
-    }
-    log.noFormattingInfo(summaryReport)
+      log.noFormattingInfo(packagesStatusReport)
+      if (packagesErrorsReport) {
+        log.noFormattingInfo(packagesErrorsReport)
+      }
+      if (stepsErrorsReport) {
+        log.noFormattingInfo(stepsErrorsReport)
+      }
+      log.noFormattingInfo(summaryReport)
 
-    return {
-      notes: [],
-      executionStatus: ExecutionStatus.done,
-      status: Status.passed,
-    }
+      return {
+        notes: [],
+        executionStatus: ExecutionStatus.done,
+        status: Status.passed,
+      }
+    },
   },
 })

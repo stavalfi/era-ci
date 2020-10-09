@@ -1,8 +1,7 @@
 import { Redis, ValueType } from 'ioredis'
 import NodeCache from 'node-cache'
 import { Log } from '../create-logger'
-import { AbortResult, DoneResult, Status } from '../create-step'
-import { Artifact, Graph } from '../types'
+import { AbortResult, Artifact, DoneResult, Graph, Status } from '../types'
 
 export type Cache = {
   step: {
