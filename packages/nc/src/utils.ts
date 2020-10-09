@@ -29,19 +29,23 @@ export function calculateCombinedStatus<StatusesArray extends Status[]>(
 export function calculateExecutionStatus<ExecutionStatusArray extends ExecutionStatus[]>(
   executionStatuses: ExecutionStatusArray,
 ): UnionArrayValues<ExecutionStatus, ExecutionStatusArray> {
-  if (executionStatuses.includes(ExecutionStatus.running)) {
+  if (executionStatuses.length === 0) {
+    return ExecutionStatus.aborted
+  } else {
+    if (executionStatuses.every(e => e === ExecutionStatus.done)) {
+      return ExecutionStatus.done
+    }
+
+    if (executionStatuses.every(e => e === ExecutionStatus.done || e === ExecutionStatus.aborted)) {
+      return ExecutionStatus.aborted
+    }
+
+    if (executionStatuses.every(e => e === ExecutionStatus.scheduled)) {
+      return ExecutionStatus.scheduled
+    }
+
     return ExecutionStatus.running
   }
-
-  if (executionStatuses.includes(ExecutionStatus.scheduled)) {
-    return ExecutionStatus.scheduled
-  }
-
-  if (executionStatuses.every(e => e === ExecutionStatus.done)) {
-    return ExecutionStatus.done
-  }
-
-  return ExecutionStatus.aborted
 }
 
 export function getStepsAsGraph(steps: Step[]): Graph<{ stepInfo: StepInfo; runStep: Step['runStep'] }> {

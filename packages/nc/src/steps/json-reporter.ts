@@ -269,7 +269,7 @@ export const jsonReporter = createStep<JsonReportConfiguration>({
       startFlowMs,
       artifacts,
       flowId,
-      steps,
+      steps: withoutThisStep.steps,
       stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
       stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
         artifacts,
