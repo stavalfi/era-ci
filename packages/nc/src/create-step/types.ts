@@ -51,7 +51,7 @@ export type ScheduledResult = {
 // ------------------------
 
 export type DoneStepResultOfArtifacts = {
-  type: ExecutionStatus.done // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
+  stepExecutionStatus: ExecutionStatus.done // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   stepInfo: StepInfo
   stepResult: DoneResult
   artifactsResult: Graph<{
@@ -61,7 +61,7 @@ export type DoneStepResultOfArtifacts = {
 }
 
 export type AbortStepResultOfArtifacts = {
-  type: ExecutionStatus.aborted // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
+  stepExecutionStatus: ExecutionStatus.aborted // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   stepInfo: StepInfo
   stepResult: AbortResult<Status>
   artifactsResult: Graph<{
@@ -71,7 +71,7 @@ export type AbortStepResultOfArtifacts = {
 }
 
 export type RunningStepResultOfArtifacts = {
-  type: ExecutionStatus.running // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
+  stepExecutionStatus: ExecutionStatus.running // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   stepInfo: StepInfo
   stepResult: RunningResult
   artifactsResult: Graph<{
@@ -85,7 +85,7 @@ export type RunningStepResultOfArtifacts = {
 }
 
 export type ScheduledStepResultOfArtifacts = {
-  type: ExecutionStatus.scheduled // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
+  stepExecutionStatus: ExecutionStatus.scheduled // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   stepInfo: StepInfo
   stepResult: ScheduledResult
   artifactsResult: Graph<{ artifact: Artifact; artifactStepResult: ScheduledResult }>
@@ -102,7 +102,7 @@ export type StepsResultOfArtifactsByStep = Graph<StepResultOfArtifacts>
 // ------------------------
 
 export type DoneStepsResultOfArtifact = {
-  type: ExecutionStatus.done // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
+  artifactExecutionStatus: ExecutionStatus.done // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   artifact: Artifact
   artifactResult: DoneResult
   stepsResult: Graph<{
@@ -112,7 +112,7 @@ export type DoneStepsResultOfArtifact = {
 }
 
 export type AbortStepsResultOfArtifact = {
-  type: ExecutionStatus.aborted // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
+  artifactExecutionStatus: ExecutionStatus.aborted // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   artifact: Artifact
   artifactResult: AbortResult<Status>
   stepsResult: Graph<{
@@ -122,7 +122,7 @@ export type AbortStepsResultOfArtifact = {
 }
 
 export type RunningStepsResultOfArtifact = {
-  type: ExecutionStatus.running // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
+  artifactExecutionStatus: ExecutionStatus.running // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   artifact: Artifact
   artifactResult: RunningResult
   stepsResult: Graph<{
@@ -136,7 +136,7 @@ export type RunningStepsResultOfArtifact = {
 }
 
 export type ScheduledStepsResultOfArtifact = {
-  type: ExecutionStatus.scheduled // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
+  artifactExecutionStatus: ExecutionStatus.scheduled // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   artifact: Artifact
   artifactResult: ScheduledResult
   stepsResult: Graph<{

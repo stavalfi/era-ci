@@ -218,7 +218,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
 
     if (problems.length > 0) {
       return {
-        type: ExecutionStatus.done,
+        stepExecutionStatus: ExecutionStatus.done,
         stepInfo: {
           stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
           stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,
@@ -288,7 +288,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
 
     if (areAllDone) {
       return {
-        type: ExecutionStatus.done,
+        stepExecutionStatus: ExecutionStatus.done,
         stepInfo: {
           stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
           stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,
@@ -324,7 +324,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
       }
     } else {
       return {
-        type: ExecutionStatus.aborted,
+        stepExecutionStatus: ExecutionStatus.aborted,
         stepInfo: {
           stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
           stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,
@@ -341,7 +341,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
   } catch (error: unknown) {
     const endDurationMs = Date.now() - startStepMs
     const result: StepResultOfArtifacts = {
-      type: ExecutionStatus.done,
+      stepExecutionStatus: ExecutionStatus.done,
       stepInfo: {
         stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
         stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,

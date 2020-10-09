@@ -28,7 +28,7 @@ function getStepsResultOfArtifact({
   switch (artifactExecutionStatus) {
     case ExecutionStatus.done:
       return {
-        type: ExecutionStatus.done,
+        artifactExecutionStatus: ExecutionStatus.done,
         artifact: artifact.data.artifact,
         artifactResult: {
           executionStatus: ExecutionStatus.done,
@@ -69,7 +69,7 @@ function getStepsResultOfArtifact({
       }
     case ExecutionStatus.aborted: {
       return {
-        type: ExecutionStatus.aborted,
+        artifactExecutionStatus: ExecutionStatus.aborted,
         artifact: artifact.data.artifact,
         artifactResult: {
           executionStatus: ExecutionStatus.aborted,
@@ -110,7 +110,7 @@ function getStepsResultOfArtifact({
     }
     case ExecutionStatus.running:
       return {
-        type: ExecutionStatus.running,
+        artifactExecutionStatus: ExecutionStatus.running,
         artifact: artifact.data.artifact,
         artifactResult: {
           executionStatus: ExecutionStatus.running,
@@ -127,7 +127,7 @@ function getStepsResultOfArtifact({
       }
     case ExecutionStatus.scheduled:
       return {
-        type: ExecutionStatus.scheduled,
+        artifactExecutionStatus: ExecutionStatus.scheduled,
         artifact: artifact.data.artifact,
         artifactResult: {
           executionStatus: ExecutionStatus.scheduled,
