@@ -314,10 +314,10 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
         }),
       )
 
-    log.info(`published npm target in package: "${currentArtifact.data.artifact.packageJson.name}"`)
+    log.info(`published npm target: "${currentArtifact.data.artifact.packageJson.name}@${newVersion}"`)
 
     return {
-      notes: [],
+      notes: [`published: "${currentArtifact.data.artifact.packageJson.name}@${newVersion}"`],
       executionStatus: ExecutionStatus.done,
       status: Status.passed,
     }

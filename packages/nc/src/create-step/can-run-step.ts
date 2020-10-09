@@ -112,11 +112,8 @@ async function runIfSomeDirectParentStepFailedOnPackage<StepConfigurations>({
   currentArtifact: Node<{ artifact: Artifact }>
   canRunStepOnArtifact?: CanRunStepOnArtifact<StepConfigurations>
 }): Promise<CanRunStepOnArtifactResult> {
-  const didAllPrevPassed = await currentStepInfo.parentsIndexes
-    .map(
-      (_result, i) =>
-        stepsResultOfArtifactsByStep[i].data.artifactsResult[currentArtifact.index].data.artifactStepResult,
-    )
+  const didAllPrevPassed = currentStepInfo.parentsIndexes
+    .map(i => stepsResultOfArtifactsByStep[i].data.artifactsResult[currentArtifact.index].data.artifactStepResult)
     .every(
       artifactStepResult =>
         (artifactStepResult.executionStatus === ExecutionStatus.done ||

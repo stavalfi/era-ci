@@ -80,7 +80,7 @@ export async function publishNpmPackageWithoutCi({
     repoPath,
     log,
   })
-  await execa.command(`npm publish --registry ${npmRegistry}`, {
+  await execa.command(`npm publish --registry ${npmRegistry.address}`, {
     stdio: 'pipe',
     cwd: packagePath,
   })
@@ -154,9 +154,12 @@ export async function unpublishNpmPackage({
     repoPath,
     log,
   })
-  await execa.command(`npm unpublish ${toActualName(packageName)}@${versionToUnpublish} --registry ${npmRegistry}`, {
-    stdio: 'pipe',
-  })
+  await execa.command(
+    `npm unpublish ${toActualName(packageName)}@${versionToUnpublish} --registry ${npmRegistry.address}`,
+    {
+      stdio: 'pipe',
+    },
+  )
 }
 
 export const addRandomFileToPackage = ({

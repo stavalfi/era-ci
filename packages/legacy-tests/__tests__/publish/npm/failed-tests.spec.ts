@@ -1,6 +1,6 @@
-import { newEnv } from '../prepare-test'
-import { TargetType } from '../prepare-test/types'
-import { manageStepResult } from '../prepare-test/test-helpers'
+import { newEnv } from '../../prepare-test'
+import { TargetType } from '../../prepare-test/types'
+import { manageStepResult } from '../../prepare-test/test-helpers'
 
 const { createRepo } = newEnv()
 

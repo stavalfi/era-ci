@@ -4,7 +4,7 @@ import { TargetType } from '../../../prepare-test/types'
 const { createRepo } = newEnv()
 
 describe('run ci -> decrease packageJson.version -> run ci', () => {
-  test('to unpublished version', async () => {
+  test('decrease to unpublished version', async () => {
     const { runCi, modifyPackageJson } = await createRepo({
       packages: [
         {
@@ -38,7 +38,7 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
     expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.10', '1.0.11'])
   })
 
-  test('to published version', async () => {
+  test('decrease to published version', async () => {
     const { runCi, modifyPackageJson, addRandomFileToPackage } = await createRepo({
       packages: [
         {

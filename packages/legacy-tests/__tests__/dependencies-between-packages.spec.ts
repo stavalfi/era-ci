@@ -118,30 +118,26 @@ describe('npm package depends on.....', () => {
       ],
     })
 
-    await expect(
-      runCi({
-        targetsInfo: {
-          npm: {
-            shouldPublish: false,
-            shouldDeploy: false,
-          },
-          docker: {
-            shouldPublish: false,
-            shouldDeploy: false,
-          },
+    const result = await runCi({
+      targetsInfo: {
+        npm: {
+          shouldPublish: false,
+          shouldDeploy: false,
         },
-        execaOptions: {
-          stdio: 'pipe',
+        docker: {
+          shouldPublish: false,
+          shouldDeploy: false,
         },
-      }),
-    ).rejects.toEqual(
-      expect.objectContaining({
-        stderr: expect.stringContaining(
-          `the package "${toActualName('b')}" can't depend on dependency: "${toActualName(
-            'a',
-          )}" in version "^1.0.0" becuase this version represents a docker-package`,
-        ),
-      }),
+      },
+      execaOptions: {
+        reject: false,
+      },
+    })
+
+    expect(result.ncLogfileContent).toContain(
+      `the package "${toActualName('b')}" can't depend on dependency: "${toActualName(
+        'a',
+      )}" in version "^1.0.0" becuase this version represents a docker-package`,
     )
   })
 
@@ -163,26 +159,24 @@ describe('npm package depends on.....', () => {
       ],
     })
 
-    await expect(
-      runCi({
-        targetsInfo: {
-          npm: {
-            shouldPublish: false,
-            shouldDeploy: false,
-          },
+    const result = await runCi({
+      targetsInfo: {
+        npm: {
+          shouldPublish: false,
+          shouldDeploy: false,
         },
-        execaOptions: {
-          stdio: 'pipe',
-        },
-      }),
-    ).rejects.toEqual(
-      expect.objectContaining({
-        stderr: expect.stringContaining(
-          `the package "${toActualName('b')}" can't depend on dependency: "${toActualName(
-            'a',
-          )}" in version "^1.0.0" becuase this version represents a private-npm-package`,
-        ),
-      }),
+      },
+      execaOptions: {
+        reject: false,
+      },
+    })
+
+    expect(result.ncLogfileContent).toEqual(
+      expect.stringContaining(
+        `the package "${toActualName('b')}" can't depend on dependency: "${toActualName(
+          'a',
+        )}" in version "^1.0.0" becuase this version represents a private-npm-package`,
+      ),
     )
   })
 })
@@ -291,26 +285,24 @@ describe('docker-package depends on...', () => {
       ],
     })
 
-    await expect(
-      runCi({
-        targetsInfo: {
-          docker: {
-            shouldPublish: true,
-            shouldDeploy: false,
-          },
+    const result = await runCi({
+      targetsInfo: {
+        npm: {
+          shouldPublish: false,
+          shouldDeploy: false,
         },
-        execaOptions: {
-          stdio: 'pipe',
-        },
-      }),
-    ).rejects.toEqual(
-      expect.objectContaining({
-        stderr: expect.stringContaining(
-          `the package "${toActualName('b')}" can't depend on dependency: "${toActualName(
-            'a',
-          )}" in version "^1.0.0" becuase this version represents a docker-package`,
-        ),
-      }),
+      },
+      execaOptions: {
+        reject: false,
+      },
+    })
+
+    expect(result.ncLogfileContent).toEqual(
+      expect.stringContaining(
+        `the package "${toActualName('b')}" can't depend on dependency: "${toActualName(
+          'a',
+        )}" in version "^1.0.0" becuase this version represents a docker-package`,
+      ),
     )
   })
 

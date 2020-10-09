@@ -24,7 +24,6 @@ export async function ci(options: {
     logger = await options.config.logger.callInitializeLogger({ repoPath: options.repoPath })
     log = logger.createLog('ci-logic')
 
-    // in tests, we extract the flowId using regex from this line (super ugly :S)
     log.info(`Starting CI`)
 
     const packagesPath = await getPackages({ repoPath: options.repoPath, log })
@@ -37,6 +36,7 @@ export async function ci(options: {
 
     flowId = repoHash
 
+    // in the legacy-tests, we extract the flowId using regex from this line (super ugly :S)
     log.info(`flow-id: "${flowId}"`)
 
     cache = await options.config.cache.callInitializeCache({ flowId, log: logger.createLog('cache'), artifacts })
