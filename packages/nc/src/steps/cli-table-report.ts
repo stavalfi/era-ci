@@ -84,7 +84,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
               ..._.flatten(
                 (() => {
                   // both of the cases are identical but needed beacuse of https://github.com/microsoft/TypeScript/issues/7294
-                  switch (node.data.type) {
+                  switch (node.data.artifactExecutionStatus) {
                     case ExecutionStatus.done:
                       return node.data.stepsResult.map(s => {
                         return s.data.artifactStepResult.notes.map(
@@ -105,7 +105,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
         })
       case ExecutionStatus.running:
         return jsonReport.stepsResultOfArtifactsByArtifact.map(node => {
-          switch (node.data.type) {
+          switch (node.data.artifactExecutionStatus) {
             case ExecutionStatus.done:
               return {
                 packageName: node.data.artifact.packageJson.name,
@@ -243,7 +243,7 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
             errors: _.flatten([
               ...(node.data.artifactResult.error ? [`${deserializeError(node.data.artifactResult.error)}`] : []),
               ...(() => {
-                switch (node.data.type) {
+                switch (node.data.artifactExecutionStatus) {
                   case ExecutionStatus.done:
                     return node.data.stepsResult.map(r =>
                       r.data.artifactStepResult.error ? [`${deserializeError(r.data.artifactStepResult.error)}`] : [],
@@ -259,7 +259,7 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
         })
       case ExecutionStatus.running:
         return jsonReport.stepsResultOfArtifactsByArtifact.map(node => {
-          switch (node.data.type) {
+          switch (node.data.artifactExecutionStatus) {
             case ExecutionStatus.done:
               return {
                 packageName: node.data.artifact.packageJson.name,

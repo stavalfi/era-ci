@@ -64,7 +64,7 @@ export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifacts
   const finalStepsStatus = calculateCombinedStatus(
     _.flatten(
       stepsResultOfArtifactsByStep.map(s => {
-        switch (s.data.type) {
+        switch (s.data.stepExecutionStatus) {
           case ExecutionStatus.done:
             return s.data.artifactsResult.map(y => y.data.artifactStepResult.status)
           case ExecutionStatus.aborted:
