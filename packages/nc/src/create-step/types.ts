@@ -26,7 +26,7 @@ export type DoneResult = {
   executionStatus: ExecutionStatus.done
   status: Status.passed | Status.failed
   durationMs: number
-  notes: string[]
+  notes: Array<string>
   error?: ErrorObject
 }
 
@@ -34,7 +34,7 @@ export type AbortResult<StatusType extends Status> = {
   executionStatus: ExecutionStatus.aborted
   status: StatusType
   durationMs: number
-  notes: string[]
+  notes: Array<string>
   error?: ErrorObject
 }
 
@@ -47,6 +47,7 @@ export type ScheduledResult = {
 }
 
 export type DoneStepResultOfArtifacts = {
+  type: ExecutionStatus.done // it is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   stepInfo: StepInfo
   stepResult: DoneResult
   artifactsResult: Graph<{
@@ -56,6 +57,7 @@ export type DoneStepResultOfArtifacts = {
 }
 
 export type AbortStepResultOfArtifacts = {
+  type: ExecutionStatus.aborted // it is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   stepInfo: StepInfo
   stepResult: AbortResult<Status>
   artifactsResult: Graph<{
@@ -65,6 +67,7 @@ export type AbortStepResultOfArtifacts = {
 }
 
 export type RunningStepResultOfArtifacts = {
+  type: ExecutionStatus.running // it is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   stepInfo: StepInfo
   stepResult: RunningResult
   artifactsResult: Graph<{
@@ -78,6 +81,7 @@ export type RunningStepResultOfArtifacts = {
 }
 
 export type ScheduledStepResultOfArtifacts = {
+  type: ExecutionStatus.scheduled // it is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   stepInfo: StepInfo
   stepResult: ScheduledResult
   artifactsResult: Graph<{ artifact: Artifact; artifactStepResult: ScheduledResult }>
@@ -92,6 +96,7 @@ export type StepResultOfArtifacts =
 export type StepsResultOfArtifactsByStep = Graph<StepResultOfArtifacts>
 
 export type DoneStepsResultOfArtifact = {
+  type: ExecutionStatus.done // it is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   artifact: Artifact
   artifactResult: DoneResult
   stepsResult: Graph<{
@@ -101,6 +106,7 @@ export type DoneStepsResultOfArtifact = {
 }
 
 export type AbortStepsResultOfArtifact = {
+  type: ExecutionStatus.aborted // it is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   artifact: Artifact
   artifactResult: AbortResult<Status>
   stepsResult: Graph<{
@@ -110,6 +116,7 @@ export type AbortStepsResultOfArtifact = {
 }
 
 export type RunningStepsResultOfArtifact = {
+  type: ExecutionStatus.running // it is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   artifact: Artifact
   artifactResult: RunningResult
   stepsResult: Graph<{
@@ -123,6 +130,7 @@ export type RunningStepsResultOfArtifact = {
 }
 
 export type ScheduledStepsResultOfArtifact = {
+  type: ExecutionStatus.scheduled // it is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   artifact: Artifact
   artifactResult: ScheduledResult
   stepsResult: Graph<{
@@ -143,7 +151,7 @@ export type CanRunStepOnArtifactResult =
   | {
       canRun: true
       artifactStepResult: {
-        notes: string[]
+        notes: Array<string>
         error?: ErrorObject
       }
     }
@@ -189,10 +197,10 @@ export type UserArtifactResult = {
 
 export type UserStepResult = {
   stepResult: {
-    notes: string[]
+    notes: Array<string>
     error?: unknown
   }
-  artifactsResult: UserArtifactResult[]
+  artifactsResult: Array<UserArtifactResult>
 }
 
 export type RunStepOnArtifacts<StepConfigurations> = (
@@ -220,7 +228,7 @@ export type CreateStepOptions<StepConfigurations, NormalizedStepConfigurations =
   stepName: string
   normalizeStepConfigurations?: (stepConfigurations: StepConfigurations) => Promise<NormalizedStepConfigurations>
   canRunStepOnArtifact?: CanRunStepOnArtifact<NormalizedStepConfigurations>
-  skipStepOnArtifactPredicates?: SkipStepOnArtifactPredicate<NormalizedStepConfigurations>[]
+  skipStepOnArtifactPredicates?: Array<SkipStepOnArtifactPredicate<NormalizedStepConfigurations>>
   onStepDone?: (options: UserRunStepOptions<NormalizedStepConfigurations>) => Promise<void>
 } & (
   | { runStepOnArtifacts: RunStepOnArtifacts<NormalizedStepConfigurations> }

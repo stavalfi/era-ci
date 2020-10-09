@@ -2,7 +2,7 @@ import execa from 'execa'
 import _ from 'lodash'
 import path from 'path'
 import { Log } from './create-logger'
-import { Step, Status, ExecutionStatus, StepInfo, StepsResultOfArtifactsByStep } from './create-step'
+import { ExecutionStatus, Status, Step, StepInfo, StepsResultOfArtifactsByStep } from './create-step'
 import { Graph, UnionArrayValues } from './types'
 
 export const didPassOrSkippedAsPassed = (status: Status): boolean =>
@@ -64,7 +64,7 @@ export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifacts
   const finalStepsStatus = calculateCombinedStatus(
     _.flatten(
       stepsResultOfArtifactsByStep.map(s => {
-        switch (s.data.stepExecutionStatus) {
+        switch (s.data.type) {
           case ExecutionStatus.done:
             return s.data.artifactsResult.map(y => y.data.artifactStepResult.status)
           case ExecutionStatus.aborted:
@@ -93,7 +93,7 @@ type SupportedExecaCommandOptions = Omit<execa.Options, 'stderr' | 'stdout' | 'a
   Required<Pick<execa.Options, 'stdio'>> & { log: Log }
 
 export async function execaCommand<Options extends SupportedExecaCommandOptions>(
-  command: string | [string, ...string[]],
+  command: string | [string, ...Array<string>],
   options: Options['stdio'] extends 'inherit' ? SupportedExecaCommandOptions : Options,
 ): Promise<execa.ExecaReturnValue<string>> {
   const execaOptions = {
@@ -123,7 +123,7 @@ export async function execaCommand<Options extends SupportedExecaCommandOptions>
   return subprocess
 }
 
-export async function getPackages({ log, repoPath }: { repoPath: string; log: Log }): Promise<string[]> {
+export async function getPackages({ log, repoPath }: { repoPath: string; log: Log }): Promise<Array<string>> {
   const result = await execaCommand('yarn workspaces --json info', {
     cwd: repoPath,
     stdio: 'pipe',

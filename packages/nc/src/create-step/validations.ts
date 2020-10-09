@@ -4,9 +4,9 @@ export function validateUserStepResult(
   runStepOptions: RunStepOptions,
   userStepResult: UserStepResult,
 ): {
-  problems: string[]
+  problems: Array<string>
 } {
-  const problems: string[] = []
+  const problems: Array<string> = []
 
   if (userStepResult.artifactsResult.length !== runStepOptions.artifacts.length) {
     problems.push(

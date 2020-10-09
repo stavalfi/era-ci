@@ -6,7 +6,7 @@ import { Log } from '@tahini/nc'
 import { latestNpmPackageVersion, publishedDockerImageTags, publishedNpmPackageVersions } from './seach-targets'
 import { CiResults, ResultingArtifact, TestOptions, ToActualName } from './types'
 
-export async function getPackages(repoPath: string): Promise<string[]> {
+export async function getPackages(repoPath: string): Promise<Array<string>> {
   const result = await execa.command('yarn workspaces --json info', {
     cwd: repoPath,
   })
@@ -48,7 +48,7 @@ export async function runNcExecutable({
   dockerRegistry: string
   dockerOrganizationName: string
 }): Promise<execa.ExecaReturnValue<string>> {
-  let stdio: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
+  let stdio: 'pipe' | 'ignore' | 'inherit' | Array<StdioOption>
   if (ciInfo.isCI || printFlowId) {
     stdio = 'pipe'
   } else {

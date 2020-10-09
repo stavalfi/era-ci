@@ -40,7 +40,7 @@ export function calculateNewVersion({
   packagePath: string
   packageJsonVersion: string
   highestPublishedVersion?: string
-  allVersions?: string[]
+  allVersions?: Array<string>
 }): string {
   if (!semver.valid(packageJsonVersion)) {
     throw new Error(`version packgeJson in ${packagePath} is invalid: ${packageJsonVersion}`)

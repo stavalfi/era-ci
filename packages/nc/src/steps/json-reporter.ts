@@ -104,13 +104,25 @@ function removeNodeFromGraph<T>({
   return result
 }
 
-function getFlowResult({
+function getJsonReport({
+  flowId,
+  stepsResultOfArtifactsByArtifact,
   stepsResultOfArtifactsByStep,
   startFlowMs,
+  steps,
+  artifacts,
 }: {
-  stepsResultOfArtifactsByStep: Graph<StepResultOfArtifacts>
+  steps: Graph<{
+    stepInfo: StepInfo
+  }>
+  artifacts: Graph<{
+    artifact: Artifact
+  }>
+  flowId: string
   startFlowMs: number
-}): JsonReport['flowResult'] {
+  stepsResultOfArtifactsByStep: Graph<StepResultOfArtifacts>
+  stepsResultOfArtifactsByArtifact: Graph<StepsResultOfArtifact>
+}): JsonReport {
   const flowExecutionStatus = calculateExecutionStatus(
     stepsResultOfArtifactsByStep.map(s => s.data.stepResult.executionStatus),
   )
@@ -118,59 +130,103 @@ function getFlowResult({
   switch (flowExecutionStatus) {
     case ExecutionStatus.done:
       return {
-        executionStatus: ExecutionStatus.done,
-        notes: _.flatMapDeep(
-          stepsResultOfArtifactsByStep.map(s => {
-            if (s.data.stepResult.executionStatus !== ExecutionStatus.done) {
-              throw new Error(`we can't be here`)
-            }
-            return s.data.stepResult.notes
-          }),
-        ),
-        durationMs: Date.now() - startFlowMs,
-        status: calculateCombinedStatus(
-          stepsResultOfArtifactsByStep.map(s => {
-            if (s.data.stepResult.executionStatus !== ExecutionStatus.done) {
-              throw new Error(`we can't be here`)
-            }
-            return s.data.stepResult.status
-          }),
-        ),
+        artifacts,
+        steps,
+        flow: {
+          flowId: flowId,
+          startFlowMs,
+        },
+        flowResult: {
+          executionStatus: ExecutionStatus.done,
+          notes: _.flatMapDeep(
+            stepsResultOfArtifactsByStep.map(s => {
+              if (s.data.stepResult.executionStatus !== ExecutionStatus.done) {
+                throw new Error(`we can't be here`)
+              }
+              return s.data.stepResult.notes
+            }),
+          ),
+          durationMs: Date.now() - startFlowMs,
+          status: calculateCombinedStatus(
+            stepsResultOfArtifactsByStep.map(s => {
+              if (s.data.stepResult.executionStatus !== ExecutionStatus.done) {
+                throw new Error(`we can't be here`)
+              }
+              return s.data.stepResult.status
+            }),
+          ),
+        },
+        stepsResultOfArtifactsByStep: stepsResultOfArtifactsByStep as Graph<DoneStepResultOfArtifacts>,
+        stepsResultOfArtifactsByArtifact: stepsResultOfArtifactsByArtifact as Graph<DoneStepsResultOfArtifact>,
       }
     case ExecutionStatus.aborted:
       return {
-        executionStatus: ExecutionStatus.aborted,
-        notes: _.flatMapDeep(
-          stepsResultOfArtifactsByStep.map(s => {
-            if (
-              s.data.stepResult.executionStatus !== ExecutionStatus.done &&
-              s.data.stepResult.executionStatus !== ExecutionStatus.aborted
-            ) {
-              throw new Error(`we can't be here`)
-            }
-            return s.data.stepResult.notes
-          }),
-        ),
-        durationMs: Date.now() - startFlowMs,
-        status: calculateCombinedStatus(
-          stepsResultOfArtifactsByStep.map(s => {
-            if (
-              s.data.stepResult.executionStatus !== ExecutionStatus.done &&
-              s.data.stepResult.executionStatus !== ExecutionStatus.aborted
-            ) {
-              throw new Error(`we can't be here`)
-            }
-            return s.data.stepResult.status
-          }),
-        ),
+        artifacts,
+        steps,
+        flow: {
+          flowId: flowId,
+          startFlowMs,
+        },
+        flowResult: {
+          executionStatus: ExecutionStatus.aborted,
+          notes: _.flatMapDeep(
+            stepsResultOfArtifactsByStep.map(s => {
+              if (
+                s.data.stepResult.executionStatus !== ExecutionStatus.done &&
+                s.data.stepResult.executionStatus !== ExecutionStatus.aborted
+              ) {
+                throw new Error(`we can't be here`)
+              }
+              return s.data.stepResult.notes
+            }),
+          ),
+          durationMs: Date.now() - startFlowMs,
+          status: calculateCombinedStatus(
+            stepsResultOfArtifactsByStep.map(s => {
+              if (
+                s.data.stepResult.executionStatus !== ExecutionStatus.done &&
+                s.data.stepResult.executionStatus !== ExecutionStatus.aborted
+              ) {
+                throw new Error(`we can't be here`)
+              }
+              return s.data.stepResult.status
+            }),
+          ),
+        },
+        stepsResultOfArtifactsByStep: stepsResultOfArtifactsByStep as Graph<
+          DoneStepResultOfArtifacts | AbortStepResultOfArtifacts
+        >,
+        stepsResultOfArtifactsByArtifact: stepsResultOfArtifactsByArtifact as Graph<
+          DoneStepsResultOfArtifact | AbortStepsResultOfArtifact
+        >,
       }
     case ExecutionStatus.running:
       return {
-        executionStatus: ExecutionStatus.running,
+        artifacts,
+        steps,
+        flow: {
+          flowId: flowId,
+          startFlowMs,
+        },
+        flowResult: {
+          executionStatus: ExecutionStatus.running,
+        },
+        stepsResultOfArtifactsByStep: stepsResultOfArtifactsByStep as Graph<StepResultOfArtifacts>,
+        stepsResultOfArtifactsByArtifact: stepsResultOfArtifactsByArtifact as Graph<StepsResultOfArtifact>,
       }
     case ExecutionStatus.scheduled:
       return {
-        executionStatus: ExecutionStatus.scheduled,
+        artifacts,
+        steps,
+        flow: {
+          flowId: flowId,
+          startFlowMs,
+        },
+        flowResult: {
+          executionStatus: ExecutionStatus.scheduled,
+        },
+        stepsResultOfArtifactsByStep: stepsResultOfArtifactsByStep as Graph<ScheduledStepResultOfArtifacts>,
+        stepsResultOfArtifactsByArtifact: stepsResultOfArtifactsByArtifact as Graph<ScheduledStepsResultOfArtifact>,
       }
   }
 }
@@ -201,24 +257,17 @@ export const jsonReporter = createStep<JsonReportConfiguration>({
         nodeIndexToRemove: currentStepInfo.index,
       }),
     }
-
-    const jsonReport: JsonReport = {
+    const jsonReport = getJsonReport({
+      startFlowMs,
       artifacts,
-      steps: withoutThisStep.steps,
-      flow: {
-        flowId: flowId,
-        startFlowMs,
-      },
-      flowResult: getFlowResult({
-        startFlowMs,
-        stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
-      }),
+      flowId,
+      steps,
       stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
       stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
         artifacts,
         stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
       }),
-    }
+    })
 
     const jsonReportTtl = cache.ttls.stepSummary
 

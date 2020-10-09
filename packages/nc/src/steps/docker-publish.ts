@@ -20,7 +20,11 @@ export type DockerPublishConfiguration = {
 
 const getVersionCacheKey = ({ artifactHash }: { artifactHash: string }) => `${artifactHash}-docker-version`
 
-async function runSkopeoCommand(command: string | [string, ...string[]], repoPath: string, log: Log): Promise<string> {
+async function runSkopeoCommand(
+  command: string | [string, ...Array<string>],
+  repoPath: string,
+  log: Log,
+): Promise<string> {
   const { stdout: result } = await execaCommand(command, { cwd: repoPath, stdio: 'pipe', log })
   return result
 }
@@ -125,7 +129,7 @@ async function isDockerVersionAlreadyPulished({
   }
 }
 
-function getHighestDockerTag(tags: string[]): string | undefined {
+function getHighestDockerTag(tags: Array<string>): string | undefined {
   const sorted = semver.sort(tags.filter((tag: string) => semver.valid(tag)))
   if (sorted.length > 0) {
     return sorted[sorted.length - 1]
@@ -160,7 +164,7 @@ export async function getDockerImageLabelsAndTags({
     username: string
     token: string
   }
-}): Promise<{ latestHash?: string; latestTag?: string; allTags: string[] } | undefined> {
+}): Promise<{ latestHash?: string; latestTag?: string; allTags: Array<string> } | undefined> {
   const fullImageNameWithoutTag = buildFullDockerImageName({
     dockerOrganizationName,
     dockerRegistry,

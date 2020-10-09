@@ -53,18 +53,18 @@ export type TestOptions = {
           {})
   }
   execaOptions?: {
-    stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
+    stdio?: 'pipe' | 'ignore' | 'inherit' | Array<StdioOption>
     reject?: boolean
   }
 }
 
 export type ResultingArtifact = {
   npm: {
-    versions: string[]
+    versions: Array<string>
     highestVersion?: string
   }
   docker: {
-    tags: string[]
+    tags: Array<string>
   }
 }
 
@@ -99,7 +99,7 @@ export type RunCi = (options?: TestOptions) => Promise<CiResults>
 export type GetFlowLogs = (options: {
   flowId: string
   execaOptions?: {
-    stdio?: 'pipe' | 'ignore' | 'inherit' | readonly StdioOption[]
+    stdio?: 'pipe' | 'ignore' | 'inherit' | Array<StdioOption>
     reject?: boolean
   }
 }) => Promise<execa.ExecaReturnValue<string>>

@@ -1,5 +1,5 @@
-import { Status } from '../src'
-import { createTest } from './prepare-tests'
+import { ExecutionStatus, JsonReport, Status } from '../src'
+import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
 
 const { createRepo } = createTest()
 
@@ -59,9 +59,16 @@ test('flow should be skippedAsPassed because there are no steps', async () => {
 
   const { jsonReport } = await runCi()
 
-  expect(jsonReport.flowResult.notes).toHaveLength(0)
-  expect(jsonReport.flowResult.error).toBeFalsy()
-  expect(jsonReport.flowResult.status).toEqual(Status.skippedAsPassed)
+  const expectedJsonReport: DeepPartial<JsonReport> = {
+    flowResult: {
+      notes: [],
+      error: undefined,
+      executionStatus: ExecutionStatus.aborted,
+      status: Status.skippedAsPassed,
+    },
+  }
+
+  expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
 test('verify artifact in json-report', async () => {
@@ -74,6 +81,20 @@ test('verify artifact in json-report', async () => {
     ],
   })
   const { jsonReport } = await runCi()
-  expect(jsonReport.artifacts).toHaveLength(1)
-  expect(jsonReport.artifacts[0].data.artifact.packageJson.name).toEqual(toActualName('a'))
+
+  const expectedJsonReport: DeepPartial<JsonReport> = {
+    artifacts: [
+      {
+        data: {
+          artifact: {
+            packageJson: {
+              name: toActualName('a'),
+            },
+          },
+        },
+      },
+    ],
+  }
+
+  expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
 })

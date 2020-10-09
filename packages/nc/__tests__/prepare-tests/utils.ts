@@ -5,8 +5,8 @@ export function isDeepSubsetOf({
 }: {
   fullObj: unknown
   subset: unknown
-  path: string[]
-}): { result: true } | { result: false; problem: string; fullObj: unknown; subset: unknown; path: string[] } {
+  path: Array<string>
+}): { result: true } | { result: false; problem: string; fullObj: unknown; subset: unknown; path: Array<string> } {
   if (typeof fullObj !== typeof subset) {
     return {
       result: false,
