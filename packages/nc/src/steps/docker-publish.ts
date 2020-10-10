@@ -6,9 +6,15 @@ import { PackageJson } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
 import { ExecutionStatus, Status } from '../types'
+import {
+  artifactStepResultMissingOrFailedInCacheConstrain,
+  artifactStepResultMissingOrPassedInCacheConstrain,
+} from '../artifact-in-step-constrains'
+import { createArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
+import { isStepEnabledConstrain } from '../step-constrains'
 
 export type DockerPublishConfiguration = {
-  shouldPublish: boolean
+  isStepEnabled: boolean
   registry: string
   registryAuth?: {
     username: string
@@ -281,92 +287,86 @@ async function calculateNextVersion({
   })
 }
 
+const customConstrain = createArtifactInStepConstrain<void, void, DockerPublishConfiguration>({
+  constrainName: 'custom-constrain',
+  constrain: async ({ currentArtifact, stepConfigurations, cache, repoPath, log }) => {
+    const targetType = await getPackageTargetType(
+      currentArtifact.data.artifact.packagePath,
+      currentArtifact.data.artifact.packageJson,
+    )
+    if (targetType !== TargetType.docker) {
+      return {
+        canRun: false,
+        artifactStepResult: {
+          notes: [],
+          executionStatus: ExecutionStatus.aborted,
+          status: Status.skippedAsPassed,
+        },
+      }
+    }
+
+    const dockerVersionResult = await cache.get(
+      getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
+      r => {
+        if (typeof r === 'string') {
+          return r
+        } else {
+          throw new Error(
+            `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+          )
+        }
+      },
+    )
+
+    if (!dockerVersionResult) {
+      return {
+        canRun: true,
+        artifactStepResult: {
+          notes: [],
+        },
+      }
+    }
+
+    if (
+      await isDockerVersionAlreadyPulished({
+        dockerRegistry: stepConfigurations.registry,
+        packageName: currentArtifact.data.artifact.packageJson.name,
+        imageTag: dockerVersionResult.value,
+        dockerOrganizationName: stepConfigurations.dockerOrganizationName,
+        repoPath,
+        log,
+      })
+    ) {
+      return {
+        canRun: false,
+        artifactStepResult: {
+          notes: [
+            `this package was already published in flow: "${dockerVersionResult.flowId}" with the same content as version: ${dockerVersionResult.value}`,
+          ],
+          executionStatus: ExecutionStatus.aborted,
+          status: Status.skippedAsPassed,
+        },
+      }
+    }
+
+    return {
+      canRun: true,
+      artifactStepResult: {
+        notes: [],
+      },
+    }
+  },
+})
+
 export const dockerPublish = createStep<DockerPublishConfiguration>({
   stepName: 'docker-publish',
-  skip: {
-    canRunStepOnArtifact: {
-      customPredicate: async ({ currentArtifact, stepConfigurations, cache, repoPath, log }) => {
-        const targetType = await getPackageTargetType(
-          currentArtifact.data.artifact.packagePath,
-          currentArtifact.data.artifact.packageJson,
-        )
-        if (targetType !== TargetType.docker) {
-          return {
-            canRun: false,
-            artifactStepResult: {
-              notes: [],
-              executionStatus: ExecutionStatus.aborted,
-              status: Status.skippedAsPassed,
-            },
-          }
-        }
-
-        if (!stepConfigurations.shouldPublish) {
-          return {
-            canRun: false,
-            artifactStepResult: {
-              notes: [`docker-publish is disabled`],
-              executionStatus: ExecutionStatus.aborted,
-              status: Status.skippedAsPassed,
-            },
-          }
-        }
-
-        const dockerVersionResult = await cache.get(
-          getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
-          r => {
-            if (typeof r === 'string') {
-              return r
-            } else {
-              throw new Error(
-                `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-              )
-            }
-          },
-        )
-
-        if (!dockerVersionResult) {
-          return {
-            canRun: true,
-            artifactStepResult: {
-              notes: [],
-            },
-          }
-        }
-
-        if (
-          await isDockerVersionAlreadyPulished({
-            dockerRegistry: stepConfigurations.registry,
-            packageName: currentArtifact.data.artifact.packageJson.name,
-            imageTag: dockerVersionResult.value,
-            dockerOrganizationName: stepConfigurations.dockerOrganizationName,
-            repoPath,
-            log,
-          })
-        ) {
-          return {
-            canRun: false,
-            artifactStepResult: {
-              notes: [
-                `this package was already published in flow: "${dockerVersionResult.flowId}" with the same content as version: ${dockerVersionResult.value}`,
-              ],
-              executionStatus: ExecutionStatus.aborted,
-              status: Status.skippedAsPassed,
-            },
-          }
-        }
-
-        return {
-          canRun: true,
-          artifactStepResult: {
-            notes: [],
-          },
-        }
-      },
-      options: {
-        // TODO: we need to rerun only if the last time we run this step on this package-hash, the step failed.
-      },
-    },
+  runIfAllConstrainsApply: {
+    canRunStepOnArtifact: [
+      artifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
+      artifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'docker-publish' }),
+      customConstrain(),
+    ],
+    canRunStep: [isStepEnabledConstrain()],
   },
   run: {
     runStrategy: RunStrategy.perArtifact,

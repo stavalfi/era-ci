@@ -1,10 +1,10 @@
-import { createCanRunStepOnArtifactsPredicate } from '../create-can-run-step-on-artifacts-predicate'
+import { createStepConstrain } from '../create-step-constrain'
 import { ExecutionStatus, Status } from '../types'
 
-export const rootPackageJsonHasScript = createCanRunStepOnArtifactsPredicate<{ scriptName: string }>({
-  predicateName: 'root-package-json-has-script',
-  predicate: async ({ configurations, rootPackageJson }) => {
-    const scriptName = configurations.scriptName
+export const rootPackageJsonHasScriptConstrain = createStepConstrain<{ scriptName: string }>({
+  constrainName: 'root-package-json-has-script-step-constrain',
+  constrain: async ({ constrainConfigurations, rootPackageJson }) => {
+    const scriptName = constrainConfigurations.scriptName
     if (rootPackageJson.scripts && scriptName in rootPackageJson.scripts && rootPackageJson.scripts[scriptName]) {
       return true
     } else {

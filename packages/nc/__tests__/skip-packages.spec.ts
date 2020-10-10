@@ -1,4 +1,4 @@
-import { createStep, ExecutionStatus, JsonReport, RunStrategy, Status } from '../src'
+import { createArtifactInStepConstrain, createStep, ExecutionStatus, JsonReport, RunStrategy, Status } from '../src'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
 
 const { createRepo } = createTest()
@@ -17,12 +17,13 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          skip: {
-            canRunStepOnArtifact: {
-              customPredicate: async () => {
-                return true
-              },
-            },
+          runIfAllConstrainsApply: {
+            canRunStepOnArtifact: [
+              createArtifactInStepConstrain({
+                constrainName: 'test-constrain',
+                constrain: async () => true,
+              })(),
+            ],
           },
           run: {
             runStrategy: RunStrategy.perArtifact,
@@ -95,19 +96,20 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          skip: {
-            canRunStepOnArtifact: {
-              customPredicate: async () => {
-                return {
+          runIfAllConstrainsApply: {
+            canRunStepOnArtifact: [
+              createArtifactInStepConstrain({
+                constrainName: 'test-constrain',
+                constrain: async () => ({
                   canRun: false,
                   artifactStepResult: {
                     notes: [],
                     executionStatus: ExecutionStatus.aborted,
                     status: Status.skippedAsPassed,
                   },
-                }
-              },
-            },
+                }),
+              })(),
+            ],
           },
           run: {
             runStrategy: RunStrategy.perArtifact,
@@ -181,19 +183,20 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          skip: {
-            canRunStepOnArtifact: {
-              customPredicate: async () => {
-                return {
+          runIfAllConstrainsApply: {
+            canRunStepOnArtifact: [
+              createArtifactInStepConstrain({
+                constrainName: 'test-constrain',
+                constrain: async () => ({
                   canRun: false,
                   artifactStepResult: {
                     notes: ['note1', 'note2'],
                     executionStatus: ExecutionStatus.aborted,
                     status: Status.skippedAsPassed,
                   },
-                }
-              },
-            },
+                }),
+              })(),
+            ],
           },
           run: {
             runStrategy: RunStrategy.perArtifact,
@@ -267,19 +270,20 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          skip: {
-            canRunStepOnArtifact: {
-              customPredicate: async () => {
-                return {
+          runIfAllConstrainsApply: {
+            canRunStepOnArtifact: [
+              createArtifactInStepConstrain({
+                constrainName: 'test-constrain',
+                constrain: async () => ({
                   canRun: false,
                   artifactStepResult: {
                     notes: ['note1', 'note2', 'note1', 'note2'],
                     executionStatus: ExecutionStatus.aborted,
                     status: Status.skippedAsPassed,
                   },
-                }
-              },
-            },
+                }),
+              })(),
+            ],
           },
           run: {
             runStrategy: RunStrategy.perArtifact,

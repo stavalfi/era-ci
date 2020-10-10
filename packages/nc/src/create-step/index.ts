@@ -1,6 +1,7 @@
 import _ from 'lodash'
 import { serializeError } from 'serialize-error'
-import { runCanRunStepOnArtifactsPredicates } from '../create-can-run-step-on-artifacts-predicate'
+import { runCanRunStepOnArtifactPredicates } from '../create-artifact-in-step-constrain'
+import { runSkipSteps } from '../create-step-constrain'
 import {
   AbortResult,
   Artifact,
@@ -12,7 +13,6 @@ import {
   Status,
 } from '../types'
 import { calculateCombinedStatus } from '../utils'
-import { checkIfCanRunStepOnArtifact } from './can-run-step-on-artifact'
 import {
   CanRunStepOnArtifactResult,
   CreateStepOptions,
@@ -30,24 +30,23 @@ import {
 import { validateUserStepResult } from './validations'
 
 export {
+  AbortStepResultOfArtifacts,
+  AbortStepsResultOfArtifact,
+  DoneStepResultOfArtifacts,
+  DoneStepsResultOfArtifact,
+  RunningStepResultOfArtifacts,
+  RunningStepsResultOfArtifact,
+  RunStrategy,
+  ScheduledStepResultOfArtifacts,
+  ScheduledStepsResultOfArtifact,
   Step,
   StepInfo,
   StepResultOfArtifacts,
   StepsResultOfArtifact,
   StepsResultOfArtifactsByArtifact,
   StepsResultOfArtifactsByStep,
-  DoneStepResultOfArtifacts,
-  AbortStepResultOfArtifacts,
-  RunningStepResultOfArtifacts,
-  ScheduledStepResultOfArtifacts,
-  DoneStepsResultOfArtifact,
-  AbortStepsResultOfArtifact,
-  RunningStepsResultOfArtifact,
-  ScheduledStepsResultOfArtifact,
   UserRunStepOptions,
-  RunStrategy,
 } from './types'
-
 export { stepToString, toStepsResultOfArtifactsByArtifact } from './utils'
 
 async function runStepOnEveryArtifact<StepConfigurations>({
@@ -161,15 +160,15 @@ async function getUserStepResult<StepConfigurations, NormalizedStepConfiguration
   const [canRunPerArtifact, canRunAllArtifacts] = await Promise.all([
     Promise.all(
       userRunStepOptions.artifacts.map(node =>
-        checkIfCanRunStepOnArtifact({
-          ...userRunStepOptions,
+        runCanRunStepOnArtifactPredicates({
+          predicates: createStepOptions.runIfAllConstrainsApply?.canRunStepOnArtifact || [],
+          userRunStepOptions,
           currentArtifact: node,
-          canRunStepOnArtifact: createStepOptions.skip?.canRunStepOnArtifact,
         }),
       ),
     ),
-    runCanRunStepOnArtifactsPredicates({
-      predicates: createStepOptions.skip?.canRunStepOnArtifacts || [],
+    runSkipSteps({
+      predicates: createStepOptions.runIfAllConstrainsApply?.canRunStep || [],
       userRunStepOptions,
     }),
   ])
@@ -272,10 +271,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
     if (problems.length > 0) {
       return {
         stepExecutionStatus: ExecutionStatus.done,
-        stepInfo: {
-          stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
-          stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,
-        },
+        stepInfo: runStepOptions.currentStepInfo.data.stepInfo,
         stepResult: {
           executionStatus: ExecutionStatus.done,
           status: Status.failed,
@@ -338,10 +334,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
     if (areAllDone) {
       return {
         stepExecutionStatus: ExecutionStatus.done,
-        stepInfo: {
-          stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
-          stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,
-        },
+        stepInfo: runStepOptions.currentStepInfo.data.stepInfo,
         stepResult: {
           executionStatus: ExecutionStatus.done,
           durationMs: Date.now() - startStepMs,
@@ -374,10 +367,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
     } else {
       return {
         stepExecutionStatus: ExecutionStatus.aborted,
-        stepInfo: {
-          stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
-          stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,
-        },
+        stepInfo: runStepOptions.currentStepInfo.data.stepInfo,
         stepResult: {
           executionStatus: ExecutionStatus.aborted,
           durationMs: Date.now() - startStepMs,
@@ -391,10 +381,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
     const endDurationMs = Date.now() - startStepMs
     const result: StepResultOfArtifacts = {
       stepExecutionStatus: ExecutionStatus.done,
-      stepInfo: {
-        stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
-        stepName: runStepOptions.currentStepInfo.data.stepInfo.stepName,
-      },
+      stepInfo: runStepOptions.currentStepInfo.data.stepInfo,
       stepResult: {
         executionStatus: ExecutionStatus.done,
         durationMs: endDurationMs,

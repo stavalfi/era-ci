@@ -1,11 +1,17 @@
 import { createFile } from 'create-folder-structure'
+import {
+  artifactStepResultMissingOrFailedInCacheConstrain,
+  artifactStepResultMissingOrPassedInCacheConstrain,
+} from '../artifact-in-step-constrains'
+import { createArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
 import { createStep, RunStrategy } from '../create-step'
+import { isStepEnabledConstrain } from '../step-constrains'
 import { ExecutionStatus, Status } from '../types'
 import { execaCommand } from '../utils'
 import { getPackageTargetType, TargetType } from './utils'
 
 export type K8sGcloudDeploymentConfiguration = {
-  shouldDeploy: boolean
+  isStepEnabled: boolean
   gcloudProjectId: string
   k8sClusterTokenBase64: string
   k8sClusterName: string
@@ -15,45 +21,42 @@ export type K8sGcloudDeploymentConfiguration = {
   fullImageNameCacheKey: (options: { packageHash: string }) => string
 }
 
+const customConstrain = createArtifactInStepConstrain<void, void, K8sGcloudDeploymentConfiguration>({
+  constrainName: 'custom-constrain',
+  constrain: async ({ currentArtifact }) => {
+    const targetType = await getPackageTargetType(
+      currentArtifact.data.artifact.packagePath,
+      currentArtifact.data.artifact.packageJson,
+    )
+    if (targetType !== TargetType.docker) {
+      return {
+        canRun: false,
+        artifactStepResult: {
+          notes: [],
+          executionStatus: ExecutionStatus.aborted,
+          status: Status.skippedAsPassed,
+        },
+      }
+    }
+
+    return {
+      canRun: true,
+      artifactStepResult: {
+        notes: [],
+      },
+    }
+  },
+})
+
 export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>({
   stepName: 'k8s-gcloud-deployment',
-  skip: {
-    canRunStepOnArtifact: {
-      customPredicate: async ({ currentArtifact, stepConfigurations }) => {
-        const targetType = await getPackageTargetType(
-          currentArtifact.data.artifact.packagePath,
-          currentArtifact.data.artifact.packageJson,
-        )
-        if (targetType !== TargetType.docker) {
-          return {
-            canRun: false,
-            artifactStepResult: {
-              notes: [],
-              executionStatus: ExecutionStatus.aborted,
-              status: Status.skippedAsPassed,
-            },
-          }
-        }
-
-        if (!stepConfigurations.shouldDeploy) {
-          return {
-            canRun: false,
-            artifactStepResult: {
-              notes: [`k8s-gcloud deployment is disabled`],
-              executionStatus: ExecutionStatus.aborted,
-              status: Status.skippedAsPassed,
-            },
-          }
-        }
-
-        return {
-          canRun: true,
-          artifactStepResult: {
-            notes: [],
-          },
-        }
-      },
-    },
+  runIfAllConstrainsApply: {
+    canRunStepOnArtifact: [
+      artifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'docker-publish' }),
+      artifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'k8s-gcloud-deployment' }),
+      customConstrain(),
+    ],
+    canRunStep: [isStepEnabledConstrain()],
   },
   run: {
     runStrategy: RunStrategy.perArtifact,

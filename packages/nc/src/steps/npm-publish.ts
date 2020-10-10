@@ -2,8 +2,14 @@ import fse from 'fs-extra'
 import _ from 'lodash'
 import os from 'os'
 import path from 'path'
+import {
+  artifactStepResultMissingOrFailedInCacheConstrain,
+  artifactStepResultMissingOrPassedInCacheConstrain,
+} from '../artifact-in-step-constrains'
+import { createArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
 import { Log } from '../create-logger'
 import { createStep, RunStrategy } from '../create-step'
+import { isStepEnabledConstrain } from '../step-constrains'
 import { ExecutionStatus, PackageJson, Status } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
@@ -14,7 +20,7 @@ export enum NpmScopeAccess {
 }
 
 export type NpmPublishConfiguration = {
-  shouldPublish: boolean
+  isStepEnabled: boolean
   registry: string
   npmScopeAccess: NpmScopeAccess
   publishAuth: {
@@ -163,96 +169,89 @@ export async function npmRegistryLogin({
   }
 }
 
+const customConstrain = createArtifactInStepConstrain<void, void, NpmPublishConfiguration>({
+  constrainName: 'custom-constrain',
+  constrain: async ({ currentArtifact, stepConfigurations, cache, repoPath, log }) => {
+    const targetType = await getPackageTargetType(
+      currentArtifact.data.artifact.packagePath,
+      currentArtifact.data.artifact.packageJson,
+    )
+
+    if (targetType !== TargetType.npm) {
+      return {
+        canRun: false,
+        artifactStepResult: {
+          notes: [],
+          executionStatus: ExecutionStatus.aborted,
+          status: Status.skippedAsPassed,
+        },
+      }
+    }
+
+    const npmVersionResult = await cache.get(
+      getVersionCacheKey({
+        artifactHash: currentArtifact.data.artifact.packageHash,
+        artifactName: currentArtifact.data.artifact.packageJson.name,
+      }),
+      r => {
+        if (typeof r === 'string') {
+          return r
+        } else {
+          throw new Error(
+            `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+          )
+        }
+      },
+    )
+
+    if (!npmVersionResult) {
+      return {
+        canRun: true,
+        artifactStepResult: {
+          notes: [],
+        },
+      }
+    }
+
+    if (
+      await isNpmVersionAlreadyPulished({
+        npmRegistry: stepConfigurations.registry,
+        packageName: currentArtifact.data.artifact.packageJson.name,
+        packageVersion: npmVersionResult.value,
+        repoPath,
+        log,
+      })
+    ) {
+      return {
+        canRun: false,
+        artifactStepResult: {
+          notes: [
+            `this package was already published in flow: "${npmVersionResult.flowId}" with the same content as version: ${npmVersionResult.value}`,
+          ],
+          executionStatus: ExecutionStatus.aborted,
+          status: Status.skippedAsPassed,
+        },
+      }
+    }
+
+    return {
+      canRun: true,
+      artifactStepResult: {
+        notes: [],
+      },
+    }
+  },
+})
+
 export const npmPublish = createStep<NpmPublishConfiguration>({
   stepName: 'npm-publish',
-  skip: {
-    canRunStepOnArtifact: {
-      customPredicate: async ({ currentArtifact, stepConfigurations, repoPath, cache, log }) => {
-        const targetType = await getPackageTargetType(
-          currentArtifact.data.artifact.packagePath,
-          currentArtifact.data.artifact.packageJson,
-        )
-
-        if (targetType !== TargetType.npm) {
-          return {
-            canRun: false,
-            artifactStepResult: {
-              notes: [],
-              executionStatus: ExecutionStatus.aborted,
-              status: Status.skippedAsPassed,
-            },
-          }
-        }
-
-        if (!stepConfigurations.shouldPublish) {
-          return {
-            canRun: false,
-            artifactStepResult: {
-              notes: [`npm-publish is disabled`],
-              executionStatus: ExecutionStatus.aborted,
-              status: Status.skippedAsPassed,
-            },
-          }
-        }
-
-        const npmVersionResult = await cache.get(
-          getVersionCacheKey({
-            artifactHash: currentArtifact.data.artifact.packageHash,
-            artifactName: currentArtifact.data.artifact.packageJson.name,
-          }),
-          r => {
-            if (typeof r === 'string') {
-              return r
-            } else {
-              throw new Error(
-                `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-              )
-            }
-          },
-        )
-
-        if (!npmVersionResult) {
-          return {
-            canRun: true,
-            artifactStepResult: {
-              notes: [],
-            },
-          }
-        }
-
-        if (
-          await isNpmVersionAlreadyPulished({
-            npmRegistry: stepConfigurations.registry,
-            packageName: currentArtifact.data.artifact.packageJson.name,
-            packageVersion: npmVersionResult.value,
-            repoPath,
-            log,
-          })
-        ) {
-          return {
-            canRun: false,
-            artifactStepResult: {
-              notes: [
-                `this package was already published in flow: "${npmVersionResult.flowId}" with the same content as version: ${npmVersionResult.value}`,
-              ],
-              executionStatus: ExecutionStatus.aborted,
-              status: Status.skippedAsPassed,
-            },
-          }
-        }
-
-        return {
-          canRun: true,
-          artifactStepResult: {
-            notes: [],
-          },
-        }
-      },
-      options: {
-        // maybe the publish already succeed but someone manually deleted the target from the registry so we need to check that manually as well
-        runIfPackageResultsInCache: true,
-      },
-    },
+  runIfAllConstrainsApply: {
+    canRunStepOnArtifact: [
+      artifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
+      artifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'npm-publish' }),
+      customConstrain(),
+    ],
+    canRunStep: [isStepEnabledConstrain()],
   },
   run: {
     runStrategy: RunStrategy.perArtifact,
