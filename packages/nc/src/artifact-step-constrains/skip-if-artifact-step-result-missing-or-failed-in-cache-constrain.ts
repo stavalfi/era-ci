@@ -7,7 +7,7 @@ export const skipIfArtifactStepResultMissingOrFailedInCacheConstrain = createArt
   skipAsFailedIfStepNotFoundInCache: boolean
 }>({
   constrainName: 'skip-if-artifact-step-result-missing-or-failed-in-cache-constrain',
-  constrain: async ({ currentArtifact, cache, currentStepInfo, constrainConfigurations, steps }) => {
+  constrain: async ({ currentArtifact, cache, currentStepInfo, constrainConfigurations, steps, flowId }) => {
     const stepName = constrainConfigurations.stepNameToSearchInCache
     const step = steps.find(step => step.data.stepInfo.stepName === stepName)
 
@@ -64,11 +64,28 @@ export const skipIfArtifactStepResultMissingOrFailedInCacheConstrain = createArt
         },
       }
     } else {
+      const isResultFromThisFlow = flowId === actualStepResult.flowId
+      const isThisStep = currentStepInfo.data.stepInfo.stepId === step.data.stepInfo.stepId
+      const notes: string[] = []
+      if (isResultFromThisFlow && isThisStep) {
+        throw new Error(
+          `we can't be here because we can't fail on this step in this flow if this step didn't run it in this flow`,
+        )
+      }
+      if (isResultFromThisFlow && !isThisStep) {
+        notes.push(`step: "${step.data.stepInfo.displayName}" failed`)
+      }
+      if (!isResultFromThisFlow && isThisStep) {
+        notes.push(`step already failed in flow: "${actualStepResult.flowId}"`)
+      }
+      if (!isResultFromThisFlow && !isThisStep) {
+        notes.push(`step: "${step.data.stepInfo.displayName}" failed in flow: "${actualStepResult.flowId}"`)
+      }
       return {
         constrainResult: ConstrainResult.shouldSkip,
         artifactStepResult: {
           errors: [],
-          notes: [`artifact already failed on this step in flow: "${actualStepResult?.flowId}"`],
+          notes,
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsFailed,
         },
