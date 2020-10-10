@@ -3,9 +3,17 @@ import path from 'path'
 import { execaCommand } from '../utils'
 import { createStep, RunStrategy } from '../create-step'
 import { ExecutionStatus, Status } from '../types'
+import { skipIfStepResultNotPassedConstrain } from '../step-constrains'
 
 export const install = createStep({
   stepName: 'install',
+  constrains: {
+    onStep: [
+      skipIfStepResultNotPassedConstrain({
+        stepName: 'validate-packages',
+      }),
+    ],
+  },
   run: {
     runStrategy: RunStrategy.root,
     runStepOnRoot: async ({ repoPath, log }) => {
