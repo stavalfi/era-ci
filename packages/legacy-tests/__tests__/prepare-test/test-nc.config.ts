@@ -70,7 +70,7 @@ export default async (): Promise<Config> => {
       testScriptName: TEST_SCRIPT_NAME!,
     }),
     npmPublish({
-      shouldPublish: Boolean(SHOULD_PUBLISH_NPM),
+      isStepEnabled: Boolean(SHOULD_PUBLISH_NPM),
       npmScopeAccess: NpmScopeAccess.public,
       registry: NPM_REGISTRY!,
       publishAuth: {
@@ -80,7 +80,7 @@ export default async (): Promise<Config> => {
       },
     }),
     dockerPublish({
-      shouldPublish: Boolean(SHOULD_PUBLISH_DOCKER),
+      isStepEnabled: Boolean(SHOULD_PUBLISH_DOCKER),
       dockerOrganizationName: DOCKER_ORGANIZATION_NAME!,
       registry: DOCKER_REGISTRY!,
       registryAuth: {

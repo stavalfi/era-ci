@@ -36,6 +36,12 @@ export {
 } from './steps'
 export { LoggerConfiguration, winstonLogger } from './winston-logger'
 export { CacheConfiguration, redisWithNodeCache } from './redis-with-node-cache'
+export {
+  createArtifactInStepConstrain,
+  ArtifactInStepConstrain,
+  ArtifactInStepConstrainResult,
+} from './create-artifact-in-step-constrain'
+export { createStepConstrain, StepConstrain, StepConstrainResult } from './create-step-constrain'
 
 async function main() {
   try {

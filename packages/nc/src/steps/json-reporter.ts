@@ -247,13 +247,6 @@ export const jsonReporterStepName = 'json-reporter'
 
 export const jsonReporter = createStep<JsonReportConfiguration>({
   stepName: jsonReporterStepName,
-  skip: {
-    canRunStepOnArtifact: {
-      options: {
-        runIfSomeDirectParentStepFailedOnPackage: true,
-      },
-    },
-  },
   run: {
     runStrategy: RunStrategy.root,
     runStepOnRoot: async ({

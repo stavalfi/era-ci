@@ -69,7 +69,7 @@ export default async (): Promise<Config> => {
       testScriptName: 'test',
     }),
     npmPublish({
-      shouldPublish: isMasterBuild,
+      isStepEnabled: isMasterBuild,
       npmScopeAccess: NpmScopeAccess.public,
       registry: `https://registry.npmjs.org/`,
       publishAuth: {
@@ -79,7 +79,7 @@ export default async (): Promise<Config> => {
       },
     }),
     dockerPublish({
-      shouldPublish: isMasterBuild,
+      isStepEnabled: isMasterBuild,
       dockerOrganizationName: 'stavalfi',
       registry: `https://registry.hub.docker.com/`,
       registryAuth: {
@@ -89,7 +89,7 @@ export default async (): Promise<Config> => {
       fullImageNameCacheKey,
     }),
     k8sGcloudDeployment({
-      shouldDeploy: isMasterBuild,
+      isStepEnabled: isMasterBuild,
       gcloudProjectId: `dancer-staging-new`,
       k8sClusterName: `c-jxh57`,
       k8sClusterTokenBase64: K8S_CLUSTER_TOKEN!,

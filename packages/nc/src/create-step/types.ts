@@ -1,6 +1,6 @@
 import { ErrorObject } from 'serialize-error'
 import { Cache } from '../create-cache'
-import { CanRunStepOnArtifactsPredicate } from '../create-can-run-step-on-artifacts-predicate'
+import { StepConstrain } from '../create-step-constrain'
 import { Log, Logger } from '../create-logger'
 import {
   AbortResult,
@@ -14,10 +14,12 @@ import {
   ScheduledResult,
   Status,
 } from '../types'
+import { ArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
 
 export type StepInfo = {
   stepName: string
   stepId: string
+  displayName: string
 }
 
 // ------------------------
@@ -234,9 +236,9 @@ export type Run<StepConfigurations> = {
 export type CreateStepOptions<StepConfigurations, NormalizedStepConfigurations = StepConfigurations> = {
   stepName: string
   normalizeStepConfigurations?: (stepConfigurations: StepConfigurations) => Promise<NormalizedStepConfigurations>
-  skip?: {
-    canRunStepOnArtifact?: CanRunStepOnArtifact<NormalizedStepConfigurations>
-    canRunStepOnArtifacts?: Array<CanRunStepOnArtifactsPredicate>
+  runIfAllConstrainsApply?: {
+    canRunStep?: Array<StepConstrain<NormalizedStepConfigurations>>
+    canRunStepOnArtifact?: Array<ArtifactInStepConstrain<NormalizedStepConfigurations>>
   }
   run: Run<NormalizedStepConfigurations>
 }

@@ -2,7 +2,7 @@ import { ErrorObject } from 'serialize-error'
 import { UserRunStepOptions } from '../create-step'
 import { AbortResult, Status } from '../types'
 
-export type CanRunStepOnArtifactsResult =
+export type StepConstrainResult =
   | {
       canRun: true
       stepResult: {
@@ -15,9 +15,9 @@ export type CanRunStepOnArtifactsResult =
       stepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
     }
 
-export type CanRunStepOnArtifactsPredicate = {
-  predicateName: string
-  callPredicate: (
-    options: Omit<UserRunStepOptions<never>, 'stepConfigurations'>,
-  ) => Promise<true | CanRunStepOnArtifactsResult>
+export type StepConstrain<StepConfiguration> = {
+  constrainName: string
+  callConstrain: (options: {
+    userRunStepOptions: UserRunStepOptions<StepConfiguration>
+  }) => Promise<true | StepConstrainResult>
 }
