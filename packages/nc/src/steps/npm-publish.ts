@@ -242,7 +242,10 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
   stepName: 'npm-publish',
   constrains: {
     onArtifact: [
-      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
+      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+        stepNameToSearchInCache: 'build',
+        skipAsFailedIfStepNotFoundInCache: true,
+      }),
       customConstrain(),
     ],
     onStep: [skipIfStepIsDisabledConstrain()],

@@ -17,8 +17,14 @@ export const test = createStep<{ testScriptName: string } | void, { testScriptNa
       skipIfArtifactPackageJsonMissingScriptConstrain({
         scriptName: 'test',
       }),
-      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'test' }),
-      skipIfArtifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'test' }),
+      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+        stepNameToSearchInCache: 'test',
+        skipAsFailedIfStepNotFoundInCache: false,
+      }),
+      skipIfArtifactStepResultMissingOrPassedInCacheConstrain({
+        stepNameToSearchInCache: 'test',
+        skipAsFailedIfStepNotFoundInCache: false,
+      }),
     ],
   },
   run: {
