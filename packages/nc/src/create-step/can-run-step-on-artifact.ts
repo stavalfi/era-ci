@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import { ErrorObject } from 'serialize-error'
 import { Artifact, ExecutionStatus, Node, Status } from '../types'
 import { calculateCombinedStatus, didPassOrSkippedAsPassed } from '../utils'
 import { CanRunStepOnArtifact, CanRunStepOnArtifactResult, UserRunStepOptions } from './types'
@@ -17,11 +18,14 @@ const runAll = async (
       ),
     ),
   )
+  const errors = _.flatMapDeep<ErrorObject>(results.map(x => x.artifactStepResult.errors))
+
   if (canRun) {
     return {
       canRun: true,
       artifactStepResult: {
         notes,
+        errors,
       },
     }
   } else {
@@ -30,11 +34,7 @@ const runAll = async (
     )
     return {
       canRun: false,
-      artifactStepResult: {
-        notes,
-        executionStatus: ExecutionStatus.aborted,
-        status: artifactStepResultStatus,
-      },
+      artifactStepResult: { errors, notes, executionStatus: ExecutionStatus.aborted, status: artifactStepResultStatus },
     }
   }
 }
@@ -56,9 +56,7 @@ async function runIfPackageResultsInCache<StepConfigurations>({
   if (!result) {
     return {
       canRun: true,
-      artifactStepResult: {
-        notes: [],
-      },
+      artifactStepResult: { errors: [], notes: [] },
     }
   }
 
@@ -69,6 +67,7 @@ async function runIfPackageResultsInCache<StepConfigurations>({
     return {
       canRun: true,
       artifactStepResult: {
+        errors: [],
         notes: [],
       },
     }
@@ -79,14 +78,13 @@ async function runIfPackageResultsInCache<StepConfigurations>({
   if (canRunStepOnArtifact?.options?.runIfPackageResultsInCache) {
     return {
       canRun: true,
-      artifactStepResult: {
-        notes: [note],
-      },
+      artifactStepResult: { errors: [], notes: [note] },
     }
   } else {
     return {
       canRun: false,
       artifactStepResult: {
+        errors: [],
         notes: [note],
         executionStatus: ExecutionStatus.aborted,
         status: didPassOrSkippedAsPassed(result.artifactStepResult.status)
@@ -118,14 +116,13 @@ async function runIfSomeDirectParentStepFailedOnPackage<StepConfigurations>({
   if (didAllPrevPassed || canRunStepOnArtifact?.options?.runIfSomeDirectParentStepFailedOnPackage) {
     return {
       canRun: true,
-      artifactStepResult: {
-        notes: [],
-      },
+      artifactStepResult: { errors: [], notes: [] },
     }
   } else {
     return {
       canRun: false,
       artifactStepResult: {
+        errors: [],
         executionStatus: ExecutionStatus.aborted,
         status: Status.skippedAsFailed,
         notes: [`skipping step because not all previous steps passed`],
@@ -147,16 +144,14 @@ export async function checkIfCanRunStepOnArtifact<StepConfigurations>(
         if (options.canRunStepOnArtifact?.customPredicate) {
           const result = await options.canRunStepOnArtifact.customPredicate(_.omit(options, ['canRunStepOnArtifact']))
           if (result === true) {
-            return { canRun: true, artifactStepResult: { notes: [] } }
+            return { canRun: true, artifactStepResult: { errors: [], notes: [] } }
           } else {
             return result
           }
         } else {
           return {
             canRun: true,
-            artifactStepResult: {
-              notes: [],
-            },
+            artifactStepResult: { errors: [], notes: [] },
           }
         }
       },

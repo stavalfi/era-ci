@@ -13,6 +13,7 @@ export const artifactStepResultMissingOrPassedInCacheConstrain = createArtifactI
       return {
         canRun: false,
         artifactStepResult: {
+          errors: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsFailed,
           // if the constrain needs this missing step, then it means that the step that is using
@@ -33,23 +34,20 @@ export const artifactStepResultMissingOrPassedInCacheConstrain = createArtifactI
     if (!actualStepResult) {
       return {
         canRun: true,
-        artifactStepResult: {
-          notes: [],
-        },
+        artifactStepResult: { errors: [], notes: [] },
       }
     }
 
     if ([Status.passed, Status.skippedAsPassed].includes(actualStepResult.artifactStepResult.status)) {
       return {
         canRun: true,
-        artifactStepResult: {
-          notes: [],
-        },
+        artifactStepResult: { errors: [], notes: [] },
       }
     } else {
       return {
         canRun: false,
         artifactStepResult: {
+          errors: [],
           notes: [
             `step: "${stepName}" failed on this artifact but step: "${currentStepInfo.data.stepInfo.displayName}" will run only on succeess`,
           ],

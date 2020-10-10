@@ -19,11 +19,7 @@ test('step should pass in json-report', async () => {
         run: {
           runStrategy: RunStrategy.perArtifact,
           runStepOnArtifact: async () => {
-            return {
-              notes: [],
-              executionStatus: ExecutionStatus.done,
-              status: Status.passed,
-            }
+            return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
           },
         },
       })(),
@@ -122,11 +118,7 @@ test('flow should fail because step failed (without throwing error from the step
         run: {
           runStrategy: RunStrategy.perArtifact,
           runStepOnArtifact: async () => {
-            return {
-              notes: [],
-              executionStatus: ExecutionStatus.done,
-              status: Status.failed,
-            }
+            return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
           },
         },
       })(),

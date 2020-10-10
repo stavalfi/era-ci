@@ -21,6 +21,7 @@ test('step should pass in json-report', async () => {
           runStepOnArtifacts: async () => {
             return {
               stepResult: {
+                errors: [],
                 notes: [],
               },
               artifactsResult: [
@@ -28,6 +29,7 @@ test('step should pass in json-report', async () => {
                   artifactName: toActualName('a'),
                   stepResult: {
                     durationMs: 1,
+                    errors: [],
                     notes: [],
                     executionStatus: ExecutionStatus.done,
                     status: Status.passed,
@@ -103,6 +105,7 @@ test('flow should fail because step failed (without throwing error from the step
           runStepOnArtifacts: async () => {
             return {
               stepResult: {
+                errors: [],
                 notes: [],
               },
               artifactsResult: [
@@ -110,6 +113,7 @@ test('flow should fail because step failed (without throwing error from the step
                   artifactName: toActualName('a'),
                   stepResult: {
                     durationMs: 1,
+                    errors: [],
                     notes: [],
                     executionStatus: ExecutionStatus.done,
                     status: Status.failed,

@@ -14,6 +14,7 @@ export const stepResultPassedConstrain = createStepConstrain<{
       return {
         canRun: false,
         stepResult: {
+          errors: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsFailed,
           // if the constrain needs this missing step, then it means that the step that is using
@@ -35,9 +36,7 @@ export const stepResultPassedConstrain = createStepConstrain<{
     ) {
       return {
         canRun: true,
-        stepResult: {
-          notes: [],
-        },
+        stepResult: { errors: [], notes: [] },
       }
     } else {
       const didFail =
@@ -48,6 +47,7 @@ export const stepResultPassedConstrain = createStepConstrain<{
       return {
         canRun: false,
         stepResult: {
+          errors: [],
           notes: [
             didFail
               ? `step: "${stepName}" failed but step: "${currentStepInfo.data.stepInfo.displayName}" will run only on succeess`

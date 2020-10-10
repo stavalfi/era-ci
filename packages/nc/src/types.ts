@@ -55,7 +55,7 @@ export type DoneResult = {
   status: Status.passed | Status.failed
   durationMs: number
   notes: Array<string>
-  errors?: Array<ErrorObject>
+  errors: Array<ErrorObject>
 }
 
 export type AbortResult<StatusType extends Status> = {
@@ -63,7 +63,7 @@ export type AbortResult<StatusType extends Status> = {
   status: StatusType
   durationMs: number
   notes: Array<string>
-  errors?: Array<ErrorObject>
+  errors: Array<ErrorObject>
 }
 
 export type RunningResult = {

@@ -71,6 +71,7 @@ export const validatePackages = createStep({
       problems.push(...depsProblems)
 
       return {
+        errors: [],
         notes: problems,
         executionStatus: ExecutionStatus.done,
         status: problems.length === 0 ? Status.passed : Status.failed,

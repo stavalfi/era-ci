@@ -11,6 +11,7 @@ export const rootPackageJsonHasScriptConstrain = createStepConstrain<{ scriptNam
       return {
         canRun: false,
         stepResult: {
+          errors: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsPassed,
           notes: [`skipping because missing ${scriptName}-script in root package.json`],
