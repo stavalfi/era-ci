@@ -1,13 +1,13 @@
 import { execaCommand } from '../utils'
 import { createStep, RunStrategy } from '../create-step'
 import { ExecutionStatus, Status } from '../types'
-import { runIfRootPackageJsonHasScriptConstrain } from '../step-constrains'
+import { skipIfRootPackageJsonMissingScriptConstrain } from '../step-constrains'
 
 export const build = createStep({
   stepName: 'build',
   constrains: {
     onStep: [
-      runIfRootPackageJsonHasScriptConstrain({
+      skipIfRootPackageJsonMissingScriptConstrain({
         scriptName: 'build',
       }),
     ],

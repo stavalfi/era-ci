@@ -6,9 +6,9 @@ import { ConstrainResult, PackageJson } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
 import { ExecutionStatus, Status } from '../types'
-import { runIfArtifactStepResultMissingOrPassedInCacheConstrain } from '../artifact-step-constrains'
+import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '../artifact-step-constrains'
 import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
-import { runIfStepIsEnabledConstrain } from '../step-constrains'
+import { skipIfStepIsDisabledConstrain } from '../step-constrains'
 
 export type DockerPublishConfiguration = {
   isStepEnabled: boolean
@@ -357,10 +357,10 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
   stepName: 'docker-publish',
   constrains: {
     onArtifact: [
-      runIfArtifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
+      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
       customConstrain(),
     ],
-    onStep: [runIfStepIsEnabledConstrain()],
+    onStep: [skipIfStepIsDisabledConstrain()],
   },
   run: {
     runStrategy: RunStrategy.perArtifact,

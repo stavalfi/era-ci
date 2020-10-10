@@ -2,11 +2,11 @@ import fse from 'fs-extra'
 import _ from 'lodash'
 import os from 'os'
 import path from 'path'
-import { runIfArtifactStepResultMissingOrPassedInCacheConstrain } from '../artifact-step-constrains'
+import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '../artifact-step-constrains'
 import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
 import { Log } from '../create-logger'
 import { createStep, RunStrategy } from '../create-step'
-import { runIfStepIsEnabledConstrain } from '../step-constrains'
+import { skipIfStepIsDisabledConstrain } from '../step-constrains'
 import { ConstrainResult, ExecutionStatus, PackageJson, Status } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
@@ -242,10 +242,10 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
   stepName: 'npm-publish',
   constrains: {
     onArtifact: [
-      runIfArtifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
+      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
       customConstrain(),
     ],
-    onStep: [runIfStepIsEnabledConstrain()],
+    onStep: [skipIfStepIsDisabledConstrain()],
   },
   run: {
     runStrategy: RunStrategy.perArtifact,

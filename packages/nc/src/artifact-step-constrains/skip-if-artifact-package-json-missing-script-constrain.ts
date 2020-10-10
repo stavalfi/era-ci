@@ -1,8 +1,8 @@
 import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
 import { ConstrainResult, ExecutionStatus, Status } from '../types'
 
-export const runIfArtifactPackageJsonHasScriptConstrain = createArtifactStepConstrain<{ scriptName: string }>({
-  constrainName: 'run-if-artifact-package-json-has-script-step-constrain',
+export const skipIfArtifactPackageJsonMissingScriptConstrain = createArtifactStepConstrain<{ scriptName: string }>({
+  constrainName: 'skip-if-artifact-package-json-missing-script-constrain',
   constrain: async ({ constrainConfigurations, currentArtifact }) => {
     const scriptName = constrainConfigurations.scriptName
     if (
@@ -11,7 +11,7 @@ export const runIfArtifactPackageJsonHasScriptConstrain = createArtifactStepCons
       currentArtifact.data.artifact.packageJson.scripts[scriptName]
     ) {
       return {
-        constrainResult: ConstrainResult.shouldRun,
+        constrainResult: ConstrainResult.ignoreThisConstrain,
         artifactStepResult: {
           errors: [],
           notes: [],
