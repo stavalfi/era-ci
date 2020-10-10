@@ -1,5 +1,4 @@
 import _ from 'lodash'
-import { ErrorObject } from 'serialize-error'
 import {
   AbortStepResultOfArtifacts,
   AbortStepsResultOfArtifact,
@@ -154,7 +153,7 @@ function getJsonReport({
               if (s.data.stepResult.executionStatus !== ExecutionStatus.done) {
                 throw new Error(`we can't be here`)
               }
-              return s.data.stepResult.notes
+              return s.data.stepResult.notes.map(n => `${s.data.stepInfo.displayName} - ${n}`)
             }),
           ),
           durationMs: Date.now() - startFlowMs,
@@ -180,17 +179,7 @@ function getJsonReport({
         },
         flowExecutionStatus: ExecutionStatus.aborted,
         flowResult: {
-          errors: _.flatMapDeep<ErrorObject>(
-            stepsResultOfArtifactsByStep.map(s => {
-              if (
-                s.data.stepResult.executionStatus !== ExecutionStatus.done &&
-                s.data.stepResult.executionStatus !== ExecutionStatus.aborted
-              ) {
-                throw new Error(`we can't be here`)
-              }
-              return s.data.stepResult.errors
-            }),
-          ),
+          errors: [],
           executionStatus: ExecutionStatus.aborted,
           notes: _.flatMapDeep(
             stepsResultOfArtifactsByStep.map(s => {
@@ -200,7 +189,7 @@ function getJsonReport({
               ) {
                 throw new Error(`we can't be here`)
               }
-              return s.data.stepResult.notes
+              return s.data.stepResult.notes.map(n => `${s.data.stepInfo.displayName} - ${n}`)
             }),
           ),
           durationMs: Date.now() - startFlowMs,
