@@ -1,10 +1,10 @@
-import { createArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
+import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
 import { ConstrainResult, ExecutionStatus, Status } from '../types'
 
-export const artifactStepResultMissingOrPassedInCacheConstrain = createArtifactInStepConstrain<{
+export const runIfArtifactStepResultMissingOrPassedInCacheConstrain = createArtifactStepConstrain<{
   stepNameToSearchInCache: string
 }>({
-  constrainName: 'step-missing-or-passed-in-cache-constrain',
+  constrainName: 'run-if-artifact-step-result-missing-or-passed-in-cache-constrain',
   constrain: async ({ constrainConfigurations, currentArtifact, cache, steps, currentStepInfo }) => {
     const stepName = constrainConfigurations.stepNameToSearchInCache
     const stepId = steps.find(step => step.data.stepInfo.stepName === stepName)?.data.stepInfo.stepId
@@ -45,14 +45,10 @@ export const artifactStepResultMissingOrPassedInCacheConstrain = createArtifactI
       }
     } else {
       return {
-        constrainResult: ConstrainResult.shouldSkip,
+        constrainResult: ConstrainResult.ignoreThisConstrain,
         artifactStepResult: {
           errors: [],
-          notes: [
-            `step: "${stepName}" failed on this artifact but step: "${currentStepInfo.data.stepInfo.displayName}" will run only on succeess`,
-          ],
-          executionStatus: ExecutionStatus.aborted,
-          status: Status.skippedAsFailed,
+          notes: [],
         },
       }
     }

@@ -1,2 +1,2 @@
-export { isStepEnabledConstrain } from './is-step-enabled-constrain'
-export { rootPackageJsonHasScriptConstrain } from './root-package-json-has-script-step-constrain'
+export { runIfStepIsEnabledConstrain } from './run-if-stepis-is-enabled-constrain'
+export { runIfRootPackageJsonHasScriptConstrain } from './run-if-root-package-json-has-script-step-constrain'

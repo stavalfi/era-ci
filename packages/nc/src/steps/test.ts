@@ -1,18 +1,24 @@
-import { artifactPackageJsonHasScriptConstrain } from '../artifact-in-step-constrains'
+import { runIfArtifactPackageJsonHasScriptConstrain } from '../artifact-step-constrains'
 import { createStep, RunStrategy } from '../create-step'
 import { ExecutionStatus, Status } from '../types'
 import { execaCommand } from '../utils'
+import {
+  skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
+  skipIfArtifactStepResultMissingOrPassedInCacheConstrain,
+} from '../artifact-step-constrains'
 
 export const test = createStep<{ testScriptName: string } | void, { testScriptName: string }>({
   stepName: 'test',
   normalizeStepConfigurations: async stepConfig => ({
     testScriptName: (typeof stepConfig === 'object' && stepConfig.testScriptName) || 'test',
   }),
-  runIfAllConstrainsApply: {
-    canRunStepOnArtifact: [
-      artifactPackageJsonHasScriptConstrain({
+  constrains: {
+    onArtifact: [
+      runIfArtifactPackageJsonHasScriptConstrain({
         scriptName: 'test',
       }),
+      skipIfArtifactStepResultMissingOrFailedInCacheConstrain(),
+      skipIfArtifactStepResultMissingOrPassedInCacheConstrain(),
     ],
   },
   run: {

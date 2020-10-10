@@ -3,7 +3,7 @@ import { serializeError } from 'serialize-error'
 import {
   CombinedArtifactInStepConstrainResult,
   runCanRunStepOnArtifactPredicates,
-} from '../create-artifact-in-step-constrain'
+} from '../create-artifact-step-constrain'
 import { runSkipSteps } from '../create-step-constrain'
 import {
   AbortResult,
@@ -166,14 +166,14 @@ async function getUserStepResult<StepConfigurations, NormalizedStepConfiguration
     Promise.all(
       userRunStepOptions.artifacts.map(node =>
         runCanRunStepOnArtifactPredicates({
-          predicates: createStepOptions.runIfAllConstrainsApply?.canRunStepOnArtifact || [],
+          predicates: createStepOptions.constrains?.onArtifact || [],
           userRunStepOptions,
           currentArtifact: node,
         }),
       ),
     ),
     runSkipSteps({
-      predicates: createStepOptions.runIfAllConstrainsApply?.canRunStep || [],
+      predicates: createStepOptions.constrains?.onStep || [],
       userRunStepOptions,
     }),
   ])

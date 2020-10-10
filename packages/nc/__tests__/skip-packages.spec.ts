@@ -1,6 +1,6 @@
 import {
   ConstrainResult,
-  createArtifactInStepConstrain,
+  createArtifactStepConstrain,
   createStep,
   ExecutionStatus,
   JsonReport,
@@ -25,9 +25,9 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          runIfAllConstrainsApply: {
-            canRunStepOnArtifact: [
-              createArtifactInStepConstrain({
+          constrains: {
+            onArtifact: [
+              createArtifactStepConstrain({
                 constrainName: 'test-constrain',
                 constrain: async () => ({
                   constrainResult: ConstrainResult.shouldRun,
@@ -106,9 +106,9 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          runIfAllConstrainsApply: {
-            canRunStepOnArtifact: [
-              createArtifactInStepConstrain({
+          constrains: {
+            onArtifact: [
+              createArtifactStepConstrain({
                 constrainName: 'test-constrain',
                 constrain: async () => ({
                   constrainResult: ConstrainResult.shouldSkip,
@@ -190,9 +190,9 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          runIfAllConstrainsApply: {
-            canRunStepOnArtifact: [
-              createArtifactInStepConstrain({
+          constrains: {
+            onArtifact: [
+              createArtifactStepConstrain({
                 constrainName: 'test-constrain',
                 constrain: async () => ({
                   constrainResult: ConstrainResult.shouldSkip,
@@ -274,9 +274,9 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          runIfAllConstrainsApply: {
-            canRunStepOnArtifact: [
-              createArtifactInStepConstrain({
+          constrains: {
+            onArtifact: [
+              createArtifactStepConstrain({
                 constrainName: 'test-constrain',
                 constrain: async () => ({
                   constrainResult: ConstrainResult.shouldSkip,

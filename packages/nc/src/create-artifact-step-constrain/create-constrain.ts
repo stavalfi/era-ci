@@ -2,7 +2,7 @@ import { UserRunStepOptions } from '../create-step'
 import { Artifact, Node } from '../types'
 import { ArtifactInStepConstrain, ArtifactInStepConstrainResult } from './types'
 
-export function createArtifactInStepConstrain<
+export function createArtifactStepConstrain<
   Configurations = void,
   NormalizedConfigurations = Configurations,
   StepConfiguration = unknown
