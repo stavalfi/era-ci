@@ -18,6 +18,7 @@ function getConfigValidationObject() {
           stepInfo: object({
             stepId: string(),
             stepName: string(),
+            displayName: string(),
           }),
         }),
         index: number(),

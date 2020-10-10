@@ -1,5 +1,5 @@
 import { createStepConstrain } from '../create-step-constrain'
-import { ExecutionStatus, Status } from '../types'
+import { ConstrainResult, ExecutionStatus, Status } from '../types'
 import { didPassOrSkippedAsPassed } from '../utils'
 
 export const stepResultPassedConstrain = createStepConstrain<{
@@ -12,7 +12,7 @@ export const stepResultPassedConstrain = createStepConstrain<{
 
     if (!step) {
       return {
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         stepResult: {
           errors: [],
           executionStatus: ExecutionStatus.aborted,
@@ -35,7 +35,7 @@ export const stepResultPassedConstrain = createStepConstrain<{
       didPassOrSkippedAsPassed(actualStepResult.status)
     ) {
       return {
-        canRun: true,
+        constrainResult: ConstrainResult.shouldRun,
         stepResult: { errors: [], notes: [] },
       }
     } else {
@@ -45,7 +45,7 @@ export const stepResultPassedConstrain = createStepConstrain<{
         [Status.failed, Status.skippedAsFailed].includes(actualStepResult.status)
 
       return {
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         stepResult: {
           errors: [],
           notes: [

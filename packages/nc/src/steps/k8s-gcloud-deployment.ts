@@ -1,12 +1,12 @@
 import { createFile } from 'create-folder-structure'
 import {
-  artifactStepResultMissingOrFailedInCacheConstrain,
   artifactStepResultMissingOrPassedInCacheConstrain,
+  rerunArtifactOnStepFailureConstrain,
 } from '../artifact-in-step-constrains'
 import { createArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
 import { createStep, RunStrategy } from '../create-step'
 import { isStepEnabledConstrain } from '../step-constrains'
-import { ExecutionStatus, Status } from '../types'
+import { ConstrainResult, ExecutionStatus, Status } from '../types'
 import { execaCommand } from '../utils'
 import { getPackageTargetType, TargetType } from './utils'
 
@@ -30,7 +30,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, K8sGcloudDeplo
     )
     if (targetType !== TargetType.docker) {
       return {
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         artifactStepResult: {
           errors: [],
           notes: [],
@@ -41,7 +41,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, K8sGcloudDeplo
     }
 
     return {
-      canRun: true,
+      constrainResult: ConstrainResult.shouldRun,
       artifactStepResult: { errors: [], notes: [] },
     }
   },
@@ -52,7 +52,7 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
   runIfAllConstrainsApply: {
     canRunStepOnArtifact: [
       artifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'docker-publish' }),
-      artifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'k8s-gcloud-deployment' }),
+      rerunArtifactOnStepFailureConstrain(),
       customConstrain(),
     ],
     canRunStep: [isStepEnabledConstrain()],

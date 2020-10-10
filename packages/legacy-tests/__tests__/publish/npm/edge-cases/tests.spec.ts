@@ -120,9 +120,8 @@ test('run ci -> change packageJson.version to invalid version -> run ci', async 
       },
     },
     execaOptions: {
-      stdio: 'pipe',
       reject: false,
     },
   })
-  expect(result.ciProcessResult.stderr).toEqual(expect.stringContaining('is invalid: lalalal'))
+  expect(result.ncLogfileContent).toEqual(expect.stringContaining('is invalid: lalalal'))
 })

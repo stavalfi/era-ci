@@ -1,5 +1,5 @@
 import { createArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
-import { ExecutionStatus, Status } from '../types'
+import { ConstrainResult, ExecutionStatus, Status } from '../types'
 
 export const artifactPackageJsonHasScriptConstrain = createArtifactInStepConstrain<{ scriptName: string }>({
   constrainName: 'artifact-package-json-has-script-step-constrain',
@@ -10,10 +10,16 @@ export const artifactPackageJsonHasScriptConstrain = createArtifactInStepConstra
       scriptName in currentArtifact.data.artifact.packageJson.scripts &&
       currentArtifact.data.artifact.packageJson.scripts[scriptName]
     ) {
-      return true
+      return {
+        constrainResult: ConstrainResult.shouldRun,
+        artifactStepResult: {
+          errors: [],
+          notes: [],
+        },
+      }
     } else {
       return {
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         artifactStepResult: {
           errors: [],
           executionStatus: ExecutionStatus.aborted,

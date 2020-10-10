@@ -1,7 +1,8 @@
 import { ErrorObject } from 'serialize-error'
+import { ArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
 import { Cache } from '../create-cache'
-import { StepConstrain } from '../create-step-constrain'
 import { Log, Logger } from '../create-logger'
+import { StepConstrain } from '../create-step-constrain'
 import {
   AbortResult,
   Artifact,
@@ -14,7 +15,6 @@ import {
   ScheduledResult,
   Status,
 } from '../types'
-import { ArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
 
 export type StepInfo = {
   stepName: string
@@ -37,7 +37,7 @@ export type DoneStepResultOfArtifacts = {
 export type AbortStepResultOfArtifacts = {
   stepExecutionStatus: ExecutionStatus.aborted // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   stepInfo: StepInfo
-  stepResult: AbortResult<Status>
+  stepResult: AbortResult<Status.failed | Status.passed | Status.skippedAsFailed | Status.skippedAsPassed>
   artifactsResult: Graph<{
     artifact: Artifact
     artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
@@ -88,7 +88,7 @@ export type DoneStepsResultOfArtifact = {
 export type AbortStepsResultOfArtifact = {
   artifactExecutionStatus: ExecutionStatus.aborted // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   artifact: Artifact
-  artifactResult: AbortResult<Status>
+  artifactResult: AbortResult<Status.failed | Status.passed | Status.skippedAsFailed | Status.skippedAsPassed>
   stepsResult: Graph<{
     stepInfo: StepInfo
     artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
@@ -129,31 +129,6 @@ export type StepsResultOfArtifactsByArtifact = Graph<StepsResultOfArtifact>
 
 // ------------------------
 
-export type CanRunStepOnArtifactResult =
-  | {
-      canRun: true
-      artifactStepResult: {
-        notes: Array<string>
-        errors: Array<ErrorObject>
-      }
-    }
-  | {
-      canRun: false
-      artifactStepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
-    }
-
-export type CanRunStepOnArtifact<StepConfigurations> = {
-  customPredicate?: (
-    options: UserRunStepOptions<StepConfigurations> & { currentArtifact: Node<{ artifact: Artifact }> },
-  ) => Promise<true | CanRunStepOnArtifactResult>
-  options?: {
-    runIfSomeDirectParentStepFailedOnPackage?: boolean
-    runIfPackageResultsInCache?: boolean
-  }
-}
-
-// ------------------------
-
 export type RunStepOptions = {
   flowId: string
   startFlowMs: number
@@ -176,7 +151,7 @@ export type UserRunStepOptions<StepConfigurations> = RunStepOptions & {
 
 export type UserArtifactResult = {
   artifactName: string
-  stepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+  artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
 }
 
 export type UserStepResult = {
@@ -203,10 +178,6 @@ export type Step = {
   stepName: string
   runStep: (runStepOptions: RunStepOptions) => Promise<StepResultOfArtifacts>
 }
-
-export type SkipStepOnArtifactPredicate<StepConfigurations> = (
-  options: UserRunStepOptions<StepConfigurations> & { currentArtifact: Node<{ artifact: Artifact }> },
-) => Promise<true | CanRunStepOnArtifactResult>
 
 export enum RunStrategy {
   perArtifact = 'per-artifact',
