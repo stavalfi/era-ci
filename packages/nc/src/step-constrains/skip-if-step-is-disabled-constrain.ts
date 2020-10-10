@@ -1,12 +1,12 @@
 import { createStepConstrain } from '../create-step-constrain'
 import { ConstrainResult, ExecutionStatus, Status } from '../types'
 
-export const runIfStepIsEnabledConstrain = createStepConstrain<void, void, { isStepEnabled: boolean }>({
-  constrainName: 'run-if-stepis-is-enabled-constrain',
+export const skipIfStepIsDisabledConstrain = createStepConstrain<void, void, { isStepEnabled: boolean }>({
+  constrainName: 'skip-if-step-is-disabled-constrain',
   constrain: async ({ stepConfigurations, currentStepInfo }) => {
     if (stepConfigurations.isStepEnabled) {
       return {
-        constrainResult: ConstrainResult.shouldRun,
+        constrainResult: ConstrainResult.ignoreThisConstrain,
         stepResult: {
           errors: [],
           notes: [],

@@ -1,5 +1,5 @@
 import { createStep, RunStrategy } from '../create-step'
-import { runIfRootPackageJsonHasScriptConstrain } from '../step-constrains'
+import { skipIfRootPackageJsonMissingScriptConstrain } from '../step-constrains'
 import { ExecutionStatus, Status } from '../types'
 import { execaCommand } from '../utils'
 
@@ -10,7 +10,7 @@ export const lint = createStep<{ lintScriptName: string } | void, { lintScriptNa
   }),
   constrains: {
     onStep: [
-      runIfRootPackageJsonHasScriptConstrain({
+      skipIfRootPackageJsonMissingScriptConstrain({
         scriptName: 'lint',
       }),
     ],

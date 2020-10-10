@@ -1,8 +1,8 @@
 import { createFile } from 'create-folder-structure'
-import { runIfArtifactStepResultMissingOrPassedInCacheConstrain } from '../artifact-step-constrains'
+import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '../artifact-step-constrains'
 import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
 import { createStep, RunStrategy } from '../create-step'
-import { runIfStepIsEnabledConstrain } from '../step-constrains'
+import { skipIfStepIsDisabledConstrain } from '../step-constrains'
 import { ConstrainResult, ExecutionStatus, Status } from '../types'
 import { execaCommand } from '../utils'
 import { getPackageTargetType, TargetType } from './utils'
@@ -48,10 +48,10 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
   stepName: 'k8s-gcloud-deployment',
   constrains: {
     onArtifact: [
-      runIfArtifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'docker-publish' }),
+      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'docker-publish' }),
       customConstrain(),
     ],
-    onStep: [runIfStepIsEnabledConstrain()],
+    onStep: [skipIfStepIsDisabledConstrain()],
   },
   run: {
     runStrategy: RunStrategy.perArtifact,

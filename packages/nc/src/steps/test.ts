@@ -1,4 +1,4 @@
-import { runIfArtifactPackageJsonHasScriptConstrain } from '../artifact-step-constrains'
+import { skipIfArtifactPackageJsonMissingScriptConstrain } from '../artifact-step-constrains'
 import { createStep, RunStrategy } from '../create-step'
 import { ExecutionStatus, Status } from '../types'
 import { execaCommand } from '../utils'
@@ -14,11 +14,11 @@ export const test = createStep<{ testScriptName: string } | void, { testScriptNa
   }),
   constrains: {
     onArtifact: [
-      runIfArtifactPackageJsonHasScriptConstrain({
+      skipIfArtifactPackageJsonMissingScriptConstrain({
         scriptName: 'test',
       }),
-      skipIfArtifactStepResultMissingOrFailedInCacheConstrain(),
-      skipIfArtifactStepResultMissingOrPassedInCacheConstrain(),
+      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'test' }),
+      skipIfArtifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'test' }),
     ],
   },
   run: {

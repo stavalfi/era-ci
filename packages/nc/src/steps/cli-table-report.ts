@@ -4,7 +4,7 @@ import _ from 'lodash'
 import prettyMs from 'pretty-ms'
 import { deserializeError, ErrorObject } from 'serialize-error'
 import { createStep, RunStrategy, stepToString } from '../create-step'
-import { runIfStepResultPassedConstrain } from '../step-constrains/run-if-step-result-passed-constrain'
+import { skipIfStepResultNotPassedConstrain } from '../step-constrains'
 import { ExecutionStatus, Status } from '../types'
 import { JsonReport, jsonReporterStepName } from './json-reporter'
 
@@ -500,7 +500,7 @@ export type CliTableReporterConfiguration = {
 export const cliTableReporter = createStep<CliTableReporterConfiguration>({
   stepName: 'cli-table-reporter',
   constrains: {
-    onStep: [runIfStepResultPassedConstrain({ stepName: jsonReporterStepName })],
+    onStep: [skipIfStepResultNotPassedConstrain({ stepName: jsonReporterStepName })],
   },
   run: {
     runStrategy: RunStrategy.root,
