@@ -23,11 +23,7 @@ export const test = createStep<{ testScriptName: string } | void, { testScriptNa
         stdio: 'inherit',
         log,
       })
-      return {
-        notes: [],
-        executionStatus: ExecutionStatus.done,
-        status: Status.passed,
-      }
+      return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
     },
   },
 })

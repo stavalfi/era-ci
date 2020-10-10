@@ -7,7 +7,7 @@ export type StepConstrainResult =
       canRun: true
       stepResult: {
         notes: Array<string>
-        errors?: Array<ErrorObject>
+        errors: Array<ErrorObject>
       }
     }
   | {

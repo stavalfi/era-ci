@@ -21,11 +21,7 @@ export const build = createStep({
         log,
       })
 
-      return {
-        notes: [],
-        executionStatus: ExecutionStatus.done,
-        status: Status.passed,
-      }
+      return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
     },
   },
 })

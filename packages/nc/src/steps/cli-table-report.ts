@@ -223,7 +223,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
   return packagesStatusTable.toString()
 }
 
-function formatErrors(errors?: Array<ErrorObject>) {
+function formatErrors(errors: Array<ErrorObject>) {
   return (
     errors
       ?.filter(Boolean)
@@ -540,11 +540,7 @@ export const cliTableReporter = createStep<CliTableReporterConfiguration>({
       }
       log.noFormattingInfo(summaryReport)
 
-      return {
-        notes: [],
-        executionStatus: ExecutionStatus.done,
-        status: Status.passed,
-      }
+      return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
     },
   },
 })

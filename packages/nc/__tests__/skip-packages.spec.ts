@@ -28,11 +28,7 @@ describe('define custom predicate to check if we need to run the step on a packa
           run: {
             runStrategy: RunStrategy.perArtifact,
             runStepOnArtifact: async () => {
-              return {
-                notes: [],
-                executionStatus: ExecutionStatus.done,
-                status: Status.passed,
-              }
+              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
             },
           },
         })(),
@@ -103,6 +99,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                 constrain: async () => ({
                   canRun: false,
                   artifactStepResult: {
+                    errors: [],
                     notes: [],
                     executionStatus: ExecutionStatus.aborted,
                     status: Status.skippedAsPassed,
@@ -115,11 +112,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             runStrategy: RunStrategy.perArtifact,
             runStepOnArtifact: async () => {
               // we will never be here
-              return {
-                notes: [],
-                executionStatus: ExecutionStatus.done,
-                status: Status.failed,
-              }
+              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
             },
           },
         })(),
@@ -190,6 +183,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                 constrain: async () => ({
                   canRun: false,
                   artifactStepResult: {
+                    errors: [],
                     notes: ['note1', 'note2'],
                     executionStatus: ExecutionStatus.aborted,
                     status: Status.skippedAsPassed,
@@ -202,11 +196,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             runStrategy: RunStrategy.perArtifact,
             runStepOnArtifact: async () => {
               // we will never be here
-              return {
-                notes: [],
-                executionStatus: ExecutionStatus.done,
-                status: Status.failed,
-              }
+              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
             },
           },
         })(),
@@ -277,6 +267,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                 constrain: async () => ({
                   canRun: false,
                   artifactStepResult: {
+                    errors: [],
                     notes: ['note1', 'note2', 'note1', 'note2'],
                     executionStatus: ExecutionStatus.aborted,
                     status: Status.skippedAsPassed,
@@ -289,11 +280,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             runStrategy: RunStrategy.perArtifact,
             runStepOnArtifact: async () => {
               // we will never be here
-              return {
-                notes: [],
-                executionStatus: ExecutionStatus.done,
-                status: Status.failed,
-              }
+              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
             },
           },
         })(),

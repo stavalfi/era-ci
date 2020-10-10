@@ -298,6 +298,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, DockerPublishC
       return {
         canRun: false,
         artifactStepResult: {
+          errors: [],
           notes: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsPassed,
@@ -321,9 +322,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, DockerPublishC
     if (!dockerVersionResult) {
       return {
         canRun: true,
-        artifactStepResult: {
-          notes: [],
-        },
+        artifactStepResult: { errors: [], notes: [] },
       }
     }
 
@@ -340,6 +339,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, DockerPublishC
       return {
         canRun: false,
         artifactStepResult: {
+          errors: [],
           notes: [
             `this package was already published in flow: "${dockerVersionResult.flowId}" with the same content as version: ${dockerVersionResult.value}`,
           ],
@@ -351,9 +351,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, DockerPublishC
 
     return {
       canRun: true,
-      artifactStepResult: {
-        notes: [],
-      },
+      artifactStepResult: { errors: [], notes: [] },
     }
   },
 })
@@ -475,6 +473,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
       )
 
       return {
+        errors: [],
         notes: [`published: "${fullImageNameNewVersion}"`],
         executionStatus: ExecutionStatus.done,
         status: Status.passed,

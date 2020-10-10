@@ -116,6 +116,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
 
   return {
     stepResult: {
+      errors: [],
       notes: [],
     },
     artifactsResult,
@@ -133,12 +134,13 @@ async function runStepOnRoot<StepConfigurations>({
 
   return {
     stepResult: {
-      notes: result.notes || [],
+      notes: result.notes,
       errors: result.errors,
     },
     artifactsResult: userRunStepOptions.artifacts.map(node => ({
       artifactName: node.data.artifact.packageJson.name,
       stepResult: {
+        errors: [],
         executionStatus: ExecutionStatus.done,
         status: result.status,
         notes: [],
@@ -199,6 +201,7 @@ async function getUserStepResult<StepConfigurations, NormalizedStepConfiguration
           return {
             artifactName: node.data.artifact.packageJson.name,
             stepResult: {
+              errors: canRun.artifactStepResult.errors,
               executionStatus: ExecutionStatus.aborted,
               status: canRun.artifactStepResult.status,
               durationMs: Date.now() - startStepMs,
@@ -273,6 +276,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         stepExecutionStatus: ExecutionStatus.done,
         stepInfo: runStepOptions.currentStepInfo.data.stepInfo,
         stepResult: {
+          errors: [],
           executionStatus: ExecutionStatus.done,
           status: Status.failed,
           durationMs: Date.now() - startStepMs,
@@ -283,6 +287,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
           data: {
             artifact: node.data.artifact,
             artifactStepResult: {
+              errors: [],
               executionStatus: ExecutionStatus.done,
               status: Status.failed,
               durationMs: Date.now() - startStepMs,
@@ -336,6 +341,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         stepExecutionStatus: ExecutionStatus.done,
         stepInfo: runStepOptions.currentStepInfo.data.stepInfo,
         stepResult: {
+          errors: userStepResult.stepResult.errors,
           executionStatus: ExecutionStatus.done,
           durationMs: Date.now() - startStepMs,
           notes: userStepResult.stepResult.notes,
@@ -369,6 +375,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         stepExecutionStatus: ExecutionStatus.aborted,
         stepInfo: runStepOptions.currentStepInfo.data.stepInfo,
         stepResult: {
+          errors: userStepResult.stepResult.errors,
           executionStatus: ExecutionStatus.aborted,
           durationMs: Date.now() - startStepMs,
           notes: userStepResult.stepResult.notes,
@@ -394,6 +401,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         data: {
           artifact: node.data.artifact,
           artifactStepResult: {
+            errors: [],
             executionStatus: ExecutionStatus.done,
             durationMs: endDurationMs,
             notes: [],

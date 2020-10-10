@@ -7,7 +7,7 @@ export type ArtifactInStepConstrainResult =
       canRun: true
       artifactStepResult: {
         notes: Array<string>
-        errors?: Array<ErrorObject>
+        errors: Array<ErrorObject>
       }
     }
   | {

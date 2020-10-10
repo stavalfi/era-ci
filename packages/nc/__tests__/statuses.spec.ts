@@ -19,11 +19,7 @@ test('passed,passed => passed', async () => {
         run: {
           runStrategy: RunStrategy.perArtifact,
           runStepOnArtifact: async () => {
-            return {
-              notes: [],
-              executionStatus: ExecutionStatus.done,
-              status: Status.passed,
-            }
+            return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
           },
         },
       })(),
@@ -32,11 +28,7 @@ test('passed,passed => passed', async () => {
         run: {
           runStrategy: RunStrategy.perArtifact,
           runStepOnArtifact: async () => {
-            return {
-              notes: [],
-              executionStatus: ExecutionStatus.done,
-              status: Status.passed,
-            }
+            return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
           },
         },
       })(),

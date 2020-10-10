@@ -181,6 +181,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, NpmPublishConf
       return {
         canRun: false,
         artifactStepResult: {
+          errors: [],
           notes: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsPassed,
@@ -207,9 +208,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, NpmPublishConf
     if (!npmVersionResult) {
       return {
         canRun: true,
-        artifactStepResult: {
-          notes: [],
-        },
+        artifactStepResult: { errors: [], notes: [] },
       }
     }
 
@@ -225,6 +224,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, NpmPublishConf
       return {
         canRun: false,
         artifactStepResult: {
+          errors: [],
           notes: [
             `this package was already published in flow: "${npmVersionResult.flowId}" with the same content as version: ${npmVersionResult.value}`,
           ],
@@ -236,9 +236,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, NpmPublishConf
 
     return {
       canRun: true,
-      artifactStepResult: {
-        notes: [],
-      },
+      artifactStepResult: { errors: [], notes: [] },
     }
   },
 })
@@ -320,6 +318,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
       log.info(`published npm target: "${currentArtifact.data.artifact.packageJson.name}@${newVersion}"`)
 
       return {
+        errors: [],
         notes: [`published: "${currentArtifact.data.artifact.packageJson.name}@${newVersion}"`],
         executionStatus: ExecutionStatus.done,
         status: Status.passed,

@@ -32,6 +32,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, K8sGcloudDeplo
       return {
         canRun: false,
         artifactStepResult: {
+          errors: [],
           notes: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsPassed,
@@ -41,9 +42,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, K8sGcloudDeplo
 
     return {
       canRun: true,
-      artifactStepResult: {
-        notes: [],
-      },
+      artifactStepResult: { errors: [], notes: [] },
     }
   },
 })
@@ -118,11 +117,7 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
         log,
       })
 
-      return {
-        notes: [],
-        executionStatus: ExecutionStatus.done,
-        status: Status.passed,
-      }
+      return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
     },
   },
 })

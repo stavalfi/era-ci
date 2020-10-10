@@ -134,7 +134,7 @@ export type CanRunStepOnArtifactResult =
       canRun: true
       artifactStepResult: {
         notes: Array<string>
-        errors?: Array<ErrorObject>
+        errors: Array<ErrorObject>
       }
     }
   | {
@@ -182,7 +182,7 @@ export type UserArtifactResult = {
 export type UserStepResult = {
   stepResult: {
     notes: Array<string>
-    errors?: Array<ErrorObject>
+    errors: Array<ErrorObject>
   }
   artifactsResult: Array<UserArtifactResult>
 }

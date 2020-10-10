@@ -10,6 +10,7 @@ export const isStepEnabledConstrain = createStepConstrain<void, void, { isStepEn
       return {
         canRun: false,
         stepResult: {
+          errors: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsPassed,
           notes: [`step: "${currentStepInfo.data.stepInfo.displayName}" is disabled`],
