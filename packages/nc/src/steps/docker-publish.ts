@@ -357,7 +357,10 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
   stepName: 'docker-publish',
   constrains: {
     onArtifact: [
-      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
+      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+        stepNameToSearchInCache: 'build',
+        skipAsFailedIfStepNotFoundInCache: true,
+      }),
       customConstrain(),
     ],
     onStep: [skipIfStepIsDisabledConstrain()],

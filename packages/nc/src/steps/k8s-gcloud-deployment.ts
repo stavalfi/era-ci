@@ -48,7 +48,10 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
   stepName: 'k8s-gcloud-deployment',
   constrains: {
     onArtifact: [
-      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'docker-publish' }),
+      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+        stepNameToSearchInCache: 'docker-publish',
+        skipAsFailedIfStepNotFoundInCache: true,
+      }),
       customConstrain(),
     ],
     onStep: [skipIfStepIsDisabledConstrain()],
