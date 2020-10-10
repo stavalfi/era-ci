@@ -6,12 +6,9 @@ import { ConstrainResult, PackageJson } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
 import { ExecutionStatus, Status } from '../types'
-import {
-  rerunArtifactOnStepFailureConstrain,
-  artifactStepResultMissingOrPassedInCacheConstrain,
-} from '../artifact-in-step-constrains'
-import { createArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
-import { isStepEnabledConstrain } from '../step-constrains'
+import { runIfArtifactStepResultMissingOrPassedInCacheConstrain } from '../artifact-step-constrains'
+import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
+import { runIfStepIsEnabledConstrain } from '../step-constrains'
 
 export type DockerPublishConfiguration = {
   isStepEnabled: boolean
@@ -287,7 +284,7 @@ async function calculateNextVersion({
   })
 }
 
-const customConstrain = createArtifactInStepConstrain<void, void, DockerPublishConfiguration>({
+const customConstrain = createArtifactStepConstrain<void, void, DockerPublishConfiguration>({
   constrainName: 'custom-constrain',
   constrain: async ({ currentArtifact, stepConfigurations, cache, repoPath, log }) => {
     const targetType = await getPackageTargetType(
@@ -358,13 +355,12 @@ const customConstrain = createArtifactInStepConstrain<void, void, DockerPublishC
 
 export const dockerPublish = createStep<DockerPublishConfiguration>({
   stepName: 'docker-publish',
-  runIfAllConstrainsApply: {
-    canRunStepOnArtifact: [
-      artifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
-      rerunArtifactOnStepFailureConstrain(),
+  constrains: {
+    onArtifact: [
+      runIfArtifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
       customConstrain(),
     ],
-    canRunStep: [isStepEnabledConstrain()],
+    onStep: [runIfStepIsEnabledConstrain()],
   },
   run: {
     runStrategy: RunStrategy.perArtifact,

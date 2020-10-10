@@ -1,11 +1,8 @@
 import { createFile } from 'create-folder-structure'
-import {
-  artifactStepResultMissingOrPassedInCacheConstrain,
-  rerunArtifactOnStepFailureConstrain,
-} from '../artifact-in-step-constrains'
-import { createArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
+import { runIfArtifactStepResultMissingOrPassedInCacheConstrain } from '../artifact-step-constrains'
+import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
 import { createStep, RunStrategy } from '../create-step'
-import { isStepEnabledConstrain } from '../step-constrains'
+import { runIfStepIsEnabledConstrain } from '../step-constrains'
 import { ConstrainResult, ExecutionStatus, Status } from '../types'
 import { execaCommand } from '../utils'
 import { getPackageTargetType, TargetType } from './utils'
@@ -21,7 +18,7 @@ export type K8sGcloudDeploymentConfiguration = {
   fullImageNameCacheKey: (options: { packageHash: string }) => string
 }
 
-const customConstrain = createArtifactInStepConstrain<void, void, K8sGcloudDeploymentConfiguration>({
+const customConstrain = createArtifactStepConstrain<void, void, K8sGcloudDeploymentConfiguration>({
   constrainName: 'custom-constrain',
   constrain: async ({ currentArtifact }) => {
     const targetType = await getPackageTargetType(
@@ -49,13 +46,12 @@ const customConstrain = createArtifactInStepConstrain<void, void, K8sGcloudDeplo
 
 export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>({
   stepName: 'k8s-gcloud-deployment',
-  runIfAllConstrainsApply: {
-    canRunStepOnArtifact: [
-      artifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'docker-publish' }),
-      rerunArtifactOnStepFailureConstrain(),
+  constrains: {
+    onArtifact: [
+      runIfArtifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'docker-publish' }),
       customConstrain(),
     ],
-    canRunStep: [isStepEnabledConstrain()],
+    onStep: [runIfStepIsEnabledConstrain()],
   },
   run: {
     runStrategy: RunStrategy.perArtifact,

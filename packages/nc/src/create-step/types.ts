@@ -1,5 +1,5 @@
 import { ErrorObject } from 'serialize-error'
-import { ArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
+import { ArtifactInStepConstrain } from '../create-artifact-step-constrain'
 import { Cache } from '../create-cache'
 import { Log, Logger } from '../create-logger'
 import { StepConstrain } from '../create-step-constrain'
@@ -207,9 +207,9 @@ export type Run<StepConfigurations> = {
 export type CreateStepOptions<StepConfigurations, NormalizedStepConfigurations = StepConfigurations> = {
   stepName: string
   normalizeStepConfigurations?: (stepConfigurations: StepConfigurations) => Promise<NormalizedStepConfigurations>
-  runIfAllConstrainsApply?: {
-    canRunStep?: Array<StepConstrain<NormalizedStepConfigurations>>
-    canRunStepOnArtifact?: Array<ArtifactInStepConstrain<NormalizedStepConfigurations>>
+  constrains?: {
+    onStep?: Array<StepConstrain<NormalizedStepConfigurations>>
+    onArtifact?: Array<ArtifactInStepConstrain<NormalizedStepConfigurations>>
   }
   run: Run<NormalizedStepConfigurations>
 }

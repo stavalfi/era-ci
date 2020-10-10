@@ -93,12 +93,12 @@ export async function runAllSteps({
       case ExecutionStatus.aborted:
         return
       case ExecutionStatus.scheduled: {
-        const canRunStep = state.stepsResultOfArtifactsByStep[stepIndex].parentsIndexes.every(pIndex =>
+        const onStep = state.stepsResultOfArtifactsByStep[stepIndex].parentsIndexes.every(pIndex =>
           [ExecutionStatus.done, ExecutionStatus.aborted].includes(
             state.stepsResultOfArtifactsByStep[pIndex].data.stepResult.executionStatus,
           ),
         )
-        if (canRunStep) {
+        if (onStep) {
           const stepResultOfArtifacts = await stepsToRun[stepIndex].data.runStep({
             artifacts,
             steps,

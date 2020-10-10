@@ -1,5 +1,5 @@
 import { createStep, RunStrategy } from '../create-step'
-import { rootPackageJsonHasScriptConstrain } from '../step-constrains'
+import { runIfRootPackageJsonHasScriptConstrain } from '../step-constrains'
 import { ExecutionStatus, Status } from '../types'
 import { execaCommand } from '../utils'
 
@@ -8,9 +8,9 @@ export const lint = createStep<{ lintScriptName: string } | void, { lintScriptNa
   normalizeStepConfigurations: async stepConfig => ({
     lintScriptName: (typeof stepConfig === 'object' && stepConfig.lintScriptName) || 'lint',
   }),
-  runIfAllConstrainsApply: {
-    canRunStep: [
-      rootPackageJsonHasScriptConstrain({
+  constrains: {
+    onStep: [
+      runIfRootPackageJsonHasScriptConstrain({
         scriptName: 'lint',
       }),
     ],

@@ -2,14 +2,11 @@ import fse from 'fs-extra'
 import _ from 'lodash'
 import os from 'os'
 import path from 'path'
-import {
-  artifactStepResultMissingOrPassedInCacheConstrain,
-  rerunArtifactOnStepFailureConstrain,
-} from '../artifact-in-step-constrains'
-import { createArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
+import { runIfArtifactStepResultMissingOrPassedInCacheConstrain } from '../artifact-step-constrains'
+import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
 import { Log } from '../create-logger'
 import { createStep, RunStrategy } from '../create-step'
-import { isStepEnabledConstrain } from '../step-constrains'
+import { runIfStepIsEnabledConstrain } from '../step-constrains'
 import { ConstrainResult, ExecutionStatus, PackageJson, Status } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
@@ -169,7 +166,7 @@ export async function npmRegistryLogin({
   }
 }
 
-const customConstrain = createArtifactInStepConstrain<void, void, NpmPublishConfiguration>({
+const customConstrain = createArtifactStepConstrain<void, void, NpmPublishConfiguration>({
   constrainName: 'custom-constrain',
   constrain: async ({ currentArtifact, stepConfigurations, cache, repoPath, log }) => {
     const targetType = await getPackageTargetType(
@@ -243,13 +240,12 @@ const customConstrain = createArtifactInStepConstrain<void, void, NpmPublishConf
 
 export const npmPublish = createStep<NpmPublishConfiguration>({
   stepName: 'npm-publish',
-  runIfAllConstrainsApply: {
-    canRunStepOnArtifact: [
-      artifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
-      rerunArtifactOnStepFailureConstrain(),
+  constrains: {
+    onArtifact: [
+      runIfArtifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
       customConstrain(),
     ],
-    canRunStep: [isStepEnabledConstrain()],
+    onStep: [runIfStepIsEnabledConstrain()],
   },
   run: {
     runStrategy: RunStrategy.perArtifact,
