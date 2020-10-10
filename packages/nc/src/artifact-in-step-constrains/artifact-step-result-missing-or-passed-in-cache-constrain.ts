@@ -1,5 +1,5 @@
 import { createArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
-import { ExecutionStatus, Status } from '../types'
+import { ConstrainResult, ExecutionStatus, Status } from '../types'
 
 export const artifactStepResultMissingOrPassedInCacheConstrain = createArtifactInStepConstrain<{
   stepNameToSearchInCache: string
@@ -11,7 +11,7 @@ export const artifactStepResultMissingOrPassedInCacheConstrain = createArtifactI
 
     if (!stepId) {
       return {
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         artifactStepResult: {
           errors: [],
           executionStatus: ExecutionStatus.aborted,
@@ -33,19 +33,19 @@ export const artifactStepResultMissingOrPassedInCacheConstrain = createArtifactI
 
     if (!actualStepResult) {
       return {
-        canRun: true,
+        constrainResult: ConstrainResult.shouldRun,
         artifactStepResult: { errors: [], notes: [] },
       }
     }
 
     if ([Status.passed, Status.skippedAsPassed].includes(actualStepResult.artifactStepResult.status)) {
       return {
-        canRun: true,
+        constrainResult: ConstrainResult.shouldRun,
         artifactStepResult: { errors: [], notes: [] },
       }
     } else {
       return {
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         artifactStepResult: {
           errors: [],
           notes: [

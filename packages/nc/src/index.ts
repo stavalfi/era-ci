@@ -9,7 +9,7 @@
 import { startCli } from './configuration/cli'
 
 export { createLinearStepsGraph } from './create-linear-steps-graph'
-export { Artifact, Graph, PackageJson, ExecutionStatus, Status } from './types'
+export { Artifact, Graph, PackageJson, ExecutionStatus, Status, ConstrainResult } from './types'
 export { Config } from './configuration'
 export { Step, StepInfo, createStep, RunStrategy } from './create-step'
 export { Log, LogLevel, Logger, CreateLogger } from './create-logger'

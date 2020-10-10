@@ -13,7 +13,7 @@ export function createArtifactInStepConstrain<
     options: {
       constrainConfigurations: NormalizedConfigurations
     } & UserRunStepOptions<StepConfiguration> & { currentArtifact: Node<{ artifact: Artifact }> },
-  ) => Promise<true | ArtifactInStepConstrainResult>
+  ) => Promise<ArtifactInStepConstrainResult>
 }) {
   return (configurations: Configurations): ArtifactInStepConstrain<StepConfiguration> => ({
     constrainName: createOptions.constrainName,

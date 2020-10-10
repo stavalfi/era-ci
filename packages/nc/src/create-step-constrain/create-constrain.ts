@@ -12,7 +12,7 @@ export function createStepConstrain<
     options: {
       constrainConfigurations: NormalizedConfigurations
     } & UserRunStepOptions<StepConfiguration>,
-  ) => Promise<true | StepConstrainResult>
+  ) => Promise<StepConstrainResult>
 }) {
   return (configurations: Configurations): StepConstrain<StepConfiguration> => ({
     constrainName: createOptions.constrainName,

@@ -1,9 +1,9 @@
 import _ from 'lodash'
 import { ErrorObject, serializeError } from 'serialize-error'
 import { UserRunStepOptions } from '../create-step'
-import { ExecutionStatus, Status } from '../types'
+import { ConstrainResult, ExecutionStatus, Status } from '../types'
 import { calculateCombinedStatus } from '../utils'
-import { StepConstrainResult, StepConstrain } from './types'
+import { StepConstrainResult, StepConstrain, CombinedStepConstrainResult } from './types'
 
 export async function runSkipSteps<StepConfiguration>({
   predicates,
@@ -11,11 +11,11 @@ export async function runSkipSteps<StepConfiguration>({
 }: {
   userRunStepOptions: UserRunStepOptions<StepConfiguration>
   predicates: Array<StepConstrain<StepConfiguration>>
-}): Promise<StepConstrainResult> {
+}): Promise<CombinedStepConstrainResult> {
   const results = await Promise.all(
     predicates.map(x =>
       x.callConstrain({ userRunStepOptions }).catch<StepConstrainResult>(error => ({
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         stepResult: {
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsFailed,
@@ -25,12 +25,14 @@ export async function runSkipSteps<StepConfiguration>({
       })),
     ),
   )
-  const canRun = results.every(x => x === true || x.canRun)
-  const notes = _.uniq(_.flatMapDeep(results.map(x => (x === true ? [] : x.stepResult.notes))))
-  const errors = _.flatMapDeep<ErrorObject>(results.map(x => (x === true ? [] : x.stepResult.errors ?? [])))
+  const canRun = results.every(x =>
+    [ConstrainResult.shouldRun, ConstrainResult.ignoreThisConstrain].includes(x.constrainResult),
+  )
+  const notes = _.uniq(_.flatMapDeep(results.map(x => x.stepResult.notes)))
+  const errors = _.flatMapDeep<ErrorObject>(results.map(x => x.stepResult.errors ?? []))
   if (canRun) {
     return {
-      canRun: true,
+      constrainResult: ConstrainResult.shouldRun,
       stepResult: {
         notes,
         errors,
@@ -38,10 +40,10 @@ export async function runSkipSteps<StepConfiguration>({
     }
   } else {
     const artifactStepResultStatus = calculateCombinedStatus(
-      _.flatMapDeep(results.map(r => (r === true || r.canRun ? [] : [r.stepResult.status]))),
+      _.flatMapDeep(results.map(r => (r.constrainResult === ConstrainResult.shouldSkip ? [r.stepResult.status] : []))),
     )
     return {
-      canRun: false,
+      constrainResult: ConstrainResult.shouldSkip,
       stepResult: {
         notes,
         executionStatus: ExecutionStatus.aborted,

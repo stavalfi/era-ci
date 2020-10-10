@@ -1,10 +1,14 @@
 import _ from 'lodash'
 import { serializeError } from 'serialize-error'
-import { runCanRunStepOnArtifactPredicates } from '../create-artifact-in-step-constrain'
+import {
+  CombinedArtifactInStepConstrainResult,
+  runCanRunStepOnArtifactPredicates,
+} from '../create-artifact-in-step-constrain'
 import { runSkipSteps } from '../create-step-constrain'
 import {
   AbortResult,
   Artifact,
+  ConstrainResult,
   DoneResult,
   ExecutionStatus,
   Graph,
@@ -14,7 +18,6 @@ import {
 } from '../types'
 import { calculateCombinedStatus } from '../utils'
 import {
-  CanRunStepOnArtifactResult,
   CreateStepOptions,
   RunStepOnArtifact,
   RunStepOnArtifacts,
@@ -60,7 +63,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
   beforeAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
   runStepOnArtifact: RunStepOnArtifact<StepConfigurations>
   afterAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
-  canRunStepResultOnArtifacts: CanRunStepOnArtifactResult[]
+  canRunStepResultOnArtifacts: CombinedArtifactInStepConstrainResult[]
 }): ReturnType<RunStepOnArtifacts<StepConfigurations>> {
   if (beforeAll) {
     await beforeAll(userRunStepOptions)
@@ -68,7 +71,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
   const artifactsResult: UserArtifactResult[] = []
   for (const [i, artifact] of userRunStepOptions.artifacts.entries()) {
     const canRunResult = canRunStepResultOnArtifacts[i]
-    if (canRunResult.canRun) {
+    if (canRunResult.constrainResult === ConstrainResult.shouldRun) {
       try {
         const stepResult = await runStepOnArtifact({
           ...userRunStepOptions,
@@ -76,7 +79,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
         })
         artifactsResult.push({
           artifactName: artifact.data.artifact.packageJson.name,
-          stepResult: {
+          artifactStepResult: {
             executionStatus: ExecutionStatus.done,
             status: stepResult.status,
             notes: stepResult.notes,
@@ -87,7 +90,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
       } catch (error: unknown) {
         artifactsResult.push({
           artifactName: artifact.data.artifact.packageJson.name,
-          stepResult: {
+          artifactStepResult: {
             executionStatus: ExecutionStatus.done,
             status: Status.failed,
             notes: [],
@@ -99,7 +102,7 @@ async function runStepOnEveryArtifact<StepConfigurations>({
     } else {
       artifactsResult.push({
         artifactName: artifact.data.artifact.packageJson.name,
-        stepResult: {
+        artifactStepResult: {
           executionStatus: ExecutionStatus.aborted,
           status: canRunResult.artifactStepResult.status,
           notes: canRunResult.artifactStepResult.notes,
@@ -139,7 +142,7 @@ async function runStepOnRoot<StepConfigurations>({
     },
     artifactsResult: userRunStepOptions.artifacts.map(node => ({
       artifactName: node.data.artifact.packageJson.name,
-      stepResult: {
+      artifactStepResult: {
         errors: [],
         executionStatus: ExecutionStatus.done,
         status: result.status,
@@ -175,44 +178,41 @@ async function getUserStepResult<StepConfigurations, NormalizedStepConfiguration
     }),
   ])
 
-  if (canRunPerArtifact.every(x => !x.canRun) || !canRunAllArtifacts.canRun) {
-    return {
+  const shouldSkipStep =
+    canRunAllArtifacts.constrainResult === ConstrainResult.shouldSkip ||
+    canRunPerArtifact.every(x => x.constrainResult === ConstrainResult.shouldSkip)
+
+  let userStepResult: UserStepResult
+  if (shouldSkipStep) {
+    userStepResult = {
       stepResult: {
-        notes: canRunAllArtifacts.stepResult.notes,
-        errors: canRunAllArtifacts.stepResult.errors,
+        notes: [],
+        errors: [],
       },
       artifactsResult: userRunStepOptions.artifacts.map((node, i) => {
-        const canRun = canRunPerArtifact[i]
-        if (canRun.canRun) {
-          if (canRunAllArtifacts.canRun) {
+        let status: Status.skippedAsFailed | Status.skippedAsPassed
+        if (canRunAllArtifacts.constrainResult === ConstrainResult.shouldSkip) {
+          status = canRunAllArtifacts.stepResult.status
+        } else {
+          const canRun = canRunPerArtifact[i]
+          if (canRun.constrainResult !== ConstrainResult.shouldSkip) {
             throw new Error(`we can't be here`)
           }
-          return {
-            artifactName: node.data.artifact.packageJson.name,
-            stepResult: {
-              executionStatus: canRunAllArtifacts.stepResult.executionStatus,
-              status: canRunAllArtifacts.stepResult.status,
-              durationMs: Date.now() - startStepMs,
-              notes: canRun.artifactStepResult.notes,
-              errors: canRun.artifactStepResult.errors,
-            },
-          }
-        } else {
-          return {
-            artifactName: node.data.artifact.packageJson.name,
-            stepResult: {
-              errors: canRun.artifactStepResult.errors,
-              executionStatus: ExecutionStatus.aborted,
-              status: canRun.artifactStepResult.status,
-              durationMs: Date.now() - startStepMs,
-              notes: canRun.artifactStepResult.notes,
-            },
-          }
+          status = canRun.artifactStepResult.status
+        }
+        return {
+          artifactName: node.data.artifact.packageJson.name,
+          artifactStepResult: {
+            errors: [],
+            executionStatus: ExecutionStatus.aborted,
+            status,
+            durationMs: Date.now() - startStepMs,
+            notes: [],
+          },
         }
       }),
     }
   } else {
-    let userStepResult: UserStepResult
     switch (createStepOptions.run.runStrategy) {
       case RunStrategy.allArtifacts:
         userStepResult = await createStepOptions.run.runStepOnArtifacts(userRunStepOptions)
@@ -233,15 +233,15 @@ async function getUserStepResult<StepConfigurations, NormalizedStepConfiguration
         })
         break
     }
-    const copy = _.cloneDeep(userStepResult)
-    copy.stepResult.notes.push(...canRunAllArtifacts.stepResult.notes)
-    copy.stepResult.errors?.push(...(canRunAllArtifacts.stepResult.errors || []))
-    copy.artifactsResult.forEach((a, i) => {
-      a.stepResult.notes.push(...canRunPerArtifact[i].artifactStepResult.notes)
-      a.stepResult.errors?.push(...(canRunPerArtifact[i].artifactStepResult.errors || []))
-    })
-    return copy
   }
+  const copy = _.cloneDeep(userStepResult)
+  copy.stepResult.notes.push(...canRunAllArtifacts.stepResult.notes)
+  copy.stepResult.errors?.push(...(canRunAllArtifacts.stepResult.errors || []))
+  copy.artifactsResult.forEach((a, i) => {
+    a.artifactStepResult.notes.push(...canRunPerArtifact[i].artifactStepResult.notes)
+    a.artifactStepResult.errors?.push(...(canRunPerArtifact[i].artifactStepResult.errors || []))
+  })
+  return copy
 }
 
 async function runStep<StepConfigurations, NormalizedStepConfigurations>({
@@ -301,19 +301,19 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
     const artifactsResult: Graph<{
       artifact: Artifact
       artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
-    }> = runStepOptions.artifacts.map((node, i) => {
+    }> = runStepOptions.artifacts.map(node => {
       const result = userStepResult.artifactsResult[node.index]
-      if (result.stepResult.status === Status.passed || result.stepResult.status === Status.failed) {
+      if (result.artifactStepResult.status === Status.passed || result.artifactStepResult.status === Status.failed) {
         return {
           ...node,
           data: {
             artifact: node.data.artifact,
             artifactStepResult: {
               executionStatus: ExecutionStatus.done,
-              status: result.stepResult.status,
-              durationMs: result.stepResult.durationMs,
-              errors: result.stepResult.errors,
-              notes: result.stepResult.notes,
+              status: result.artifactStepResult.status,
+              durationMs: result.artifactStepResult.durationMs,
+              errors: result.artifactStepResult.errors,
+              notes: result.artifactStepResult.notes,
             },
           },
         }
@@ -324,10 +324,10 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
             artifact: node.data.artifact,
             artifactStepResult: {
               executionStatus: ExecutionStatus.aborted,
-              status: result.stepResult.status,
-              durationMs: result.stepResult.durationMs,
-              errors: result.stepResult.errors,
-              notes: result.stepResult.notes,
+              status: result.artifactStepResult.status,
+              durationMs: result.artifactStepResult.durationMs,
+              errors: result.artifactStepResult.errors,
+              notes: result.artifactStepResult.notes,
             },
           },
         }
@@ -347,10 +347,10 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
           notes: userStepResult.stepResult.notes,
           status: calculateCombinedStatus(
             userStepResult.artifactsResult.map(a => {
-              if (a.stepResult.executionStatus !== ExecutionStatus.done) {
+              if (a.artifactStepResult.executionStatus !== ExecutionStatus.done) {
                 throw new Error(`we can't be here`)
               }
-              return a.stepResult.status
+              return a.artifactStepResult.status
             }),
           ),
         },
@@ -379,7 +379,7 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
           executionStatus: ExecutionStatus.aborted,
           durationMs: Date.now() - startStepMs,
           notes: userStepResult.stepResult.notes,
-          status: calculateCombinedStatus(userStepResult.artifactsResult.map(a => a.stepResult.status)),
+          status: calculateCombinedStatus(userStepResult.artifactsResult.map(a => a.artifactStepResult.status)),
         },
         artifactsResult: artifactsResult,
       }

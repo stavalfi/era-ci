@@ -1,4 +1,12 @@
-import { createArtifactInStepConstrain, createStep, ExecutionStatus, JsonReport, RunStrategy, Status } from '../src'
+import {
+  ConstrainResult,
+  createArtifactInStepConstrain,
+  createStep,
+  ExecutionStatus,
+  JsonReport,
+  RunStrategy,
+  Status,
+} from '../src'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
 
 const { createRepo } = createTest()
@@ -21,7 +29,13 @@ describe('define custom predicate to check if we need to run the step on a packa
             canRunStepOnArtifact: [
               createArtifactInStepConstrain({
                 constrainName: 'test-constrain',
-                constrain: async () => true,
+                constrain: async () => ({
+                  constrainResult: ConstrainResult.shouldRun,
+                  artifactStepResult: {
+                    errors: [],
+                    notes: [],
+                  },
+                }),
               })(),
             ],
           },
@@ -97,7 +111,7 @@ describe('define custom predicate to check if we need to run the step on a packa
               createArtifactInStepConstrain({
                 constrainName: 'test-constrain',
                 constrain: async () => ({
-                  canRun: false,
+                  constrainResult: ConstrainResult.shouldSkip,
                   artifactStepResult: {
                     errors: [],
                     notes: [],
@@ -181,7 +195,7 @@ describe('define custom predicate to check if we need to run the step on a packa
               createArtifactInStepConstrain({
                 constrainName: 'test-constrain',
                 constrain: async () => ({
-                  canRun: false,
+                  constrainResult: ConstrainResult.shouldSkip,
                   artifactStepResult: {
                     errors: [],
                     notes: ['note1', 'note2'],
@@ -265,7 +279,7 @@ describe('define custom predicate to check if we need to run the step on a packa
               createArtifactInStepConstrain({
                 constrainName: 'test-constrain',
                 constrain: async () => ({
-                  canRun: false,
+                  constrainResult: ConstrainResult.shouldSkip,
                   artifactStepResult: {
                     errors: [],
                     notes: ['note1', 'note2', 'note1', 'note2'],

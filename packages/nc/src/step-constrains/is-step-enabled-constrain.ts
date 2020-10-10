@@ -1,14 +1,20 @@
 import { createStepConstrain } from '../create-step-constrain'
-import { ExecutionStatus, Status } from '../types'
+import { ConstrainResult, ExecutionStatus, Status } from '../types'
 
 export const isStepEnabledConstrain = createStepConstrain<void, void, { isStepEnabled: boolean }>({
   constrainName: 'is-step-enabled-constrain',
   constrain: async ({ stepConfigurations, currentStepInfo }) => {
     if (stepConfigurations.isStepEnabled) {
-      return true
+      return {
+        constrainResult: ConstrainResult.shouldRun,
+        stepResult: {
+          errors: [],
+          notes: [],
+        },
+      }
     } else {
       return {
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         stepResult: {
           errors: [],
           executionStatus: ExecutionStatus.aborted,

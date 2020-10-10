@@ -3,14 +3,14 @@ import _ from 'lodash'
 import os from 'os'
 import path from 'path'
 import {
-  artifactStepResultMissingOrFailedInCacheConstrain,
   artifactStepResultMissingOrPassedInCacheConstrain,
+  rerunArtifactOnStepFailureConstrain,
 } from '../artifact-in-step-constrains'
 import { createArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
 import { Log } from '../create-logger'
 import { createStep, RunStrategy } from '../create-step'
 import { isStepEnabledConstrain } from '../step-constrains'
-import { ExecutionStatus, PackageJson, Status } from '../types'
+import { ConstrainResult, ExecutionStatus, PackageJson, Status } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
 
@@ -179,7 +179,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, NpmPublishConf
 
     if (targetType !== TargetType.npm) {
       return {
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         artifactStepResult: {
           errors: [],
           notes: [],
@@ -207,7 +207,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, NpmPublishConf
 
     if (!npmVersionResult) {
       return {
-        canRun: true,
+        constrainResult: ConstrainResult.shouldRun,
         artifactStepResult: { errors: [], notes: [] },
       }
     }
@@ -222,7 +222,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, NpmPublishConf
       })
     ) {
       return {
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         artifactStepResult: {
           errors: [],
           notes: [
@@ -235,7 +235,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, NpmPublishConf
     }
 
     return {
-      canRun: true,
+      constrainResult: ConstrainResult.shouldRun,
       artifactStepResult: { errors: [], notes: [] },
     }
   },
@@ -246,7 +246,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
   runIfAllConstrainsApply: {
     canRunStepOnArtifact: [
       artifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
-      artifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'npm-publish' }),
+      rerunArtifactOnStepFailureConstrain(),
       customConstrain(),
     ],
     canRunStep: [isStepEnabledConstrain()],

@@ -1,15 +1,21 @@
 import { createStepConstrain } from '../create-step-constrain'
-import { ExecutionStatus, Status } from '../types'
+import { ConstrainResult, ExecutionStatus, Status } from '../types'
 
 export const rootPackageJsonHasScriptConstrain = createStepConstrain<{ scriptName: string }>({
   constrainName: 'root-package-json-has-script-step-constrain',
   constrain: async ({ constrainConfigurations, rootPackageJson }) => {
     const scriptName = constrainConfigurations.scriptName
     if (rootPackageJson.scripts && scriptName in rootPackageJson.scripts && rootPackageJson.scripts[scriptName]) {
-      return true
+      return {
+        constrainResult: ConstrainResult.shouldRun,
+        stepResult: {
+          errors: [],
+          notes: [],
+        },
+      }
     } else {
       return {
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         stepResult: {
           errors: [],
           executionStatus: ExecutionStatus.aborted,

@@ -112,6 +112,7 @@ export async function runAllSteps({
             stepsResultOfArtifactsByArtifact: state.stepsResultOfArtifactsByArtifact,
             stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep,
           })
+
           updateState({ stepIndex, stepResultOfArtifacts, artifacts, state })
 
           await Promise.all(steps[stepIndex].childrenIndexes.map(runStep))

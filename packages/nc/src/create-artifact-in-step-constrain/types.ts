@@ -1,17 +1,37 @@
 import { ErrorObject } from 'serialize-error'
 import { UserRunStepOptions } from '../create-step'
-import { AbortResult, Artifact, Node, Status } from '../types'
+import { AbortResult, Artifact, ConstrainResult, Node, Status } from '../types'
 
 export type ArtifactInStepConstrainResult =
   | {
-      canRun: true
+      constrainResult: ConstrainResult.shouldRun
       artifactStepResult: {
         notes: Array<string>
         errors: Array<ErrorObject>
       }
     }
   | {
-      canRun: false
+      constrainResult: ConstrainResult.ignoreThisConstrain
+      artifactStepResult: {
+        notes: Array<string>
+        errors: Array<ErrorObject>
+      }
+    }
+  | {
+      constrainResult: ConstrainResult.shouldSkip
+      artifactStepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
+    }
+
+export type CombinedArtifactInStepConstrainResult =
+  | {
+      constrainResult: ConstrainResult.shouldRun
+      artifactStepResult: {
+        notes: Array<string>
+        errors: Array<ErrorObject>
+      }
+    }
+  | {
+      constrainResult: ConstrainResult.shouldSkip
       artifactStepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
     }
 
@@ -21,5 +41,5 @@ export type ArtifactInStepConstrain<StepConfiguration> = {
     options: {
       userRunStepOptions: UserRunStepOptions<StepConfiguration>
     } & { currentArtifact: Node<{ artifact: Artifact }> },
-  ) => Promise<true | ArtifactInStepConstrainResult>
+  ) => Promise<ArtifactInStepConstrainResult>
 }

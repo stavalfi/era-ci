@@ -161,7 +161,7 @@ export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCach
               status: enums(Object.values(Status)),
               durationMs: number(),
               notes: array(string()),
-              error: optional(
+              errors: array(
                 type({
                   name: optional(string()),
                   stack: optional(string()),

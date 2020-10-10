@@ -2,12 +2,12 @@ import _ from 'lodash'
 import semver from 'semver'
 import { Log } from '../create-logger'
 import { createStep, RunStrategy } from '../create-step'
-import { PackageJson } from '../types'
+import { ConstrainResult, PackageJson } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
 import { ExecutionStatus, Status } from '../types'
 import {
-  artifactStepResultMissingOrFailedInCacheConstrain,
+  rerunArtifactOnStepFailureConstrain,
   artifactStepResultMissingOrPassedInCacheConstrain,
 } from '../artifact-in-step-constrains'
 import { createArtifactInStepConstrain } from '../create-artifact-in-step-constrain'
@@ -296,7 +296,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, DockerPublishC
     )
     if (targetType !== TargetType.docker) {
       return {
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         artifactStepResult: {
           errors: [],
           notes: [],
@@ -321,7 +321,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, DockerPublishC
 
     if (!dockerVersionResult) {
       return {
-        canRun: true,
+        constrainResult: ConstrainResult.shouldRun,
         artifactStepResult: { errors: [], notes: [] },
       }
     }
@@ -337,7 +337,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, DockerPublishC
       })
     ) {
       return {
-        canRun: false,
+        constrainResult: ConstrainResult.shouldSkip,
         artifactStepResult: {
           errors: [],
           notes: [
@@ -350,7 +350,7 @@ const customConstrain = createArtifactInStepConstrain<void, void, DockerPublishC
     }
 
     return {
-      canRun: true,
+      constrainResult: ConstrainResult.shouldRun,
       artifactStepResult: { errors: [], notes: [] },
     }
   },
@@ -361,7 +361,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
   runIfAllConstrainsApply: {
     canRunStepOnArtifact: [
       artifactStepResultMissingOrPassedInCacheConstrain({ stepNameToSearchInCache: 'build' }),
-      artifactStepResultMissingOrFailedInCacheConstrain({ stepNameToSearchInCache: 'docker-publish' }),
+      rerunArtifactOnStepFailureConstrain(),
       customConstrain(),
     ],
     canRunStep: [isStepEnabledConstrain()],
