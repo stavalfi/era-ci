@@ -68,9 +68,8 @@ export const skipIfArtifactStepResultMissingOrFailedInCacheConstrain = createArt
       const isThisStep = currentStepInfo.data.stepInfo.stepId === step.data.stepInfo.stepId
       const notes: string[] = []
       if (isResultFromThisFlow && isThisStep) {
-        throw new Error(
-          `we can't be here because we can't fail on this step in this flow if this step didn't run it in this flow`,
-        )
+        // we are running the ci again and nothing was changed in the repo
+        notes.push(`step already failed`)
       }
       if (isResultFromThisFlow && !isThisStep) {
         notes.push(`step: "${step.data.stepInfo.displayName}" failed`)
