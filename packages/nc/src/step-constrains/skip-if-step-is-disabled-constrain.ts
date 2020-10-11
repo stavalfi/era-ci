@@ -19,7 +19,7 @@ export const skipIfStepIsDisabledConstrain = createStepConstrain<void, void, { i
           errors: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsPassed,
-          notes: [`step: "${currentStepInfo.data.stepInfo.displayName}" is disabled`],
+          notes: [`step is disabled`],
         },
       }
     }
