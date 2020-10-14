@@ -55,9 +55,9 @@ export default async (): Promise<Config> => {
       logFilePath: './nc.log',
     }),
     steps: createLinearStepsGraph([
-      install(),
       validatePackages(),
-      lint(),
+      install(),
+      lint({ lintScriptName: 'lint:code' }),
       build(),
       test({ testScriptName: 'test' }),
       npmPublish({

@@ -47,7 +47,7 @@ export const skipIfStepResultNotPassedConstrain = createStepConstrain<{
           reason = `is still running but required to succeed`
           break
         case ExecutionStatus.scheduled:
-          reason = `is didn't start yet but required to succeed`
+          reason = `didn't start yet but required to succeed`
           break
       }
       return {
