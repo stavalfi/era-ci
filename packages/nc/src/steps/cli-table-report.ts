@@ -8,6 +8,11 @@ import { skipIfStepResultNotPassedConstrain } from '../step-constrains'
 import { ExecutionStatus, Status } from '../types'
 import { JsonReport, jsonReporterStepName, jsonReporterCacheKey, stringToJsonReport } from './json-reporter'
 
+//
+// Fix colors not appearing in non-tty environments
+//
+colors.enable()
+
 // note: this file is not tested (or can't even be tested?). modify with caution!!!
 
 type TableRow = Table.HorizontalTableRow | Table.VerticalTableRow | Table.CrossTableRow
