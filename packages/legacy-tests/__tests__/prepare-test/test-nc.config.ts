@@ -6,7 +6,6 @@ import {
   dockerPublish,
   install,
   jsonReporter,
-  lint,
   LogLevel,
   npmPublish,
   NpmScopeAccess,
@@ -52,7 +51,6 @@ export default async (): Promise<Config> => {
   const steps = createLinearStepsGraph([
     validatePackages(),
     install(),
-    lint(),
     build(),
     test({
       testScriptName: TEST_SCRIPT_NAME!,

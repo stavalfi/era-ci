@@ -8,6 +8,7 @@
 //
 import { startCli } from './configuration/cli'
 
+export { execaCommand } from './utils'
 export { createLinearStepsGraph } from './create-linear-steps-graph'
 export { Artifact, Graph, PackageJson, ExecutionStatus, Status, ConstrainResult } from './types'
 export { Config } from './configuration'

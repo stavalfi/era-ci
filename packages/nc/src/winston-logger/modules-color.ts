@@ -1,11 +1,6 @@
 import chalk from 'chalk'
 import randomColor from 'randomcolor'
 
-//
-// Fix colors not appearing in non-tty environments
-//
-chalk.level = 3
-
 const moduleToColor = new Map<string, string>()
 
 export function randomModuleColor(module: string): string {

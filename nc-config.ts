@@ -18,6 +18,7 @@ import {
   validatePackages,
   winstonLogger,
 } from './packages/nc'
+import { execaCommand } from './packages/nc/src'
 
 export default async (): Promise<Config> => {
   const {
@@ -59,7 +60,11 @@ export default async (): Promise<Config> => {
       install(),
       lint({ lintScriptName: 'lint:code' }),
       build(),
-      test({ testScriptName: 'test' }),
+      test({
+        testScriptName: 'test',
+        beforeAll: ({ log, repoPath }) =>
+          execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
+      }),
       npmPublish({
         isStepEnabled: isMasterBuild,
         npmScopeAccess: NpmScopeAccess.public,
