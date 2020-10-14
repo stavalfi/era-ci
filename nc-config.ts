@@ -17,8 +17,8 @@ import {
   test,
   validatePackages,
   winstonLogger,
+  execaCommand,
 } from './packages/nc'
-import { execaCommand } from './packages/nc/src'
 
 export default async (): Promise<Config> => {
   const {
