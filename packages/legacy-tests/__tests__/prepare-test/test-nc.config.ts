@@ -2,9 +2,9 @@ import {
   build,
   cliTableReporter,
   Config,
+  createLinearStepsGraph,
   dockerPublish,
   install,
-  JsonReport,
   jsonReporter,
   lint,
   LogLevel,
@@ -14,7 +14,6 @@ import {
   test,
   validatePackages,
   winstonLogger,
-  createLinearStepsGraph,
 } from '@tahini/nc'
 
 export default async (): Promise<Config> => {
@@ -34,17 +33,6 @@ export default async (): Promise<Config> => {
     TEST_SCRIPT_NAME,
     // eslint-disable-next-line no-process-env
   } = process.env
-
-  const fullImageNameCacheKey = ({ packageHash }: { packageHash: string }) =>
-    `full_image_name_of_artifact_hash-${packageHash}`
-
-  const jsonReporterCacheKey = ({ flowId, stepId }: { flowId: string; stepId: string }) =>
-    `json-report-cache-key-${flowId}-${stepId}`
-
-  const jsonReportToString = ({ jsonReport }: { jsonReport: JsonReport }) => JSON.stringify(jsonReport)
-
-  const stringToJsonReport = ({ jsonReportAsString }: { jsonReportAsString: string }) =>
-    JSON.parse(jsonReportAsString) as JsonReport
 
   const logger = winstonLogger({
     customLogLevel: LogLevel.verbose,
@@ -87,16 +75,9 @@ export default async (): Promise<Config> => {
         username: DOCKER_HUB_USERNAME!,
         token: DOCKER_HUB_TOKEN!,
       },
-      fullImageNameCacheKey,
     }),
-    jsonReporter({
-      jsonReporterCacheKey,
-      jsonReportToString,
-    }),
-    cliTableReporter({
-      jsonReporterCacheKey,
-      stringToJsonReport,
-    }),
+    jsonReporter(),
+    cliTableReporter(),
   ])
 
   return {

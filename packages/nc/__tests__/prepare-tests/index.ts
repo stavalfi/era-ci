@@ -10,10 +10,12 @@ import {
   Graph,
   JsonReport,
   jsonReporter,
+  jsonReporterCacheKey,
   LogLevel,
   redisWithNodeCache,
   Step,
   StepInfo,
+  stringToJsonReport,
   winstonLogger,
 } from '../../src'
 import { ci } from '../../src/ci-logic'
@@ -25,14 +27,6 @@ export { isDeepSubsetOf, isDeepSubsetOfOrPrint } from './utils'
 export { DeepPartial } from './types'
 
 const { getResoureces } = resourcesBeforeAfterAll()
-
-const jsonReporterCacheKey = ({ flowId, stepId }: { flowId: string; stepId: string }): string =>
-  `json-report-cache-key-${flowId}-${stepId}`
-
-const jsonReportToString = ({ jsonReport }: { jsonReport: JsonReport }): string => JSON.stringify(jsonReport)
-
-const stringToJsonReport = ({ jsonReportAsString }: { jsonReportAsString: string }): JsonReport =>
-  JSON.parse(jsonReportAsString) as JsonReport
 
 const getJsonReport = async ({
   flowId,
@@ -89,14 +83,8 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (config = {})
       redisServer: getResoureces().redisServer,
     },
   })
-  const defaultJsonReport = jsonReporter({
-    jsonReporterCacheKey,
-    jsonReportToString,
-  })
-  const defaultCliTableReport = cliTableReporter({
-    jsonReporterCacheKey,
-    stringToJsonReport,
-  })
+  const defaultJsonReport = jsonReporter()
+  const defaultCliTableReport = cliTableReporter()
   const finalConfig: Config = {
     logger: config.logger || defaultLogger,
     cache: config.cache || defaultCache,

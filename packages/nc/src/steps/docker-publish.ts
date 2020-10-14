@@ -19,8 +19,10 @@ export type DockerPublishConfiguration = {
   }
   dockerOrganizationName: string
   remoteSshDockerHost?: string
-  fullImageNameCacheKey: (options: { packageHash: string }) => string
 }
+
+export const fullImageNameCacheKey = ({ packageHash }: { packageHash: string }): string =>
+  `full_image_name_of_artifact_hash-${packageHash}`
 
 const getVersionCacheKey = ({ artifactHash }: { artifactHash: string }) => `${artifactHash}-docker-version`
 
@@ -398,7 +400,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
       const fullImageNameCacheTtl = cache.ttls.stepSummary
 
       await cache.set({
-        key: stepConfigurations.fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),
+        key: fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),
         value: fullImageNameNewVersion,
         ttl: fullImageNameCacheTtl,
         allowOverride: false,

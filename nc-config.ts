@@ -17,17 +17,24 @@ import {
   test,
   validatePackages,
   winstonLogger,
-} from '.'
+} from './packages/nc'
 
 export default async (): Promise<Config> => {
   const {
+    NPM_REGISTRY = 'https://registry.npmjs.org/',
     NPM_USERNAME,
     NPM_TOKEN,
+    NPM_EMAIL = 'stavalfi@gmail.com',
     DOCKER_HUB_USERNAME,
     DOCKER_HUB_TOKEN,
+    DOCKER_ORG = 'stavalfi',
+    DOCKER_REGISTRY = `https://registry.hub.docker.com/`,
     K8S_CLUSTER_TOKEN,
     REDIS_ENDPOINT,
     REDIS_PASSWORD,
+    GCLOUD_PROJECT_ID = 'gcloudProjectId',
+    K8S_CLUSTER_NAME = `c-jxh57`,
+    K8S_CLUSTER_ZONE_NAME = `europe-west3-c`,
     // eslint-disable-next-line no-process-env
   } = process.env
 
@@ -52,34 +59,32 @@ export default async (): Promise<Config> => {
       validatePackages(),
       lint(),
       build(),
-      test({
-        testScriptName: 'test',
-      }),
+      test({ testScriptName: 'test' }),
       npmPublish({
         isStepEnabled: isMasterBuild,
         npmScopeAccess: NpmScopeAccess.public,
-        registry: `https://registry.npmjs.org/`,
+        registry: NPM_REGISTRY,
         publishAuth: {
-          email: 'stavalfi@gmail.com',
+          email: NPM_EMAIL,
           username: NPM_USERNAME!,
           token: NPM_TOKEN!,
         },
       }),
       dockerPublish({
-        isStepEnabled: isMasterBuild,
-        dockerOrganizationName: 'stavalfi',
-        registry: `https://registry.hub.docker.com/`,
+        isStepEnabled: false,
+        dockerOrganizationName: DOCKER_ORG,
+        registry: DOCKER_REGISTRY,
         registryAuth: {
           username: DOCKER_HUB_USERNAME!,
           token: DOCKER_HUB_TOKEN!,
         },
       }),
       k8sGcloudDeployment({
-        isStepEnabled: isMasterBuild,
-        gcloudProjectId: `dancer-staging-new`,
-        k8sClusterName: `c-jxh57`,
+        isStepEnabled: false,
+        gcloudProjectId: GCLOUD_PROJECT_ID,
+        k8sClusterName: K8S_CLUSTER_NAME,
         k8sClusterTokenBase64: K8S_CLUSTER_TOKEN!,
-        k8sClusterZoneName: `europe-west3-c`,
+        k8sClusterZoneName: K8S_CLUSTER_ZONE_NAME,
         artifactNameToContainerName: _.identity,
         artifactNameToDeploymentName: _.identity,
       }),
