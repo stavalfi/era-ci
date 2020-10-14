@@ -59,10 +59,13 @@ export type JsonReport = {
     }
 )
 
-export type JsonReportConfiguration = {
-  jsonReporterCacheKey: (options: { flowId: string; stepId: string }) => string
-  jsonReportToString: (options: { jsonReport: JsonReport }) => string
-}
+export const jsonReporterCacheKey = ({ flowId, stepId }: { flowId: string; stepId: string }): string =>
+  `json-report-cache-key-${flowId}-${stepId}`
+
+export const jsonReportToString = ({ jsonReport }: { jsonReport: JsonReport }): string => JSON.stringify(jsonReport)
+
+export const stringToJsonReport = ({ jsonReportAsString }: { jsonReportAsString: string }): JsonReport =>
+  JSON.parse(jsonReportAsString)
 
 function removeNodeFromGraph<T>({
   graph,
@@ -247,7 +250,7 @@ function getJsonReport({
 
 export const jsonReporterStepName = 'json-reporter'
 
-export const jsonReporter = createStep<JsonReportConfiguration>({
+export const jsonReporter = createStep({
   stepName: jsonReporterStepName,
   run: {
     runStrategy: RunStrategy.root,
@@ -283,8 +286,8 @@ export const jsonReporter = createStep<JsonReportConfiguration>({
       const jsonReportTtl = cache.ttls.stepSummary
 
       await cache.set({
-        key: stepConfigurations.jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
-        value: stepConfigurations.jsonReportToString({ jsonReport }),
+        key: jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
+        value: jsonReportToString({ jsonReport }),
         ttl: jsonReportTtl,
         allowOverride: false,
       })

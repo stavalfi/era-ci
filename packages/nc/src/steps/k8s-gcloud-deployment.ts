@@ -5,6 +5,7 @@ import { createStep, RunStrategy } from '../create-step'
 import { skipIfStepIsDisabledConstrain } from '../step-constrains'
 import { ConstrainResult, ExecutionStatus, Status } from '../types'
 import { execaCommand } from '../utils'
+import { fullImageNameCacheKey } from './docker-publish'
 import { getPackageTargetType, TargetType } from './utils'
 
 export type K8sGcloudDeploymentConfiguration = {
@@ -13,9 +14,8 @@ export type K8sGcloudDeploymentConfiguration = {
   k8sClusterTokenBase64: string
   k8sClusterName: string
   k8sClusterZoneName: string
-  artifactNameToDeploymentName: (artifactName: string) => string
-  artifactNameToContainerName: (artifactName: string) => string
-  fullImageNameCacheKey: (options: { packageHash: string }) => string
+  artifactNameToDeploymentName: (options: { artifactName: string }) => string
+  artifactNameToContainerName: (options: { artifactName: string }) => string
 }
 
 const customConstrain = createArtifactStepConstrain<void, void, K8sGcloudDeploymentConfiguration>({
@@ -89,12 +89,12 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
       )
     },
     runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, cache }) => {
-      const packageName = currentArtifact.data.artifact.packageJson.name
-      const deploymentName = stepConfigurations.artifactNameToDeploymentName(packageName)
-      const containerName = stepConfigurations.artifactNameToContainerName(packageName)
+      const artifactName = currentArtifact.data.artifact.packageJson.name
+      const deploymentName = stepConfigurations.artifactNameToDeploymentName({ artifactName })
+      const containerName = stepConfigurations.artifactNameToContainerName({ artifactName })
 
       const fullImageName = await cache.get(
-        stepConfigurations.fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),
+        fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),
         r => {
           if (typeof r === 'string') {
             return r

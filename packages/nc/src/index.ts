@@ -20,7 +20,6 @@ export {
   getDockerImageLabelsAndTags,
   npmRegistryLogin,
   TargetType,
-  CliTableReporterConfiguration,
   cliTableReporter,
   jsonReporter,
   test,
@@ -29,10 +28,12 @@ export {
   dockerPublish,
   build,
   JsonReport,
-  JsonReportConfiguration,
   install,
   lint,
   validatePackages,
+  stringToJsonReport,
+  jsonReporterCacheKey,
+  jsonReportToString,
 } from './steps'
 export { LoggerConfiguration, winstonLogger } from './winston-logger'
 export { CacheConfiguration, redisWithNodeCache } from './redis-with-node-cache'

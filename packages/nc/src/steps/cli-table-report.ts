@@ -6,7 +6,7 @@ import { deserializeError, ErrorObject } from 'serialize-error'
 import { createStep, RunStrategy, stepToString } from '../create-step'
 import { skipIfStepResultNotPassedConstrain } from '../step-constrains'
 import { ExecutionStatus, Status } from '../types'
-import { JsonReport, jsonReporterStepName } from './json-reporter'
+import { JsonReport, jsonReporterStepName, jsonReporterCacheKey, stringToJsonReport } from './json-reporter'
 
 // note: this file is not tested (or can't even be tested?). modify with caution!!!
 
@@ -492,12 +492,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
   return ciTable.toString()
 }
 
-export type CliTableReporterConfiguration = {
-  jsonReporterCacheKey: (options: { flowId: string; stepId: string }) => string
-  stringToJsonReport: (options: { jsonReportAsString: string }) => JsonReport
-}
-
-export const cliTableReporter = createStep<CliTableReporterConfiguration>({
+export const cliTableReporter = createStep({
   stepName: 'cli-table-reporter',
   constrains: {
     onStep: [skipIfStepResultNotPassedConstrain({ stepName: jsonReporterStepName })],
@@ -510,18 +505,15 @@ export const cliTableReporter = createStep<CliTableReporterConfiguration>({
       if (!jsonReporterStepId) {
         throw new Error(`cli-table-reporter can't find json-reporter-step-id. is it part of the flow?`)
       }
-      const jsonReportResult = await cache.get(
-        stepConfigurations.jsonReporterCacheKey({ flowId, stepId: jsonReporterStepId }),
-        r => {
-          if (typeof r === 'string') {
-            return stepConfigurations.stringToJsonReport({ jsonReportAsString: r })
-          } else {
-            throw new Error(
-              `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-            )
-          }
-        },
-      )
+      const jsonReportResult = await cache.get(jsonReporterCacheKey({ flowId, stepId: jsonReporterStepId }), r => {
+        if (typeof r === 'string') {
+          return stringToJsonReport({ jsonReportAsString: r })
+        } else {
+          throw new Error(
+            `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+          )
+        }
+      })
       if (!jsonReportResult) {
         throw new Error(`can't find json-report in the cache. printing the report is aborted`)
       }
