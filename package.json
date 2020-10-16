@@ -46,6 +46,7 @@
     "@types/url-parse": "^1.4.3",
     "@typescript-eslint/eslint-plugin": "4.0.1",
     "@typescript-eslint/parser": "4.0.1",
+    "brigadier": "^0.5.2",
     "chance": "^1.1.5",
     "ci-info": "https://github.com/watson/ci-info.git",
     "create-folder-structure": "^3.0.5",
