@@ -21,6 +21,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@kubernetes/client-node": "^0.12.2",
     "@swc/cli": "^0.1.26",
     "@swc/core": "^1.2.9",
     "@tahini/log": "^1.0.0",

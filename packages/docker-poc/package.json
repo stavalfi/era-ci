@@ -1,0 +1,12 @@
+{
+  "name": "docker-poc",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "test": "jest"
+  },
+  "dependencies": {
+    "@tahini/nc": "^1.0.0"
+  }
+}
