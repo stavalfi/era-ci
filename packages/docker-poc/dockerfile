@@ -4,9 +4,7 @@ WORKDIR /git-repository
 
 COPY yarn.lock package.json ./
 
-ARG package_path=packages/docker-poc
-
-COPY ${package_path}/package.json ./${package_path}/package.json
+COPY packages/docker-poc/package.json ./packages/docker-poc/package.json
 
 RUN yarn install --frozen-lockfile --production
 
