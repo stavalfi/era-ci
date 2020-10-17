@@ -61,7 +61,6 @@ function getK8sClient(options: TryReadFromLocalMachine | SpecifyConnectionDetail
   const kc = new k8s.KubeConfig()
   switch (options.k8sConnectionStrategyType) {
     case K8sConnectionStrategyType.specifyConnectionDetails:
-      console.log(options.k8sConnectionStrategyType)
       kc.loadFromOptions({
         clusters: [options.connectionDetails.cluster],
         users: [options.connectionDetails.user],
@@ -70,7 +69,6 @@ function getK8sClient(options: TryReadFromLocalMachine | SpecifyConnectionDetail
       })
       break
     case K8sConnectionStrategyType.tryReadFromLocalMachine:
-      console.log(options.k8sConnectionStrategyType)
       kc.loadFromDefault()
       break
   }
