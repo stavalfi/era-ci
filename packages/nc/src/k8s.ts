@@ -108,6 +108,8 @@ async function main() {
   const repoOrg = `stavalfi`
   const repoName = `nc`
 
+  // git://37e7707f7a07bea84d55d46c48bfde782ffbe0d1@github.com/stavalfi/nc.git#refs/heads/brigade-poc
+
   const cacheMountPath = `/p-volume-cache`
 
   await runK8sCommand(false, async () => {
