@@ -185,7 +185,7 @@ async function main() {
             args: [
               `--dockerfile=./packages/docker-poc/dockerfile`,
               `--context=git://${gitToken}@github.com/${repoOrg}/${repoName}.git#refs/heads/brigade-poc`,
-              '--destination=stavalfi/kaniko-poc:1.0.0',
+              '--destination=stavalfi/kaniko-poc:1.0.1',
             ],
             volumeMounts: [
               {
