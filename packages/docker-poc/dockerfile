@@ -10,4 +10,4 @@ COPY ${package_path}/package.json ./${package_path}/package.json
 
 RUN yarn install --frozen-lockfile --production
 
-ENTRYPOINT ["/bin/bash", "-c", `echo "location: $PWD"`]
+CMD echo "location: $PWD"
