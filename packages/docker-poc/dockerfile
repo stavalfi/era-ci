@@ -1,15 +1,11 @@
-# FROM node:12
+FROM node:12
 
-# WORKDIR /git-repository
+WORKDIR /git-repository
 
-# COPY yarn.lock package.json ./
+COPY yarn.lock package.json ./
 
-# COPY packages/docker-poc/package.json ./packages/docker-poc/package.json
+COPY packages/docker-poc/package.json ./packages/docker-poc/package.json
 
-# RUN yarn install --frozen-lockfile --production
+RUN yarn install --frozen-lockfile --production
 
-# CMD echo "location: $PWD"
-
-FROM ubuntu
-RUN echo "this line should not be printed in the log of the second build"
-ENTRYPOINT ["/bin/bash", "-c", "echo hello"]
+CMD echo "location: $PWD"
