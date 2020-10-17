@@ -6,6 +6,8 @@ COPY yarn.lock package.json ./
 
 COPY packages/docker-poc/package.json ./packages/docker-poc/package.json
 
+RUN echo "1 - this line should not be printed in the log of the second build"
 RUN yarn install --frozen-lockfile --production
+RUN echo "2 - this line should not be printed in the log of the second build"
 
 CMD echo "location: $PWD"

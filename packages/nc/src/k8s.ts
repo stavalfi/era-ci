@@ -189,7 +189,7 @@ async function main() {
               `--snapshotMode=redo`,
               `--dockerfile=./packages/docker-poc/dockerfile`,
               `--context=git://${gitToken}@github.com/${repoOrg}/${repoName}.git#refs/heads/brigade-poc`,
-              '--destination=stavalfi/kaniko-poc:1.0.4',
+              '--destination=stavalfi/kaniko-poc:1.0.5',
               '--cache-repo=stavalfi/kaniko-bug-cache',
             ],
             volumeMounts: [
