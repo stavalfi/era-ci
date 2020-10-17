@@ -186,6 +186,7 @@ async function main() {
             image: 'gcr.io/kaniko-project/executor:latest',
             args: [
               `--cache=true`,
+              `--snapshotMode=redo`,
               `--dockerfile=./packages/docker-poc/dockerfile`,
               `--context=git://${gitToken}@github.com/${repoOrg}/${repoName}.git#refs/heads/brigade-poc`,
               '--destination=stavalfi/kaniko-poc:1.0.1',
