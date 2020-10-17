@@ -186,7 +186,7 @@ async function main() {
             image: 'gcr.io/kaniko-project/executor:latest',
             args: [
               `--dockerfile=./packages/docker-poc/dockerfile`,
-              `--context=git://${gitToken}@github.com/${repoOrg}/${repoName}.git#refs/heads/master`,
+              `--context=git://${gitToken}@github.com/${repoOrg}/${repoName}.git#refs/heads/brigade-poc`,
               '--destination=stavalfi/kaniko-poc:1.0.0',
             ],
             volumeMounts: [

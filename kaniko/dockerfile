@@ -1,2 +1,16 @@
 FROM ubuntu
 ENTRYPOINT ["/bin/bash", "-c", "echo hello"]
+
+FROM node:12
+
+WORKDIR /git-repository
+
+COPY yarn.lock package.json ./
+
+ARG package_path=packages/docker-poc
+
+COPY ${package_path}/package.json ./${package_path}/package.json
+
+RUN yarn install --frozen-lockfile --production
+
+ENTRYPOINT ["/bin/bash", "-c", `echo "location: $PWD"`]
