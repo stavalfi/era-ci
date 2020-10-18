@@ -103,6 +103,7 @@ async function main() {
   const kc = getMinikubeClient()
 
   const apiClient = kc.makeApiClient(k8s.CoreV1Api)
+  const batchClient = kc.makeApiClient(k8s.BatchV1Api)
 
   const gitToken = `37e7707f7a07bea84d55d46c48bfde782ffbe0d1`
   const repoOrg = `stavalfi`
@@ -156,127 +157,137 @@ async function main() {
     console.log(pVolumeClaimName)
   })
 
-  await runK8sCommand(true, async () => {
-    const podName = `kaniko-pod-${chance().hash()}`
-    await apiClient.createNamespacedPod('default', {
-      apiVersion: 'v1',
-      kind: 'Pod',
+  await runK8sCommand(false, async () => {
+    const podName = `kaniko-job-${chance().hash()}`
+    await batchClient.createNamespacedJob('default', {
+      apiVersion: 'batch/v1',
+      kind: 'Job',
       metadata: {
         name: podName,
       },
       spec: {
-        restartPolicy: 'Never',
-        volumes: [
-          {
-            name: 'kaniko-secret',
-            secret: {
-              secretName: 'regcred',
-              items: [
-                {
-                  key: '.dockerconfigjson',
-                  path: 'config.json',
-                },
-              ],
-            },
-          },
-        ],
-        containers: [
-          {
-            name: 'kaniko',
-            image: 'gcr.io/kaniko-project/executor:latest',
-            args: [
-              `--cache=true`,
-              `--snapshotMode=redo`,
-              `--dockerfile=./packages/docker-poc/dockerfile`,
-              `--context=git://${gitToken}@github.com/${repoOrg}/${repoName}.git#refs/heads/brigade-poc`,
-              '--destination=stavalfi/kaniko-poc:1.0.5',
-              '--cache-repo=stavalfi/kaniko-bug-cache',
-            ],
-            volumeMounts: [
+        ttlSecondsAfterFinished: 60 * 60 * 24,
+        template: {
+          spec: {
+            restartPolicy: 'Never',
+            volumes: [
               {
                 name: 'kaniko-secret',
-                mountPath: '/kaniko/.docker',
+                secret: {
+                  secretName: 'regcred',
+                  items: [
+                    {
+                      key: '.dockerconfigjson',
+                      path: 'config.json',
+                    },
+                  ],
+                },
+              },
+            ],
+            containers: [
+              {
+                name: 'kaniko',
+                image: 'gcr.io/kaniko-project/executor:latest',
+                args: [
+                  `--cache=true`,
+                  `--snapshotMode=redo`,
+                  `--dockerfile=./packages/docker-poc/dockerfile`,
+                  `--context=git://${gitToken}@github.com/${repoOrg}/${repoName}.git#refs/heads/brigade-poc`,
+                  '--destination=stavalfi/kaniko-poc:1.0.5',
+                  '--cache-repo=stavalfi/kaniko-bug-cache',
+                ],
+                volumeMounts: [
+                  {
+                    name: 'kaniko-secret',
+                    mountPath: '/kaniko/.docker',
+                  },
+                ],
               },
             ],
           },
-        ],
+        },
       },
     })
     console.log(podName)
   })
 
-  await runK8sCommand(false, async () => {
-    const podName = `pod-${chance().hash()}`
+  await runK8sCommand(true, async () => {
+    const podName = `job-${chance().hash()}`
     const repoMountPath = `/project`
-    await apiClient.createNamespacedPod('default', {
-      apiVersion: 'v1',
-      kind: 'Pod',
+    await batchClient.createNamespacedJob('default', {
+      apiVersion: 'batch/v1',
+      kind: 'Job',
       metadata: {
         name: podName,
       },
       spec: {
-        restartPolicy: 'Never',
-        volumes: [
-          {
-            name: 'repository-content',
-            emptyDir: {},
-          },
-          {
-            name: 'persistent-cache',
-            persistentVolumeClaim: {
-              claimName: 'p-volume-claim-ed9caa06bf2ae2914c55382985740103188f0f2e',
-            },
-          },
-        ],
-        initContainers: [
-          {
-            name: 'git-clone',
-            image: 'node:12',
-            command: [
-              'sh',
-              '-c',
-              `git clone https://${gitToken}@github.com/${repoOrg}/${repoName}.git ${repoMountPath}`,
-            ],
-            volumeMounts: [
+        ttlSecondsAfterFinished: 60 * 60 * 24,
+        template: {
+          spec: {
+            restartPolicy: 'Never',
+            volumes: [
               {
                 name: 'repository-content',
-                mountPath: repoMountPath,
-              },
-            ],
-          },
-          {
-            name: 'install-project',
-            image: 'node:12',
-            command: [
-              'sh',
-              '-c',
-              `yarn install --cwd ${repoMountPath} --cache-folder ${cacheMountPath}/yarn-global-cache`,
-            ],
-            volumeMounts: [
-              {
-                name: 'repository-content',
-                mountPath: repoMountPath,
+                emptyDir: {},
               },
               {
                 name: 'persistent-cache',
-                mountPath: cacheMountPath,
+                persistentVolumeClaim: {
+                  claimName: 'p-volume-claim-8ef2de10e00650c27adcc7a847aeea8162c9afe0',
+                },
               },
             ],
-          },
-        ],
-        containers: [
-          {
-            name: 'building-project',
-            image: 'node:12',
-            command: ['sh', '-c', `yarn --cwd ${repoMountPath} build`],
-            volumeMounts: [
+            initContainers: [
               {
-                name: 'repository-content',
-                mountPath: repoMountPath,
+                name: 'git-clone',
+                image: 'node:12',
+                command: [
+                  'sh',
+                  '-c',
+                  `git clone https://${gitToken}@github.com/${repoOrg}/${repoName}.git ${repoMountPath}`,
+                ],
+                volumeMounts: [
+                  {
+                    name: 'repository-content',
+                    mountPath: repoMountPath,
+                  },
+                ],
+              },
+              {
+                name: 'install-project',
+                image: 'node:12',
+                command: [
+                  'sh',
+                  '-c',
+                  `yarn install --cwd ${repoMountPath} --cache-folder ${cacheMountPath}/yarn-global-cache`,
+                ],
+                volumeMounts: [
+                  {
+                    name: 'repository-content',
+                    mountPath: repoMountPath,
+                  },
+                  {
+                    name: 'persistent-cache',
+                    mountPath: cacheMountPath,
+                  },
+                ],
+              },
+            ],
+            containers: [
+              {
+                name: 'building-project',
+                image: 'node:12',
+                command: ['sh', '-c', `yarn --cwd ${repoMountPath} build`],
+                volumeMounts: [
+                  {
+                    name: 'repository-content',
+                    mountPath: repoMountPath,
+                  },
+                ],
               },
             ],
           },
-        ],
+        },
       },
     })
     console.log(podName)
