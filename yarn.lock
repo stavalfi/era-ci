@@ -2166,6 +2166,14 @@ dir-glob@^3.0.1:
   dependencies:
     path-type "^4.0.0"
 
+docker-hub-api@^0.8.0:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/docker-hub-api/-/docker-hub-api-0.8.0.tgz#686af54cb219215cfb7e1e5a880439207754e99b"
+  integrity sha512-wVDysVkW3ahSyU/CXD5SnbjyTvgNo0QzQ2tBdfyB83oEAvmCloCxWMHBkz+y4AZ/HNLuqN4BsTxbOs6WYzvtqQ==
+  dependencies:
+    lodash "^3.10.1"
+    request "^2.67.0"
+
 doctrine@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/doctrine/-/doctrine-3.0.0.tgz#addebead72a6574db783639dc87a121773973961"
@@ -4196,6 +4204,11 @@ lodash.sortby@^4.7.0:
   resolved "https://registry.yarnpkg.com/lodash.sortby/-/lodash.sortby-4.7.0.tgz#edd14c824e2cc9c1e0b0a1b42bb5210516a42438"
   integrity sha1-7dFMgk4sycHgsKG0K7UhBRakJDg=
 
+lodash@^3.10.1:
+  version "3.10.1"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-3.10.1.tgz#5bf45e8e49ba4189e17d482789dfd15bd140b7b6"
+  integrity sha1-W/Rejkm6QYnhfUgnid/RW9FAt7Y=
+
 lodash@^4.17.11:
   version "4.17.19"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.19.tgz#e48ddedbe30b3321783c5b4301fbd353bc1e4a4b"
@@ -5163,7 +5176,7 @@ request-promise-native@^1.0.8:
     stealthy-require "^1.1.1"
     tough-cookie "^2.3.3"
 
-request@^2.74.0, request@^2.88.2:
+request@^2.67.0, request@^2.74.0, request@^2.88.2:
   version "2.88.2"
   resolved "https://registry.yarnpkg.com/request/-/request-2.88.2.tgz#d73c918731cb5a87da047e207234146f664d12b3"
   integrity sha512-MsvtOrfG9ZcrOwAW+Qi+F6HbD0CWXEh9ou77uOb7FM2WPhwT7smM833PzanhJLsgXjN89Ir6V2PczXNnMpwKhw==
