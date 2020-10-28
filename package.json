@@ -49,6 +49,7 @@
     "chance": "^1.1.5",
     "ci-info": "https://github.com/watson/ci-info.git",
     "create-folder-structure": "^3.0.5",
+    "docker-hub-api": "^0.8.0",
     "eslint": "7.8.1",
     "eslint-config-prettier": "4.3.0",
     "eslint-plugin-jest": "22.6.4",
