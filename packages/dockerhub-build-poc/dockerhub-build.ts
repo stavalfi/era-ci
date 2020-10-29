@@ -25,11 +25,11 @@ async function main() {
     resolveBodyOnly: true,
     responseType: 'json',
     json: {
-      // subdirectory: '/packages/dockerhub-build-poc',
-      archive_url: 'https://github.com/stavalfi/nc/archive/76c4b59ff7e75d35abc0b283972cf6319e384191.tar.gz',
+      subdirectory: '/nc-3817dd03f9bb034c8ecdb72663dd490ae7f98792/packages/dockerhub-build-poc',
+      archive_url: 'https://github.com/stavalfi/nc/archive/3817dd03f9bb034c8ecdb72663dd490ae7f98792.tar.gz',
       docker_tags: ['1.0.0'],
       // context: 'string',
-      dockerfile_path: '/packages/dockerhub-build-poc/Dockerfile',
+      // dockerfile_path: 'nc-3817dd03f9bb034c8ecdb72663dd490ae7f98792/packages/dockerhub-build-poc/Dockerfile',
     },
   })
   console.log(JSON.stringify(result, null, 2))
