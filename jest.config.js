@@ -12,7 +12,7 @@ module.exports = {
   setupFilesAfterEnv: [path.join(__dirname, 'jest.setup.js')],
   globals: {
     'ts-jest': {
-      tsConfig: path.join(__dirname, 'tsconfig.json'),
+      tsconfig: path.join(__dirname, 'tsconfig.json'),
     },
   },
   testMatch: [path.join(__dirname, 'packages/*/__tests__/**/*.spec.ts')],

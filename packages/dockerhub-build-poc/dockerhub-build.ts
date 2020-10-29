@@ -1,29 +1,38 @@
 /* eslint-disable no-console */
-// @ts-ignore
-import dockerHubAPI from 'docker-hub-api'
+import got from 'got'
 
 async function main() {
-  await dockerHubAPI.login('stavalfi', 'stavalfi635383')
-  //   const result1 = await dockerHubAPI.tags('octopol', 'dancer-history')
-  //   const result2 = await dockerHubAPI.createRepository('stavalfi', 'dockerhub-build-poc', {
-  //     is_private: false,
-  //     description: 'lalalaal',
-  //     full_description: 'lalaal lalala',
+  // xBv3mxlsbWp97jbPlz5zK0BWwOpL4Hzqpza1pOpG
+
+  //   const result = await got.post(`https://quay.io/api/v1/repository`, {
+  //     headers: {
+  //       Authorization: `Bearer jNKLtaA3UpPteMN3DJtzcmvBu73AjzwmiMyBMxnr`,
+  //     },
+  //     resolveBodyOnly: true,
+  //     responseType: 'json',
+  //     json: {
+  //       repo_kind: 'image',
+  //       namespace: 'stavalfi',
+  //       visibility: 'public',
+  //       repository: 'build-poc3',
+  //       description: 'lala',
+  //     },
   //   })
-  const result3 = await dockerHubAPI.createAutomatedBuild('stavalfi', 'dockerhub-build-poc', {
-    dockerhub_repo_name: 'dockerhub-build-poc',
-    vcs_repo_name: 'stavalfi/nc',
-    provider: 'github',
-    build_tags: [
-      {
-        name: '1.0.0',
-        source_type: 'Branch',
-        source_name: 'master',
-        dockerfile_location: '/',
-      },
-    ],
+  const result = await got.post(`https://quay.io/api/v1/repository/stavalfi/build-poc3/build/`, {
+    headers: {
+      Authorization: `Bearer jNKLtaA3UpPteMN3DJtzcmvBu73AjzwmiMyBMxnr`,
+    },
+    resolveBodyOnly: true,
+    responseType: 'json',
+    json: {
+      // subdirectory: '/packages/dockerhub-build-poc',
+      archive_url: 'https://github.com/stavalfi/nc/archive/76c4b59ff7e75d35abc0b283972cf6319e384191.tar.gz',
+      docker_tags: ['1.0.0'],
+      // context: 'string',
+      dockerfile_path: '/packages/dockerhub-build-poc/Dockerfile',
+    },
   })
-  console.log(JSON.stringify(result3, null, 2))
+  console.log(JSON.stringify(result, null, 2))
 }
 
 main()
