@@ -108,8 +108,6 @@ async function main2() {
   const repoOrg = `stavalfi`
   const repoName = `nc`
 
-  const cacheMountPath = `/p-volume-cache`
-
   await runK8sCommand(false, async () => {
     const secretName = `secret-${chance().hash()}`
     const dockerConfigBase64 = Buffer.from(
@@ -183,7 +181,10 @@ async function main2() {
 
   await runK8sCommand(true, async () => {
     const podName = `job-${chance().hash()}`
-    const repoMountPath = `/project`
+    const reposMountPath = `/flows`
+    const repoMountPath = `${reposMountPath}/flow-hash-130-${chance().hash()}`
+    const cacheMountPath = `/p-volume-cache`
+
     await batchClient.createNamespacedJob('default', {
       apiVersion: 'batch/v1',
       kind: 'Job',
@@ -196,10 +197,6 @@ async function main2() {
           spec: {
             restartPolicy: 'Never',
             volumes: [
-              {
-                name: 'repository-content',
-                emptyDir: {},
-              },
               {
                 name: 'persistent-cache',
                 persistentVolumeClaim: {
@@ -230,8 +227,8 @@ async function main2() {
                 ],
                 volumeMounts: [
                   {
-                    name: 'repository-content',
-                    mountPath: repoMountPath,
+                    name: 'persistent-cache',
+                    mountPath: reposMountPath,
                   },
                 ],
               },
@@ -245,8 +242,8 @@ async function main2() {
                 ],
                 volumeMounts: [
                   {
-                    name: 'repository-content',
-                    mountPath: repoMountPath,
+                    name: 'persistent-cache',
+                    mountPath: reposMountPath,
                   },
                   {
                     name: 'persistent-cache',
@@ -260,8 +257,8 @@ async function main2() {
                 command: ['sh', '-c', `yarn --cwd ${repoMountPath} build`],
                 volumeMounts: [
                   {
-                    name: 'repository-content',
-                    mountPath: repoMountPath,
+                    name: 'persistent-cache',
+                    mountPath: reposMountPath,
                   },
                 ],
               },
@@ -274,9 +271,8 @@ async function main2() {
 --local context=${repoMountPath} \
 --local dockerfile=${repoMountPath}/packages/dockerhub-build-poc \
 --output type=image,name=registry.hub.docker.com/stavalfi/buildkit-poc:1.0.2,push=true \
---export-cache type=inline \
---import-cache type=registry,ref=registry.hub.docker.com/stavalfi/buildkit-poc:buildcache \
-`.split(' '),
+--export-cache type=local,dest=/docker-layers-cache \
+--import-cache type=local,src=/docker-layers-cache`.split(' '),
                 securityContext: {
                   privileged: true,
                 },
@@ -288,12 +284,16 @@ async function main2() {
                 ],
                 volumeMounts: [
                   {
-                    name: 'repository-content',
-                    mountPath: repoMountPath,
+                    name: 'persistent-cache',
+                    mountPath: reposMountPath,
                   },
                   {
                     name: 'docker-config-secret',
                     mountPath: '/.docker',
+                  },
+                  {
+                    name: 'persistent-cache',
+                    mountPath: '/docker-layers-cache',
                   },
                 ],
               },
@@ -302,11 +302,11 @@ async function main2() {
               {
                 name: 'building-project',
                 image: 'node:12',
-                command: ['sh', '-c', `yarn --cwd ${repoMountPath} build`],
+                command: ['sh', '-c', `echo hi`],
                 volumeMounts: [
                   {
-                    name: 'repository-content',
-                    mountPath: repoMountPath,
+                    name: 'persistent-cache',
+                    mountPath: reposMountPath,
                   },
                 ],
               },
