@@ -1,5 +1,11 @@
 FROM node:12
 
-COPY yarn.lock ./yarn.lock
+WORKDIR /usr/project1
 
-RUN echo 'hi 123'
+COPY packages/dockerhub-build-poc/package.json ./package.json
+
+RUN echo "before-stav"
+
+RUN yarn
+
+RUN echo "after-stav123"
