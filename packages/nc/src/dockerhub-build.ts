@@ -226,7 +226,7 @@ async function main2() {
                 command: [
                   'sh',
                   '-c',
-                  `git clone https://${gitToken}@github.com/${repoOrg}/${repoName}.git ${repoMountPath}`,
+                  `git clone https://${gitToken}@github.com/${repoOrg}/${repoName}.git --depth=1 --branch stav/break-to-modules --single-branch ${repoMountPath}`,
                 ],
                 volumeMounts: [
                   {
@@ -268,19 +268,23 @@ async function main2() {
               {
                 name: 'docker-build-push',
                 image: 'moby/buildkit:master',
-                command: ['buildctl'],
-                args: [
-                  `build`,
-                  ...`--frontend dockerfile.v0`.split(' '),
-                  ...`--local context=${repoMountPath}`.split(' '),
-                  ...`--local dockerfile=${repoMountPath}/packages/dockerhub-build-poc`.split(' '),
-                  ...`--output type=image,name=registry.hub.docker.com/stavalfi/buildkit-poc:1.0.1,push=true`.split(
-                    ' ',
-                  ),
-                  ...`--export-cache type=inline`.split(' '),
-                  ...`--import-cache type=registry,ref=registry.hub.docker.com/stavalfi/buildkit-poc:buildcache`.split(
-                    ' ',
-                  ),
+                command: [`buildctl-daemonless.sh`],
+                args: `build \
+--frontend dockerfile.v0 \
+--local context=${repoMountPath} \
+--local dockerfile=${repoMountPath}/packages/dockerhub-build-poc \
+--output type=image,name=registry.hub.docker.com/stavalfi/buildkit-poc:1.0.2,push=true \
+--export-cache type=inline \
+--import-cache type=registry,ref=registry.hub.docker.com/stavalfi/buildkit-poc:buildcache \
+`.split(' '),
+                securityContext: {
+                  privileged: true,
+                },
+                env: [
+                  {
+                    name: 'DOCKER_CONFIG',
+                    value: `/.docker`,
+                  },
                 ],
                 volumeMounts: [
                   {
