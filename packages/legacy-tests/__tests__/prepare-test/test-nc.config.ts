@@ -9,7 +9,7 @@ import {
   LogLevel,
   npmPublish,
   NpmScopeAccess,
-  redisWithNodeCache,
+  immutableRedisWithNodeCache,
   test,
   validatePackages,
   winstonLogger,
@@ -39,7 +39,7 @@ export default async (): Promise<Config> => {
     logFilePath: './nc.log',
   })
 
-  const cache = redisWithNodeCache({
+  const cache = immutableRedisWithNodeCache({
     redis: {
       redisServer: REDIS_ENDPOINT!,
       auth: {

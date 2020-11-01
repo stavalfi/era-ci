@@ -12,7 +12,7 @@ import {
   jsonReporter,
   jsonReporterCacheKey,
   LogLevel,
-  redisWithNodeCache,
+  immutableRedisWithNodeCache,
   Step,
   StepInfo,
   stringToJsonReport,
@@ -78,7 +78,7 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (config = {})
     disabled: false,
     logFilePath: './nc.log',
   })
-  const defaultCache = redisWithNodeCache({
+  const defaultCache = immutableRedisWithNodeCache({
     redis: {
       redisServer: getResoureces().redisServer,
     },
