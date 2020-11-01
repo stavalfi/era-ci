@@ -47,7 +47,7 @@ async function unzip(buffer: Buffer): Promise<string> {
   return result.toString()
 }
 
-export const redisWithNodeCache = createCache<CacheConfiguration, NormalizedCacheConfiguration>({
+export const immutableRedisWithNodeCache = createCache<CacheConfiguration, NormalizedCacheConfiguration>({
   normalizeCacheConfigurations: async ({ redis, ttls }) => {
     const parsedRedisServer = redisUrlParse(redis.redisServer)
     return {

@@ -8,6 +8,7 @@ const runK8sCommand = async (enabled: boolean, func: () => Promise<unknown>): Pr
   } catch (error) {
     // console.error(JSON.stringify(error.response.body.message))
     console.error(error)
+    debugger
   }
 }
 
@@ -103,6 +104,28 @@ async function main2() {
 
   const apiClient = kc.makeApiClient(k8s.CoreV1Api)
   const batchClient = kc.makeApiClient(k8s.BatchV1Api)
+  const attach = new k8s.Attach(kc)
+
+  // console.log(
+  //   'stav1',
+  //   JSON.stringify(
+  //     (await apiClient.readNamespacedPod('job-fd8209368b41ab5527b4800750f6fcf85fb38d81-g4v9v', 'default')).body.spec,
+  //     null,
+  //     2,
+  //   ),
+  // )
+
+  await runK8sCommand(true, async () => {
+    const ws = await attach.attach(
+      'default',
+      'job-fd8209368b41ab5527b4800750f6fcf85fb38d81-g4v9v',
+      'building-project',
+      process.stdout,
+      process.stderr,
+      null /* stdin */,
+      false /* tty */,
+    )
+  })
 
   const gitToken = `37e7707f7a07bea84d55d46c48bfde782ffbe0d1`
   const repoOrg = `stavalfi`
@@ -179,7 +202,7 @@ async function main2() {
     console.log(pVolumeClaimName)
   })
 
-  await runK8sCommand(true, async () => {
+  await runK8sCommand(false, async () => {
     const podName = `job-${chance().hash()}`
     const reposMountPath = `/flows`
     const repoMountPath = `${reposMountPath}/flow-hash-130-${chance().hash()}`

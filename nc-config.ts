@@ -13,7 +13,7 @@ import {
   LogLevel,
   npmPublish,
   NpmScopeAccess,
-  redisWithNodeCache,
+  immutableRedisWithNodeCache,
   test,
   validatePackages,
   winstonLogger,
@@ -42,7 +42,7 @@ export default async (): Promise<Config> => {
   const isMasterBuild = Boolean(ciInfo.isCI && !ciInfo.isPR)
 
   return {
-    cache: redisWithNodeCache({
+    cache: immutableRedisWithNodeCache({
       redis: {
         redisServer: `redis://${REDIS_ENDPOINT}/`,
         auth: {
