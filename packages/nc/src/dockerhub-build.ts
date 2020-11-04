@@ -8,7 +8,6 @@ const runK8sCommand = async (enabled: boolean, func: () => Promise<unknown>): Pr
   } catch (error) {
     // console.error(JSON.stringify(error.response.body.message))
     console.error(error)
-    debugger
   }
 }
 
@@ -100,30 +99,28 @@ function getMinikubeClient() {
 }
 
 async function main2() {
-  const kc = getMinikubeClient()
+  // const kc = getMinikubeClient()
+  const kc = getK8sClient({
+    k8sConnectionStrategyType: K8sConnectionStrategyType.tryReadFromLocalMachine,
+  })
 
   const apiClient = kc.makeApiClient(k8s.CoreV1Api)
   const batchClient = kc.makeApiClient(k8s.BatchV1Api)
-  const attach = new k8s.Attach(kc)
-
-  // console.log(
-  //   'stav1',
-  //   JSON.stringify(
-  //     (await apiClient.readNamespacedPod('job-fd8209368b41ab5527b4800750f6fcf85fb38d81-g4v9v', 'default')).body.spec,
-  //     null,
-  //     2,
-  //   ),
-  // )
+  const k8sLog = new k8s.Log(kc)
 
   await runK8sCommand(true, async () => {
-    const ws = await attach.attach(
+    const result = await k8sLog.log(
       'default',
-      'job-fd8209368b41ab5527b4800750f6fcf85fb38d81-g4v9v',
-      'building-project',
+      'job-example2-9hh74',
+      'example1',
       process.stdout,
-      process.stderr,
-      null /* stdin */,
-      false /* tty */,
+      () => {
+        console.log('stav1')
+      },
+      {
+        follow: true,
+        previous: false,
+      },
     )
   })
 
@@ -223,13 +220,13 @@ async function main2() {
               {
                 name: 'persistent-cache',
                 persistentVolumeClaim: {
-                  claimName: 'p-volume-claim-13ac1ec1b119942893b94db700d28db2cdfae111',
+                  claimName: 'p-volume-claim-39ed95b0d804564fca0192e4c7f72838f4bab7a2',
                 },
               },
               {
                 name: 'docker-config-secret',
                 secret: {
-                  secretName: 'secret-0347291de7826e59657d7e831c0bb0bb44b2129d',
+                  secretName: 'secret-0db9d1f0e21d2093bbfd0ccbca4d1230d4d9ac1b',
                   items: [
                     {
                       key: '.dockerconfigjson',
@@ -332,6 +329,33 @@ async function main2() {
                     mountPath: reposMountPath,
                   },
                 ],
+              },
+            ],
+          },
+        },
+      },
+    })
+    console.log(podName)
+  })
+
+  await runK8sCommand(false, async () => {
+    const podName = `job-example2`
+    await batchClient.createNamespacedJob('default', {
+      apiVersion: 'batch/v1',
+      kind: 'Job',
+      metadata: {
+        name: podName,
+      },
+      spec: {
+        ttlSecondsAfterFinished: 60 * 60 * 24,
+        template: {
+          spec: {
+            restartPolicy: 'Never',
+            containers: [
+              {
+                name: 'example1',
+                image: 'node:12',
+                command: ['sh', '-c', `node -e "setInterval(()=>console.log(1),1000)"`],
               },
             ],
           },

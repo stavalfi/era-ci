@@ -12,6 +12,7 @@ export type Cache = {
     }) => Promise<
       | {
           flowId: string
+          repoHash: string
           artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
         }
       | undefined
@@ -22,7 +23,10 @@ export type Cache = {
       artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
     }) => Promise<void>
   }
-  get: <T>(key: string, mapper: (result: unknown) => T) => Promise<{ flowId: string; value: T } | undefined>
+  get: <T>(
+    key: string,
+    mapper: (result: unknown) => T,
+  ) => Promise<{ flowId: string; repoHash: string; value: T } | undefined>
   set: (options: { key: string; value: ValueType; allowOverride: boolean; ttl: number }) => Promise<void>
   has: (key: string) => Promise<boolean>
   nodeCache: NodeCache
@@ -37,6 +41,7 @@ export type Cache = {
 export type CreateCache = {
   callInitializeCache: (options: {
     flowId: string
+    repoHash: string
     log: Log
     artifacts: Graph<{ artifact: Artifact }>
   }) => Promise<Cache>

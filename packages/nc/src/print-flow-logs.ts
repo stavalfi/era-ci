@@ -21,6 +21,7 @@ export async function printFlowLogs(options: { flowId: string; config: Config; r
 
     const cache = await options.config.cache.callInitializeCache({
       flowId: options.flowId,
+      repoHash: 'it-wont-be-used-so-we-dont-pass-it',
       log: logger.createLog('cache'),
       artifacts,
     })
@@ -37,7 +38,7 @@ export async function printFlowLogs(options: { flowId: string; config: Config; r
     })
     if (!flowLogsResult) {
       // we want to avoid stacktraces so we don't throw an Error object
-      throw new Error(MISSING_FLOW_ID_ERROR)
+      throw MISSING_FLOW_ID_ERROR
     }
     log.noFormattingInfo(flowLogsResult.value)
   } catch (error) {

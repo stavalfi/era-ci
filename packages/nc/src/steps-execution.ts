@@ -47,11 +47,13 @@ export async function runAllSteps({
   logger,
   artifacts,
   steps,
+  repoHash,
 }: {
   repoPath: string
   steps: Graph<{ stepInfo: StepInfo }>
   stepsToRun: Graph<{ stepInfo: StepInfo; runStep: Step['runStep'] }>
   flowId: string
+  repoHash: string
   startFlowMs: number
   cache: Cache
   logger: Logger
@@ -107,6 +109,7 @@ export async function runAllSteps({
             flowId,
             logger,
             repoPath,
+            repoHash,
             rootPackageJson,
             startFlowMs,
             stepsResultOfArtifactsByArtifact: state.stepsResultOfArtifactsByArtifact,

@@ -28,6 +28,7 @@ import { calculateCombinedStatus, calculateExecutionStatus } from '../utils'
 export type JsonReport = {
   flow: {
     flowId: string
+    repoHash: string
     startFlowMs: number
   }
   steps: Graph<{ stepInfo: StepInfo }>
@@ -121,6 +122,7 @@ function getJsonReport({
   stepsResultOfArtifactsByStep,
   startFlowMs,
   steps,
+  repoHash,
   artifacts,
 }: {
   steps: Graph<{
@@ -130,6 +132,7 @@ function getJsonReport({
     artifact: Artifact
   }>
   flowId: string
+  repoHash: string
   startFlowMs: number
   stepsResultOfArtifactsByStep: Graph<StepResultOfArtifacts>
   stepsResultOfArtifactsByArtifact: Graph<StepsResultOfArtifact>
@@ -144,7 +147,8 @@ function getJsonReport({
         artifacts,
         steps,
         flow: {
-          flowId: flowId,
+          flowId,
+          repoHash,
           startFlowMs,
         },
         flowExecutionStatus: ExecutionStatus.done,
@@ -177,7 +181,8 @@ function getJsonReport({
         artifacts,
         steps,
         flow: {
-          flowId: flowId,
+          flowId,
+          repoHash,
           startFlowMs,
         },
         flowExecutionStatus: ExecutionStatus.aborted,
@@ -220,7 +225,8 @@ function getJsonReport({
         artifacts,
         steps,
         flow: {
-          flowId: flowId,
+          flowId,
+          repoHash,
           startFlowMs,
         },
         flowExecutionStatus: ExecutionStatus.running,
@@ -235,7 +241,8 @@ function getJsonReport({
         artifacts,
         steps,
         flow: {
-          flowId: flowId,
+          flowId,
+          repoHash,
           startFlowMs,
         },
         flowExecutionStatus: ExecutionStatus.scheduled,
@@ -257,10 +264,10 @@ export const jsonReporter = createStep({
     runStepOnRoot: async ({
       cache,
       flowId,
+      repoHash,
       startFlowMs,
       steps,
       artifacts,
-      stepConfigurations,
       stepsResultOfArtifactsByStep,
       currentStepInfo,
     }) => {
@@ -275,6 +282,7 @@ export const jsonReporter = createStep({
         startFlowMs,
         artifacts,
         flowId,
+        repoHash,
         steps: withoutThisStep.steps,
         stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
         stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({

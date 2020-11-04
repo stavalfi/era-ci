@@ -50,6 +50,7 @@
     "superstruct": "^0.10.12",
     "ts-node": "9.0.0",
     "url-parse": "^1.4.7",
-    "winston": "^3.3.3"
+    "winston": "^3.3.3",
+    "ws": "^7.3.1"
   }
 }

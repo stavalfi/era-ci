@@ -65,7 +65,7 @@ export const immutableRedisWithNodeCache = createCache<CacheConfiguration, Norma
       },
     }
   },
-  initializeCache: async ({ cacheConfigurations, flowId, artifacts }) => {
+  initializeCache: async ({ cacheConfigurations, flowId, repoHash }) => {
     const nodeCache = new NodeCache()
 
     const redisClient = new Redis({
@@ -85,6 +85,7 @@ export const immutableRedisWithNodeCache = createCache<CacheConfiguration, Norma
       const zippedBuffer = await zip(
         JSON.stringify({
           flowId,
+          repoHash,
           value: options.value,
         }),
       )
@@ -96,13 +97,14 @@ export const immutableRedisWithNodeCache = createCache<CacheConfiguration, Norma
 
     const getResultSchema = object({
       flowId: string(),
+      repoHash: string(),
       value: any(),
     })
 
     async function transformFromCache<T>(
       fromCache: Buffer | undefined | null,
       mapper: (result: unknown) => T,
-    ): Promise<{ flowId: string; value: T } | undefined> {
+    ): Promise<{ flowId: string; repoHash: string; value: T } | undefined> {
       if (fromCache === null || fromCache === undefined) {
         return undefined
       }
@@ -112,6 +114,7 @@ export const immutableRedisWithNodeCache = createCache<CacheConfiguration, Norma
         const mappedValue = mapper(parsedResult.value)
         return {
           flowId: parsedResult.flowId,
+          repoHash: parsedResult.repoHash,
           value: mappedValue,
         }
       } else {
@@ -124,7 +127,7 @@ export const immutableRedisWithNodeCache = createCache<CacheConfiguration, Norma
     async function get<T>(
       key: string,
       mapper: (result: unknown) => T,
-    ): Promise<{ flowId: string; value: T } | undefined> {
+    ): Promise<{ flowId: string; repoHash: string; value: T } | undefined> {
       const fromNodeCache = nodeCache.get<Buffer>(key)
       const result = await transformFromCache(fromNodeCache, mapper)
       if (result) {
@@ -185,6 +188,7 @@ export const immutableRedisWithNodeCache = createCache<CacheConfiguration, Norma
 
         return {
           flowId: artifactStepResult.flowId,
+          repoHash: artifactStepResult.repoHash,
           artifactStepResult: artifactStepResult.value as
             | DoneResult
             | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>,
