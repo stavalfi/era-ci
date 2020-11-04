@@ -30,19 +30,26 @@ const { getResoureces } = resourcesBeforeAfterAll()
 
 const getJsonReport = async ({
   flowId,
+  repoHash,
   createCache,
   createLogger,
   repoPath,
   jsonReportStepId,
 }: {
   flowId: string
+  repoHash: string
   createCache: CreateCache
   createLogger: CreateLogger
   repoPath: string
   jsonReportStepId: string
 }): Promise<JsonReport> => {
   const logger = await createLogger.callInitializeLogger({ repoPath })
-  const cache = await createCache.callInitializeCache({ flowId, log: logger.createLog('test-logger'), artifacts: [] })
+  const cache = await createCache.callInitializeCache({
+    flowId,
+    repoHash,
+    log: logger.createLog('test-logger'),
+    artifacts: [],
+  })
 
   try {
     const jsonReportResult = await cache.get(jsonReporterCacheKey({ flowId, stepId: jsonReportStepId }), r => {
@@ -90,14 +97,15 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (config = {})
     cache: config.cache || defaultCache,
     steps: createLinearStepsGraph([...(config.steps || []), defaultJsonReport, defaultCliTableReport]),
   }
-  const { flowId, steps, passed } = await ci({
+  const { flowId, repoHash, steps, passed } = await ci({
     repoPath,
     config: finalConfig,
   })
 
-  if (!flowId) {
-    throw new Error(`ci didn't return flow-id. can't find json-report`)
+  if (!repoHash) {
+    throw new Error(`ci didn't return repo-hash. it looks like a bug`)
   }
+
   if (!steps) {
     throw new Error(`ci didn't return steps-graph. can't find json-report`)
   }
@@ -110,6 +118,7 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (config = {})
   const jsonReport = await getJsonReport({
     repoPath,
     flowId,
+    repoHash,
     createCache: defaultCache,
     createLogger: defaultLogger,
     jsonReportStepId,

@@ -11,11 +11,12 @@ export function createCache<
   initializeCache: (options: {
     cacheConfigurations: NormalizedCacheConfigurations
     flowId: string
+    repoHash: string
     artifacts: Graph<{ artifact: Artifact }>
   }) => Promise<Cache>
 }) {
   return (cacheConfigurations: CacheConfigurations): CreateCache => ({
-    callInitializeCache: async ({ flowId, artifacts }) => {
+    callInitializeCache: async ({ flowId, repoHash, artifacts }) => {
       // @ts-ignore - we need to find a way to ensure that if NormalizedCacheConfigurations is defined, also normalizedCacheConfigurations is defined.
       const normalizedCacheConfigurations: NormalizedCacheConfigurations = createCacheOptions.normalizeCacheConfigurations
         ? await createCacheOptions.normalizeCacheConfigurations(cacheConfigurations)
@@ -23,6 +24,7 @@ export function createCache<
       return createCacheOptions.initializeCache({
         cacheConfigurations: normalizedCacheConfigurations,
         flowId,
+        repoHash,
         artifacts,
       })
     },

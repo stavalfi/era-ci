@@ -441,6 +441,11 @@ function generateSummaryReport(jsonReport: JsonReport): string {
     hAlign: 'center',
     content,
   }))
+  const repoHash: TableRow = ['repo-hash', jsonReport.flow.repoHash].map(content => ({
+    vAlign: 'center',
+    hAlign: 'center',
+    content,
+  }))
   const flowStartFlowDateUtc: TableRow = ['start', new Date(jsonReport.flow.startFlowMs).toUTCString()].map(
     content => ({
       vAlign: 'center',
@@ -489,7 +494,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
   const ciTable = new Table({
     chars: DEFAULT_CHART,
   })
-  ciTable.push(flowId, flowStartFlowDateUtc)
+  ciTable.push(flowId, repoHash, flowStartFlowDateUtc)
   if (duration) {
     ciTable.push(duration)
   }

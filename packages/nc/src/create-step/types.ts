@@ -131,6 +131,7 @@ export type StepsResultOfArtifactsByArtifact = Graph<StepsResultOfArtifact>
 
 export type RunStepOptions = {
   flowId: string
+  repoHash: string
   startFlowMs: number
   repoPath: string
   rootPackageJson: PackageJson

@@ -1,6 +1,7 @@
 import { newEnv } from './prepare-test'
 import { TargetType } from './prepare-test/types'
 import { manageStepResult } from './prepare-test/test-helpers'
+import { O_NOCTTY } from 'constants'
 
 const { createRepo } = newEnv()
 
@@ -44,7 +45,6 @@ test('ensure log file is deleted when a new flow starts', async () => {
       },
     },
   })
-  const flowId = result1.flowId as string
 
   const result2 = await runCi({
     targetsInfo: {
@@ -55,12 +55,8 @@ test('ensure log file is deleted when a new flow starts', async () => {
     },
   })
 
-  // what do we do here: flow-id is the repo-hash so the flow-id
-  //                     will be the same in both flows. we ensure
-  //                     it was printed only once in the log file.
-
-  const amountOfRepeats = result2.ncLogfileContent.split(`flow-id: "${flowId}"`).length - 1
-  expect(amountOfRepeats).toBeGreaterThanOrEqual(1)
+  expect(result2.ncLogfileContent).not.toEqual(expect.stringContaining(`flow-id: "${result1.flowId}"`))
+  expect(result2.ncLogfileContent).toEqual(expect.stringContaining(`flow-id: "${result2.flowId}"`))
 })
 
 test('ensure any user-command that we run will be sent to the log file - user command passed', async () => {
