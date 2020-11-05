@@ -288,7 +288,7 @@ async function calculateNextVersion({
 
 const customConstrain = createArtifactStepConstrain<void, void, DockerPublishConfiguration>({
   constrainName: 'custom-constrain',
-  constrain: async ({ currentArtifact, stepConfigurations, cache, repoPath, log }) => {
+  constrain: async ({ currentArtifact, stepConfigurations, immutableCache, repoPath, log }) => {
     const targetType = await getPackageTargetType(
       currentArtifact.data.artifact.packagePath,
       currentArtifact.data.artifact.packageJson,
@@ -305,7 +305,7 @@ const customConstrain = createArtifactStepConstrain<void, void, DockerPublishCon
       }
     }
 
-    const dockerVersionResult = await cache.get(
+    const dockerVersionResult = await immutableCache.get(
       getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
       r => {
         if (typeof r === 'string') {
@@ -380,7 +380,7 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
         repoPath,
         log,
       }),
-    runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, cache }) => {
+    runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, immutableCache }) => {
       const newVersion = await calculateNextVersion({
         dockerRegistry: stepConfigurations.registry,
         dockerOrganizationName: stepConfigurations.dockerOrganizationName,
@@ -397,13 +397,12 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
         imageTag: newVersion,
       })
 
-      const fullImageNameCacheTtl = cache.ttls.stepSummary
+      const fullImageNameCacheTtl = immutableCache.ttls.ArtifactStepResult
 
-      await cache.set({
+      await immutableCache.set({
         key: fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),
         value: fullImageNameNewVersion,
         ttl: fullImageNameCacheTtl,
-        allowOverride: false,
       })
 
       log.info(
@@ -451,11 +450,10 @@ export const dockerPublish = createStep<DockerPublishConfiguration>({
         log,
       })
 
-      await cache.set({
+      await immutableCache.set({
         key: getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
         value: newVersion,
-        ttl: cache.ttls.stepSummary,
-        allowOverride: false,
+        ttl: immutableCache.ttls.ArtifactStepResult,
       })
 
       log.info(

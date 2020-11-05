@@ -12,6 +12,10 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "composite": true,
-    "noErrorTruncation": true
+    "noErrorTruncation": true,
+    "baseUrl": "packages",
+    "paths": {
+      "@tahini/nc": ["nc/src/index.ts"]
+    }
   }
 }

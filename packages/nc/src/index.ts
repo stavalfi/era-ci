@@ -14,7 +14,6 @@ export { Artifact, Graph, PackageJson, ExecutionStatus, Status, ConstrainResult 
 export { Config } from './configuration'
 export { Step, StepInfo, createStep, RunStrategy } from './create-step'
 export { Log, LogLevel, Logger, CreateLogger } from './create-logger'
-export { Cache, CreateCache } from './create-cache'
 export {
   NpmScopeAccess,
   buildFullDockerImageName,
@@ -37,14 +36,19 @@ export {
   jsonReportToString,
 } from './steps'
 export { LoggerConfiguration, winstonLogger } from './winston-logger'
-export { CacheConfiguration, immutableRedisWithNodeCache } from './redis-with-node-cache'
 export {
   createArtifactStepConstrain,
   ArtifactInStepConstrain,
   ArtifactInStepConstrainResult,
 } from './create-artifact-step-constrain'
 export { createStepConstrain, StepConstrain, StepConstrainResult } from './create-step-constrain'
-
+export { RedisConfiguration, redisConnection } from './redis-connection'
+export {
+  CreateKeyValueStoreConnection,
+  KeyValueStoreConnection,
+  createKeyValueStoreConnection,
+} from './create-key-value-store-connection'
+export { createImmutableCache } from './immutable-cache'
 async function main() {
   try {
     await startCli(process.argv)

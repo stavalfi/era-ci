@@ -7,7 +7,7 @@ export const skipIfArtifactStepResultMissingOrFailedInCacheConstrain = createArt
   skipAsFailedIfStepNotFoundInCache: boolean
 }>({
   constrainName: 'skip-if-artifact-step-result-missing-or-failed-in-cache-constrain',
-  constrain: async ({ currentArtifact, cache, currentStepInfo, constrainConfigurations, steps, flowId }) => {
+  constrain: async ({ currentArtifact, immutableCache, currentStepInfo, constrainConfigurations, steps, flowId }) => {
     const stepName = constrainConfigurations.stepNameToSearchInCache
     const step = steps.find(step => step.data.stepInfo.stepName === stepName)
 
@@ -28,7 +28,7 @@ export const skipIfArtifactStepResultMissingOrFailedInCacheConstrain = createArt
       }
     }
 
-    const actualStepResult = await cache.step.getArtifactStepResult({
+    const actualStepResult = await immutableCache.step.getArtifactStepResult({
       stepId: step.data.stepInfo.stepId,
       artifactHash: currentArtifact.data.artifact.packageHash,
     })

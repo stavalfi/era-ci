@@ -1,6 +1,7 @@
 import { calculateArtifactsHash } from './artifacts-hash'
 import { Config } from './configuration'
 import { Log } from './create-logger'
+import { createImmutableCache } from './immutable-cache'
 import { Cleanup } from './types'
 import { getPackages, MISSING_FLOW_ID_ERROR, toFlowLogsContentKey } from './utils'
 
@@ -19,15 +20,23 @@ export async function printFlowLogs(options: { flowId: string; config: Config; r
       log: logger.createLog('calculate-hashes'),
     })
 
-    const cache = await options.config.cache.callInitializeCache({
+    const keyValueStoreConnection = await options.config.keyValueStore.callInitializeKeyValueStoreConnection()
+    cleanups.push(keyValueStoreConnection.cleanup)
+
+    const immutableCache = await createImmutableCache({
+      artifacts,
       flowId: options.flowId,
       repoHash: 'it-wont-be-used-so-we-dont-pass-it',
       log: logger.createLog('cache'),
-      artifacts,
+      keyValueStoreConnection,
+      ttls: {
+        ArtifactStepResult: 1000 * 60 * 60 * 24 * 7,
+        flowLogs: 1000 * 60 * 60 * 24 * 7,
+      },
     })
-    cleanups.push(cache.cleanup)
+    cleanups.push(immutableCache.cleanup)
 
-    const flowLogsResult = await cache.get(toFlowLogsContentKey(options.flowId), r => {
+    const flowLogsResult = await immutableCache.get(toFlowLogsContentKey(options.flowId), r => {
       if (typeof r === 'string') {
         return r
       } else {

@@ -88,12 +88,12 @@ export const k8sGcloudDeployment = createStep<K8sGcloudDeploymentConfiguration>(
         },
       )
     },
-    runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, cache }) => {
+    runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, immutableCache }) => {
       const artifactName = currentArtifact.data.artifact.packageJson.name
       const deploymentName = stepConfigurations.artifactNameToDeploymentName({ artifactName })
       const containerName = stepConfigurations.artifactNameToContainerName({ artifactName })
 
-      const fullImageName = await cache.get(
+      const fullImageName = await immutableCache.get(
         fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),
         r => {
           if (typeof r === 'string') {
