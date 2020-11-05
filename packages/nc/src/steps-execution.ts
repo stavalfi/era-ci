@@ -1,7 +1,6 @@
 import fse from 'fs-extra'
 import _ from 'lodash'
 import path from 'path'
-import { Cache } from './create-cache'
 import { Logger } from './create-logger'
 import {
   Step,
@@ -11,6 +10,7 @@ import {
   StepsResultOfArtifactsByStep,
   toStepsResultOfArtifactsByArtifact,
 } from './create-step'
+import { ImmutableCache } from './immutable-cache'
 import { Artifact, ExecutionStatus, Graph, PackageJson } from './types'
 
 type State = {
@@ -43,7 +43,7 @@ export async function runAllSteps({
   stepsToRun,
   startFlowMs,
   flowId,
-  cache,
+  immutableCache,
   logger,
   artifacts,
   steps,
@@ -55,7 +55,7 @@ export async function runAllSteps({
   flowId: string
   repoHash: string
   startFlowMs: number
-  cache: Cache
+  immutableCache: ImmutableCache
   logger: Logger
   artifacts: Graph<{ artifact: Artifact }>
 }): Promise<State> {
@@ -104,7 +104,7 @@ export async function runAllSteps({
           const stepResultOfArtifacts = await stepsToRun[stepIndex].data.runStep({
             artifacts,
             steps,
-            cache,
+            immutableCache,
             currentStepInfo: steps[stepIndex],
             flowId,
             logger,

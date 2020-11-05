@@ -509,21 +509,24 @@ export const cliTableReporter = createStep({
   },
   run: {
     runStrategy: RunStrategy.root,
-    runStepOnRoot: async ({ cache, flowId, stepConfigurations, log, steps }) => {
+    runStepOnRoot: async ({ immutableCache, flowId, stepConfigurations, log, steps }) => {
       const jsonReporterStepId = steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data.stepInfo
         .stepId
       if (!jsonReporterStepId) {
         throw new Error(`cli-table-reporter can't find json-reporter-step-id. is it part of the flow?`)
       }
-      const jsonReportResult = await cache.get(jsonReporterCacheKey({ flowId, stepId: jsonReporterStepId }), r => {
-        if (typeof r === 'string') {
-          return stringToJsonReport({ jsonReportAsString: r })
-        } else {
-          throw new Error(
-            `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-          )
-        }
-      })
+      const jsonReportResult = await immutableCache.get(
+        jsonReporterCacheKey({ flowId, stepId: jsonReporterStepId }),
+        r => {
+          if (typeof r === 'string') {
+            return stringToJsonReport({ jsonReportAsString: r })
+          } else {
+            throw new Error(
+              `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+            )
+          }
+        },
+      )
       if (!jsonReportResult) {
         throw new Error(`can't find json-report in the cache. printing the report is aborted`)
       }

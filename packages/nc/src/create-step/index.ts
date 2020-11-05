@@ -446,7 +446,7 @@ export function createStep<StepConfigurations = void, NormalizedStepConfiguratio
         artifactsResult.map(a =>
           a.data.artifactStepResult.executionStatus === ExecutionStatus.done ||
           a.data.artifactStepResult.executionStatus === ExecutionStatus.aborted
-            ? runStepOptions.cache.step.setArtifactStepResult({
+            ? runStepOptions.immutableCache.step.setArtifactStepResult({
                 artifactHash: a.data.artifact.packageHash,
                 stepId: runStepOptions.currentStepInfo.data.stepInfo.stepId,
                 artifactStepResult: a.data.artifactStepResult,

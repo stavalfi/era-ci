@@ -6,6 +6,8 @@ import {
   Config,
   createLinearStepsGraph,
   dockerPublish,
+  execaCommand,
+  redisConnection,
   install,
   jsonReporter,
   k8sGcloudDeployment,
@@ -13,11 +15,9 @@ import {
   LogLevel,
   npmPublish,
   NpmScopeAccess,
-  immutableRedisWithNodeCache,
   test,
   validatePackages,
   winstonLogger,
-  execaCommand,
 } from './packages/nc'
 
 export default async (): Promise<Config> => {
@@ -42,12 +42,10 @@ export default async (): Promise<Config> => {
   const isMasterBuild = Boolean(ciInfo.isCI && !ciInfo.isPR)
 
   return {
-    cache: immutableRedisWithNodeCache({
-      redis: {
-        redisServer: `redis://${REDIS_ENDPOINT}/`,
-        auth: {
-          password: REDIS_PASSWORD!,
-        },
+    keyValueStore: redisConnection({
+      redisServer: `redis://${REDIS_ENDPOINT}/`,
+      auth: {
+        password: REDIS_PASSWORD!,
       },
     }),
     logger: winstonLogger({

@@ -4,15 +4,14 @@ import chance from 'chance'
 import {
   cliTableReporter,
   Config,
-  CreateCache,
+  createImmutableCache,
   createLinearStepsGraph,
-  CreateLogger,
   Graph,
   JsonReport,
   jsonReporter,
   jsonReporterCacheKey,
   LogLevel,
-  immutableRedisWithNodeCache,
+  redisConnection,
   Step,
   StepInfo,
   stringToJsonReport,
@@ -23,36 +22,43 @@ import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterAll } from './prepare-test-resources'
 import { Repo, TestResources } from './types'
 
-export { isDeepSubsetOf, isDeepSubsetOfOrPrint } from './utils'
 export { DeepPartial } from './types'
+export { isDeepSubsetOf, isDeepSubsetOfOrPrint } from './utils'
 
 const { getResoureces } = resourcesBeforeAfterAll()
 
 const getJsonReport = async ({
   flowId,
   repoHash,
-  createCache,
-  createLogger,
   repoPath,
   jsonReportStepId,
 }: {
   flowId: string
   repoHash: string
-  createCache: CreateCache
-  createLogger: CreateLogger
   repoPath: string
   jsonReportStepId: string
 }): Promise<JsonReport> => {
-  const logger = await createLogger.callInitializeLogger({ repoPath })
-  const cache = await createCache.callInitializeCache({
+  const logger = await winstonLogger({
+    customLogLevel: LogLevel.verbose,
+    disabled: false,
+    logFilePath: './nc.log',
+  }).callInitializeLogger({ repoPath })
+  const keyValueStoreConnection = await redisConnection({
+    redisServer: getResoureces().redisServer,
+  }).callInitializeKeyValueStoreConnection()
+  const immutableCache = await createImmutableCache({
+    artifacts: [],
     flowId,
     repoHash,
-    log: logger.createLog('test-logger'),
-    artifacts: [],
+    log: logger.createLog('cache'),
+    keyValueStoreConnection,
+    ttls: {
+      ArtifactStepResult: 1000 * 60 * 60 * 24 * 7,
+      flowLogs: 1000 * 60 * 60 * 24 * 7,
+    },
   })
-
   try {
-    const jsonReportResult = await cache.get(jsonReporterCacheKey({ flowId, stepId: jsonReportStepId }), r => {
+    const jsonReportResult = await immutableCache.get(jsonReporterCacheKey({ flowId, stepId: jsonReportStepId }), r => {
       if (typeof r === 'string') {
         return stringToJsonReport({ jsonReportAsString: r })
       } else {
@@ -66,7 +72,8 @@ const getJsonReport = async ({
     }
     return jsonReportResult.value
   } finally {
-    await cache.cleanup()
+    await keyValueStoreConnection.cleanup()
+    await immutableCache.cleanup()
   }
 }
 
@@ -80,21 +87,23 @@ type RunCi = (
 }>
 
 const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (config = {}) => {
-  const defaultLogger = winstonLogger({
-    customLogLevel: LogLevel.verbose,
-    disabled: false,
-    logFilePath: './nc.log',
-  })
-  const defaultCache = immutableRedisWithNodeCache({
-    redis: {
+  const logger =
+    config.logger ||
+    winstonLogger({
+      customLogLevel: LogLevel.verbose,
+      disabled: false,
+      logFilePath: './nc.log',
+    })
+  const keyValueStore =
+    config.keyValueStore ||
+    redisConnection({
       redisServer: getResoureces().redisServer,
-    },
-  })
+    })
   const defaultJsonReport = jsonReporter()
   const defaultCliTableReport = cliTableReporter()
   const finalConfig: Config = {
-    logger: config.logger || defaultLogger,
-    cache: config.cache || defaultCache,
+    logger,
+    keyValueStore,
     steps: createLinearStepsGraph([...(config.steps || []), defaultJsonReport, defaultCliTableReport]),
   }
   const { flowId, repoHash, steps, passed } = await ci({
@@ -119,8 +128,6 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (config = {})
     repoPath,
     flowId,
     repoHash,
-    createCache: defaultCache,
-    createLogger: defaultLogger,
     jsonReportStepId,
   })
 

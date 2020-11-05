@@ -168,7 +168,7 @@ export async function npmRegistryLogin({
 
 const customConstrain = createArtifactStepConstrain<void, void, NpmPublishConfiguration>({
   constrainName: 'custom-constrain',
-  constrain: async ({ currentArtifact, stepConfigurations, cache, repoPath, log }) => {
+  constrain: async ({ currentArtifact, stepConfigurations, immutableCache, repoPath, log }) => {
     const targetType = await getPackageTargetType(
       currentArtifact.data.artifact.packagePath,
       currentArtifact.data.artifact.packageJson,
@@ -186,7 +186,7 @@ const customConstrain = createArtifactStepConstrain<void, void, NpmPublishConfig
       }
     }
 
-    const npmVersionResult = await cache.get(
+    const npmVersionResult = await immutableCache.get(
       getVersionCacheKey({
         artifactHash: currentArtifact.data.artifact.packageHash,
         artifactName: currentArtifact.data.artifact.packageJson.name,
@@ -265,7 +265,7 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
         repoPath,
         log,
       }),
-    runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, cache }) => {
+    runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, immutableCache }) => {
       const newVersion = await calculateNextNewVersion({
         npmRegistry: stepConfigurations.registry,
         packageJson: currentArtifact.data.artifact.packageJson,
@@ -299,14 +299,13 @@ export const npmPublish = createStep<NpmPublishConfiguration>({
         },
       )
         .then(() =>
-          cache.set({
+          immutableCache.set({
             key: getVersionCacheKey({
               artifactHash: currentArtifact.data.artifact.packageHash,
               artifactName: currentArtifact.data.artifact.packageJson.name,
             }),
             value: newVersion,
-            ttl: cache.ttls.stepSummary,
-            allowOverride: false,
+            ttl: immutableCache.ttls.ArtifactStepResult,
           }),
         )
         .finally(async () =>

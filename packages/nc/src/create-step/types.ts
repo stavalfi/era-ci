@@ -1,8 +1,8 @@
 import { ErrorObject } from 'serialize-error'
 import { ArtifactInStepConstrain } from '../create-artifact-step-constrain'
-import { Cache } from '../create-cache'
 import { Log, Logger } from '../create-logger'
 import { StepConstrain } from '../create-step-constrain'
+import { ImmutableCache } from '../immutable-cache'
 import {
   AbortResult,
   Artifact,
@@ -140,7 +140,7 @@ export type RunStepOptions = {
   currentStepInfo: Node<{ stepInfo: StepInfo }>
   stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
   stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact
-  cache: Cache
+  immutableCache: ImmutableCache
   logger: Logger
 }
 

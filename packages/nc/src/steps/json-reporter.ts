@@ -262,7 +262,7 @@ export const jsonReporter = createStep({
   run: {
     runStrategy: RunStrategy.root,
     runStepOnRoot: async ({
-      cache,
+      immutableCache,
       flowId,
       repoHash,
       startFlowMs,
@@ -291,13 +291,12 @@ export const jsonReporter = createStep({
         }),
       })
 
-      const jsonReportTtl = cache.ttls.stepSummary
+      const jsonReportTtl = immutableCache.ttls.ArtifactStepResult
 
-      await cache.set({
+      await immutableCache.set({
         key: jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
         value: jsonReportToString({ jsonReport }),
         ttl: jsonReportTtl,
-        allowOverride: false,
       })
 
       return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
