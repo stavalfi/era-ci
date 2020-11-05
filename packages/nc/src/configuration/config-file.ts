@@ -8,8 +8,8 @@ function getConfigValidationObject() {
     logger: object({
       callInitializeLogger: func(),
     }),
-    cache: object({
-      callInitializeCache: func(),
+    keyValueStore: object({
+      callInitializeKeyValueStoreConnection: func(),
     }),
     steps: array(
       object({
