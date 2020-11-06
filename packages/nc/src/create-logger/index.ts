@@ -1,10 +1,6 @@
-import { Log, Logger, LogLevel } from './types'
+import { CreateLogger, Log, Logger, LogLevel } from './types'
 
-export { Log, Logger, LogLevel }
-
-export type CreateLogger = {
-  callInitializeLogger: (options: { repoPath: string }) => Promise<Logger>
-}
+export { CreateLogger, Log, Logger, LogLevel }
 
 export function createLogger<
   LoggerConfigurations = void,
