@@ -69,6 +69,7 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
         },
         info: message => log.info(message),
         verbose: message => log.verbose(message),
+        debug: message => log.debug(message),
         noFormattingInfo: message => noFormattingLogger.info(message),
         noFormattingError: message => noFormattingLogger.error(message),
       }

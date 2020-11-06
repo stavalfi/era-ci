@@ -2,6 +2,7 @@ import { ErrorObject } from 'serialize-error'
 import { ArtifactInStepConstrain } from '../create-artifact-step-constrain'
 import { Log, Logger } from '../create-logger'
 import { StepConstrain } from '../create-step-constrain'
+import { TaskQueue } from '../create-task-queue'
 import { ImmutableCache } from '../immutable-cache'
 import {
   AbortResult,
@@ -212,5 +213,6 @@ export type CreateStepOptions<StepConfigurations, NormalizedStepConfigurations =
     onStep?: Array<StepConstrain<NormalizedStepConfigurations>>
     onArtifact?: Array<ArtifactInStepConstrain<NormalizedStepConfigurations>>
   }
+  supportedTasksQueue: TaskQueue<TaskData>
   run: Run<NormalizedStepConfigurations>
 }
