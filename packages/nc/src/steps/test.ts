@@ -7,13 +7,18 @@ import {
   skipIfArtifactStepResultMissingOrPassedInCacheConstrain,
 } from '../artifact-step-constrains'
 import _ from 'lodash'
+import { LocalSequentalTaskQueueName, localSequentalTaskQueueName } from '../task-queues'
 
-export const test = createStep<{
-  testScriptName: string
-  beforeAll?: (options: Omit<UserRunStepOptions<void>, 'stepConfigurations'>) => Promise<void | unknown>
-  afterAll?: (options: Omit<UserRunStepOptions<void>, 'stepConfigurations'>) => Promise<void | unknown>
-}>({
+export const test = createStep<
+  LocalSequentalTaskQueueName,
+  {
+    testScriptName: string
+    beforeAll?: (options: Omit<UserRunStepOptions<void>, 'stepConfigurations'>) => Promise<void | unknown>
+    afterAll?: (options: Omit<UserRunStepOptions<void>, 'stepConfigurations'>) => Promise<void | unknown>
+  }
+>({
   stepName: 'test',
+  tasksQueueName: localSequentalTaskQueueName,
   constrains: {
     onArtifact: [
       skipIfArtifactPackageJsonMissingScriptConstrain({

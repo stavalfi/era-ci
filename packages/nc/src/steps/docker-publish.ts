@@ -1,14 +1,14 @@
 import _ from 'lodash'
 import semver from 'semver'
-import { Log } from '../create-logger'
-import { createStep, RunStrategy } from '../create-step'
-import { ConstrainResult, PackageJson } from '../types'
-import { execaCommand } from '../utils'
-import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
-import { ExecutionStatus, Status } from '../types'
 import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '../artifact-step-constrains'
 import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
+import { Log } from '../create-logger'
+import { createStep, RunStrategy } from '../create-step'
 import { skipIfStepIsDisabledConstrain } from '../step-constrains'
+import { LocalSequentalTaskQueueName, localSequentalTaskQueueName } from '../task-queues'
+import { ConstrainResult, ExecutionStatus, PackageJson, Status } from '../types'
+import { execaCommand } from '../utils'
+import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
 
 export type DockerPublishConfiguration = {
   isStepEnabled: boolean
@@ -355,8 +355,9 @@ const customConstrain = createArtifactStepConstrain<void, void, DockerPublishCon
   },
 })
 
-export const dockerPublish = createStep<DockerPublishConfiguration>({
+export const dockerPublish = createStep<LocalSequentalTaskQueueName, DockerPublishConfiguration>({
   stepName: 'docker-publish',
+  tasksQueueName: localSequentalTaskQueueName,
   constrains: {
     onArtifact: [
       skipIfArtifactStepResultMissingOrFailedInCacheConstrain({

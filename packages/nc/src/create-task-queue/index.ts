@@ -1,5 +1,5 @@
 import { Log } from '../create-logger'
-import { CreateTaskQueue, TaskQueue } from './types'
+import { CreateTaskQueue, TaskQueueBase } from './types'
 
 export {
   AbortTask,
@@ -9,31 +9,33 @@ export {
   RunningTask,
   ScheduledTask,
   TaskInfo,
-  TaskQueue,
   TaskQueueEventEmitter,
 } from './types'
 
 export function createTaskQueue<
-  TaskData,
+  TaskQueueName,
+  TaskQueue extends TaskQueueBase<TaskQueueName>,
   TaskQueueConfigurations = void,
   NormalizedTaskQueueConfigurations = TaskQueueConfigurations
 >(createTaskQueueOptions: {
   normalizeTaskQueueConfigurations?: (options: {
-    TaskQueueConfigurations: TaskQueueConfigurations
+    taskQueueConfigurations: TaskQueueConfigurations
   }) => Promise<NormalizedTaskQueueConfigurations>
+  taskQueueName: TaskQueueName
   initializeTaskQueue: (options: {
-    TaskQueueConfigurations: NormalizedTaskQueueConfigurations
+    taskQueueConfigurations: NormalizedTaskQueueConfigurations
     log: Log
-  }) => Promise<TaskQueue<TaskData>>
+  }) => Promise<TaskQueue>
 }) {
-  return (TaskQueueConfigurations: TaskQueueConfigurations): CreateTaskQueue<TaskData> => ({
+  return (taskQueueConfigurations: TaskQueueConfigurations): CreateTaskQueue<TaskQueueName, TaskQueue> => ({
+    taskQueueName: createTaskQueueOptions.taskQueueName,
     callInitializeTaskQueue: async ({ log }) => {
       // @ts-ignore - we need to find a way to ensure that if NormalizedTaskQueueConfigurations is defined, also normalizedTaskQueueConfigurations is defined.
       const normalizedTaskQueueConfigurations: NormalizedTaskQueueConfigurations = createTaskQueueOptions.normalizeTaskQueueConfigurations
-        ? await createTaskQueueOptions.normalizeTaskQueueConfigurations({ TaskQueueConfigurations })
-        : TaskQueueConfigurations
+        ? await createTaskQueueOptions.normalizeTaskQueueConfigurations({ taskQueueConfigurations })
+        : taskQueueConfigurations
       return createTaskQueueOptions.initializeTaskQueue({
-        TaskQueueConfigurations: normalizedTaskQueueConfigurations,
+        taskQueueConfigurations: normalizedTaskQueueConfigurations,
         log,
       })
     },

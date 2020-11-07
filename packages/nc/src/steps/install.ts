@@ -4,9 +4,11 @@ import { execaCommand } from '../utils'
 import { createStep, RunStrategy } from '../create-step'
 import { ExecutionStatus, Status } from '../types'
 import { skipIfStepResultNotPassedConstrain } from '../step-constrains'
+import { localSequentalTaskQueueName } from '../task-queues'
 
 export const install = createStep({
   stepName: 'install',
+  tasksQueueName: localSequentalTaskQueueName,
   constrains: {
     onStep: [
       skipIfStepResultNotPassedConstrain({

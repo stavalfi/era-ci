@@ -13,6 +13,7 @@ import {
   StepsResultOfArtifact,
   toStepsResultOfArtifactsByArtifact,
 } from '../create-step'
+import { localSequentalTaskQueueName } from '../task-queues'
 import {
   AbortResult,
   Artifact,
@@ -200,7 +201,6 @@ function getJsonReport({
               return s.data.stepResult.notes.map(n => `${s.data.stepInfo.displayName} - ${n}`)
             }),
           ),
-          durationMs: Date.now() - startFlowMs,
           status: calculateCombinedStatus(
             stepsResultOfArtifactsByStep.map(s => {
               if (
@@ -259,6 +259,7 @@ export const jsonReporterStepName = 'json-reporter'
 
 export const jsonReporter = createStep({
   stepName: jsonReporterStepName,
+  tasksQueueName: localSequentalTaskQueueName,
   run: {
     runStrategy: RunStrategy.root,
     runStepOnRoot: async ({

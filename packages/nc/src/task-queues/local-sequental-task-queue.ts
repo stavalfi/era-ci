@@ -1,15 +1,21 @@
 import { ErrorCallback, queue } from 'async'
 import chance from 'chance'
 import { EventEmitter } from 'events'
-import { ExecutionStatus } from '../../dist/src'
 import { createTaskQueue, ScheduledTask, TaskInfo, TaskQueueEventEmitter } from '../create-task-queue'
-import { Status } from '../types'
+import { ExecutionStatus, Status } from '../types'
 
-export type TaskData = {
-  func: () => Promise<void>
+export type LocalSequentalTaskQueueName = 'local-sequental-task-queue'
+// we must specify the type to be specfic string or the user-configuration will think that the type is string
+export const localSequentalTaskQueueName: LocalSequentalTaskQueueName = 'local-sequental-task-queue'
+
+export type LocalSequentalTaskQueue = {
+  taskQueueName: LocalSequentalTaskQueueName
+  cleanup: () => Promise<unknown>
+  addTasksToQueue: (tasksOptions: { taskName: string; func: () => Promise<void> }[]) => Promise<ScheduledTask[]>
+  eventEmitter: TaskQueueEventEmitter
 }
 
-export type ProccessedTask = { taskInfo: TaskInfo; data: TaskData }
+type ProccessedTask = { taskInfo: TaskInfo; func: () => Promise<void> }
 
 const startTask = (eventEmitter: TaskQueueEventEmitter, queueState: { isQueueKilled: boolean }) => async (
   task: ProccessedTask,
@@ -26,7 +32,7 @@ const startTask = (eventEmitter: TaskQueueEventEmitter, queueState: { isQueueKil
       executionStatus: ExecutionStatus.running,
     },
   })
-  await task.data.func().then(
+  await task.func().then(
     () =>
       !queueState.isQueueKilled &&
       eventEmitter.emit(ExecutionStatus.done, {
@@ -57,7 +63,8 @@ const startTask = (eventEmitter: TaskQueueEventEmitter, queueState: { isQueueKil
   cb()
 }
 
-export const localSequentalTaskQueue = createTaskQueue<TaskData>({
+export const localSequentalTaskQueue = createTaskQueue<LocalSequentalTaskQueueName, LocalSequentalTaskQueue>({
+  taskQueueName: localSequentalTaskQueueName,
   initializeTaskQueue: async ({ log }) => {
     log.verbose(`initializing local-sequental task-queue`)
     const eventEmitter: TaskQueueEventEmitter = new EventEmitter({
@@ -68,6 +75,7 @@ export const localSequentalTaskQueue = createTaskQueue<TaskData>({
 
     log.verbose(`initialized local-sequental task-queue`)
     return {
+      taskQueueName: localSequentalTaskQueueName,
       addTasksToQueue: async tasksOptions => {
         const result: ScheduledTask[] = []
 
@@ -77,7 +85,7 @@ export const localSequentalTaskQueue = createTaskQueue<TaskData>({
             taskId: chance().hash(),
           }
 
-          taskQueue.push<ProccessedTask, unknown>({ taskInfo, data: taskOptions.data })
+          taskQueue.push<ProccessedTask, unknown>({ taskInfo, func: taskOptions.func })
           result.push({
             taskExecutionStatus: ExecutionStatus.scheduled,
             taskInfo,

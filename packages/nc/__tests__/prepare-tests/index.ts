@@ -10,6 +10,7 @@ import {
   JsonReport,
   jsonReporter,
   jsonReporterCacheKey,
+  localSequentalTaskQueue,
   LogLevel,
   redisConnection,
   Step,
@@ -78,7 +79,7 @@ const getJsonReport = async ({
 }
 
 type RunCi = (
-  config?: Partial<Omit<Config, 'steps'> & { steps?: Step[] }>,
+  config?: Partial<Omit<Config<Array<{ taskQueueName: string }>>, 'steps'> & { steps?: Step<string>[] }>,
 ) => Promise<{
   flowId: string
   steps: Graph<{ stepInfo: StepInfo }>
@@ -101,9 +102,10 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (config = {})
     })
   const defaultJsonReport = jsonReporter()
   const defaultCliTableReport = cliTableReporter()
-  const finalConfig: Config = {
+  const finalConfig: Config<Array<{ taskQueueName: string }>> = {
     logger,
     keyValueStore,
+    taskQueues: [localSequentalTaskQueue()],
     steps: createLinearStepsGraph([...(config.steps || []), defaultJsonReport, defaultCliTableReport]),
   }
   const { flowId, repoHash, steps, passed } = await ci({
