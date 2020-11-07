@@ -7,9 +7,9 @@ import { Config } from './types'
  * ensures type safty of task-queues by only allowing steps thats uses task-queues which are declared in `task-queues` array.
  * @param options nc options
  */
-export function config<TaskQueueArray extends Array<{ taskQueueName: string }>>(
-  options: Config<TaskQueueArray>,
-): Config<TaskQueueArray> {
+export function config<CreateTaskQueueArray extends Array<{ taskQueueName: string }>>(
+  options: Config<CreateTaskQueueArray>,
+): Config<CreateTaskQueueArray> {
   return options
 }
 
@@ -46,15 +46,15 @@ function getConfigValidationObject() {
   })
 }
 
-function validateConfiguration<TaskQueueArray extends Array<{ taskQueueName: string }>>(
+function validateConfiguration<CreateTaskQueueArray extends Array<{ taskQueueName: string }>>(
   configuration: unknown,
-): configuration is Config<TaskQueueArray> {
+): configuration is Config<CreateTaskQueueArray> {
   return is(configuration, getConfigValidationObject())
 }
 
-export async function readNcConfigurationFile<TaskQueueArray extends Array<{ taskQueueName: string }>>(
+export async function readNcConfigurationFile<CreateTaskQueueArray extends Array<{ taskQueueName: string }>>(
   ciConfigFilePath: string,
-): Promise<Config<TaskQueueArray>> {
+): Promise<Config<CreateTaskQueueArray>> {
   const outputFilePath = path.join(path.dirname(ciConfigFilePath), `compiled-nc.config.js`)
   const swcConfigFile = require.resolve('@tahini/nc/.nc-swcrc.config')
   const swcPath = require.resolve('.bin/swc')
@@ -72,7 +72,7 @@ export async function readNcConfigurationFile<TaskQueueArray extends Array<{ tas
   //   // ignore error
   // })
 
-  if (validateConfiguration<TaskQueueArray>(configuration)) {
+  if (validateConfiguration<CreateTaskQueueArray>(configuration)) {
     return configuration
   } else {
     const [error] = validate(configuration, getConfigValidationObject())

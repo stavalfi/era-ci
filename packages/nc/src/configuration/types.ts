@@ -3,13 +3,13 @@ import { CreateLogger } from '../create-logger'
 import { Step, StepInfo } from '../create-step'
 import { Graph } from '../types'
 
-export type Config<TaskQueueArray extends Array<{ taskQueueName: string }>> = {
+export type Config<CreateTaskQueueArray extends Array<{ taskQueueName: string }>> = {
   keyValueStore: CreateKeyValueStoreConnection
   logger: CreateLogger
-  taskQueues: TaskQueueArray
+  taskQueues: CreateTaskQueueArray
   steps: Graph<{
     stepInfo: StepInfo
-    taskQueueName: TaskQueueArray[number]['taskQueueName']
-    runStep: Step<TaskQueueArray[number]['taskQueueName']>['runStep']
+    taskQueueName: CreateTaskQueueArray[number]['taskQueueName']
+    runStep: Step<CreateTaskQueueArray[number]['taskQueueName']>['runStep']
   }>
 }
