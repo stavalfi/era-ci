@@ -11,7 +11,7 @@ import { startCli } from './configuration/cli'
 export { execaCommand } from './utils'
 export { createLinearStepsGraph } from './create-linear-steps-graph'
 export { Artifact, Graph, PackageJson, ExecutionStatus, Status, ConstrainResult } from './types'
-export { Config } from './configuration'
+export { Config, config } from './configuration'
 export { Step, StepInfo, createStep, RunStrategy } from './create-step'
 export { Log, LogLevel, Logger, CreateLogger } from './create-logger'
 export {
@@ -49,6 +49,24 @@ export {
   createKeyValueStoreConnection,
 } from './create-key-value-store-connection'
 export { createImmutableCache } from './immutable-cache'
+export {
+  localSequentalTaskQueueName,
+  localSequentalTaskQueue,
+  LocalSequentalTaskQueue,
+  LocalSequentalTaskQueueName,
+} from './task-queues'
+export {
+  TaskInfo,
+  AbortTask,
+  CreateTaskQueue,
+  DoneTask,
+  EventEmitterEvents,
+  RunningTask,
+  ScheduledTask,
+  TaskQueueEventEmitter,
+  createTaskQueue,
+} from './create-task-queue'
+
 async function main() {
   try {
     await startCli(process.argv)

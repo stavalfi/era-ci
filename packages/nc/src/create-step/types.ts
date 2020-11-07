@@ -2,7 +2,6 @@ import { ErrorObject } from 'serialize-error'
 import { ArtifactInStepConstrain } from '../create-artifact-step-constrain'
 import { Log, Logger } from '../create-logger'
 import { StepConstrain } from '../create-step-constrain'
-import { TaskQueue } from '../create-task-queue'
 import { ImmutableCache } from '../immutable-cache'
 import {
   AbortResult,
@@ -176,8 +175,9 @@ export type RunStepOnRoot<StepConfigurations> = (
   options: UserRunStepOptions<StepConfigurations>,
 ) => Promise<Omit<DoneResult, 'durationMs'>>
 
-export type Step = {
+export type Step<TaskQueueName> = {
   stepName: string
+  taskQueueName: TaskQueueName
   runStep: (runStepOptions: RunStepOptions) => Promise<StepResultOfArtifacts>
 }
 
@@ -206,13 +206,17 @@ export type Run<StepConfigurations> = {
     }
 )
 
-export type CreateStepOptions<StepConfigurations, NormalizedStepConfigurations = StepConfigurations> = {
+export type CreateStepOptions<
+  TasksQueueName = never,
+  StepConfigurations = void,
+  NormalizedStepConfigurations = StepConfigurations
+> = {
   stepName: string
   normalizeStepConfigurations?: (stepConfigurations: StepConfigurations) => Promise<NormalizedStepConfigurations>
   constrains?: {
     onStep?: Array<StepConstrain<NormalizedStepConfigurations>>
     onArtifact?: Array<ArtifactInStepConstrain<NormalizedStepConfigurations>>
   }
-  supportedTasksQueue: TaskQueue<TaskData>
+  tasksQueueName: TasksQueueName
   run: Run<NormalizedStepConfigurations>
 }

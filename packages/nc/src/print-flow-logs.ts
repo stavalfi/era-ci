@@ -5,7 +5,11 @@ import { createImmutableCache } from './immutable-cache'
 import { Cleanup } from './types'
 import { getPackages, MISSING_FLOW_ID_ERROR, toFlowLogsContentKey } from './utils'
 
-export async function printFlowLogs(options: { flowId: string; config: Config; repoPath: string }): Promise<void> {
+export async function printFlowLogs<TaskQueueArray extends Array<{ taskQueueName: string }>>(options: {
+  flowId: string
+  config: Config<TaskQueueArray>
+  repoPath: string
+}): Promise<void> {
   const cleanups: Cleanup[] = []
   let log: Log | undefined
   try {

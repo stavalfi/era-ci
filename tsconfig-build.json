@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "files": [],
+  "files": ["nc-config.ts"],
   "references": [
     {
       "path": "packages/legacy-tests/tsconfig-build.json"

@@ -5,6 +5,7 @@ import prettyMs from 'pretty-ms'
 import { deserializeError, ErrorObject } from 'serialize-error'
 import { createStep, RunStrategy, stepToString } from '../create-step'
 import { skipIfStepResultNotPassedConstrain } from '../step-constrains'
+import { localSequentalTaskQueueName } from '../task-queues'
 import { ExecutionStatus, Status } from '../types'
 import { JsonReport, jsonReporterStepName, jsonReporterCacheKey, stringToJsonReport } from './json-reporter'
 
@@ -85,7 +86,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
               (_, i) => RESULT_STATUS_COLORED[node.data.stepsResult[i].data.artifactStepResult.status],
             ),
             artifactStatus: RESULT_STATUS_COLORED[node.data.artifactResult.status],
-            duration: prettyMs(node.data.artifactResult.durationMs),
+            duration: '',
             notes: [
               ...node.data.artifactResult.notes,
               ..._.flatMapDeep(
@@ -205,7 +206,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
         case ExecutionStatus.done:
           return jsonReport.stepsResultOfArtifactsByStep.map(s => prettyMs(s.data.stepResult.durationMs))
         case ExecutionStatus.aborted:
-          return jsonReport.stepsResultOfArtifactsByStep.map(s => prettyMs(s.data.stepResult.durationMs))
+          return jsonReport.stepsResultOfArtifactsByStep.map(() => '')
         case ExecutionStatus.running:
           return jsonReport.stepsResultOfArtifactsByStep.map(() => '')
         case ExecutionStatus.scheduled:
@@ -454,8 +455,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
     }),
   )
   const duration: false | TableRow =
-    (jsonReport.flowResult.executionStatus === ExecutionStatus.done ||
-      jsonReport.flowResult.executionStatus === ExecutionStatus.aborted) &&
+    jsonReport.flowResult.executionStatus === ExecutionStatus.done &&
     ['duration', prettyMs(jsonReport.flowResult.durationMs)].map(content => ({
       vAlign: 'center',
       hAlign: 'center',
@@ -504,12 +504,13 @@ function generateSummaryReport(jsonReport: JsonReport): string {
 
 export const cliTableReporter = createStep({
   stepName: 'cli-table-reporter',
+  tasksQueueName: localSequentalTaskQueueName,
   constrains: {
     onStep: [skipIfStepResultNotPassedConstrain({ stepName: jsonReporterStepName })],
   },
   run: {
     runStrategy: RunStrategy.root,
-    runStepOnRoot: async ({ immutableCache, flowId, stepConfigurations, log, steps }) => {
+    runStepOnRoot: async ({ immutableCache, flowId, log, steps }) => {
       const jsonReporterStepId = steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data.stepInfo
         .stepId
       if (!jsonReporterStepId) {

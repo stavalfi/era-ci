@@ -7,6 +7,7 @@ import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
 import { Log } from '../create-logger'
 import { createStep, RunStrategy } from '../create-step'
 import { skipIfStepIsDisabledConstrain } from '../step-constrains'
+import { LocalSequentalTaskQueueName, localSequentalTaskQueueName } from '../task-queues'
 import { ConstrainResult, ExecutionStatus, PackageJson, Status } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
@@ -238,8 +239,9 @@ const customConstrain = createArtifactStepConstrain<void, void, NpmPublishConfig
   },
 })
 
-export const npmPublish = createStep<NpmPublishConfiguration>({
+export const npmPublish = createStep<LocalSequentalTaskQueueName, NpmPublishConfiguration>({
   stepName: 'npm-publish',
+  tasksQueueName: localSequentalTaskQueueName,
   constrains: {
     onArtifact: [
       skipIfArtifactStepResultMissingOrFailedInCacheConstrain({

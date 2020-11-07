@@ -51,7 +51,7 @@ export async function runAllSteps({
 }: {
   repoPath: string
   steps: Graph<{ stepInfo: StepInfo }>
-  stepsToRun: Graph<{ stepInfo: StepInfo; runStep: Step['runStep'] }>
+  stepsToRun: Graph<{ stepInfo: StepInfo; runStep: Step<string>['runStep'] }>
   flowId: string
   repoHash: string
   startFlowMs: number

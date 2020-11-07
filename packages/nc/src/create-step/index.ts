@@ -107,7 +107,6 @@ async function runStepOnEveryArtifact<StepConfigurations>({
           status: canRunResult.artifactStepResult.status,
           notes: canRunResult.artifactStepResult.notes,
           errors: canRunResult.artifactStepResult.errors,
-          durationMs: Date.now() - userRunStepOptions.startStepMs,
         },
       })
     }
@@ -153,13 +152,13 @@ async function runStepOnRoot<StepConfigurations>({
   }
 }
 
-async function getUserStepResult<StepConfigurations, NormalizedStepConfigurations>({
+async function getUserStepResult<TaskQueue, StepConfigurations, NormalizedStepConfigurations>({
   startStepMs,
   createStepOptions,
   userRunStepOptions,
 }: {
   startStepMs: number
-  createStepOptions: CreateStepOptions<StepConfigurations, NormalizedStepConfigurations>
+  createStepOptions: CreateStepOptions<TaskQueue, StepConfigurations, NormalizedStepConfigurations>
   userRunStepOptions: UserRunStepOptions<NormalizedStepConfigurations>
 }): Promise<UserStepResult> {
   const [canRunPerArtifact, canRunAllArtifacts] = await Promise.all([
@@ -244,14 +243,14 @@ async function getUserStepResult<StepConfigurations, NormalizedStepConfiguration
   return copy
 }
 
-async function runStep<StepConfigurations, NormalizedStepConfigurations>({
+async function runStep<TaskQueue, StepConfigurations, NormalizedStepConfigurations>({
   startStepMs,
   createStepOptions,
   runStepOptions,
   stepConfigurations,
 }: {
   startStepMs: number
-  createStepOptions: CreateStepOptions<StepConfigurations, NormalizedStepConfigurations>
+  createStepOptions: CreateStepOptions<TaskQueue, StepConfigurations, NormalizedStepConfigurations>
   runStepOptions: RunStepOptions
   stepConfigurations: NormalizedStepConfigurations
 }): Promise<StepResultOfArtifacts> {
@@ -325,7 +324,6 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
             artifactStepResult: {
               executionStatus: ExecutionStatus.aborted,
               status: result.artifactStepResult.status,
-              durationMs: result.artifactStepResult.durationMs,
               errors: result.artifactStepResult.errors,
               notes: result.artifactStepResult.notes,
             },
@@ -377,7 +375,6 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
         stepResult: {
           errors: userStepResult.stepResult.errors,
           executionStatus: ExecutionStatus.aborted,
-          durationMs: Date.now() - startStepMs,
           notes: userStepResult.stepResult.notes,
           status: calculateCombinedStatus(userStepResult.artifactsResult.map(a => a.artifactStepResult.status)),
         },
@@ -414,11 +411,14 @@ async function runStep<StepConfigurations, NormalizedStepConfigurations>({
   }
 }
 
-export function createStep<StepConfigurations = void, NormalizedStepConfigurations = StepConfigurations>(
-  createStepOptions: CreateStepOptions<StepConfigurations, NormalizedStepConfigurations>,
-) {
-  return (stepConfigurations: StepConfigurations): Step => ({
+export function createStep<
+  TaskQueueName = never,
+  StepConfigurations = void,
+  NormalizedStepConfigurations = StepConfigurations
+>(createStepOptions: CreateStepOptions<TaskQueueName, StepConfigurations, NormalizedStepConfigurations>) {
+  return (stepConfigurations: StepConfigurations): Step<TaskQueueName> => ({
     stepName: createStepOptions.stepName,
+    taskQueueName: createStepOptions.tasksQueueName,
     runStep: async runStepOptions => {
       const startStepMs = Date.now()
       // @ts-ignore - we need to find a way to ensure that if NormalizedStepConfigurations is defined, also normalizeStepConfigurations is defined.

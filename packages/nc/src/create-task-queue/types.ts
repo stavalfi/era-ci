@@ -41,12 +41,9 @@ export type EventEmitterEvents = {
 
 export type TaskQueueEventEmitter = StrictEventEmitter<EventEmitter, EventEmitterEvents>
 
-export type TaskQueue<TaskData> = {
-  addTasksToQueue: (tasksOptions: { taskName: string; data: TaskData }[]) => Promise<ScheduledTask[]>
-  eventEmitter: TaskQueueEventEmitter
-  cleanup: () => Promise<unknown>
-}
+export type TaskQueueBase<TaskQueueName> = { taskQueueName: TaskQueueName; cleanup: () => Promise<unknown> }
 
-export type CreateTaskQueue<TaskData> = {
-  callInitializeTaskQueue: (options: { log: Log }) => Promise<TaskQueue<TaskData>>
+export type CreateTaskQueue<TaskQueueName, TaskQueue extends TaskQueueBase<TaskQueueName>> = {
+  taskQueueName: TaskQueueName
+  callInitializeTaskQueue: (options: { log: Log }) => Promise<TaskQueue>
 }
