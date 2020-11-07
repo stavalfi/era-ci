@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "files": ["nc-config.ts"],
+  "compilerOptions": { "outDir": "dist" }, // only the compiled root-ts-files will be there
   "references": [
     {
       "path": "packages/legacy-tests/tsconfig-build.json"

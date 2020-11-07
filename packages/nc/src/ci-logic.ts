@@ -9,9 +9,9 @@ import { getExitCode, getPackages, toFlowLogsContentKey } from './utils'
 import chance from 'chance'
 import { createImmutableCache, ImmutableCache } from './immutable-cache'
 
-export async function ci<TaskQueueArray extends Array<{ taskQueueName: string }>>(options: {
+export async function ci<CreateTaskQueueArray extends Array<{ taskQueueName: string }>>(options: {
   repoPath: string
-  config: Config<TaskQueueArray>
+  config: Config<CreateTaskQueueArray>
 }): Promise<{ flowId: string; repoHash?: string; steps?: Graph<{ stepInfo: StepInfo }>; passed: boolean }> {
   const cleanups: Cleanup[] = []
   const flowId = chance().hash()
