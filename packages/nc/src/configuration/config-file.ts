@@ -1,15 +1,16 @@
 import execa from 'execa'
 import path from 'path'
 import { array, func, is, number, object, string, validate, optional } from 'superstruct'
+import { TaskQueueBase } from '../create-task-queue'
 import { Config } from './types'
 
 /**
  * ensures type safty of task-queues by only allowing steps thats uses task-queues which are declared in `task-queues` array.
  * @param options nc options
  */
-export function config<CreateTaskQueueArray extends Array<{ taskQueueName: string }>>(
-  options: Config<CreateTaskQueueArray>,
-): Config<CreateTaskQueueArray> {
+export function config<TaskQueueName extends string, TaskQueue extends TaskQueueBase<TaskQueueName>>(
+  options: Config<TaskQueueName, TaskQueue>,
+): Config<TaskQueueName, TaskQueue> {
   return options
 }
 
@@ -46,15 +47,16 @@ function getConfigValidationObject() {
   })
 }
 
-function validateConfiguration<CreateTaskQueueArray extends Array<{ taskQueueName: string }>>(
+function validateConfiguration<TaskQueueName extends string, TaskQueue extends TaskQueueBase<TaskQueueName>>(
   configuration: unknown,
-): configuration is Config<CreateTaskQueueArray> {
+): configuration is Config<TaskQueueName, TaskQueue> {
   return is(configuration, getConfigValidationObject())
 }
 
-export async function readNcConfigurationFile<CreateTaskQueueArray extends Array<{ taskQueueName: string }>>(
-  ciConfigFilePath: string,
-): Promise<Config<CreateTaskQueueArray>> {
+export async function readNcConfigurationFile<
+  TaskQueueName extends string,
+  TaskQueue extends TaskQueueBase<TaskQueueName>
+>(ciConfigFilePath: string): Promise<Config<TaskQueueName, TaskQueue>> {
   const outputFilePath = path.join(path.dirname(ciConfigFilePath), `compiled-nc.config.js`)
   const swcConfigFile = require.resolve('@tahini/nc/.nc-swcrc.config')
   const swcPath = require.resolve('.bin/swc')
@@ -72,7 +74,7 @@ export async function readNcConfigurationFile<CreateTaskQueueArray extends Array
   //   // ignore error
   // })
 
-  if (validateConfiguration<CreateTaskQueueArray>(configuration)) {
+  if (validateConfiguration<TaskQueueName, TaskQueue>(configuration)) {
     return configuration
   } else {
     const [error] = validate(configuration, getConfigValidationObject())

@@ -2,13 +2,13 @@ import _ from 'lodash'
 import { IDependencyMap } from 'package-json-type'
 import semver from 'semver'
 import { createStep, RunStrategy } from '../create-step'
-import { localSequentalTaskQueueName } from '../task-queues'
+import { localSequentalTaskQueue } from '../task-queues'
 import { ExecutionStatus, Status } from '../types'
 import { getPackageTargetType, TargetType } from './utils'
 
 export const validatePackages = createStep({
   stepName: 'validate-packages',
-  tasksQueueName: localSequentalTaskQueueName,
+  configureTaskQueue: localSequentalTaskQueue,
   run: {
     runStrategy: RunStrategy.perArtifact,
     runStepOnArtifact: async ({ currentArtifact, artifacts }) => {

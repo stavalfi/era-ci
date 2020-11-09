@@ -1,4 +1,4 @@
-import { createStep, ExecutionStatus, JsonReport, localSequentalTaskQueueName, RunStrategy, Status } from '../src'
+import { createStep, ExecutionStatus, JsonReport, localSequentalTaskQueue, RunStrategy, Status } from '../src'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
 
 const { createRepo } = createTest()
@@ -16,7 +16,7 @@ test('passed,passed => passed', async () => {
     steps: [
       createStep({
         stepName: 'step1',
-        tasksQueueName: localSequentalTaskQueueName,
+        configureTaskQueue: localSequentalTaskQueue,
         run: {
           runStrategy: RunStrategy.perArtifact,
           runStepOnArtifact: async () => {
@@ -26,7 +26,7 @@ test('passed,passed => passed', async () => {
       })(),
       createStep({
         stepName: 'step2',
-        tasksQueueName: localSequentalTaskQueueName,
+        configureTaskQueue: localSequentalTaskQueue,
         run: {
           runStrategy: RunStrategy.perArtifact,
           runStepOnArtifact: async () => {

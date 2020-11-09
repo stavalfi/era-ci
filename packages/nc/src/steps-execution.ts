@@ -10,6 +10,7 @@ import {
   StepsResultOfArtifactsByStep,
   toStepsResultOfArtifactsByArtifact,
 } from './create-step'
+import { ConfigureTaskQueue, TaskQueueBase } from './create-task-queue'
 import { ImmutableCache } from './immutable-cache'
 import { Artifact, ExecutionStatus, Graph, PackageJson } from './types'
 
@@ -48,10 +49,17 @@ export async function runAllSteps({
   artifacts,
   steps,
   repoHash,
+  taskQueues,
 }: {
+  taskQueues: Array<TaskQueueBase<string>>
   repoPath: string
   steps: Graph<{ stepInfo: StepInfo }>
-  stepsToRun: Graph<{ stepInfo: StepInfo; runStep: Step<string>['runStep'] }>
+  stepsToRun: Graph<{
+    stepInfo: StepInfo
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    configureTaskQueue: ConfigureTaskQueue<string, TaskQueueBase<string>, any>
+    runStep: Step<string, TaskQueueBase<string>>['runStep']
+  }>
   flowId: string
   repoHash: string
   startFlowMs: number
@@ -101,7 +109,16 @@ export async function runAllSteps({
           ),
         )
         if (onStep) {
+          const taskQueue = taskQueues.find(
+            t => t.taskQueueName === stepsToRun[stepIndex].data.configureTaskQueue.taskQueueName,
+          )
+          if (!taskQueue) {
+            throw new Error(
+              `can't find task-queue: "${stepsToRun[stepIndex].data.configureTaskQueue.taskQueueName}" for step: "${stepsToRun[stepIndex].data.stepInfo.displayName}" needs. did you forgot to declare the task-queue in the configuration file?`,
+            )
+          }
           const stepResultOfArtifacts = await stepsToRun[stepIndex].data.runStep({
+            taskQueue,
             artifacts,
             steps,
             immutableCache,

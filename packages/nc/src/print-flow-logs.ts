@@ -1,15 +1,15 @@
 import { calculateArtifactsHash } from './artifacts-hash'
 import { Config } from './configuration'
 import { Log } from './create-logger'
+import { TaskQueueBase } from './create-task-queue'
 import { createImmutableCache } from './immutable-cache'
 import { Cleanup } from './types'
 import { getPackages, MISSING_FLOW_ID_ERROR, toFlowLogsContentKey } from './utils'
 
-export async function printFlowLogs<CreateTaskQueueArray extends Array<{ taskQueueName: string }>>(options: {
-  flowId: string
-  config: Config<CreateTaskQueueArray>
-  repoPath: string
-}): Promise<void> {
+export async function printFlowLogs<
+  TaskQueueName extends string,
+  TaskQueue extends TaskQueueBase<TaskQueueName>
+>(options: { flowId: string; config: Config<TaskQueueName, TaskQueue>; repoPath: string }): Promise<void> {
   const cleanups: Cleanup[] = []
   let log: Log | undefined
   try {

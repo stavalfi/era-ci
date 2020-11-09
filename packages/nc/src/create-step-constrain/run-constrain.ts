@@ -3,18 +3,18 @@ import { ErrorObject, serializeError } from 'serialize-error'
 import { UserRunStepOptions } from '../create-step'
 import { ConstrainResult, ExecutionStatus, Status } from '../types'
 import { calculateCombinedStatus } from '../utils'
-import { StepConstrainResult, StepConstrain, CombinedStepConstrainResult } from './types'
+import { CombinedStepConstrainResult, StepConstrain, StepConstrainResult } from './types'
 
-export async function runSkipSteps<StepConfiguration>({
+export async function runConstrains<StepConfiguration>({
   predicates,
   userRunStepOptions,
 }: {
-  userRunStepOptions: UserRunStepOptions<StepConfiguration>
+  userRunStepOptions: Omit<UserRunStepOptions<never, never, StepConfiguration>, 'taskQueue'>
   predicates: Array<StepConstrain<StepConfiguration>>
 }): Promise<CombinedStepConstrainResult> {
   const results = await Promise.all(
-    predicates.map(x =>
-      x.callConstrain({ userRunStepOptions }).catch<StepConstrainResult>(error => ({
+    predicates.map(p =>
+      p.callConstrain({ userRunStepOptions }).catch<StepConstrainResult>(error => ({
         constrainResult: ConstrainResult.shouldSkip,
         stepResult: {
           executionStatus: ExecutionStatus.aborted,

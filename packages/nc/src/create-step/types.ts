@@ -2,6 +2,7 @@ import { ErrorObject } from 'serialize-error'
 import { ArtifactInStepConstrain } from '../create-artifact-step-constrain'
 import { Log, Logger } from '../create-logger'
 import { StepConstrain } from '../create-step-constrain'
+import { ConfigureTaskQueue, TaskQueueBase } from '../create-task-queue'
 import { ImmutableCache } from '../immutable-cache'
 import {
   AbortResult,
@@ -129,7 +130,7 @@ export type StepsResultOfArtifactsByArtifact = Graph<StepsResultOfArtifact>
 
 // ------------------------
 
-export type RunStepOptions = {
+export type RunStepOptions<TaskQueueName, TaskQueue extends TaskQueueBase<TaskQueueName>> = {
   flowId: string
   repoHash: string
   startFlowMs: number
@@ -142,9 +143,14 @@ export type RunStepOptions = {
   stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact
   immutableCache: ImmutableCache
   logger: Logger
+  taskQueue: TaskQueue
 }
 
-export type UserRunStepOptions<StepConfigurations> = RunStepOptions & {
+export type UserRunStepOptions<
+  TaskQueueName,
+  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  StepConfigurations
+> = RunStepOptions<TaskQueueName, TaskQueue> & {
   log: Log
   stepConfigurations: StepConfigurations
   startStepMs: number
@@ -163,22 +169,35 @@ export type UserStepResult = {
   artifactsResult: Array<UserArtifactResult>
 }
 
-export type RunStepOnArtifacts<StepConfigurations> = (
-  options: UserRunStepOptions<StepConfigurations>,
-) => Promise<UserStepResult>
+export type RunStepOnArtifacts<
+  TaskQueueName extends string,
+  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  StepConfigurations
+> = (options: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>) => Promise<UserStepResult>
 
-export type RunStepOnArtifact<StepConfigurations> = (
-  options: UserRunStepOptions<StepConfigurations> & { currentArtifact: Node<{ artifact: Artifact }> },
+export type RunStepOnArtifact<
+  TaskQueueName extends string,
+  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  StepConfigurations
+> = (
+  options: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations> & {
+    currentArtifact: Node<{ artifact: Artifact }>
+  },
 ) => Promise<Omit<DoneResult, 'durationMs'>>
 
-export type RunStepOnRoot<StepConfigurations> = (
-  options: UserRunStepOptions<StepConfigurations>,
+export type RunStepOnRoot<
+  TaskQueueName extends string,
+  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  StepConfigurations
+> = (
+  options: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>,
 ) => Promise<Omit<DoneResult, 'durationMs'>>
 
-export type Step<TaskQueueName> = {
+export type Step<TaskQueueName extends string, TaskQueue extends TaskQueueBase<TaskQueueName>> = {
   stepName: string
-  taskQueueName: TaskQueueName
-  runStep: (runStepOptions: RunStepOptions) => Promise<StepResultOfArtifacts>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  configureTaskQueue: ConfigureTaskQueue<TaskQueueName, TaskQueue, any>
+  runStep: (runStepOptions: RunStepOptions<TaskQueueName, TaskQueue>) => Promise<StepResultOfArtifacts>
 }
 
 export enum RunStrategy {
@@ -187,27 +206,28 @@ export enum RunStrategy {
   root = 'root',
 }
 
-export type Run<StepConfigurations> = {
-  onStepDone?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
+export type Run<TaskQueueName extends string, TaskQueue extends TaskQueueBase<TaskQueueName>, StepConfigurations> = {
+  onStepDone?: (options: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>) => Promise<void>
 } & (
   | {
       runStrategy: RunStrategy.perArtifact
-      beforeAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
-      runStepOnArtifact: RunStepOnArtifact<StepConfigurations>
-      afterAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
+      beforeAll?: (options: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>) => Promise<void>
+      runStepOnArtifact: RunStepOnArtifact<TaskQueueName, TaskQueue, StepConfigurations>
+      afterAll?: (options: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>) => Promise<void>
     }
   | {
       runStrategy: RunStrategy.allArtifacts
-      runStepOnArtifacts: RunStepOnArtifacts<StepConfigurations>
+      runStepOnArtifacts: RunStepOnArtifacts<TaskQueueName, TaskQueue, StepConfigurations>
     }
   | {
       runStrategy: RunStrategy.root
-      runStepOnRoot: RunStepOnRoot<StepConfigurations>
+      runStepOnRoot: RunStepOnRoot<TaskQueueName, TaskQueue, StepConfigurations>
     }
 )
 
 export type CreateStepOptions<
-  TasksQueueName = never,
+  TaskQueueName extends string,
+  TaskQueue extends TaskQueueBase<TaskQueueName>,
   StepConfigurations = void,
   NormalizedStepConfigurations = StepConfigurations
 > = {
@@ -217,6 +237,7 @@ export type CreateStepOptions<
     onStep?: Array<StepConstrain<NormalizedStepConfigurations>>
     onArtifact?: Array<ArtifactInStepConstrain<NormalizedStepConfigurations>>
   }
-  tasksQueueName: TasksQueueName
-  run: Run<NormalizedStepConfigurations>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  configureTaskQueue: ConfigureTaskQueue<TaskQueueName, TaskQueue, any>
+  run: Run<TaskQueueName, TaskQueue, NormalizedStepConfigurations>
 }

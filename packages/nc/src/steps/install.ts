@@ -1,14 +1,14 @@
 import fse from 'fs-extra'
 import path from 'path'
-import { execaCommand } from '../utils'
 import { createStep, RunStrategy } from '../create-step'
-import { ExecutionStatus, Status } from '../types'
 import { skipIfStepResultNotPassedConstrain } from '../step-constrains'
-import { localSequentalTaskQueueName } from '../task-queues'
+import { exampleTaskQueue } from '../task-queues'
+import { ExecutionStatus, Status } from '../types'
+import { execaCommand } from '../utils'
 
 export const install = createStep({
   stepName: 'install',
-  tasksQueueName: localSequentalTaskQueueName,
+  configureTaskQueue: exampleTaskQueue,
   constrains: {
     onStep: [
       skipIfStepResultNotPassedConstrain({

@@ -6,6 +6,7 @@ import {
   config,
   createLinearStepsGraph,
   dockerPublish,
+  exampleTaskQueue,
   execaCommand,
   install,
   jsonReporter,
@@ -42,7 +43,7 @@ const {
 const isMasterBuild = Boolean(ciInfo.isCI && !ciInfo.isPR)
 
 export default config({
-  taskQueues: [localSequentalTaskQueue()],
+  taskQueues: [localSequentalTaskQueue.configure(), exampleTaskQueue.configure()],
   keyValueStore: redisConnection({
     redisServer: `redis://${REDIS_ENDPOINT}/`,
     auth: {

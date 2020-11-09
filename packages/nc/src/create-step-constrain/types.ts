@@ -38,6 +38,6 @@ export type CombinedStepConstrainResult =
 export type StepConstrain<StepConfiguration> = {
   constrainName: string
   callConstrain: (options: {
-    userRunStepOptions: UserRunStepOptions<StepConfiguration>
+    userRunStepOptions: Omit<UserRunStepOptions<never, never, StepConfiguration>, 'taskQueue'>
   }) => Promise<StepConstrainResult>
 }

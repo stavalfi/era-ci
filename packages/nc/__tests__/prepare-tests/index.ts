@@ -3,6 +3,8 @@
 import chance from 'chance'
 import {
   cliTableReporter,
+  LocalSequentalTaskQueueName,
+  config,
   Config,
   createImmutableCache,
   createLinearStepsGraph,
@@ -17,8 +19,10 @@ import {
   StepInfo,
   stringToJsonReport,
   winstonLogger,
+  TaskQueueBase,
+  ci,
+  LocalSequentalTaskQueue,
 } from '../../src'
-import { ci } from '../../src/ci-logic'
 import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterAll } from './prepare-test-resources'
 import { Repo, TestResources } from './types'
@@ -79,7 +83,9 @@ const getJsonReport = async ({
 }
 
 type RunCi = (
-  config?: Partial<Omit<Config<Array<{ taskQueueName: string }>>, 'steps'> & { steps?: Step<string>[] }>,
+  config?: Partial<
+    Omit<Config<string, TaskQueueBase<string>>, 'steps'> & { steps?: Step<string, TaskQueueBase<string>>[] }
+  >,
 ) => Promise<{
   flowId: string
   steps: Graph<{ stepInfo: StepInfo }>
@@ -87,27 +93,33 @@ type RunCi = (
   passed: boolean
 }>
 
-const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (config = {}) => {
+const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configurations = {}) => {
   const logger =
-    config.logger ||
+    configurations.logger ||
     winstonLogger({
       customLogLevel: LogLevel.verbose,
       disabled: false,
       logFilePath: './nc.log',
     })
   const keyValueStore =
-    config.keyValueStore ||
+    configurations.keyValueStore ||
     redisConnection({
       redisServer: getResoureces().redisServer,
     })
   const defaultJsonReport = jsonReporter()
   const defaultCliTableReport = cliTableReporter()
-  const finalConfig: Config<Array<{ taskQueueName: string }>> = {
+  const testCustomSteps: Array<Step<string, TaskQueueBase<string>>> = configurations.steps || []
+  const allSteps: Array<Step<string | LocalSequentalTaskQueueName, TaskQueueBase<string> | LocalSequentalTaskQueue>> = [
+    ...testCustomSteps,
+    defaultJsonReport,
+    defaultCliTableReport,
+  ]
+  const finalConfig = config({
     logger,
     keyValueStore,
-    taskQueues: [localSequentalTaskQueue()],
-    steps: createLinearStepsGraph([...(config.steps || []), defaultJsonReport, defaultCliTableReport]),
-  }
+    taskQueues: [localSequentalTaskQueue.configure()],
+    steps: createLinearStepsGraph(allSteps),
+  })
   const { flowId, repoHash, steps, passed } = await ci({
     repoPath,
     config: finalConfig,

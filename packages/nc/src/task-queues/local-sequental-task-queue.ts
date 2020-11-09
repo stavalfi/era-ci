@@ -1,7 +1,7 @@
 import { ErrorCallback, queue } from 'async'
 import chance from 'chance'
 import { EventEmitter } from 'events'
-import { createTaskQueue, ScheduledTask, TaskInfo, TaskQueueEventEmitter } from '../create-task-queue'
+import { CreateTaskQueue, createTaskQueue, ScheduledTask, TaskInfo, TaskQueueEventEmitter } from '../create-task-queue'
 import { ExecutionStatus, Status } from '../types'
 
 export type LocalSequentalTaskQueueName = 'local-sequental-task-queue'
@@ -62,6 +62,10 @@ const startTask = (eventEmitter: TaskQueueEventEmitter, queueState: { isQueueKil
   )
   cb()
 }
+
+export type CreateLocalSequentalTaskQueue = (
+  taskQueueConfigurations: void,
+) => CreateTaskQueue<LocalSequentalTaskQueueName, LocalSequentalTaskQueue>
 
 export const localSequentalTaskQueue = createTaskQueue<LocalSequentalTaskQueueName, LocalSequentalTaskQueue>({
   taskQueueName: localSequentalTaskQueueName,

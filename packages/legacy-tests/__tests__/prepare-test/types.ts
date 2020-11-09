@@ -30,7 +30,7 @@ export type Package = {
 export type MinimalNpmPackage = Pick<Package, 'name' | 'version'> & { targetType: TargetType.npm }
 
 export type Repo = {
-  packages?: Package[]
+  packages?: Array<Package>
   rootFiles?: FolderStructure
 }
 
