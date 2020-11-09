@@ -43,7 +43,7 @@ export type TaskQueueEventEmitter = StrictEventEmitter<EventEmitter, EventEmitte
 
 export type TaskQueueBase<TaskQueueName> = { taskQueueName: TaskQueueName; cleanup: () => Promise<unknown> }
 
-export type CreateTaskQueue<TaskQueueName, TaskQueue extends TaskQueueBase<TaskQueueName>> = {
+export type CreateTaskQueue<TaskQueueName extends string, TaskQueue extends TaskQueueBase<TaskQueueName>> = {
   taskQueueName: TaskQueueName
   callInitializeTaskQueue: (options: { log: Log }) => Promise<TaskQueue>
 }

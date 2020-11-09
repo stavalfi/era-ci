@@ -1,24 +1,35 @@
-import { skipIfArtifactPackageJsonMissingScriptConstrain } from '../artifact-step-constrains'
-import { createStep, RunStrategy, UserRunStepOptions } from '../create-step'
-import { ExecutionStatus, Status } from '../types'
-import { execaCommand } from '../utils'
+import _ from 'lodash'
 import {
+  skipIfArtifactPackageJsonMissingScriptConstrain,
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
   skipIfArtifactStepResultMissingOrPassedInCacheConstrain,
 } from '../artifact-step-constrains'
-import _ from 'lodash'
-import { LocalSequentalTaskQueueName, localSequentalTaskQueueName } from '../task-queues'
+import { createStep, RunStrategy, UserRunStepOptions } from '../create-step'
+import { localSequentalTaskQueue, LocalSequentalTaskQueue, LocalSequentalTaskQueueName } from '../task-queues'
+import { ExecutionStatus, Status } from '../types'
+import { execaCommand } from '../utils'
 
 export const test = createStep<
   LocalSequentalTaskQueueName,
+  LocalSequentalTaskQueue,
   {
     testScriptName: string
-    beforeAll?: (options: Omit<UserRunStepOptions<void>, 'stepConfigurations'>) => Promise<void | unknown>
-    afterAll?: (options: Omit<UserRunStepOptions<void>, 'stepConfigurations'>) => Promise<void | unknown>
+    beforeAll?: (
+      options: Omit<
+        UserRunStepOptions<LocalSequentalTaskQueueName, LocalSequentalTaskQueue, never>,
+        'stepConfigurations'
+      >,
+    ) => Promise<void | unknown>
+    afterAll?: (
+      options: Omit<
+        UserRunStepOptions<LocalSequentalTaskQueueName, LocalSequentalTaskQueue, never>,
+        'stepConfigurations'
+      >,
+    ) => Promise<void | unknown>
   }
 >({
   stepName: 'test',
-  tasksQueueName: localSequentalTaskQueueName,
+  configureTaskQueue: localSequentalTaskQueue,
   constrains: {
     onArtifact: [
       skipIfArtifactPackageJsonMissingScriptConstrain({

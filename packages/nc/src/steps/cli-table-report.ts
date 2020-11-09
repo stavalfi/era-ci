@@ -5,7 +5,7 @@ import prettyMs from 'pretty-ms'
 import { deserializeError, ErrorObject } from 'serialize-error'
 import { createStep, RunStrategy, stepToString } from '../create-step'
 import { skipIfStepResultNotPassedConstrain } from '../step-constrains'
-import { localSequentalTaskQueueName } from '../task-queues'
+import { localSequentalTaskQueue } from '../task-queues'
 import { ExecutionStatus, Status } from '../types'
 import { JsonReport, jsonReporterStepName, jsonReporterCacheKey, stringToJsonReport } from './json-reporter'
 
@@ -504,7 +504,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
 
 export const cliTableReporter = createStep({
   stepName: 'cli-table-reporter',
-  tasksQueueName: localSequentalTaskQueueName,
+  configureTaskQueue: localSequentalTaskQueue,
   constrains: {
     onStep: [skipIfStepResultNotPassedConstrain({ stepName: jsonReporterStepName })],
   },

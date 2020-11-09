@@ -1,16 +1,17 @@
 import { createStep, RunStrategy } from '../create-step'
 import { skipIfRootPackageJsonMissingScriptConstrain } from '../step-constrains'
-import { LocalSequentalTaskQueueName, localSequentalTaskQueueName } from '../task-queues'
+import { LocalSequentalTaskQueue, localSequentalTaskQueue, LocalSequentalTaskQueueName } from '../task-queues'
 import { ExecutionStatus, Status } from '../types'
 import { execaCommand } from '../utils'
 
 export const lint = createStep<
   LocalSequentalTaskQueueName,
+  LocalSequentalTaskQueue,
   { lintScriptName: string } | void,
   { lintScriptName: string }
 >({
   stepName: 'lint',
-  tasksQueueName: localSequentalTaskQueueName,
+  configureTaskQueue: localSequentalTaskQueue,
   normalizeStepConfigurations: async stepConfig => ({
     lintScriptName: (typeof stepConfig === 'object' && stepConfig.lintScriptName) || 'lint',
   }),

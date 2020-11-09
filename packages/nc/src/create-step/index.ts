@@ -4,7 +4,8 @@ import {
   CombinedArtifactInStepConstrainResult,
   runCanRunStepOnArtifactPredicates,
 } from '../create-artifact-step-constrain'
-import { runSkipSteps } from '../create-step-constrain'
+import { runConstrains } from '../create-step-constrain'
+import { TaskQueueBase } from '../create-task-queue'
 import {
   AbortResult,
   Artifact,
@@ -52,19 +53,23 @@ export {
 } from './types'
 export { stepToString, toStepsResultOfArtifactsByArtifact } from './utils'
 
-async function runStepOnEveryArtifact<StepConfigurations>({
+async function runStepOnEveryArtifact<
+  TaskQueueName extends string,
+  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  StepConfigurations
+>({
   beforeAll,
   runStepOnArtifact,
   afterAll,
   canRunStepResultOnArtifacts,
   userRunStepOptions,
 }: {
-  userRunStepOptions: UserRunStepOptions<StepConfigurations>
-  beforeAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
-  runStepOnArtifact: RunStepOnArtifact<StepConfigurations>
-  afterAll?: (options: UserRunStepOptions<StepConfigurations>) => Promise<void>
+  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>
+  beforeAll?: (options: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>) => Promise<void>
+  runStepOnArtifact: RunStepOnArtifact<TaskQueueName, TaskQueue, StepConfigurations>
+  afterAll?: (options: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>) => Promise<void>
   canRunStepResultOnArtifacts: CombinedArtifactInStepConstrainResult[]
-}): ReturnType<RunStepOnArtifacts<StepConfigurations>> {
+}): ReturnType<RunStepOnArtifacts<TaskQueueName, TaskQueue, StepConfigurations>> {
   if (beforeAll) {
     await beforeAll(userRunStepOptions)
   }
@@ -125,12 +130,16 @@ async function runStepOnEveryArtifact<StepConfigurations>({
   }
 }
 
-async function runStepOnRoot<StepConfigurations>({
+async function runStepOnRoot<
+  TaskQueueName extends string,
+  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  StepConfigurations
+>({
   runStep,
   userRunStepOptions,
 }: {
-  runStep: RunStepOnRoot<StepConfigurations>
-  userRunStepOptions: UserRunStepOptions<StepConfigurations>
+  runStep: RunStepOnRoot<TaskQueueName, TaskQueue, StepConfigurations>
+  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>
 }): Promise<UserStepResult> {
   const result = await runStep(userRunStepOptions)
 
@@ -152,14 +161,19 @@ async function runStepOnRoot<StepConfigurations>({
   }
 }
 
-async function getUserStepResult<TaskQueue, StepConfigurations, NormalizedStepConfigurations>({
+async function getUserStepResult<
+  TaskQueueName extends string,
+  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  StepConfigurations,
+  NormalizedStepConfigurations
+>({
   startStepMs,
   createStepOptions,
   userRunStepOptions,
 }: {
   startStepMs: number
-  createStepOptions: CreateStepOptions<TaskQueue, StepConfigurations, NormalizedStepConfigurations>
-  userRunStepOptions: UserRunStepOptions<NormalizedStepConfigurations>
+  createStepOptions: CreateStepOptions<TaskQueueName, TaskQueue, StepConfigurations, NormalizedStepConfigurations>
+  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueue, NormalizedStepConfigurations>
 }): Promise<UserStepResult> {
   const [canRunPerArtifact, canRunAllArtifacts] = await Promise.all([
     Promise.all(
@@ -171,7 +185,7 @@ async function getUserStepResult<TaskQueue, StepConfigurations, NormalizedStepCo
         }),
       ),
     ),
-    runSkipSteps({
+    runConstrains({
       predicates: createStepOptions.constrains?.onStep || [],
       userRunStepOptions,
     }),
@@ -243,19 +257,24 @@ async function getUserStepResult<TaskQueue, StepConfigurations, NormalizedStepCo
   return copy
 }
 
-async function runStep<TaskQueue, StepConfigurations, NormalizedStepConfigurations>({
+async function runStep<
+  TaskQueueName extends string,
+  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  StepConfigurations,
+  NormalizedStepConfigurations
+>({
   startStepMs,
   createStepOptions,
   runStepOptions,
   stepConfigurations,
 }: {
   startStepMs: number
-  createStepOptions: CreateStepOptions<TaskQueue, StepConfigurations, NormalizedStepConfigurations>
-  runStepOptions: RunStepOptions
+  createStepOptions: CreateStepOptions<TaskQueueName, TaskQueue, StepConfigurations, NormalizedStepConfigurations>
+  runStepOptions: RunStepOptions<TaskQueueName, TaskQueue>
   stepConfigurations: NormalizedStepConfigurations
 }): Promise<StepResultOfArtifacts> {
   try {
-    const userRunStepOptions: UserRunStepOptions<NormalizedStepConfigurations> = {
+    const userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueue, NormalizedStepConfigurations> = {
       ...runStepOptions,
       log: runStepOptions.logger.createLog(runStepOptions.currentStepInfo.data.stepInfo.stepName),
       stepConfigurations,
@@ -412,13 +431,14 @@ async function runStep<TaskQueue, StepConfigurations, NormalizedStepConfiguratio
 }
 
 export function createStep<
-  TaskQueueName = never,
+  TaskQueueName extends string,
+  TaskQueue extends TaskQueueBase<TaskQueueName>,
   StepConfigurations = void,
   NormalizedStepConfigurations = StepConfigurations
->(createStepOptions: CreateStepOptions<TaskQueueName, StepConfigurations, NormalizedStepConfigurations>) {
-  return (stepConfigurations: StepConfigurations): Step<TaskQueueName> => ({
+>(createStepOptions: CreateStepOptions<TaskQueueName, TaskQueue, StepConfigurations, NormalizedStepConfigurations>) {
+  return (stepConfigurations: StepConfigurations): Step<TaskQueueName, TaskQueue> => ({
     stepName: createStepOptions.stepName,
-    taskQueueName: createStepOptions.tasksQueueName,
+    configureTaskQueue: createStepOptions.configureTaskQueue,
     runStep: async runStepOptions => {
       const startStepMs = Date.now()
       // @ts-ignore - we need to find a way to ensure that if NormalizedStepConfigurations is defined, also normalizeStepConfigurations is defined.

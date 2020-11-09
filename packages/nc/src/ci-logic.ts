@@ -8,10 +8,11 @@ import { Cleanup, Graph } from './types'
 import { getExitCode, getPackages, toFlowLogsContentKey } from './utils'
 import chance from 'chance'
 import { createImmutableCache, ImmutableCache } from './immutable-cache'
+import { TaskQueueBase } from './create-task-queue'
 
-export async function ci<CreateTaskQueueArray extends Array<{ taskQueueName: string }>>(options: {
+export async function ci(options: {
   repoPath: string
-  config: Config<CreateTaskQueueArray>
+  config: Config<string, TaskQueueBase<string>>
 }): Promise<{ flowId: string; repoHash?: string; steps?: Graph<{ stepInfo: StepInfo }>; passed: boolean }> {
   const cleanups: Cleanup[] = []
   const flowId = chance().hash()
@@ -23,7 +24,7 @@ export async function ci<CreateTaskQueueArray extends Array<{ taskQueueName: str
   try {
     const startFlowMs = Date.now()
 
-    logger = await options.config.logger.callInitializeLogger({ repoPath: options.repoPath })
+    const logger = await options.config.logger.callInitializeLogger({ repoPath: options.repoPath })
     log = logger.createLog('ci-logic')
 
     // in the legacy-tests, we extract the flowId using regex from this line (super ugly :S)
@@ -55,6 +56,14 @@ export async function ci<CreateTaskQueueArray extends Array<{ taskQueueName: str
     })
     cleanups.push(immutableCache.cleanup)
 
+    const taskQueues = await Promise.all(
+      options.config.taskQueues.map(t =>
+        t.callInitializeTaskQueue({
+          log: logger.createLog(`${t.taskQueueName}-initializer`),
+        }),
+      ),
+    )
+
     steps = options.config.steps.map(s => ({ ...s, data: { stepInfo: s.data.stepInfo } }))
 
     const { stepsResultOfArtifactsByStep } = await runAllSteps({
@@ -67,6 +76,7 @@ export async function ci<CreateTaskQueueArray extends Array<{ taskQueueName: str
       startFlowMs,
       artifacts,
       steps,
+      taskQueues,
     })
 
     process.exitCode = getExitCode(stepsResultOfArtifactsByStep)

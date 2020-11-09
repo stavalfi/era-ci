@@ -54,6 +54,12 @@ export {
   localSequentalTaskQueue,
   LocalSequentalTaskQueue,
   LocalSequentalTaskQueueName,
+  CreateLocalSequentalTaskQueue,
+  CreateExampleTaskQueue,
+  ExampleTaskQueue,
+  ExampleTaskQueueName,
+  exampleTaskQueue,
+  exampleTaskQueueName,
 } from './task-queues'
 export {
   TaskInfo,
@@ -65,7 +71,9 @@ export {
   ScheduledTask,
   TaskQueueEventEmitter,
   createTaskQueue,
+  TaskQueueBase,
 } from './create-task-queue'
+export { ci } from './ci-logic'
 
 async function main() {
   try {
