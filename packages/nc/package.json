@@ -43,7 +43,6 @@
     "node-cache": "^5.1.2",
     "pretty-ms": "^7.0.0",
     "randomcolor": "^0.6.2",
-    "redis-url-parse": "^2.0.0",
     "rxjs": "^6.6.3",
     "semver": "^7.3.2",
     "serialize-error": "^7.0.1",

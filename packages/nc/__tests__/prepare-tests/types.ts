@@ -34,7 +34,7 @@ export type TestResources = {
   }
   dockerRegistry: string
   gitServer: GitServer
-  redisServer: string
+  redisServerUri: string
 }
 
 export type ToActualName = (name: string) => string

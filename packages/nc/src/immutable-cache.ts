@@ -61,7 +61,8 @@ export async function createImmutableCache({
       repoHash,
       value: options.value,
     })
-    if (keyValueStoreConnection.has(options.key)) {
+
+    if (await keyValueStoreConnection.has(options.key)) {
       throw new Error(
         `immutable-cache can't override values in key-value-store. key: ${options.key}, ignored-new-value: ${options.value}`,
       )
