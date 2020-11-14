@@ -23,7 +23,8 @@ export async function ci<TaskQueue>(options: {
   try {
     const startFlowMs = Date.now()
 
-    const logger = await options.config.logger.callInitializeLogger({ repoPath: options.repoPath })
+    logger = await options.config.logger.callInitializeLogger({ repoPath: options.repoPath })
+
     log = logger.createLog('ci-logic')
 
     // in the legacy-tests, we extract the flowId using regex from this line (super ugly :S)
@@ -56,11 +57,14 @@ export async function ci<TaskQueue>(options: {
     cleanups.push(immutableCache.cleanup)
 
     const taskQueues = await Promise.all(
-      options.config.taskQueues.map(t =>
-        t.createFunc({
+      options.config.taskQueues.map(t => {
+        if (!logger) {
+          throw new Error(`I can't be here`)
+        }
+        return t.createFunc({
           log: logger.createLog(t.taskQueueName),
-        }),
-      ),
+        })
+      }),
     )
 
     steps = options.config.steps.map(s => ({ ...s, data: { stepInfo: s.data.stepInfo } }))

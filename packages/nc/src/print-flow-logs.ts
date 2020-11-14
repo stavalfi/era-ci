@@ -29,8 +29,8 @@ export async function printFlowLogs<TaskQueue>(options: {
 
     const immutableCache = await createImmutableCache({
       artifacts,
-      flowId: options.flowId,
-      repoHash: 'it-wont-be-used-so-we-dont-pass-it',
+      flowId: 'it-wont-be-used-so-we-dont-pass-it',
+      repoHash: 'it-wont-be-used-so-we-dont-pass-it-as-well',
       log: logger.createLog('cache'),
       keyValueStoreConnection,
       ttls: {
@@ -55,8 +55,8 @@ export async function printFlowLogs<TaskQueue>(options: {
     }
     log.noFormattingInfo(flowLogsResult.value)
   } catch (error) {
-    if (error?.message === MISSING_FLOW_ID_ERROR) {
-      log?.error(error)
+    if (error === MISSING_FLOW_ID_ERROR) {
+      log?.noFormattingError(error)
     } else {
       log?.error(`CI failed unexpectedly`, error)
     }
