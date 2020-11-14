@@ -266,7 +266,6 @@ async function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurati
       stepConfigurations,
       startStepMs,
     }
-
     const userStepResult = await getUserStepResult({
       createStepOptions,
       userRunStepOptions,

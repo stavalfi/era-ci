@@ -28,7 +28,6 @@ const {
   DOCKER_HUB_USERNAME,
   DOCKER_HUB_TOKEN,
   REDIS_ENDPOINT,
-  REDIS_PASSWORD,
   TEST_SCRIPT_NAME,
   // eslint-disable-next-line no-process-env
 } = process.env
@@ -40,10 +39,7 @@ const logger = winstonLogger({
 })
 
 const keyValueStore = redisConnection({
-  redisServer: REDIS_ENDPOINT!,
-  auth: {
-    password: REDIS_PASSWORD!,
-  },
+  redisServerUri: REDIS_ENDPOINT!,
 })
 
 const steps = createLinearStepsGraph([

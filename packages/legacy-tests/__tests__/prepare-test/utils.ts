@@ -1,8 +1,8 @@
+import { Log } from '@tahini/nc'
 import ciInfo from 'ci-info'
 import execa, { StdioOption } from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
-import { Log } from '@tahini/nc'
 import { latestNpmPackageVersion, publishedDockerImageTags, publishedNpmPackageVersions } from './seach-targets'
 import { CiResults, ResultingArtifact, TestOptions, ToActualName } from './types'
 
@@ -77,7 +77,6 @@ export async function runNcExecutable({
       DOCKER_HUB_USERNAME: '',
       DOCKER_HUB_TOKEN: '',
       REDIS_ENDPOINT: redisServer,
-      REDIS_PASSWORD: '',
       TEST_SCRIPT_NAME: 'test',
     },
   })

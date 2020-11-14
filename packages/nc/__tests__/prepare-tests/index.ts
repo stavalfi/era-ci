@@ -47,7 +47,7 @@ const getJsonReport = async ({
     logFilePath: './nc.log',
   }).callInitializeLogger({ repoPath })
   const keyValueStoreConnection = await redisConnection({
-    redisServer: getResoureces().redisServer,
+    redisServerUri: getResoureces().redisServerUri,
   }).callInitializeKeyValueStoreConnection()
   const immutableCache = await createImmutableCache({
     artifacts: [],
@@ -71,7 +71,7 @@ const getJsonReport = async ({
       }
     })
     if (!jsonReportResult) {
-      throw new Error(`can't find json-report in the cache. printing the report is aborted`)
+      throw new Error(`can't find json-report in the cache. failing test`)
     }
     return jsonReportResult.value
   } finally {
@@ -93,7 +93,6 @@ type RunCi = <TaskQueue extends TaskQueueBase<unknown>>(
 }>
 
 const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configurations = {}, options) => {
-  const finalSteps = configurations.steps || []
   const { flowId, repoHash, steps, passed } = await ci({
     repoPath,
     config: config({
@@ -107,10 +106,12 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
       keyValueStore:
         configurations.keyValueStore ||
         redisConnection({
-          redisServer: getResoureces().redisServer,
+          redisServerUri: getResoureces().redisServerUri,
         }),
       taskQueues: configurations.taskQueues || [localSequentalTaskQueue()],
-      steps: options?.dontAddReportSteps ? finalSteps : addReportToStepsAsLastNodes(finalSteps),
+      steps: options?.dontAddReportSteps
+        ? configurations.steps || []
+        : addReportToStepsAsLastNodes(configurations.steps),
     }),
   })
 

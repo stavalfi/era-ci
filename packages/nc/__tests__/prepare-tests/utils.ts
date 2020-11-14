@@ -118,7 +118,7 @@ export function isDeepSubsetOfOrPrint(fullObj: unknown, subset: unknown): boolea
 }
 
 export function addReportToStepsAsLastNodes<TaskQueue extends TaskQueueBase<unknown>>(
-  steps: Config<TaskQueue>['steps'],
+  steps: Config<TaskQueue>['steps'] = [],
 ): Config<TaskQueue>['steps'] {
   const stepsCopy = _.cloneDeep(steps)
 

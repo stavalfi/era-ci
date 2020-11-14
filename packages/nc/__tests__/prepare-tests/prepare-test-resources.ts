@@ -26,7 +26,7 @@ export function resourcesBeforeAfterAll(): {
     }
     redisDeployment = {
       cleanup: () => Promise.resolve(),
-      address: `redis://localhost:36379`,
+      address: `redis://localhost:36379/0`,
     }
     dockerRegistry = {
       cleanup: () => Promise.resolve(),
@@ -51,7 +51,7 @@ export function resourcesBeforeAfterAll(): {
         auth: verdaccioCardentials,
       },
       dockerRegistry: dockerRegistry.address,
-      redisServer: redisDeployment.address,
+      redisServerUri: redisDeployment.address,
       gitServer,
     }),
   }

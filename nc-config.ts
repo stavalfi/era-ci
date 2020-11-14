@@ -33,7 +33,6 @@ const {
   DOCKER_REGISTRY = `https://registry.hub.docker.com/`,
   K8S_CLUSTER_TOKEN,
   REDIS_ENDPOINT,
-  REDIS_PASSWORD,
   GCLOUD_PROJECT_ID = 'gcloudProjectId',
   K8S_CLUSTER_NAME = `c-jxh57`,
   K8S_CLUSTER_ZONE_NAME = `europe-west3-c`,
@@ -45,10 +44,7 @@ const isMasterBuild = Boolean(ciInfo.isCI && !ciInfo.isPR)
 export default config({
   taskQueues: [localSequentalTaskQueue(), exampleTaskQueue()],
   keyValueStore: redisConnection({
-    redisServer: `redis://${REDIS_ENDPOINT}/`,
-    auth: {
-      password: REDIS_PASSWORD!,
-    },
+    redisServerUri: REDIS_ENDPOINT!,
   }),
   logger: winstonLogger({
     customLogLevel: LogLevel.verbose,
