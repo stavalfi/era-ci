@@ -7,8 +7,11 @@ import { Graph } from '../types'
 export type Config<TaskQueueConfigurations> = {
   keyValueStore: CreateKeyValueStoreConnection
   logger: CreateLogger
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  taskQueues: Array<CreateTaskQueue<TaskQueueConfigurations, any>>
+  taskQueues: Array<{
+    taskQueueName: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    createFunc: CreateTaskQueue<TaskQueueConfigurations, any>
+  }>
   steps: Graph<{
     stepInfo: StepInfo
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

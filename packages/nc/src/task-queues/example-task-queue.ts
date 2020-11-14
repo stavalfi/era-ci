@@ -11,5 +11,6 @@ export class ExampleTaskQueue implements TaskQueueBase<void> {
 }
 
 export const exampleTaskQueue = createTaskQueue<ExampleTaskQueue>({
+  taskQueueName: 'example-task-queue',
   initializeTaskQueue: async options => new ExampleTaskQueue(options),
 })

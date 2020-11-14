@@ -6,6 +6,7 @@ import {
   config,
   Config,
   createImmutableCache,
+  ExecutionStatus,
   Graph,
   JsonReport,
   jsonReporter,
@@ -13,6 +14,7 @@ import {
   localSequentalTaskQueue,
   LogLevel,
   redisConnection,
+  Status,
   StepInfo,
   stringToJsonReport,
   TaskQueueBase,
@@ -80,6 +82,9 @@ const getJsonReport = async ({
 
 type RunCi = <TaskQueue extends TaskQueueBase<unknown>>(
   config?: Partial<Config<TaskQueue>>,
+  options?: {
+    dontAddReportSteps?: boolean
+  },
 ) => Promise<{
   flowId: string
   steps: Graph<{ stepInfo: StepInfo }>
@@ -87,7 +92,8 @@ type RunCi = <TaskQueue extends TaskQueueBase<unknown>>(
   passed: boolean
 }>
 
-const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configurations = {}) => {
+const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configurations = {}, options) => {
+  const finalSteps = configurations.steps || []
   const { flowId, repoHash, steps, passed } = await ci({
     repoPath,
     config: config({
@@ -104,7 +110,7 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
           redisServer: getResoureces().redisServer,
         }),
       taskQueues: configurations.taskQueues || [localSequentalTaskQueue()],
-      steps: addReportToStepsAsLastNodes(configurations.steps || []),
+      steps: options?.dontAddReportSteps ? finalSteps : addReportToStepsAsLastNodes(finalSteps),
     }),
   })
 
@@ -116,21 +122,38 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
     throw new Error(`ci didn't return steps-graph. can't find json-report`)
   }
   const jsonReportStepId = steps.find(s => s.data.stepInfo.stepName === jsonReporter().stepName)?.data.stepInfo.stepId
-  if (!jsonReportStepId) {
+  if (!options?.dontAddReportSteps && !jsonReportStepId) {
     throw new Error(`can't find jsonReportStepId. can't find json-report`)
   }
 
-  const jsonReport = await getJsonReport({
-    repoPath,
-    flowId,
-    repoHash,
-    jsonReportStepId,
-  })
+  const jsonReport =
+    !options?.dontAddReportSteps &&
+    (await getJsonReport({
+      repoPath,
+      flowId,
+      repoHash,
+      jsonReportStepId:
+        jsonReportStepId || `we will never be here. this default value is here only because of typescript.`,
+    }))
 
   return {
     flowId,
     steps,
-    jsonReport,
+    jsonReport: jsonReport || {
+      artifacts: [],
+      flow: { flowId: '', repoHash: '', startFlowMs: 0 },
+      steps: [],
+      flowExecutionStatus: ExecutionStatus.done,
+      flowResult: {
+        durationMs: 0,
+        errors: [],
+        executionStatus: ExecutionStatus.done,
+        notes: [],
+        status: Status.passed,
+      },
+      stepsResultOfArtifactsByArtifact: [],
+      stepsResultOfArtifactsByStep: [],
+    },
     passed,
   }
 }

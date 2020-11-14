@@ -12,7 +12,14 @@ test('ensure ci dont fail when there are no steps', async () => {
       },
     ],
   })
-  const { passed } = await runCi()
+  const { passed } = await runCi(
+    {
+      steps: [],
+    },
+    {
+      dontAddReportSteps: true,
+    },
+  )
   expect(passed).toBeTruthy()
 })
 

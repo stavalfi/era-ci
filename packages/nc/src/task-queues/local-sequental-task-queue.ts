@@ -119,5 +119,6 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
 }
 
 export const localSequentalTaskQueue = createTaskQueue<LocalSequentalTaskQueue>({
+  taskQueueName: 'local-sequental-task-queue',
   initializeTaskQueue: async options => new LocalSequentalTaskQueue(options),
 })
