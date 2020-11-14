@@ -55,7 +55,8 @@ export { stepToString, toStepsResultOfArtifactsByArtifact } from './utils'
 
 async function runStepOnEveryArtifact<
   TaskQueueName extends string,
-  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  TaskQueueConfigurations,
+  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>,
   StepConfigurations
 >({
   beforeAll,
@@ -64,12 +65,16 @@ async function runStepOnEveryArtifact<
   canRunStepResultOnArtifacts,
   userRunStepOptions,
 }: {
-  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>
-  beforeAll?: (options: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>) => Promise<void>
-  runStepOnArtifact: RunStepOnArtifact<TaskQueueName, TaskQueue, StepConfigurations>
-  afterAll?: (options: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>) => Promise<void>
+  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>
+  beforeAll?: (
+    options: UserRunStepOptions<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>,
+  ) => Promise<void>
+  runStepOnArtifact: RunStepOnArtifact<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>
+  afterAll?: (
+    options: UserRunStepOptions<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>,
+  ) => Promise<void>
   canRunStepResultOnArtifacts: CombinedArtifactInStepConstrainResult[]
-}): ReturnType<RunStepOnArtifacts<TaskQueueName, TaskQueue, StepConfigurations>> {
+}): ReturnType<RunStepOnArtifacts<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>> {
   if (beforeAll) {
     await beforeAll(userRunStepOptions)
   }
@@ -132,14 +137,15 @@ async function runStepOnEveryArtifact<
 
 async function runStepOnRoot<
   TaskQueueName extends string,
-  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  TaskQueueConfigurations,
+  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>,
   StepConfigurations
 >({
   runStep,
   userRunStepOptions,
 }: {
-  runStep: RunStepOnRoot<TaskQueueName, TaskQueue, StepConfigurations>
-  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>
+  runStep: RunStepOnRoot<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>
+  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>
 }): Promise<UserStepResult> {
   const result = await runStep(userRunStepOptions)
 
@@ -163,7 +169,8 @@ async function runStepOnRoot<
 
 async function getUserStepResult<
   TaskQueueName extends string,
-  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  TaskQueueConfigurations,
+  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>,
   StepConfigurations,
   NormalizedStepConfigurations
 >({
@@ -172,8 +179,19 @@ async function getUserStepResult<
   userRunStepOptions,
 }: {
   startStepMs: number
-  createStepOptions: CreateStepOptions<TaskQueueName, TaskQueue, StepConfigurations, NormalizedStepConfigurations>
-  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueue, NormalizedStepConfigurations>
+  createStepOptions: CreateStepOptions<
+    TaskQueueName,
+    TaskQueueConfigurations,
+    TaskQueue,
+    StepConfigurations,
+    NormalizedStepConfigurations
+  >
+  userRunStepOptions: UserRunStepOptions<
+    TaskQueueName,
+    TaskQueueConfigurations,
+    TaskQueue,
+    NormalizedStepConfigurations
+  >
 }): Promise<UserStepResult> {
   const [canRunPerArtifact, canRunAllArtifacts] = await Promise.all([
     Promise.all(
@@ -259,7 +277,8 @@ async function getUserStepResult<
 
 async function runStep<
   TaskQueueName extends string,
-  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  TaskQueueConfigurations,
+  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>,
   StepConfigurations,
   NormalizedStepConfigurations
 >({
@@ -269,12 +288,23 @@ async function runStep<
   stepConfigurations,
 }: {
   startStepMs: number
-  createStepOptions: CreateStepOptions<TaskQueueName, TaskQueue, StepConfigurations, NormalizedStepConfigurations>
-  runStepOptions: RunStepOptions<TaskQueueName, TaskQueue>
+  createStepOptions: CreateStepOptions<
+    TaskQueueName,
+    TaskQueueConfigurations,
+    TaskQueue,
+    StepConfigurations,
+    NormalizedStepConfigurations
+  >
+  runStepOptions: RunStepOptions<TaskQueueName, TaskQueueConfigurations, TaskQueue>
   stepConfigurations: NormalizedStepConfigurations
 }): Promise<StepResultOfArtifacts> {
   try {
-    const userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueue, NormalizedStepConfigurations> = {
+    const userRunStepOptions: UserRunStepOptions<
+      TaskQueueName,
+      TaskQueueConfigurations,
+      TaskQueue,
+      NormalizedStepConfigurations
+    > = {
       ...runStepOptions,
       log: runStepOptions.logger.createLog(runStepOptions.currentStepInfo.data.stepInfo.stepName),
       stepConfigurations,
@@ -432,13 +462,22 @@ async function runStep<
 
 export function createStep<
   TaskQueueName extends string,
-  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  TaskQueueConfigurations,
+  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>,
   StepConfigurations = void,
   NormalizedStepConfigurations = StepConfigurations
->(createStepOptions: CreateStepOptions<TaskQueueName, TaskQueue, StepConfigurations, NormalizedStepConfigurations>) {
-  return (stepConfigurations: StepConfigurations): Step<TaskQueueName, TaskQueue> => ({
+>(
+  createStepOptions: CreateStepOptions<
+    TaskQueueName,
+    TaskQueueConfigurations,
+    TaskQueue,
+    StepConfigurations,
+    NormalizedStepConfigurations
+  >,
+) {
+  return (stepConfigurations: StepConfigurations): Step<TaskQueueName, TaskQueueConfigurations, TaskQueue> => ({
     stepName: createStepOptions.stepName,
-    configureTaskQueue: createStepOptions.configureTaskQueue,
+    taskQueueClass: createStepOptions.taskQueueClass,
     runStep: async runStepOptions => {
       const startStepMs = Date.now()
       // @ts-ignore - we need to find a way to ensure that if NormalizedStepConfigurations is defined, also normalizeStepConfigurations is defined.

@@ -1,30 +1,22 @@
-import { Log } from '../create-logger'
-import { CreateTaskQueue, TaskQueueBase } from './types'
+import { ConfigureTaskQueue, CreateTaskQueue, TaskQueueBase, TaskQueueOptions } from './types'
 
 export {
   AbortTask,
+  ConfigureTaskQueue,
   CreateTaskQueue,
   DoneTask,
   EventEmitterEvents,
   RunningTask,
   ScheduledTask,
   TaskInfo,
-  TaskQueueEventEmitter,
   TaskQueueBase,
+  TaskQueueEventEmitter,
+  TaskQueueOptions,
 } from './types'
-
-export type ConfigureTaskQueue<
-  TaskQueueName extends string,
-  TaskQueue extends TaskQueueBase<TaskQueueName>,
-  TaskQueueConfigurations
-> = {
-  taskQueueName: TaskQueueName
-  configure: (taskQueueConfigurations: TaskQueueConfigurations) => CreateTaskQueue<TaskQueueName, TaskQueue>
-}
 
 export function createTaskQueue<
   TaskQueueName extends string,
-  TaskQueue extends TaskQueueBase<TaskQueueName>,
+  TaskQueue extends TaskQueueBase<TaskQueueName, NormalizedTaskQueueConfigurations>,
   TaskQueueConfigurations = void,
   NormalizedTaskQueueConfigurations = TaskQueueConfigurations
 >(createTaskQueueOptions: {
@@ -32,14 +24,13 @@ export function createTaskQueue<
     taskQueueConfigurations: TaskQueueConfigurations
   }) => Promise<NormalizedTaskQueueConfigurations>
   taskQueueName: TaskQueueName
-  initializeTaskQueue: (options: {
-    taskQueueConfigurations: NormalizedTaskQueueConfigurations
-    log: Log
-  }) => Promise<TaskQueue>
+  initializeTaskQueue: (options: TaskQueueOptions<NormalizedTaskQueueConfigurations>) => Promise<TaskQueue>
 }): ConfigureTaskQueue<TaskQueueName, TaskQueue, TaskQueueConfigurations> {
   return {
     taskQueueName: createTaskQueueOptions.taskQueueName,
-    configure: (taskQueueConfigurations: TaskQueueConfigurations): CreateTaskQueue<TaskQueueName, TaskQueue> => ({
+    configure: (
+      taskQueueConfigurations: TaskQueueConfigurations,
+    ): CreateTaskQueue<TaskQueueName, NormalizedTaskQueueConfigurations, TaskQueue> => ({
       taskQueueName: createTaskQueueOptions.taskQueueName,
       callInitializeTaskQueue: async ({ log }) => {
         // @ts-ignore - we need to find a way to ensure that if NormalizedTaskQueueConfigurations is defined, also normalizedTaskQueueConfigurations is defined.

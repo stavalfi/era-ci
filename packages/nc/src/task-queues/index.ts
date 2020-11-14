@@ -1,15 +1,6 @@
+export { exampleTaskQueue, ExampleTaskQueue, ExampleTaskQueueName } from './example-task-queue'
 export {
-  LocalSequentalTaskQueue,
   localSequentalTaskQueue,
-  localSequentalTaskQueueName,
+  LocalSequentalTaskQueue,
   LocalSequentalTaskQueueName,
-  CreateLocalSequentalTaskQueue,
 } from './local-sequental-task-queue'
-
-export {
-  CreateExampleTaskQueue,
-  exampleTaskQueue,
-  ExampleTaskQueueName,
-  ExampleTaskQueue,
-  exampleTaskQueueName,
-} from './example-task-queue'

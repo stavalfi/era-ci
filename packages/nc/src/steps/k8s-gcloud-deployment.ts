@@ -3,7 +3,7 @@ import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '../arti
 import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
 import { createStep, RunStrategy } from '../create-step'
 import { skipIfStepIsDisabledConstrain } from '../step-constrains'
-import { LocalSequentalTaskQueue, localSequentalTaskQueue, LocalSequentalTaskQueueName } from '../task-queues'
+import { LocalSequentalTaskQueue, LocalSequentalTaskQueueName } from '../task-queues'
 import { ConstrainResult, ExecutionStatus, Status } from '../types'
 import { execaCommand } from '../utils'
 import { fullImageNameCacheKey } from './docker-publish'
@@ -47,11 +47,12 @@ const customConstrain = createArtifactStepConstrain<void, void, K8sGcloudDeploym
 
 export const k8sGcloudDeployment = createStep<
   LocalSequentalTaskQueueName,
+  void,
   LocalSequentalTaskQueue,
   K8sGcloudDeploymentConfiguration
 >({
   stepName: 'k8s-gcloud-deployment',
-  configureTaskQueue: localSequentalTaskQueue,
+  taskQueueClass: LocalSequentalTaskQueue,
   constrains: {
     onArtifact: [
       skipIfArtifactStepResultMissingOrFailedInCacheConstrain({

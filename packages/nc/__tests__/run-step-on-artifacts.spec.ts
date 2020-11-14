@@ -1,4 +1,4 @@
-import { createStep, ExecutionStatus, JsonReport, localSequentalTaskQueue, RunStrategy, Status } from '../src'
+import { createStep, ExecutionStatus, JsonReport, LocalSequentalTaskQueue, RunStrategy, Status } from '../src'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
 
 const { createRepo } = createTest()
@@ -16,7 +16,7 @@ test('step should pass in json-report', async () => {
     steps: [
       createStep({
         stepName: 'step1',
-        configureTaskQueue: localSequentalTaskQueue,
+        taskQueueClass: LocalSequentalTaskQueue,
         run: {
           runStrategy: RunStrategy.allArtifacts,
           runStepOnArtifacts: async () => {
@@ -101,7 +101,7 @@ test('flow should fail because step failed (without throwing error from the step
     steps: [
       createStep({
         stepName: 'step1',
-        configureTaskQueue: localSequentalTaskQueue,
+        taskQueueClass: LocalSequentalTaskQueue,
         run: {
           runStrategy: RunStrategy.allArtifacts,
           runStepOnArtifacts: async () => {
@@ -188,7 +188,7 @@ test('flow should fail because step failed (while throwing error from the step)'
     steps: [
       createStep({
         stepName: 'step1',
-        configureTaskQueue: localSequentalTaskQueue,
+        taskQueueClass: LocalSequentalTaskQueue,
         run: {
           runStrategy: RunStrategy.allArtifacts,
           runStepOnArtifacts: async () => {

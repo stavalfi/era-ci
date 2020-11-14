@@ -4,7 +4,7 @@ import {
   createStep,
   ExecutionStatus,
   JsonReport,
-  localSequentalTaskQueue,
+  LocalSequentalTaskQueue,
   RunStrategy,
   Status,
 } from '../src'
@@ -26,7 +26,7 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          configureTaskQueue: localSequentalTaskQueue,
+          taskQueueClass: LocalSequentalTaskQueue,
           constrains: {
             onArtifact: [
               createArtifactStepConstrain({
@@ -108,7 +108,7 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          configureTaskQueue: localSequentalTaskQueue,
+          taskQueueClass: LocalSequentalTaskQueue,
           constrains: {
             onArtifact: [
               createArtifactStepConstrain({
@@ -193,7 +193,7 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          configureTaskQueue: localSequentalTaskQueue,
+          taskQueueClass: LocalSequentalTaskQueue,
           constrains: {
             onArtifact: [
               createArtifactStepConstrain({
@@ -278,7 +278,7 @@ describe('define custom predicate to check if we need to run the step on a packa
       steps: [
         createStep({
           stepName: 'step1',
-          configureTaskQueue: localSequentalTaskQueue,
+          taskQueueClass: LocalSequentalTaskQueue,
           constrains: {
             onArtifact: [
               createArtifactStepConstrain({

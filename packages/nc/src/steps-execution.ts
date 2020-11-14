@@ -10,7 +10,7 @@ import {
   StepsResultOfArtifactsByStep,
   toStepsResultOfArtifactsByArtifact,
 } from './create-step'
-import { ConfigureTaskQueue, TaskQueueBase } from './create-task-queue'
+import { TaskQueueBase, TaskQueueOptions } from './create-task-queue'
 import { ImmutableCache } from './immutable-cache'
 import { Artifact, ExecutionStatus, Graph, PackageJson } from './types'
 
@@ -51,14 +51,15 @@ export async function runAllSteps({
   repoHash,
   taskQueues,
 }: {
-  taskQueues: Array<TaskQueueBase<string>>
+  taskQueues: Array<TaskQueueBase<string, TaskQueueBase<string, unknown>>>
   repoPath: string
   steps: Graph<{ stepInfo: StepInfo }>
   stepsToRun: Graph<{
     stepInfo: StepInfo
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    configureTaskQueue: ConfigureTaskQueue<string, TaskQueueBase<string>, any>
-    runStep: Step<string, TaskQueueBase<string>>['runStep']
+    taskQueueClass: { new (options: TaskQueueOptions<unknown>): any }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runStep: Step<string, unknown, any>['runStep']
   }>
   flowId: string
   repoHash: string
@@ -109,12 +110,10 @@ export async function runAllSteps({
           ),
         )
         if (onStep) {
-          const taskQueue = taskQueues.find(
-            t => t.taskQueueName === stepsToRun[stepIndex].data.configureTaskQueue.taskQueueName,
-          )
+          const taskQueue = taskQueues.find(t => t instanceof stepsToRun[stepIndex].data.taskQueueClass)
           if (!taskQueue) {
             throw new Error(
-              `can't find task-queue: "${stepsToRun[stepIndex].data.configureTaskQueue.taskQueueName}" for step: "${stepsToRun[stepIndex].data.stepInfo.displayName}" needs. did you forgot to declare the task-queue in the configuration file?`,
+              `can't find task-queue: "${stepsToRun[stepIndex].data.taskQueueClass.name}" for step: "${stepsToRun[stepIndex].data.stepInfo.displayName}" needs. did you forgot to declare the task-queue in the configuration file?`,
             )
           }
           const stepResultOfArtifacts = await stepsToRun[stepIndex].data.runStep({

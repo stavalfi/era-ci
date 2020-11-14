@@ -12,7 +12,7 @@ export function createArtifactStepConstrain<
   constrain: (
     options: {
       constrainConfigurations: NormalizedConfigurations
-    } & Omit<UserRunStepOptions<never, never, StepConfiguration>, 'taskQueue'> & {
+    } & Omit<UserRunStepOptions<never, never, never, StepConfiguration>, 'taskQueue'> & {
         currentArtifact: Node<{ artifact: Artifact }>
       },
   ) => Promise<ArtifactInStepConstrainResult>

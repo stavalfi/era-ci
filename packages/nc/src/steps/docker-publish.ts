@@ -5,7 +5,7 @@ import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
 import { Log } from '../create-logger'
 import { createStep, RunStrategy } from '../create-step'
 import { skipIfStepIsDisabledConstrain } from '../step-constrains'
-import { LocalSequentalTaskQueue, localSequentalTaskQueue, LocalSequentalTaskQueueName } from '../task-queues'
+import { LocalSequentalTaskQueue, LocalSequentalTaskQueueName } from '../task-queues'
 import { ConstrainResult, ExecutionStatus, PackageJson, Status } from '../types'
 import { execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
@@ -357,11 +357,12 @@ const customConstrain = createArtifactStepConstrain<void, void, DockerPublishCon
 
 export const dockerPublish = createStep<
   LocalSequentalTaskQueueName,
+  void,
   LocalSequentalTaskQueue,
   DockerPublishConfiguration
 >({
   stepName: 'docker-publish',
-  configureTaskQueue: localSequentalTaskQueue,
+  taskQueueClass: LocalSequentalTaskQueue,
   constrains: {
     onArtifact: [
       skipIfArtifactStepResultMissingOrFailedInCacheConstrain({

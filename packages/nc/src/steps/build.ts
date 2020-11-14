@@ -1,12 +1,12 @@
-import { execaCommand } from '../utils'
 import { createStep, RunStrategy } from '../create-step'
-import { ExecutionStatus, Status } from '../types'
 import { skipIfRootPackageJsonMissingScriptConstrain } from '../step-constrains'
-import { localSequentalTaskQueue } from '../task-queues'
+import { LocalSequentalTaskQueue } from '../task-queues'
+import { ExecutionStatus, Status } from '../types'
+import { execaCommand } from '../utils'
 
 export const build = createStep({
   stepName: 'build',
-  configureTaskQueue: localSequentalTaskQueue,
+  taskQueueClass: LocalSequentalTaskQueue,
   constrains: {
     onStep: [
       skipIfRootPackageJsonMissingScriptConstrain({
