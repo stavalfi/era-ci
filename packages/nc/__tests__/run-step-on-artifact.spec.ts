@@ -225,7 +225,7 @@ test('flow should fail because step failed (while throwing error from the step)'
   const { passed, jsonReport } = await runCi({
     steps: createLinearStepsGraph([
       createStep({
-        stepName: 'test-step',
+        stepName: 'step1',
         taskQueueClass: LocalSequentalTaskQueue,
         run: {
           runStrategy: RunStrategy.perArtifact,
