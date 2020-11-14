@@ -39,7 +39,7 @@ export type ArtifactInStepConstrain<StepConfiguration> = {
   constrainName: string
   callConstrain: (
     options: {
-      userRunStepOptions: Omit<UserRunStepOptions<never, never, never, StepConfiguration>, 'taskQueue'>
+      userRunStepOptions: Omit<UserRunStepOptions<never, never, StepConfiguration>, 'taskQueue'>
     } & { currentArtifact: Node<{ artifact: Artifact }> },
   ) => Promise<ArtifactInStepConstrainResult>
 }

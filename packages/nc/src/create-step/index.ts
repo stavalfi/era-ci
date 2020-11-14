@@ -55,8 +55,7 @@ export { stepToString, toStepsResultOfArtifactsByArtifact } from './utils'
 
 async function runStepOnEveryArtifact<
   TaskQueueName extends string,
-  TaskQueueConfigurations,
-  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>,
+  TaskQueue extends TaskQueueBase<TaskQueueName, unknown>,
   StepConfigurations
 >({
   beforeAll,
@@ -65,16 +64,12 @@ async function runStepOnEveryArtifact<
   canRunStepResultOnArtifacts,
   userRunStepOptions,
 }: {
-  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>
-  beforeAll?: (
-    options: UserRunStepOptions<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>,
-  ) => Promise<void>
-  runStepOnArtifact: RunStepOnArtifact<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>
-  afterAll?: (
-    options: UserRunStepOptions<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>,
-  ) => Promise<void>
+  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>
+  beforeAll?: (options: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>) => Promise<void>
+  runStepOnArtifact: RunStepOnArtifact<TaskQueueName, TaskQueue, StepConfigurations>
+  afterAll?: (options: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>) => Promise<void>
   canRunStepResultOnArtifacts: CombinedArtifactInStepConstrainResult[]
-}): ReturnType<RunStepOnArtifacts<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>> {
+}): ReturnType<RunStepOnArtifacts<TaskQueueName, TaskQueue, StepConfigurations>> {
   if (beforeAll) {
     await beforeAll(userRunStepOptions)
   }
@@ -137,15 +132,14 @@ async function runStepOnEveryArtifact<
 
 async function runStepOnRoot<
   TaskQueueName extends string,
-  TaskQueueConfigurations,
-  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>,
+  TaskQueue extends TaskQueueBase<TaskQueueName, unknown>,
   StepConfigurations
 >({
   runStep,
   userRunStepOptions,
 }: {
-  runStep: RunStepOnRoot<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>
-  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueueConfigurations, TaskQueue, StepConfigurations>
+  runStep: RunStepOnRoot<TaskQueueName, TaskQueue, StepConfigurations>
+  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueue, StepConfigurations>
 }): Promise<UserStepResult> {
   const result = await runStep(userRunStepOptions)
 
@@ -169,8 +163,7 @@ async function runStepOnRoot<
 
 async function getUserStepResult<
   TaskQueueName extends string,
-  TaskQueueConfigurations,
-  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>,
+  TaskQueue extends TaskQueueBase<TaskQueueName, unknown>,
   StepConfigurations,
   NormalizedStepConfigurations
 >({
@@ -179,19 +172,8 @@ async function getUserStepResult<
   userRunStepOptions,
 }: {
   startStepMs: number
-  createStepOptions: CreateStepOptions<
-    TaskQueueName,
-    TaskQueueConfigurations,
-    TaskQueue,
-    StepConfigurations,
-    NormalizedStepConfigurations
-  >
-  userRunStepOptions: UserRunStepOptions<
-    TaskQueueName,
-    TaskQueueConfigurations,
-    TaskQueue,
-    NormalizedStepConfigurations
-  >
+  createStepOptions: CreateStepOptions<TaskQueueName, TaskQueue, StepConfigurations, NormalizedStepConfigurations>
+  userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueue, NormalizedStepConfigurations>
 }): Promise<UserStepResult> {
   const [canRunPerArtifact, canRunAllArtifacts] = await Promise.all([
     Promise.all(
@@ -277,8 +259,7 @@ async function getUserStepResult<
 
 async function runStep<
   TaskQueueName extends string,
-  TaskQueueConfigurations,
-  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>,
+  TaskQueue extends TaskQueueBase<TaskQueueName, unknown>,
   StepConfigurations,
   NormalizedStepConfigurations
 >({
@@ -288,23 +269,12 @@ async function runStep<
   stepConfigurations,
 }: {
   startStepMs: number
-  createStepOptions: CreateStepOptions<
-    TaskQueueName,
-    TaskQueueConfigurations,
-    TaskQueue,
-    StepConfigurations,
-    NormalizedStepConfigurations
-  >
-  runStepOptions: RunStepOptions<TaskQueueName, TaskQueueConfigurations, TaskQueue>
+  createStepOptions: CreateStepOptions<TaskQueueName, TaskQueue, StepConfigurations, NormalizedStepConfigurations>
+  runStepOptions: RunStepOptions<TaskQueueName, TaskQueue>
   stepConfigurations: NormalizedStepConfigurations
 }): Promise<StepResultOfArtifacts> {
   try {
-    const userRunStepOptions: UserRunStepOptions<
-      TaskQueueName,
-      TaskQueueConfigurations,
-      TaskQueue,
-      NormalizedStepConfigurations
-    > = {
+    const userRunStepOptions: UserRunStepOptions<TaskQueueName, TaskQueue, NormalizedStepConfigurations> = {
       ...runStepOptions,
       log: runStepOptions.logger.createLog(runStepOptions.currentStepInfo.data.stepInfo.stepName),
       stepConfigurations,
@@ -462,20 +432,11 @@ async function runStep<
 
 export function createStep<
   TaskQueueName extends string,
-  TaskQueueConfigurations,
-  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>,
+  TaskQueue extends TaskQueueBase<TaskQueueName, unknown>,
   StepConfigurations = void,
   NormalizedStepConfigurations = StepConfigurations
->(
-  createStepOptions: CreateStepOptions<
-    TaskQueueName,
-    TaskQueueConfigurations,
-    TaskQueue,
-    StepConfigurations,
-    NormalizedStepConfigurations
-  >,
-) {
-  return (stepConfigurations: StepConfigurations): Step<TaskQueueName, TaskQueueConfigurations, TaskQueue> => ({
+>(createStepOptions: CreateStepOptions<TaskQueueName, TaskQueue, StepConfigurations, NormalizedStepConfigurations>) {
+  return (stepConfigurations: StepConfigurations): Step<TaskQueueName, unknown, TaskQueue> => ({
     stepName: createStepOptions.stepName,
     taskQueueClass: createStepOptions.taskQueueClass,
     runStep: async runStepOptions => {

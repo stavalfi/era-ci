@@ -357,7 +357,6 @@ const customConstrain = createArtifactStepConstrain<void, void, DockerPublishCon
 
 export const dockerPublish = createStep<
   LocalSequentalTaskQueueName,
-  void,
   LocalSequentalTaskQueue,
   DockerPublishConfiguration
 >({

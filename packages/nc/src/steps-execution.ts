@@ -57,7 +57,7 @@ export async function runAllSteps({
   stepsToRun: Graph<{
     stepInfo: StepInfo
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    taskQueueClass: { new (options: TaskQueueOptions<unknown>): any }
+    taskQueueClass: { new (options: TaskQueueOptions<any>): any }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     runStep: Step<string, unknown, any>['runStep']
   }>

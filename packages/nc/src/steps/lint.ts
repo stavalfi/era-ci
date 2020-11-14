@@ -6,7 +6,6 @@ import { execaCommand } from '../utils'
 
 export const lint = createStep<
   LocalSequentalTaskQueueName,
-  void,
   LocalSequentalTaskQueue,
   { lintScriptName: string } | void,
   { lintScriptName: string }
