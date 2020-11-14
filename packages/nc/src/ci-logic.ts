@@ -57,8 +57,8 @@ export async function ci<TaskQueue>(options: {
 
     const taskQueues = await Promise.all(
       options.config.taskQueues.map(t =>
-        t({
-          log: logger.createLog(`${t}-initializer`),
+        t.createFunc({
+          log: logger.createLog(t.taskQueueName),
         }),
       ),
     )

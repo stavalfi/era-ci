@@ -53,9 +53,12 @@ export type CreateTaskQueue<
   TaskQueue extends TaskQueueBase<TaskQueueConfigurations>
 > = (options: { log: Log }) => Promise<TaskQueue>
 
-export type ConfigureTaskQueue<TaskQueue extends TaskQueueBase<TaskQueueConfigurations>, TaskQueueConfigurations> = (
+export type ConfigureTaskQueue<TaskQueueConfigurations, TaskQueue extends TaskQueueBase<TaskQueueConfigurations>> = (
   taskQueueConfigurations: TaskQueueConfigurations,
-) => CreateTaskQueue<TaskQueueConfigurations, TaskQueue>
+) => {
+  taskQueueName: string
+  createFunc: CreateTaskQueue<TaskQueueConfigurations, TaskQueue>
+}
 
 export type TaskQueueOptions<TaskQueueConfigurations = void> = {
   taskQueueConfigurations: TaskQueueConfigurations
