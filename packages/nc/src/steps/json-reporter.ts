@@ -201,6 +201,7 @@ function getJsonReport({
               return s.data.stepResult.notes.map(n => `${s.data.stepInfo.displayName} - ${n}`)
             }),
           ),
+          durationMs: Date.now() - startFlowMs,
           status: calculateCombinedStatus(
             stepsResultOfArtifactsByStep.map(s => {
               if (

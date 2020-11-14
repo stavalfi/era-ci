@@ -77,6 +77,15 @@ function getStepsResultOfArtifact({
               return a.status
             }),
           ),
+          durationMs: _.sum(
+            stepsResultOfArtifactsByStep.map(s => {
+              const a = s.data.artifactsResult[artifact.index].data.artifactStepResult
+              if (a.executionStatus !== ExecutionStatus.done && a.executionStatus !== ExecutionStatus.aborted) {
+                throw new Error(`we can't be here`)
+              }
+              return a.durationMs ?? 0
+            }),
+          ),
           notes: [], // we don't support (yet) notes about a artifact
           errors: [], // we don't support (yet) errors about a artifact
         },

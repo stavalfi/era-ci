@@ -86,7 +86,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
               (_, i) => RESULT_STATUS_COLORED[node.data.stepsResult[i].data.artifactStepResult.status],
             ),
             artifactStatus: RESULT_STATUS_COLORED[node.data.artifactResult.status],
-            duration: '0',
+            duration: node.data.artifactResult.durationMs ?? '0',
             notes: [
               ...node.data.artifactResult.notes,
               ..._.flatMapDeep(
@@ -127,7 +127,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
                 packageName: node.data.artifact.packageJson.name,
                 stepsStatus: node.data.stepsResult.map(s => RESULT_STATUS_COLORED[s.data.artifactStepResult.status]),
                 artifactStatus: RESULT_STATUS_COLORED[node.data.artifactResult.status],
-                duration: '-',
+                duration: node.data.artifactResult.durationMs ?? '0',
                 notes: node.data.artifactResult.notes,
               }
             case ExecutionStatus.running:
@@ -206,7 +206,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
         case ExecutionStatus.done:
           return jsonReport.stepsResultOfArtifactsByStep.map(s => prettyMs(s.data.stepResult.durationMs))
         case ExecutionStatus.aborted:
-          return jsonReport.stepsResultOfArtifactsByStep.map(() => '')
+          return jsonReport.stepsResultOfArtifactsByStep.map(s => prettyMs(s.data.stepResult.durationMs ?? 0))
         case ExecutionStatus.running:
           return jsonReport.stepsResultOfArtifactsByStep.map(() => '')
         case ExecutionStatus.scheduled:
@@ -224,7 +224,11 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
     chars: DEFAULT_CHART,
   })
 
-  packagesStatusTable.push(colums, ...rowsInTableFormat, stepsDurations)
+  packagesStatusTable.push(colums, ...rowsInTableFormat)
+
+  if (stepsDurations.some(s => s.content)) {
+    packagesStatusTable.push(stepsDurations)
+  }
 
   return packagesStatusTable.toString()
 }
@@ -454,14 +458,15 @@ function generateSummaryReport(jsonReport: JsonReport): string {
       content,
     }),
   )
-  const duration: false | TableRow = [
-    'duration',
-    prettyMs('durationMs' in jsonReport.flowResult ? jsonReport.flowResult.durationMs : 0),
-  ].map(content => ({
-    vAlign: 'center',
-    hAlign: 'center',
-    content,
-  }))
+  const duration: false | TableRow =
+    (jsonReport.flowResult.executionStatus === ExecutionStatus.done ||
+      jsonReport.flowResult.executionStatus === ExecutionStatus.aborted) &&
+    _.isNumber(jsonReport.flowResult.durationMs) &&
+    ['duration', prettyMs(jsonReport.flowResult.durationMs)].map(content => ({
+      vAlign: 'center',
+      hAlign: 'center',
+      content,
+    }))
 
   const notes =
     jsonReport.flowResult.executionStatus === ExecutionStatus.done ||
