@@ -20,11 +20,17 @@ function getConfigValidationObject() {
     keyValueStore: object({
       callInitializeKeyValueStoreConnection: func(),
     }),
-    taskQueues: array(func()),
+    taskQueues: array(
+      object({
+        taskQueueName: string(),
+        createFunc: func(),
+      }),
+    ),
     steps: array(
       object({
         data: object({
           runStep: func(),
+          taskQueueClass: func(),
           stepInfo: object({
             stepId: string(),
             stepName: string(),

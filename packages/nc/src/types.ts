@@ -61,6 +61,7 @@ export type DoneResult = {
 export type AbortResult<StatusType extends Status> = {
   executionStatus: ExecutionStatus.aborted
   status: StatusType
+  durationMs?: number
   notes: Array<string>
   errors: Array<ErrorObject>
 }
