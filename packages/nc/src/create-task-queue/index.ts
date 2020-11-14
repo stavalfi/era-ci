@@ -26,22 +26,19 @@ export function createTaskQueue<
   taskQueueName: TaskQueueName
   initializeTaskQueue: (options: TaskQueueOptions<NormalizedTaskQueueConfigurations>) => Promise<TaskQueue>
 }): ConfigureTaskQueue<TaskQueueName, TaskQueue, TaskQueueConfigurations> {
-  return {
+  return (
+    taskQueueConfigurations: TaskQueueConfigurations,
+  ): CreateTaskQueue<TaskQueueName, NormalizedTaskQueueConfigurations, TaskQueue> => ({
     taskQueueName: createTaskQueueOptions.taskQueueName,
-    configure: (
-      taskQueueConfigurations: TaskQueueConfigurations,
-    ): CreateTaskQueue<TaskQueueName, NormalizedTaskQueueConfigurations, TaskQueue> => ({
-      taskQueueName: createTaskQueueOptions.taskQueueName,
-      callInitializeTaskQueue: async ({ log }) => {
-        // @ts-ignore - we need to find a way to ensure that if NormalizedTaskQueueConfigurations is defined, also normalizedTaskQueueConfigurations is defined.
-        const normalizedTaskQueueConfigurations: NormalizedTaskQueueConfigurations = createTaskQueueOptions.normalizeTaskQueueConfigurations
-          ? await createTaskQueueOptions.normalizeTaskQueueConfigurations({ taskQueueConfigurations })
-          : taskQueueConfigurations
-        return createTaskQueueOptions.initializeTaskQueue({
-          taskQueueConfigurations: normalizedTaskQueueConfigurations,
-          log,
-        })
-      },
-    }),
-  }
+    callInitializeTaskQueue: async ({ log }) => {
+      // @ts-ignore - we need to find a way to ensure that if NormalizedTaskQueueConfigurations is defined, also normalizedTaskQueueConfigurations is defined.
+      const normalizedTaskQueueConfigurations: NormalizedTaskQueueConfigurations = createTaskQueueOptions.normalizeTaskQueueConfigurations
+        ? await createTaskQueueOptions.normalizeTaskQueueConfigurations({ taskQueueConfigurations })
+        : taskQueueConfigurations
+      return createTaskQueueOptions.initializeTaskQueue({
+        taskQueueConfigurations: normalizedTaskQueueConfigurations,
+        log,
+      })
+    },
+  })
 }

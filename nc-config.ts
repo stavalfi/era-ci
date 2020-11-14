@@ -43,7 +43,7 @@ const {
 const isMasterBuild = Boolean(ciInfo.isCI && !ciInfo.isPR)
 
 export default config({
-  taskQueues: [localSequentalTaskQueue.configure(), exampleTaskQueue.configure()],
+  taskQueues: [localSequentalTaskQueue(), exampleTaskQueue()],
   keyValueStore: redisConnection({
     redisServer: `redis://${REDIS_ENDPOINT}/`,
     auth: {

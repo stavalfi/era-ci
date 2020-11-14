@@ -63,12 +63,9 @@ export type ConfigureTaskQueue<
   TaskQueueName extends string,
   TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>,
   TaskQueueConfigurations
-> = {
-  taskQueueName: TaskQueueName
-  configure: (
-    taskQueueConfigurations: TaskQueueConfigurations,
-  ) => CreateTaskQueue<TaskQueueName, TaskQueueConfigurations, TaskQueue>
-}
+> = (
+  taskQueueConfigurations: TaskQueueConfigurations,
+) => CreateTaskQueue<TaskQueueName, TaskQueueConfigurations, TaskQueue>
 
 export type TaskQueueOptions<TaskQueueConfigurations = void> = {
   taskQueueConfigurations: TaskQueueConfigurations
