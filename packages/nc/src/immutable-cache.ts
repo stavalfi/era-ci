@@ -40,7 +40,6 @@ export type ImmutableCache = {
 
 export async function createImmutableCache({
   repoHash,
-  artifacts,
   flowId,
   keyValueStoreConnection,
   log,
@@ -63,9 +62,10 @@ export async function createImmutableCache({
     })
 
     if (await keyValueStoreConnection.has(options.key)) {
-      throw new Error(
+      log.debug(
         `immutable-cache can't override values in key-value-store. key: ${options.key}, ignored-new-value: ${options.value}`,
       )
+      return
     }
     await keyValueStoreConnection.set({
       allowOverride: false,
