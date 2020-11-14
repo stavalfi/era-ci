@@ -47,7 +47,6 @@ const customConstrain = createArtifactStepConstrain<void, void, K8sGcloudDeploym
 
 export const k8sGcloudDeployment = createStep<
   LocalSequentalTaskQueueName,
-  void,
   LocalSequentalTaskQueue,
   K8sGcloudDeploymentConfiguration
 >({

@@ -6,7 +6,7 @@ export function validateUserStepResult<
   TaskQueueConfigurations,
   TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>
 >(
-  runStepOptions: RunStepOptions<TaskQueueName, TaskQueueConfigurations, TaskQueue>,
+  runStepOptions: RunStepOptions<TaskQueueName, TaskQueue>,
   userStepResult: UserStepResult,
 ): {
   problems: Array<string>

@@ -6,7 +6,7 @@ export class ExampleTaskQueue implements TaskQueueBase<ExampleTaskQueueName, voi
   public readonly taskQueueName: ExampleTaskQueueName = 'example-task-queue'
 
   constructor(private readonly options: TaskQueueOptions) {
-    this.options.log.verbose(`initialized example task-queue`)
+    this.options.log.verbose(`initialized ${this.taskQueueName}`)
   }
 
   public async cleanup(): Promise<void> {

@@ -11,19 +11,18 @@ import { execaCommand } from '../utils'
 
 export const test = createStep<
   LocalSequentalTaskQueueName,
-  void,
   LocalSequentalTaskQueue,
   {
     testScriptName: string
     beforeAll?: (
       options: Omit<
-        UserRunStepOptions<LocalSequentalTaskQueueName, void, LocalSequentalTaskQueue, never>,
+        UserRunStepOptions<LocalSequentalTaskQueueName, LocalSequentalTaskQueue, void>,
         'stepConfigurations'
       >,
     ) => Promise<void | unknown>
     afterAll?: (
       options: Omit<
-        UserRunStepOptions<LocalSequentalTaskQueueName, void, LocalSequentalTaskQueue, never>,
+        UserRunStepOptions<LocalSequentalTaskQueueName, LocalSequentalTaskQueue, void>,
         'stepConfigurations'
       >,
     ) => Promise<void | unknown>

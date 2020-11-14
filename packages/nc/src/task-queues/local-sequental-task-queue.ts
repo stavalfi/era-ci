@@ -23,7 +23,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<LocalSequentalTask
   private readonly taskQueue = queue(this.startTask.bind(this), 1)
   public readonly taskQueueName: LocalSequentalTaskQueueName = 'local-sequental-task-queue'
 
-  constructor(private readonly options: TaskQueueOptions) {
+  constructor(private readonly options: TaskQueueOptions<void>) {
     this.options.log.verbose(`initialized local-sequental task-queue`)
   }
 

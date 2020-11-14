@@ -9,7 +9,7 @@ export async function runConstrains<StepConfiguration>({
   predicates,
   userRunStepOptions,
 }: {
-  userRunStepOptions: Omit<UserRunStepOptions<never, never, never, StepConfiguration>, 'taskQueue'>
+  userRunStepOptions: Omit<UserRunStepOptions<never, never, StepConfiguration>, 'taskQueue'>
   predicates: Array<StepConstrain<StepConfiguration>>
 }): Promise<CombinedStepConstrainResult> {
   const results = await Promise.all(

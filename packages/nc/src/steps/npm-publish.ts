@@ -239,12 +239,7 @@ const customConstrain = createArtifactStepConstrain<void, void, NpmPublishConfig
   },
 })
 
-export const npmPublish = createStep<
-  LocalSequentalTaskQueueName,
-  void,
-  LocalSequentalTaskQueue,
-  NpmPublishConfiguration
->({
+export const npmPublish = createStep<LocalSequentalTaskQueueName, LocalSequentalTaskQueue, NpmPublishConfiguration>({
   stepName: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,
   constrains: {
