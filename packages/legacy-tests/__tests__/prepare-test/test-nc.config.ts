@@ -76,4 +76,4 @@ const steps = createLinearStepsGraph([
   cliTableReporter(),
 ])
 
-export default config({ taskQueues: [localSequentalTaskQueue.configure()], steps, keyValueStore, logger })
+export default config({ taskQueues: [localSequentalTaskQueue()], steps, keyValueStore, logger })
