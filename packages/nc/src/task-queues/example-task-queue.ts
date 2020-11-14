@@ -1,26 +1,20 @@
-import { CreateTaskQueue, createTaskQueue } from '../create-task-queue'
+import { createTaskQueue, TaskQueueBase, TaskQueueOptions } from '../create-task-queue'
 
 export type ExampleTaskQueueName = 'example-task-queue'
-// we must specify the type to be specfic string or the user-configuration will think that the type is string
-export const exampleTaskQueueName: ExampleTaskQueueName = 'example-task-queue'
 
-export type ExampleTaskQueue = {
-  taskQueueName: ExampleTaskQueueName
-  cleanup: () => Promise<unknown>
+export class ExampleTaskQueue implements TaskQueueBase<ExampleTaskQueueName, void> {
+  public readonly taskQueueName: ExampleTaskQueueName = 'example-task-queue'
+
+  constructor(private readonly options: TaskQueueOptions) {
+    this.options.log.verbose(`initialized example task-queue`)
+  }
+
+  public async cleanup(): Promise<void> {
+    return Promise.resolve()
+  }
 }
 
-export type CreateExampleTaskQueue = (
-  taskQueueConfigurations: void,
-) => CreateTaskQueue<ExampleTaskQueueName, ExampleTaskQueue>
-
 export const exampleTaskQueue = createTaskQueue<ExampleTaskQueueName, ExampleTaskQueue>({
-  taskQueueName: exampleTaskQueueName,
-  initializeTaskQueue: async () => {
-    return {
-      taskQueueName: exampleTaskQueueName,
-      cleanup: async () => {
-        return Promise.resolve()
-      },
-    }
-  },
+  taskQueueName: 'example-task-queue',
+  initializeTaskQueue: async options => new ExampleTaskQueue(options),
 })

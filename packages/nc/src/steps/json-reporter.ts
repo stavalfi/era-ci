@@ -13,7 +13,7 @@ import {
   StepsResultOfArtifact,
   toStepsResultOfArtifactsByArtifact,
 } from '../create-step'
-import { localSequentalTaskQueue } from '../task-queues'
+import { LocalSequentalTaskQueue } from '../task-queues'
 import {
   AbortResult,
   Artifact,
@@ -259,7 +259,7 @@ export const jsonReporterStepName = 'json-reporter'
 
 export const jsonReporter = createStep({
   stepName: jsonReporterStepName,
-  configureTaskQueue: localSequentalTaskQueue,
+  taskQueueClass: LocalSequentalTaskQueue,
   run: {
     runStrategy: RunStrategy.root,
     runStepOnRoot: async ({

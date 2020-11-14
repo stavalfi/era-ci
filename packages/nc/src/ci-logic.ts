@@ -1,18 +1,17 @@
+import chance from 'chance'
 import fse from 'fs-extra'
 import { calculateArtifactsHash } from './artifacts-hash'
 import { Config } from './configuration'
 import { Log, Logger } from './create-logger'
 import { StepInfo } from './create-step'
+import { createImmutableCache, ImmutableCache } from './immutable-cache'
 import { runAllSteps } from './steps-execution'
 import { Cleanup, Graph } from './types'
 import { getExitCode, getPackages, toFlowLogsContentKey } from './utils'
-import chance from 'chance'
-import { createImmutableCache, ImmutableCache } from './immutable-cache'
-import { TaskQueueBase } from './create-task-queue'
 
 export async function ci(options: {
   repoPath: string
-  config: Config<string, TaskQueueBase<string>>
+  config: Config<string, unknown>
 }): Promise<{ flowId: string; repoHash?: string; steps?: Graph<{ stepInfo: StepInfo }>; passed: boolean }> {
   const cleanups: Cleanup[] = []
   const flowId = chance().hash()

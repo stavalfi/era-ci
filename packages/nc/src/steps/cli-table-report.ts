@@ -5,9 +5,9 @@ import prettyMs from 'pretty-ms'
 import { deserializeError, ErrorObject } from 'serialize-error'
 import { createStep, RunStrategy, stepToString } from '../create-step'
 import { skipIfStepResultNotPassedConstrain } from '../step-constrains'
-import { localSequentalTaskQueue } from '../task-queues'
+import { LocalSequentalTaskQueue } from '../task-queues'
 import { ExecutionStatus, Status } from '../types'
-import { JsonReport, jsonReporterStepName, jsonReporterCacheKey, stringToJsonReport } from './json-reporter'
+import { JsonReport, jsonReporterCacheKey, jsonReporterStepName, stringToJsonReport } from './json-reporter'
 
 //
 // Fix colors not appearing in non-tty environments
@@ -504,7 +504,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
 
 export const cliTableReporter = createStep({
   stepName: 'cli-table-reporter',
-  configureTaskQueue: localSequentalTaskQueue,
+  taskQueueClass: LocalSequentalTaskQueue,
   constrains: {
     onStep: [skipIfStepResultNotPassedConstrain({ stepName: jsonReporterStepName })],
   },
