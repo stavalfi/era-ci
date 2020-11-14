@@ -1,15 +1,14 @@
 import execa from 'execa'
 import path from 'path'
-import { array, func, is, number, object, optional, string, validate } from 'superstruct'
+import { array, func, is, number, object, string, validate } from 'superstruct'
+import { TaskQueueBase } from '../create-task-queue'
 import { Config } from './types'
 
 /**
  * ensures type safty of task-queues by only allowing steps thats uses task-queues which are declared in `task-queues` array.
  * @param options nc options
  */
-export function config<TaskQueueName extends string, TaskQueue>(
-  options: Config<TaskQueueName, TaskQueue>,
-): Config<TaskQueueName, TaskQueue> {
+export function config<TaskQueue extends TaskQueueBase<unknown>>(options: Config<TaskQueue>): Config<TaskQueue> {
   return options
 }
 
@@ -21,17 +20,11 @@ function getConfigValidationObject() {
     keyValueStore: object({
       callInitializeKeyValueStoreConnection: func(),
     }),
-    taskQueues: array(
-      object({
-        taskQueueName: optional(string()),
-        callInitializeTaskQueue: func(),
-      }),
-    ),
+    taskQueues: array(func()),
     steps: array(
       object({
         data: object({
           runStep: func(),
-          taskQueueName: optional(string()),
           stepInfo: object({
             stepId: string(),
             stepName: string(),
@@ -46,15 +39,11 @@ function getConfigValidationObject() {
   })
 }
 
-function validateConfiguration<TaskQueueName extends string, TaskQueue>(
-  configuration: unknown,
-): configuration is Config<TaskQueueName, TaskQueue> {
+function validateConfiguration<TaskQueue>(configuration: unknown): configuration is Config<TaskQueue> {
   return is(configuration, getConfigValidationObject())
 }
 
-export async function readNcConfigurationFile<TaskQueueName extends string, TaskQueue>(
-  ciConfigFilePath: string,
-): Promise<Config<TaskQueueName, TaskQueue>> {
+export async function readNcConfigurationFile<TaskQueue>(ciConfigFilePath: string): Promise<Config<TaskQueue>> {
   const outputFilePath = path.join(path.dirname(ciConfigFilePath), `compiled-nc.config.js`)
   const swcConfigFile = require.resolve('@tahini/nc/.nc-swcrc.config')
   const swcPath = require.resolve('.bin/swc')
@@ -72,7 +61,7 @@ export async function readNcConfigurationFile<TaskQueueName extends string, Task
   //   // ignore error
   // })
 
-  if (validateConfiguration<TaskQueueName, TaskQueue>(configuration)) {
+  if (validateConfiguration<TaskQueue>(configuration)) {
     return configuration
   } else {
     const [error] = validate(configuration, getConfigValidationObject())

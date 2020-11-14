@@ -59,14 +59,7 @@ export {
   test,
   validatePackages,
 } from './steps'
-export {
-  ExampleTaskQueue,
-  exampleTaskQueue,
-  ExampleTaskQueueName,
-  localSequentalTaskQueue,
-  LocalSequentalTaskQueue,
-  LocalSequentalTaskQueueName,
-} from './task-queues'
+export { ExampleTaskQueue, exampleTaskQueue, localSequentalTaskQueue, LocalSequentalTaskQueue } from './task-queues'
 export { Artifact, ConstrainResult, ExecutionStatus, Graph, PackageJson, Status } from './types'
 export { execaCommand } from './utils'
 export { LoggerConfiguration, winstonLogger } from './winston-logger'

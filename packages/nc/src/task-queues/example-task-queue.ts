@@ -1,12 +1,8 @@
 import { createTaskQueue, TaskQueueBase, TaskQueueOptions } from '../create-task-queue'
 
-export type ExampleTaskQueueName = 'example-task-queue'
-
-export class ExampleTaskQueue implements TaskQueueBase<ExampleTaskQueueName, void> {
-  public readonly taskQueueName: ExampleTaskQueueName = 'example-task-queue'
-
+export class ExampleTaskQueue implements TaskQueueBase<void> {
   constructor(private readonly options: TaskQueueOptions) {
-    this.options.log.verbose(`initialized ${this.taskQueueName}`)
+    this.options.log.verbose(`initialized ${ExampleTaskQueue.name}`)
   }
 
   public async cleanup(): Promise<void> {
@@ -14,7 +10,6 @@ export class ExampleTaskQueue implements TaskQueueBase<ExampleTaskQueueName, voi
   }
 }
 
-export const exampleTaskQueue = createTaskQueue<ExampleTaskQueueName, ExampleTaskQueue>({
-  taskQueueName: 'example-task-queue',
+export const exampleTaskQueue = createTaskQueue<ExampleTaskQueue>({
   initializeTaskQueue: async options => new ExampleTaskQueue(options),
 })

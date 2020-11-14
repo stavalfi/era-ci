@@ -1,6 +1,7 @@
 import {
   ConstrainResult,
   createArtifactStepConstrain,
+  createLinearStepsGraph,
   createStep,
   ExecutionStatus,
   JsonReport,
@@ -23,7 +24,7 @@ describe('define custom predicate to check if we need to run the step on a packa
       ],
     })
     const { jsonReport } = await runCi({
-      steps: [
+      steps: createLinearStepsGraph([
         createStep({
           stepName: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
@@ -48,7 +49,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             },
           },
         })(),
-      ],
+      ]),
     })
 
     const expectedJsonReport: DeepPartial<JsonReport> = {
@@ -105,7 +106,7 @@ describe('define custom predicate to check if we need to run the step on a packa
       ],
     })
     const { jsonReport } = await runCi({
-      steps: [
+      steps: createLinearStepsGraph([
         createStep({
           stepName: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
@@ -133,7 +134,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             },
           },
         })(),
-      ],
+      ]),
     })
 
     const expectedJsonReport: DeepPartial<JsonReport> = {
@@ -190,7 +191,7 @@ describe('define custom predicate to check if we need to run the step on a packa
       ],
     })
     const { jsonReport } = await runCi({
-      steps: [
+      steps: createLinearStepsGraph([
         createStep({
           stepName: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
@@ -218,7 +219,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             },
           },
         })(),
-      ],
+      ]),
     })
 
     const expectedJsonReport: DeepPartial<JsonReport> = {
@@ -275,7 +276,7 @@ describe('define custom predicate to check if we need to run the step on a packa
       ],
     })
     const { jsonReport } = await runCi({
-      steps: [
+      steps: createLinearStepsGraph([
         createStep({
           stepName: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
@@ -303,7 +304,7 @@ describe('define custom predicate to check if we need to run the step on a packa
             },
           },
         })(),
-      ],
+      ]),
     })
 
     const expectedJsonReport: DeepPartial<JsonReport> = {

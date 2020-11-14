@@ -2,11 +2,10 @@ import { TaskQueueBase } from '../create-task-queue'
 import { RunStepOptions, UserStepResult } from './types'
 
 export function validateUserStepResult<
-  TaskQueueName extends string,
   TaskQueueConfigurations,
-  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>
+  TaskQueue extends TaskQueueBase<TaskQueueConfigurations>
 >(
-  runStepOptions: RunStepOptions<TaskQueueName, TaskQueue>,
+  runStepOptions: RunStepOptions<TaskQueue>,
   userStepResult: UserStepResult,
 ): {
   problems: Array<string>

@@ -11,7 +11,7 @@ export function createStepConstrain<
   constrain: (
     options: {
       constrainConfigurations: NormalizedConfigurations
-    } & Omit<UserRunStepOptions<never, never, StepConfiguration>, 'taskQueue'>,
+    } & Omit<UserRunStepOptions<never, StepConfiguration>, 'taskQueue'>,
   ) => Promise<StepConstrainResult>
 }) {
   return (configurations: Configurations): StepConstrain<StepConfiguration> => ({

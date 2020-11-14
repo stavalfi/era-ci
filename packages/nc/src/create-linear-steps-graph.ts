@@ -2,18 +2,14 @@ import { Step, StepInfo } from './create-step'
 import { TaskQueueBase, TaskQueueOptions } from './create-task-queue'
 import { Graph } from './types'
 
-export function createLinearStepsGraph<TaskQueueName extends string, TaskQueueConfigurations>(
+export function createLinearStepsGraph<TaskQueueConfigurations>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  steps: Array<Step<TaskQueueName, TaskQueueConfigurations, any>>,
+  steps: Array<Step<any>>,
 ): Graph<{
   stepInfo: StepInfo
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   taskQueueClass: { new (options: TaskQueueOptions<TaskQueueConfigurations>): any }
-  runStep: Step<
-    TaskQueueName,
-    TaskQueueConfigurations,
-    TaskQueueBase<TaskQueueName, TaskQueueConfigurations>
-  >['runStep']
+  runStep: Step<TaskQueueBase<TaskQueueConfigurations>>['runStep']
 }> {
   return steps.map((step, i, array) => {
     const stepId = `${step.stepName}-${i}`

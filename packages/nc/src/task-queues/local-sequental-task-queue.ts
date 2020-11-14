@@ -11,17 +11,14 @@ import {
 } from '../create-task-queue'
 import { ExecutionStatus, Status } from '../types'
 
-export type LocalSequentalTaskQueueName = 'local-sequental-task-queue'
-
 type ProccessedTask = { taskInfo: TaskInfo; func: () => Promise<void> }
 
-export class LocalSequentalTaskQueue implements TaskQueueBase<LocalSequentalTaskQueueName, void> {
+export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
   public readonly eventEmitter: TaskQueueEventEmitter = new EventEmitter({
     captureRejections: true,
   })
   private readonly queueState = { isQueueKilled: false }
   private readonly taskQueue = queue(this.startTask.bind(this), 1)
-  public readonly taskQueueName: LocalSequentalTaskQueueName = 'local-sequental-task-queue'
 
   constructor(private readonly options: TaskQueueOptions<void>) {
     this.options.log.verbose(`initialized local-sequental task-queue`)
@@ -121,7 +118,6 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<LocalSequentalTask
   }
 }
 
-export const localSequentalTaskQueue = createTaskQueue<LocalSequentalTaskQueueName, LocalSequentalTaskQueue>({
-  taskQueueName: 'local-sequental-task-queue',
+export const localSequentalTaskQueue = createTaskQueue<LocalSequentalTaskQueue>({
   initializeTaskQueue: async options => new LocalSequentalTaskQueue(options),
 })

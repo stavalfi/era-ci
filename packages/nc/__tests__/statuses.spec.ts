@@ -1,4 +1,12 @@
-import { createStep, ExecutionStatus, JsonReport, LocalSequentalTaskQueue, RunStrategy, Status } from '../src'
+import {
+  createLinearStepsGraph,
+  createStep,
+  ExecutionStatus,
+  JsonReport,
+  LocalSequentalTaskQueue,
+  RunStrategy,
+  Status,
+} from '../src'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
 
 const { createRepo } = createTest()
@@ -13,7 +21,7 @@ test('passed,passed => passed', async () => {
     ],
   })
   const { jsonReport } = await runCi({
-    steps: [
+    steps: createLinearStepsGraph([
       createStep({
         stepName: 'step1',
         taskQueueClass: LocalSequentalTaskQueue,
@@ -34,7 +42,7 @@ test('passed,passed => passed', async () => {
           },
         },
       })(),
-    ],
+    ]),
   })
 
   const expectedJsonReport: DeepPartial<JsonReport> = {

@@ -42,30 +42,20 @@ export type EventEmitterEvents = {
 export type TaskQueueEventEmitter = StrictEventEmitter<EventEmitter, EventEmitterEvents>
 
 export type TaskQueueBase<
-  TaskQueueName,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   TaskQueueConfigurations // I need this for type usage
 > = {
-  taskQueueName: TaskQueueName
   cleanup: () => Promise<unknown>
 }
 
 export type CreateTaskQueue<
-  TaskQueueName extends string,
   TaskQueueConfigurations,
-  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>
-> = {
-  taskQueueName: TaskQueueName
-  callInitializeTaskQueue: (options: { log: Log }) => Promise<TaskQueue>
-}
+  TaskQueue extends TaskQueueBase<TaskQueueConfigurations>
+> = (options: { log: Log }) => Promise<TaskQueue>
 
-export type ConfigureTaskQueue<
-  TaskQueueName extends string,
-  TaskQueue extends TaskQueueBase<TaskQueueName, TaskQueueConfigurations>,
-  TaskQueueConfigurations
-> = (
+export type ConfigureTaskQueue<TaskQueue extends TaskQueueBase<TaskQueueConfigurations>, TaskQueueConfigurations> = (
   taskQueueConfigurations: TaskQueueConfigurations,
-) => CreateTaskQueue<TaskQueueName, TaskQueueConfigurations, TaskQueue>
+) => CreateTaskQueue<TaskQueueConfigurations, TaskQueue>
 
 export type TaskQueueOptions<TaskQueueConfigurations = void> = {
   taskQueueConfigurations: TaskQueueConfigurations
