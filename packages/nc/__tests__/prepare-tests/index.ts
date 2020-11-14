@@ -21,6 +21,7 @@ import {
 import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterAll } from './prepare-test-resources'
 import { Repo, TestResources } from './types'
+import { addReportToStepsAsLastNodes } from './utils'
 
 export { DeepPartial } from './types'
 export { isDeepSubsetOf, isDeepSubsetOfOrPrint } from './utils'
@@ -87,28 +88,24 @@ type RunCi = <TaskQueue extends TaskQueueBase<unknown>>(
 }>
 
 const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configurations = {}) => {
-  const logger =
-    configurations.logger ||
-    winstonLogger({
-      customLogLevel: LogLevel.verbose,
-      disabled: false,
-      logFilePath: './nc.log',
-    })
-  const keyValueStore =
-    configurations.keyValueStore ||
-    redisConnection({
-      redisServer: getResoureces().redisServer,
-    })
-  const defaultJsonReport = jsonReporter()
-  const finalConfig = config({
-    logger,
-    keyValueStore,
-    taskQueues: [localSequentalTaskQueue()],
-    steps: configurations.steps || [],
-  })
   const { flowId, repoHash, steps, passed } = await ci({
     repoPath,
-    config: finalConfig,
+    config: config({
+      logger:
+        configurations.logger ||
+        winstonLogger({
+          customLogLevel: LogLevel.verbose,
+          disabled: false,
+          logFilePath: './nc.log',
+        }),
+      keyValueStore:
+        configurations.keyValueStore ||
+        redisConnection({
+          redisServer: getResoureces().redisServer,
+        }),
+      taskQueues: configurations.taskQueues || [localSequentalTaskQueue()],
+      steps: addReportToStepsAsLastNodes(configurations.steps || []),
+    }),
   })
 
   if (!repoHash) {
@@ -118,8 +115,7 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
   if (!steps) {
     throw new Error(`ci didn't return steps-graph. can't find json-report`)
   }
-  const jsonReportStepId = steps.find(s => s.data.stepInfo.stepName === defaultJsonReport.stepName)?.data.stepInfo
-    .stepId
+  const jsonReportStepId = steps.find(s => s.data.stepInfo.stepName === jsonReporter().stepName)?.data.stepInfo.stepId
   if (!jsonReportStepId) {
     throw new Error(`can't find jsonReportStepId. can't find json-report`)
   }

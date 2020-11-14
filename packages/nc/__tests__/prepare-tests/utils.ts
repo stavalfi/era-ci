@@ -1,3 +1,6 @@
+import _ from 'lodash'
+import { cliTableReporter, Config, createLinearStepsGraph, jsonReporter, TaskQueueBase } from '../../src'
+
 export function isDeepSubsetOf({
   subset,
   fullObj,
@@ -112,4 +115,26 @@ export function isDeepSubsetOfOrPrint(fullObj: unknown, subset: unknown): boolea
     console.log(JSON.stringify(result, null, 2))
     return false
   }
+}
+
+export function addReportToStepsAsLastNodes<TaskQueue extends TaskQueueBase<unknown>>(
+  steps: Config<TaskQueue>['steps'],
+): Config<TaskQueue>['steps'] {
+  const stepsCopy = _.cloneDeep(steps)
+
+  const additionalSteps = createLinearStepsGraph([jsonReporter(), cliTableReporter()])
+
+  const leafs = stepsCopy.filter(s => s.childrenIndexes.length === 0)
+
+  additionalSteps[0].index = stepsCopy.length
+  additionalSteps[0].parentsIndexes = leafs.map(s => s.index)
+  additionalSteps[0].childrenIndexes = [stepsCopy.length + 1]
+  additionalSteps[1].index = stepsCopy.length + 1
+  additionalSteps[1].parentsIndexes = [stepsCopy.length]
+
+  leafs.forEach(leaf => {
+    leaf.childrenIndexes = [stepsCopy.length]
+  })
+
+  return [...stepsCopy, ...additionalSteps]
 }
