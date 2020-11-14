@@ -10,7 +10,7 @@ export async function runCanRunStepOnArtifactPredicates<StepConfiguration>({
   userRunStepOptions,
   currentArtifact,
 }: {
-  userRunStepOptions: Omit<UserRunStepOptions<never, never, StepConfiguration>, 'taskQueue'>
+  userRunStepOptions: Omit<UserRunStepOptions<never, StepConfiguration>, 'taskQueue'>
   currentArtifact: Node<{ artifact: Artifact }>
   predicates: Array<ArtifactInStepConstrain<StepConfiguration>>
 }): Promise<CombinedArtifactInStepConstrainResult> {

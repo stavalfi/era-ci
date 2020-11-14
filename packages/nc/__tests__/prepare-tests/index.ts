@@ -2,12 +2,10 @@
 
 import chance from 'chance'
 import {
-  cliTableReporter,
-  LocalSequentalTaskQueueName,
+  ci,
   config,
   Config,
   createImmutableCache,
-  createLinearStepsGraph,
   Graph,
   JsonReport,
   jsonReporter,
@@ -15,13 +13,10 @@ import {
   localSequentalTaskQueue,
   LogLevel,
   redisConnection,
-  Step,
   StepInfo,
   stringToJsonReport,
-  winstonLogger,
   TaskQueueBase,
-  ci,
-  LocalSequentalTaskQueue,
+  winstonLogger,
 } from '../../src'
 import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterAll } from './prepare-test-resources'
@@ -82,10 +77,8 @@ const getJsonReport = async ({
   }
 }
 
-type RunCi = (
-  config?: Partial<
-    Omit<Config<string, TaskQueueBase<string>>, 'steps'> & { steps?: Step<string, TaskQueueBase<string>>[] }
-  >,
+type RunCi = <TaskQueue extends TaskQueueBase<unknown>>(
+  config?: Partial<Config<TaskQueue>>,
 ) => Promise<{
   flowId: string
   steps: Graph<{ stepInfo: StepInfo }>
@@ -107,18 +100,11 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
       redisServer: getResoureces().redisServer,
     })
   const defaultJsonReport = jsonReporter()
-  const defaultCliTableReport = cliTableReporter()
-  const testCustomSteps: Array<Step<string, TaskQueueBase<string>>> = configurations.steps || []
-  const allSteps: Array<Step<string | LocalSequentalTaskQueueName, TaskQueueBase<string> | LocalSequentalTaskQueue>> = [
-    ...testCustomSteps,
-    defaultJsonReport,
-    defaultCliTableReport,
-  ]
   const finalConfig = config({
     logger,
     keyValueStore,
-    taskQueues: [localSequentalTaskQueue.configure()],
-    steps: createLinearStepsGraph(allSteps),
+    taskQueues: [localSequentalTaskQueue()],
+    steps: configurations.steps || [],
   })
   const { flowId, repoHash, steps, passed } = await ci({
     repoPath,

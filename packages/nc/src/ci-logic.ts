@@ -9,9 +9,9 @@ import { runAllSteps } from './steps-execution'
 import { Cleanup, Graph } from './types'
 import { getExitCode, getPackages, toFlowLogsContentKey } from './utils'
 
-export async function ci(options: {
+export async function ci<TaskQueue>(options: {
   repoPath: string
-  config: Config<string, unknown>
+  config: Config<TaskQueue>
 }): Promise<{ flowId: string; repoHash?: string; steps?: Graph<{ stepInfo: StepInfo }>; passed: boolean }> {
   const cleanups: Cleanup[] = []
   const flowId = chance().hash()
@@ -57,7 +57,7 @@ export async function ci(options: {
 
     const taskQueues = await Promise.all(
       options.config.taskQueues.map(t =>
-        t.callInitializeTaskQueue({
+        t({
           log: logger.createLog(`${t}-initializer`),
         }),
       ),

@@ -5,26 +5,19 @@ import {
   skipIfArtifactStepResultMissingOrPassedInCacheConstrain,
 } from '../artifact-step-constrains'
 import { createStep, RunStrategy, UserRunStepOptions } from '../create-step'
-import { LocalSequentalTaskQueue, LocalSequentalTaskQueueName } from '../task-queues'
+import { LocalSequentalTaskQueue } from '../task-queues'
 import { ExecutionStatus, Status } from '../types'
 import { execaCommand } from '../utils'
 
 export const test = createStep<
-  LocalSequentalTaskQueueName,
   LocalSequentalTaskQueue,
   {
     testScriptName: string
     beforeAll?: (
-      options: Omit<
-        UserRunStepOptions<LocalSequentalTaskQueueName, LocalSequentalTaskQueue, void>,
-        'stepConfigurations'
-      >,
+      options: Omit<UserRunStepOptions<LocalSequentalTaskQueue, void>, 'stepConfigurations'>,
     ) => Promise<void | unknown>
     afterAll?: (
-      options: Omit<
-        UserRunStepOptions<LocalSequentalTaskQueueName, LocalSequentalTaskQueue, void>,
-        'stepConfigurations'
-      >,
+      options: Omit<UserRunStepOptions<LocalSequentalTaskQueue, void>, 'stepConfigurations'>,
     ) => Promise<void | unknown>
   }
 >({

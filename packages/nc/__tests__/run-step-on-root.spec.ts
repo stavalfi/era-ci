@@ -1,4 +1,12 @@
-import { createStep, ExecutionStatus, JsonReport, LocalSequentalTaskQueue, RunStrategy, Status } from '../src'
+import {
+  createLinearStepsGraph,
+  createStep,
+  ExecutionStatus,
+  JsonReport,
+  LocalSequentalTaskQueue,
+  RunStrategy,
+  Status,
+} from '../src'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
 
 const { createRepo } = createTest()
@@ -13,7 +21,7 @@ test('flow should pass because step pass', async () => {
     ],
   })
   const { passed, jsonReport, flowId } = await runCi({
-    steps: [
+    steps: createLinearStepsGraph([
       createStep({
         stepName: 'step1',
         taskQueueClass: LocalSequentalTaskQueue,
@@ -24,7 +32,7 @@ test('flow should pass because step pass', async () => {
           },
         },
       })(),
-    ],
+    ]),
   })
 
   expect(passed).toBeTruthy()
@@ -53,7 +61,7 @@ test('step should pass in json-report', async () => {
     ],
   })
   const { jsonReport } = await runCi({
-    steps: [
+    steps: createLinearStepsGraph([
       createStep({
         stepName: 'step1',
         taskQueueClass: LocalSequentalTaskQueue,
@@ -64,7 +72,7 @@ test('step should pass in json-report', async () => {
           },
         },
       })(),
-    ],
+    ]),
   })
 
   const expectedJsonReport: DeepPartial<JsonReport> = {
@@ -121,7 +129,7 @@ test('flow should fail because step failed (without throwing error from the step
     ],
   })
   const { passed, jsonReport } = await runCi({
-    steps: [
+    steps: createLinearStepsGraph([
       createStep({
         stepName: 'step1',
         taskQueueClass: LocalSequentalTaskQueue,
@@ -132,7 +140,7 @@ test('flow should fail because step failed (without throwing error from the step
           },
         },
       })(),
-    ],
+    ]),
   })
 
   expect(passed).toBeFalsy()
@@ -191,7 +199,7 @@ test('flow should fail because step failed (while throwing error from the step)'
     ],
   })
   const { passed, jsonReport } = await runCi({
-    steps: [
+    steps: createLinearStepsGraph([
       createStep({
         stepName: 'step1',
         taskQueueClass: LocalSequentalTaskQueue,
@@ -202,7 +210,7 @@ test('flow should fail because step failed (while throwing error from the step)'
           },
         },
       })(),
-    ],
+    ]),
   })
 
   expect(passed).toBeFalsy()

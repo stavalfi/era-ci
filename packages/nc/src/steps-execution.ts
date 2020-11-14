@@ -51,7 +51,7 @@ export async function runAllSteps({
   repoHash,
   taskQueues,
 }: {
-  taskQueues: Array<TaskQueueBase<string, TaskQueueBase<string, unknown>>>
+  taskQueues: Array<TaskQueueBase<unknown>>
   repoPath: string
   steps: Graph<{ stepInfo: StepInfo }>
   stepsToRun: Graph<{
@@ -59,7 +59,7 @@ export async function runAllSteps({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     taskQueueClass: { new (options: TaskQueueOptions<any>): any }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    runStep: Step<string, unknown, any>['runStep']
+    runStep: Step<any>['runStep']
   }>
   flowId: string
   repoHash: string
