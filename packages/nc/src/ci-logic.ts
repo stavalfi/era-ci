@@ -12,9 +12,16 @@ import { getExitCode, getPackages, toFlowLogsContentKey } from './utils'
 export async function ci<TaskQueue>(options: {
   repoPath: string
   config: Config<TaskQueue>
-}): Promise<{ flowId: string; repoHash?: string; steps?: Graph<{ stepInfo: StepInfo }>; passed: boolean }> {
+}): Promise<{
+  flowId: string
+  repoHash?: string
+  steps?: Graph<{ stepInfo: StepInfo }>
+  passed: boolean
+  fatalError: boolean
+}> {
   const cleanups: Cleanup[] = []
   const flowId = chance().hash()
+  let fatalError: boolean
   let repoHash: string | undefined
   let immutableCache: ImmutableCache | undefined
   let log: Log | undefined
@@ -83,7 +90,9 @@ export async function ci<TaskQueue>(options: {
     })
 
     process.exitCode = getExitCode(stepsResultOfArtifactsByStep)
+    fatalError = false
   } catch (error: unknown) {
+    fatalError = true
     process.exitCode = 1
     log?.error(`CI failed unexpectedly`, error)
   } finally {
@@ -102,5 +111,6 @@ export async function ci<TaskQueue>(options: {
     repoHash,
     steps,
     passed: process.exitCode === 0 ? true : false,
+    fatalError,
   }
 }
