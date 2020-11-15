@@ -4,11 +4,15 @@ import winston from 'winston'
 import path from 'path'
 import fse from 'fs-extra'
 
-export type LoggerConfiguration = {
-  customLogLevel: LogLevel
-  disabled?: boolean
-  logFilePath: string
-}
+export type LoggerConfiguration =
+  | {
+      disabled: true
+    }
+  | {
+      customLogLevel: LogLevel
+      logFilePath: string
+      disabled?: boolean
+    }
 
 type NormalizedLoggerConfiguration = {
   customLogLevel: LogLevel
@@ -17,20 +21,25 @@ type NormalizedLoggerConfiguration = {
 }
 
 export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerConfiguration>({
-  normalizeLoggerConfigurations: async ({
-    loggerConfigurations: { customLogLevel, disabled, logFilePath },
-    repoPath,
-  }) => {
-    let finalLogFilePath: string
-    if (path.isAbsolute(logFilePath)) {
-      finalLogFilePath = logFilePath
+  normalizeLoggerConfigurations: async ({ loggerConfigurations, repoPath }) => {
+    if (loggerConfigurations.disabled) {
+      return {
+        disabled: true,
+        customLogLevel: LogLevel.debug,
+        logFilePath: path.join(repoPath, 'nc.log'),
+      }
     } else {
-      finalLogFilePath = path.join(repoPath, logFilePath)
-    }
-    return {
-      customLogLevel,
-      disabled: Boolean(disabled),
-      logFilePath: finalLogFilePath,
+      let finalLogFilePath: string
+      if (path.isAbsolute(loggerConfigurations.logFilePath)) {
+        finalLogFilePath = loggerConfigurations.logFilePath
+      } else {
+        finalLogFilePath = path.join(repoPath, loggerConfigurations.logFilePath)
+      }
+      return {
+        customLogLevel: loggerConfigurations.customLogLevel,
+        disabled: Boolean(loggerConfigurations.disabled),
+        logFilePath: finalLogFilePath,
+      }
     }
   },
   initializeLogger: async ({ loggerConfigurations }) => {

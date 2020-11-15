@@ -26,7 +26,8 @@ import { Repo, TestResources } from './types'
 import { addReportToStepsAsLastNodes } from './utils'
 
 export { DeepPartial } from './types'
-export { isDeepSubsetOf, isDeepSubsetOfOrPrint } from './utils'
+export { isDeepSubsetOf, isDeepSubsetOfOrPrint, sleep } from './utils'
+export { createGitRepo } from './create-git-repo'
 
 const { getResoureces } = resourcesBeforeAfterAll()
 

@@ -24,9 +24,18 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
     this.options.log.verbose(`initialized local-sequental task-queue`)
   }
 
-  public async addTasksToQueue(
-    tasksOptions: { taskName: string; func: () => Promise<void> }[],
-  ): Promise<ScheduledTask[]> {
+  /**
+   * this operation is not async to ensure that the caller can do other stuff before any of the tasks are executed
+   * @param tasksOptions tasks array to preform
+   */
+  public addTasksToQueue(tasksOptions: { taskName: string; func: () => Promise<void> }[]): ScheduledTask[] {
+    if (this.queueState.isQueueKilled) {
+      throw new Error(
+        `task-queue was destroyed so you can not add new tasks to it. ignored tasks-names: "${tasksOptions
+          .map(t => t.taskName)
+          .join(', ')}"`,
+      )
+    }
     const result: ScheduledTask[] = []
 
     for (const taskOptions of tasksOptions) {
@@ -56,6 +65,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
     if (this.queueState.isQueueKilled) {
       return
     }
+
     this.eventEmitter.emit(ExecutionStatus.running, {
       taskExecutionStatus: ExecutionStatus.running,
       taskInfo: task.taskInfo,
@@ -95,12 +105,16 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
   }
 
   public async cleanup(): Promise<void> {
+    if (this.queueState.isQueueKilled) {
+      return
+    }
+
     this.options.log.verbose(`closing local-sequental task-queue and aborting scheduled tasks`)
     // ensure we don't send events of any processing or pending tasks
     this.queueState.isQueueKilled = true
     this.taskQueue.pause()
     // @ts-ignore - taskQueue is iterable so the types are wrong
-    for (const t of [...taskQueue, ...taskQueue.workersList()]) {
+    for (const t of [...this.taskQueue, ...this.taskQueue.workersList()]) {
       const task: ProccessedTask = t
       this.eventEmitter.emit(ExecutionStatus.aborted, {
         taskExecutionStatus: ExecutionStatus.aborted,
