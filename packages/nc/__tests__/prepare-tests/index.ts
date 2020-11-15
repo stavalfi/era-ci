@@ -1,6 +1,7 @@
 /// <reference path="../../../../declarations.d.ts" />
 
 import chance from 'chance'
+import path from 'path'
 import {
   ci,
   config,
@@ -24,6 +25,7 @@ import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterAll } from './prepare-test-resources'
 import { Repo, TestResources } from './types'
 import { addReportToStepsAsLastNodes } from './utils'
+import fse from 'fs-extra'
 
 export { DeepPartial } from './types'
 export { isDeepSubsetOf, isDeepSubsetOfOrPrint, sleep } from './utils'
@@ -91,10 +93,13 @@ type RunCi = <TaskQueue extends TaskQueueBase<unknown>>(
   steps: Graph<{ stepInfo: StepInfo }>
   jsonReport: JsonReport
   passed: boolean
+  logFilePath: string
+  flowLogs: string
 }>
 
 const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configurations = {}, options) => {
-  const { flowId, repoHash, steps, passed } = await ci({
+  const logFilePath = path.join(repoPath, 'nc.log')
+  const { flowId, repoHash, steps, passed, fatalError } = await ci({
     repoPath,
     config: config({
       logger:
@@ -102,7 +107,7 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
         winstonLogger({
           customLogLevel: LogLevel.verbose,
           disabled: false,
-          logFilePath: './nc.log',
+          logFilePath,
         }),
       keyValueStore:
         configurations.keyValueStore ||
@@ -124,11 +129,12 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
     throw new Error(`ci didn't return steps-graph. can't find json-report`)
   }
   const jsonReportStepId = steps.find(s => s.data.stepInfo.stepName === jsonReporter().stepName)?.data.stepInfo.stepId
-  if (!options?.dontAddReportSteps && !jsonReportStepId) {
+  if (!fatalError && !options?.dontAddReportSteps && !jsonReportStepId) {
     throw new Error(`can't find jsonReportStepId. can't find json-report`)
   }
 
   const jsonReport =
+    !fatalError &&
     !options?.dontAddReportSteps &&
     (await getJsonReport({
       repoPath,
@@ -140,6 +146,8 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
 
   return {
     flowId,
+    logFilePath,
+    flowLogs: await fse.readFile(logFilePath, 'utf-8'),
     steps,
     jsonReport: jsonReport || {
       artifacts: [],
