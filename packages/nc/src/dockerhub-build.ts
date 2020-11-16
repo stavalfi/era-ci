@@ -1,6 +1,46 @@
 /* eslint-disable no-console */
 import * as k8s from '@kubernetes/client-node'
 import chance from 'chance'
+import got from 'got'
+
+async function main4() {
+  const token = `6IK4RgUHNoG380SCSLJdCmzbAy0pgXFmyYEY2Jcc`
+  const repoName = `stav1991/repo1`
+  // const gitToken = `37e7707f7a07bea84d55d46c48bfde782ffbe0d1`
+  // const privateRepo = `https://github.com/stavalfi/nc/archive/master.tar.gz`
+  // const result = await got.post(`https://quay.io/api/v1/repository`, {
+  //   headers: {
+  //     Authorization: `Bearer ${token}`,
+  //   },
+  //   json: {
+  //     repo_kind: 'image',
+  //     namespace: 'stav1991',
+  //     visibility: 'public',
+  //     repository: repoName,
+  //     description: 'cool repo',
+  //   },
+  //   responseType: 'json',
+  //   resolveBodyOnly: true,
+  // })
+
+  const result = await got.post(`https://quay.io/api/v1/repository/${repoName}/build/`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    json: {
+      archive_url: `https://github.com/stavalfi/k8test/archive/2a6072a4d6f5becbf2272f71619646de4cd5a296.tar.gz`,
+      docker_tags: [`test-build`],
+      context: `/k8test-2a6072a4d6f5becbf2272f71619646de4cd5a296`,
+      dockerfile_path: `/k8test-2a6072a4d6f5becbf2272f71619646de4cd5a296/packages/dockerhub-build-poc/Dockerfile`,
+    },
+    responseType: 'json',
+    resolveBodyOnly: true,
+  })
+
+  console.log(result)
+}
+
+main4()
 
 const runK8sCommand = async (enabled: boolean, func: () => Promise<unknown>): Promise<void> => {
   try {
@@ -420,4 +460,4 @@ async function main2() {
   })
 }
 
-main2()
+// main2()

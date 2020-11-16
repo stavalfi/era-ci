@@ -1,4 +1,4 @@
-FROM node:12
+FROM quay.io/node:12
 
 WORKDIR /usr/project1
 
