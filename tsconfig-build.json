@@ -8,6 +8,9 @@
     },
     {
       "path": "packages/nc/tsconfig-build.json"
+    },
+    {
+      "path": "packages/git-tar-gz-proxy/tsconfig-build.json"
     }
   ]
 }
