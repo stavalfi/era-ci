@@ -1,0 +1,29 @@
+{
+  "name": "@tahini/git-tar-gz-proxy",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "main": "dist/src/index.js",
+  "private": false,
+  "files": [
+    "dist",
+    "src",
+    "__tests__"
+  ],
+  "bin": {
+    "nc-ci": "./dist/src/index.js"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "test": "jest",
+    "start:dev": "yarn ts-node packages/git-tar-gz-proxy/src/index.ts | yarn pino-pretty -t -i pip,hostname",
+    "start:prod": "node --unhandled-rejections=strict dist/src/index.js | yarn pino-pretty -t -i pip,hostname"
+  },
+  "dependencies": {
+    "fastify": "^3.8.0",
+    "got": "^11.3.0",
+    "pino-pretty": "^4.3.0"
+  }
+}
