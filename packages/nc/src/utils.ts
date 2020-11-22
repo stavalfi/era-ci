@@ -122,3 +122,24 @@ export async function getPackages({ log, repoPath }: { repoPath: string; log: Lo
     .map(workspaceInfo => workspaceInfo.location)
     .map(relativePackagePath => path.join(repoPath, relativePackagePath))
 }
+
+const buildDockerImageName = (packageJsonName: string) => {
+  return packageJsonName.replace('/', '-').replace('@', '')
+}
+
+export const buildFullDockerImageName = ({
+  dockerOrganizationName,
+  dockerRegistry,
+  imageName,
+  imageTag,
+}: {
+  dockerRegistry: string
+  dockerOrganizationName: string
+  imageName: string
+  imageTag?: string
+}): string => {
+  const withImageTag = imageTag ? `:${imageTag}` : ''
+  return `${dockerRegistry
+    .replace(`http://`, '')
+    .replace(`https://`, '')}/${dockerOrganizationName}/${buildDockerImageName(imageName)}${withImageTag}`
+}

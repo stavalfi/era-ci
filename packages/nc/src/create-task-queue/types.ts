@@ -1,7 +1,7 @@
-import { AbortResult, DoneResult, ExecutionStatus, RunningResult, ScheduledResult, Status } from '../types'
-import { StrictEventEmitter } from 'strict-event-emitter-types'
 import { EventEmitter } from 'events'
+import { StrictEventEmitter } from 'strict-event-emitter-types'
 import { Log } from '../create-logger'
+import { AbortResult, DoneResult, ExecutionStatus, GitRepoInfo, RunningResult, ScheduledResult, Status } from '../types'
 
 export type TaskInfo = {
   taskName: string
@@ -63,4 +63,5 @@ export type ConfigureTaskQueue<TaskQueueConfigurations, TaskQueue extends TaskQu
 export type TaskQueueOptions<TaskQueueConfigurations = void> = {
   taskQueueConfigurations: TaskQueueConfigurations
   log: Log
+  gitRepoInfo: GitRepoInfo
 }

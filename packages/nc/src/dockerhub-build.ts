@@ -2,42 +2,48 @@
 import * as k8s from '@kubernetes/client-node'
 import chance from 'chance'
 import got from 'got'
+import _ from 'lodash'
+import path from 'path'
 
 async function main4() {
   const token = `6IK4RgUHNoG380SCSLJdCmzbAy0pgXFmyYEY2Jcc`
-  const repoName = `stav1991/repo1`
-  // const gitToken = `37e7707f7a07bea84d55d46c48bfde782ffbe0d1`
-  // const privateRepo = `https://github.com/stavalfi/nc/archive/master.tar.gz`
-  // const result = await got.post(`https://quay.io/api/v1/repository`, {
-  //   headers: {
-  //     Authorization: `Bearer ${token}`,
-  //   },
-  //   json: {
-  //     repo_kind: 'image',
-  //     namespace: 'stav1991',
-  //     visibility: 'public',
-  //     repository: repoName,
-  //     description: 'cool repo',
-  //   },
-  //   responseType: 'json',
-  //   resolveBodyOnly: true,
-  // })
+  // // const gitToken = `37e7707f7a07bea84d55d46c48bfde782ffbe0d1`
+  // // const privateRepo = `https://github.com/stavalfi/nc/archive/master.tar.gz`
+  await Promise.all(
+    _.range(10, 25).map(async i => {
+      await got.post(`https://quay.io/api/v1/repository`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        json: {
+          repo_kind: 'image',
+          namespace: 'stav1991',
+          visibility: 'public',
+          repository: `repo${i}`,
+          description: 'cool repo',
+        },
+        responseType: 'json',
+        resolveBodyOnly: true,
+      })
 
-  const result = await got.post(`https://quay.io/api/v1/repository/${repoName}/build/`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    json: {
-      archive_url: `https://github.com/stavalfi/k8test/archive/2a6072a4d6f5becbf2272f71619646de4cd5a296.tar.gz`,
-      docker_tags: [`test-build`],
-      context: `/k8test-2a6072a4d6f5becbf2272f71619646de4cd5a296`,
-      dockerfile_path: `/k8test-2a6072a4d6f5becbf2272f71619646de4cd5a296/packages/dockerhub-build-poc/Dockerfile`,
-    },
-    responseType: 'json',
-    resolveBodyOnly: true,
-  })
+      const result2 = await got.post(`https://quay.io/api/v1/repository/stav1991/repo${i}/build/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        json: {
+          // proxy archive_url: http://127.0.0.1:8080/download-git-repo-tar-gz?git_registry=github&git_org=stavalfi&git_repo=nc&commit=master
+          archive_url: `https://github.com/stavalfi/k8test/archive/2a6072a4d6f5becbf2272f71619646de4cd5a296.tar.gz`,
+          docker_tags: [`test-build`],
+          context: `/k8test-2a6072a4d6f5becbf2272f71619646de4cd5a296`,
+          dockerfile_path: `/k8test-2a6072a4d6f5becbf2272f71619646de4cd5a296/packages/dockerhub-build-poc/Dockerfile`,
+        },
+        responseType: 'json',
+        resolveBodyOnly: true,
+      })
 
-  console.log(result)
+      console.log(result2)
+    }),
+  )
 }
 
 main4()
