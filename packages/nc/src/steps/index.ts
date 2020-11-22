@@ -1,6 +1,6 @@
 export { build } from './build'
 export { cliTableReporter } from './cli-table-report'
-export { buildFullDockerImageName, dockerPublish, getDockerImageLabelsAndTags } from './docker-publish'
+export { dockerPublish, getDockerImageLabelsAndTags } from './docker-publish'
 export { install } from './install'
 export {
   JsonReport,

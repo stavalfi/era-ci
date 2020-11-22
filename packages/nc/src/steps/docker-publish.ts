@@ -7,7 +7,7 @@ import { createStep, RunStrategy } from '../create-step'
 import { skipIfStepIsDisabledConstrain } from '../step-constrains'
 import { LocalSequentalTaskQueue } from '../task-queues'
 import { ConstrainResult, ExecutionStatus, PackageJson, Status } from '../types'
-import { execaCommand } from '../utils'
+import { buildFullDockerImageName, execaCommand } from '../utils'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
 
 export type DockerPublishConfiguration = {
@@ -33,27 +33,6 @@ async function runSkopeoCommand(
 ): Promise<string> {
   const { stdout: result } = await execaCommand(command, { cwd: repoPath, stdio: 'pipe', log })
   return result
-}
-
-const buildDockerImageName = (packageJsonName: string) => {
-  return packageJsonName.replace('/', '-').replace('@', '')
-}
-
-export const buildFullDockerImageName = ({
-  dockerOrganizationName,
-  dockerRegistry,
-  packageJsonName,
-  imageTag,
-}: {
-  dockerRegistry: string
-  dockerOrganizationName: string
-  packageJsonName: string
-  imageTag?: string
-}): string => {
-  const withImageTag = imageTag ? `:${imageTag}` : ''
-  return `${dockerRegistry
-    .replace(`http://`, '')
-    .replace(`https://`, '')}/${dockerOrganizationName}/${buildDockerImageName(packageJsonName)}${withImageTag}`
 }
 
 async function dockerRegistryLogin({
@@ -109,7 +88,7 @@ async function isDockerVersionAlreadyPulished({
   const fullImageName = buildFullDockerImageName({
     dockerOrganizationName,
     dockerRegistry,
-    packageJsonName: packageName,
+    imageName: packageName,
     imageTag,
   })
   const withAuth = registryAuth ? `--creds ${registryAuth.username}:${registryAuth.token}` : ''
@@ -174,7 +153,7 @@ export async function getDockerImageLabelsAndTags({
   const fullImageNameWithoutTag = buildFullDockerImageName({
     dockerOrganizationName,
     dockerRegistry,
-    packageJsonName,
+    imageName: packageJsonName,
   })
   const withAuth = registryAuth ? `--creds ${registryAuth.username}:${registryAuth.token}` : ''
 
@@ -197,7 +176,7 @@ export async function getDockerImageLabelsAndTags({
     const fullImageName = buildFullDockerImageName({
       dockerOrganizationName,
       dockerRegistry,
-      packageJsonName,
+      imageName: packageJsonName,
       imageTag: highestPublishedTag,
     })
 
@@ -394,7 +373,7 @@ export const dockerPublish = createStep<LocalSequentalTaskQueue, DockerPublishCo
       const fullImageNameNewVersion = buildFullDockerImageName({
         dockerOrganizationName: stepConfigurations.dockerOrganizationName,
         dockerRegistry: stepConfigurations.registry,
-        packageJsonName: currentArtifact.data.artifact.packageJson.name,
+        imageName: currentArtifact.data.artifact.packageJson.name,
         imageTag: newVersion,
       })
 
