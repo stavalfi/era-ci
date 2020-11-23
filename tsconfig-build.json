@@ -10,7 +10,16 @@
       "path": "packages/nc/tsconfig-build.json"
     },
     {
-      "path": "packages/git-tar-gz-proxy/tsconfig-build.json"
+      "path": "packages/quay/quay-helper-service/tsconfig-build.json"
+    },
+    {
+      "path": "packages/quay/quay-task-queue/tsconfig-build.json"
+    },
+    {
+      "path": "packages/quay/tests/tsconfig-build.json"
+    },
+    {
+      "path": "packages/e2e-tests-infra/tsconfig-build.json"
     }
   ]
 }

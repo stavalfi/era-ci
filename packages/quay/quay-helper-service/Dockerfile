@@ -4,7 +4,7 @@ WORKDIR /usr/git-tar-gz-proxy
 
 COPY yarn.lock package.json remove-all-dev-deps-from-all-package-jsons.js change-version.js ./
 
-ARG package_path=packages/git-tar-gz-proxy
+ARG package_path=packages/quay/quay-helper-service
 
 COPY ${package_path}/package.json ./${package_path}/package.json
 
@@ -21,4 +21,4 @@ RUN node change-version.js ${package_path} ${new_version} \
 && rm change-version.js \
 && yarn install --frozen-lockfile --production
 
-CMD node --unhandled-rejections=strict ./packages/git-tar-gz-proxy/dist/src/index.js | yarn pino-pretty -t -i pip,hostname
+CMD node --unhandled-rejections=strict ./packages/quay/quay-helper-service/dist/src/index.js | yarn pino-pretty -t -i pip,hostname

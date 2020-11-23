@@ -15,7 +15,10 @@
     "noErrorTruncation": true,
     "baseUrl": "packages",
     "paths": {
-      "@tahini/nc": ["nc/src/index.ts"]
+      "@tahini/nc": ["nc/src/index.ts"],
+      "@tahini/quay-helper-service": ["quay/quay-helper-service/src/index.ts"],
+      "@tahini/quay-task-queue": ["quay/quay-task-queue/src/index.ts"],
+      "@tahini/e2e-tests-infra": ["e2e-tests-infra/src/index.ts"]
     }
   }
 }
