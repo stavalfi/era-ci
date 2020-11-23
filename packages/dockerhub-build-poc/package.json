@@ -1,6 +1,0 @@
-{
-  "name": "a1",
-  "dependencies": {
-    "@types/chance": "^1.0.8"
-  }
-}

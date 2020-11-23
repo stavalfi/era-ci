@@ -107,7 +107,7 @@ export async function publishDockerPackageWithoutCi({
   const fullImageNameNewVersion = buildFullDockerImageName({
     dockerOrganizationName,
     dockerRegistry,
-    packageJsonName: toActualName(packageName),
+    imageName: toActualName(packageName),
     imageTag,
   })
   const labelsJoined =

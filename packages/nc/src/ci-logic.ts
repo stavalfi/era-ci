@@ -8,6 +8,10 @@ import { createImmutableCache, ImmutableCache } from './immutable-cache'
 import { runAllSteps } from './steps-execution'
 import { Cleanup, Graph } from './types'
 import { getExitCode, getPackages, toFlowLogsContentKey } from './utils'
+import gitUrlParse from 'git-url-parse'
+import gitRemoteOriginUrl from 'git-remote-origin-url'
+import nodegit from 'nodegit'
+import path from 'path'
 
 export async function ci<TaskQueue>(options: {
   repoPath: string
@@ -63,6 +67,10 @@ export async function ci<TaskQueue>(options: {
     })
     cleanups.push(immutableCache.cleanup)
 
+    const gitInfo = gitUrlParse(await gitRemoteOriginUrl(options.repoPath))
+    const git = await nodegit.Repository.open(path.join(options.repoPath, '.git'))
+    const commit = await git.getHeadCommit()
+
     const taskQueues = await Promise.all(
       options.config.taskQueues.map(t => {
         if (!logger) {
@@ -70,6 +78,15 @@ export async function ci<TaskQueue>(options: {
         }
         return t.createFunc({
           log: logger.createLog(t.taskQueueName),
+          gitRepoInfo: {
+            auth: {
+              username: '1',
+              token: gitInfo.token,
+            },
+            commit: commit.sha(),
+            repoName: gitInfo.name,
+            repoNameWithOrgName: gitInfo.full_name,
+          },
         })
       }),
     )

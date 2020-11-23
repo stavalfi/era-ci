@@ -3,7 +3,6 @@ import * as k8s from '@kubernetes/client-node'
 import chance from 'chance'
 import got from 'got'
 import _ from 'lodash'
-import path from 'path'
 
 async function main4() {
   const token = `6IK4RgUHNoG380SCSLJdCmzbAy0pgXFmyYEY2Jcc`
@@ -11,20 +10,20 @@ async function main4() {
   // // const privateRepo = `https://github.com/stavalfi/nc/archive/master.tar.gz`
   await Promise.all(
     _.range(10, 25).map(async i => {
-      await got.post(`https://quay.io/api/v1/repository`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        json: {
-          repo_kind: 'image',
-          namespace: 'stav1991',
-          visibility: 'public',
-          repository: `repo${i}`,
-          description: 'cool repo',
-        },
-        responseType: 'json',
-        resolveBodyOnly: true,
-      })
+      // await got.post(`https://quay.io/api/v1/repository`, {
+      //   headers: {
+      //     Authorization: `Bearer ${token}`,
+      //   },
+      //   json: {
+      //     repo_kind: 'image',
+      //     namespace: 'stav1991',
+      //     visibility: 'public',
+      //     repository: `repo${i}`,
+      //     description: 'cool repo',
+      //   },
+      //   responseType: 'json',
+      //   resolveBodyOnly: true,
+      // })
 
       const result2 = await got.post(`https://quay.io/api/v1/repository/stav1991/repo${i}/build/`, {
         headers: {
@@ -39,6 +38,10 @@ async function main4() {
         },
         responseType: 'json',
         resolveBodyOnly: true,
+        retry: {
+          maxRetryAfter: 5,
+          calculateDelay: r => r.attemptCount * 5_000,
+        },
       })
 
       console.log(result2)
@@ -120,6 +123,7 @@ function getK8sClient(options: TryReadFromLocalMachine | SpecifyConnectionDetail
   return kc
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getMinikubeClient() {
   return getK8sClient({
     k8sConnectionStrategyType: K8sConnectionStrategyType.specifyConnectionDetails,
@@ -144,6 +148,7 @@ function getMinikubeClient() {
   })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function main2() {
   // const kc = getMinikubeClient()
   const kc = getK8sClient({
@@ -155,6 +160,7 @@ async function main2() {
   const k8sLog = new k8s.Log(kc)
 
   await runK8sCommand(true, async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const result = await k8sLog.log(
       'default',
       'job-example2-9hh74',

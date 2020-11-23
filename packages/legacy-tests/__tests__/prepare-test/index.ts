@@ -89,7 +89,7 @@ export const newEnv: NewEnv = () => {
         buildFullDockerImageName({
           dockerOrganizationName,
           dockerRegistry: dockerRegistry,
-          packageJsonName: toActualName(packageName),
+          imageName: toActualName(packageName),
           imageTag,
         }),
       addRandomFileToPackage: addRandomFileToPackage({

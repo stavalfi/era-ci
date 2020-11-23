@@ -1,0 +1,22 @@
+{
+  "name": "@tahini/quay-task-queue",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "main": "dist/src/index.js",
+  "private": false,
+  "files": [
+    "dist",
+    "src",
+    "__tests__"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "types": "dist/src/index.d.ts",
+  "dependencies": {
+    "fastify": "^3.8.0",
+    "got": "^11.3.0",
+    "pino-pretty": "^4.3.0",
+    "@tahini/nc": "^1.0.0"
+  }
+}

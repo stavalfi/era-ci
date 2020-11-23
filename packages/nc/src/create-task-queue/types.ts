@@ -51,7 +51,7 @@ export type TaskQueueBase<
 export type CreateTaskQueue<
   TaskQueueConfigurations,
   TaskQueue extends TaskQueueBase<TaskQueueConfigurations>
-> = (options: { log: Log }) => Promise<TaskQueue>
+> = (options: { log: Log; gitRepoInfo: GitRepoInfo }) => Promise<TaskQueue>
 
 export type ConfigureTaskQueue<TaskQueueConfigurations, TaskQueue extends TaskQueueBase<TaskQueueConfigurations>> = (
   taskQueueConfigurations: TaskQueueConfigurations,

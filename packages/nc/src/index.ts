@@ -35,12 +35,12 @@ export {
   TaskInfo,
   TaskQueueBase,
   TaskQueueEventEmitter,
+  TaskQueueOptions,
 } from './create-task-queue'
 export { createImmutableCache } from './immutable-cache'
 export { RedisConfiguration, redisConnection } from './redis-connection'
 export {
   build,
-  buildFullDockerImageName,
   cliTableReporter,
   dockerPublish,
   getDockerImageLabelsAndTags,
@@ -61,7 +61,7 @@ export {
 } from './steps'
 export { ExampleTaskQueue, exampleTaskQueue, localSequentalTaskQueue, LocalSequentalTaskQueue } from './task-queues'
 export { Artifact, ConstrainResult, ExecutionStatus, Graph, PackageJson, Status } from './types'
-export { execaCommand } from './utils'
+export { execaCommand, buildFullDockerImageName } from './utils'
 export { LoggerConfiguration, winstonLogger } from './winston-logger'
 
 async function main() {

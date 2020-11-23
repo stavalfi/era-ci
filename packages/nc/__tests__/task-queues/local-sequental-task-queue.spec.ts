@@ -22,6 +22,15 @@ beforeEach(async () => {
 
   taskQueue = await localSequentalTaskQueue().createFunc({
     log: logger.createLog('task-queue'),
+    gitRepoInfo: {
+      auth: {
+        token: '-',
+        username: '-',
+      },
+      commit: '-',
+      repoName: '-',
+      repoNameWithOrgName: '-/-',
+    },
   })
 })
 
