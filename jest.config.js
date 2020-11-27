@@ -15,6 +15,9 @@ module.exports = {
       tsconfig: path.join(__dirname, 'tsconfig.json'),
     },
   },
-  testMatch: [path.join(__dirname, 'packages/*/__tests__/**/*.spec.ts')],
+  testMatch: [
+    path.join(__dirname, 'packages/*/__tests__/**/*.spec.ts'),
+    path.join(__dirname, 'packages/quay/*/__tests__/**/*.spec.ts'),
+  ],
   globalSetup: path.join(__dirname, 'jest-global-setup.js'),
 }

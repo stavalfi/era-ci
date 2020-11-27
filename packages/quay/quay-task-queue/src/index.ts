@@ -317,6 +317,8 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     this.isQueueActive = false
     this.queueStatusChanged.emit('closed')
 
+    await this.redisConnection.disconnect()
+
     // all tasks will end now and each running task will send "aborted" event.
 
     this.options.log.verbose(`closed quay-builds task-queue and aborted scheduled and running tasks`)
