@@ -24,7 +24,7 @@ test('cleanup can be called multiple times', async () => {
 
 test('cant add tasks after cleanup', async () => {
   await taskQueue.cleanup()
-  expect(() => taskQueue.addTasksToQueue([])).toThrow()
+  expect(taskQueue.addTasksToQueue([])).rejects.toBeTruthy()
 })
 
 test('cleanup can be called multiple times concurrenctly', async () => {
