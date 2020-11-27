@@ -53,6 +53,7 @@ export async function startQuayHelperService(
       }
       closed = true
       await app.close()
+      await redisConnection.disconnect()
     },
   }
 }

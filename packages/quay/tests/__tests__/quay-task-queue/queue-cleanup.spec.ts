@@ -1,5 +1,5 @@
 import { QuayBuildsTaskQueue } from '@tahini/quay-task-queue'
-import { beforeAfterEach } from './utils'
+import { beforeAfterEach } from '../utils'
 
 const { getResoureces } = beforeAfterEach()
 
@@ -9,7 +9,7 @@ beforeEach(() => {
   taskQueue = getResoureces().queue
 })
 
-test.only('cleanup dont throw when queue is empty', async () => {
+test('cleanup dont throw when queue is empty', async () => {
   // ensure even if we don't use the queue, it won't throw errors.
 })
 

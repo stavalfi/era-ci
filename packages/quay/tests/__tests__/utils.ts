@@ -15,6 +15,34 @@ type TestDependencies = {
   queue: QuayBuildsTaskQueue
 }
 
+export function beforeAfterEach(): {
+  getResoureces: () => {
+    queue: QuayBuildsTaskQueue
+  }
+} {
+  const { getResoureces, createRepo } = createTest()
+
+  let testDependencies: TestDependencies
+
+  beforeEach(async () => {
+    testDependencies = await createTestDependencies(getResoureces, createRepo)
+  })
+
+  afterEach(async () => {
+    await Promise.all([
+      testDependencies.quayMockService.cleanup(),
+      testDependencies.quayServiceHelper.cleanup(),
+      testDependencies.queue.cleanup(),
+    ])
+  })
+
+  return {
+    getResoureces: () => ({
+      queue: testDependencies.queue,
+    }),
+  }
+}
+
 async function createTestDependencies(
   getResoureces: () => TestResources,
   createRepo: CreateRepo,
@@ -73,33 +101,5 @@ async function createTestDependencies(
     quayNamespace,
     queue,
     repoPath,
-  }
-}
-
-export function beforeAfterEach(): {
-  getResoureces: () => {
-    queue: QuayBuildsTaskQueue
-  }
-} {
-  const { getResoureces, createRepo } = createTest()
-
-  let testDependencies: TestDependencies
-
-  beforeEach(async () => {
-    testDependencies = await createTestDependencies(getResoureces, createRepo)
-  })
-
-  afterEach(async () => {
-    await Promise.all([
-      testDependencies.quayMockService.cleanup(),
-      testDependencies.quayServiceHelper.cleanup(),
-      testDependencies.queue.cleanup(),
-    ])
-  })
-
-  return {
-    getResoureces: () => ({
-      queue: testDependencies.queue,
-    }),
   }
 }
