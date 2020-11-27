@@ -3,7 +3,7 @@ import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap } from 'package-json-type'
 import { GitServer } from './git-server-testkit'
 
-export { TargetType }
+export { TargetType, PackageJson }
 
 export type Package = {
   name: string

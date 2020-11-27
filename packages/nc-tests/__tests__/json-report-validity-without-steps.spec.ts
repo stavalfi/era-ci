@@ -1,5 +1,5 @@
-import { ExecutionStatus, JsonReport, Status } from '../src'
-import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
+import { ExecutionStatus, JsonReport, Status } from '@tahini/nc'
+import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
 
 const { createRepo } = createTest()
 

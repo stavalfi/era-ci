@@ -1,9 +1,12 @@
 import execa from 'execa'
+import gitRemoteOriginUrl from 'git-remote-origin-url'
+import gitUrlParse from 'git-url-parse'
 import _ from 'lodash'
+import nodegit from 'nodegit'
 import path from 'path'
 import { Log } from './create-logger'
 import { StepsResultOfArtifactsByStep } from './create-step'
-import { ExecutionStatus, Status, UnionArrayValues } from './types'
+import { ExecutionStatus, GitRepoInfo, Status, UnionArrayValues } from './types'
 
 export const didPassOrSkippedAsPassed = (status: Status): boolean =>
   [Status.passed, Status.skippedAsPassed].includes(status)
@@ -142,4 +145,19 @@ export const buildFullDockerImageName = ({
   return `${dockerRegistry
     .replace(`http://`, '')
     .replace(`https://`, '')}/${dockerOrganizationName}/${buildDockerImageName(imageName)}${withImageTag}`
+}
+
+export async function getGitRepoInfo(repoPath: string): Promise<GitRepoInfo> {
+  const gitInfo = gitUrlParse(await gitRemoteOriginUrl(repoPath))
+  const git = await nodegit.Repository.open(path.join(repoPath, '.git'))
+  const commit = await git.getHeadCommit()
+  return {
+    auth: {
+      username: '1',
+      token: gitInfo.token,
+    },
+    commit: commit.sha(),
+    repoName: gitInfo.name,
+    repoNameWithOrgName: gitInfo.full_name,
+  }
 }

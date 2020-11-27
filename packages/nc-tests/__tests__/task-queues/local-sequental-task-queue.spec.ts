@@ -6,8 +6,8 @@ import {
   LogLevel,
   Status,
   winstonLogger,
-} from '../../src'
-import { isDeepSubsetOfOrPrint, sleep } from '../prepare-tests'
+} from '@tahini/nc'
+import { isDeepSubsetOfOrPrint, sleep } from '@tahini/e2e-tests-infra'
 
 let taskQueue: LocalSequentalTaskQueue
 let cleanups: (() => Promise<unknown>)[] = []

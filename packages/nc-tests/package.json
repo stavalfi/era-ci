@@ -1,0 +1,13 @@
+{
+  "name": "@tahini/nc-tests",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@tahini/e2e-tests-infra":"^1.0.0",
+    "@tahini/nc":"^1.0.0"
+  }
+}

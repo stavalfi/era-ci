@@ -9,10 +9,16 @@
       "path": "../../nc/tsconfig-build.json"
     },
     {
+      "path": "../../e2e-tests-infra/tsconfig-build.json"
+    },
+    {
       "path": "../quay-task-queue/tsconfig-build.json"
     },
     {
       "path": "../quay-helper-service/tsconfig-build.json"
+    },
+    {
+      "path": "../quay-mock-service/tsconfig-build.json"
     }
   ]
 }

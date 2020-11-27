@@ -2,10 +2,13 @@ import got from 'got'
 import path from 'path'
 import { Log, buildFullDockerImageName } from '@tahini/nc'
 import { AbortEventHandler } from './types'
+import HttpStatusCodes from 'http-status-codes'
+import chance from 'chance'
 
 export enum QuayBuildStatus {
   waiting = 'waiting',
   started = 'started', // this is not confirmed. can't find in the docs what it is
+  cancelled = 'cancelled', // this is not confirmed. can't find in the docs if this exists
   complete = 'complete',
   error = 'error',
 }
@@ -15,7 +18,7 @@ export type QuayCreateRepoResult = { kind: 'image'; namespace: string; name: str
 export type QuayNewBuildResult = {
   status: unknown // {}
   error: null
-  display_name: 'be2b182'
+  display_name: string
   repository: { namespace: string; name: string }
   subdirectory: string
   started: string
@@ -29,7 +32,7 @@ export type QuayNewBuildResult = {
   phase: QuayBuildStatus
   resource_key: null
   manual_user: string
-  id: '5a513d5d-9d01-49a8-8325-2a3bd4c446e3'
+  id: string
   dockerfile_path: string
 }
 
@@ -40,6 +43,27 @@ export type BuildTriggerResult = {
   quayBuildAddress: string
   quayBuildLogsAddress: string
   quayBuildStatus: QuayBuildStatus
+}
+
+export enum QuayNotificationEvents {
+  buildQueued = 'build_queued',
+  buildStart = 'build_start',
+  buildSuccess = 'build_success',
+  buildFailure = 'build_failure',
+  buildCancelled = 'build_cancelled',
+}
+
+export type CreateNotificationResult = {
+  event_config: Record<string, unknown>
+  uuid: string
+  title: string
+  number_of_failures: number
+  method: 'webhook'
+  config: {
+    url: string
+    template: string // it's JSON.strigify of request.body.config.template
+  }
+  event: QuayNotificationEvents
 }
 
 export class QuayClient {
@@ -76,6 +100,10 @@ export class QuayClient {
       responseType: 'json',
       resolveBodyOnly: true,
       timeout: timeoutMs,
+      retry: {
+        calculateDelay: () => chance().integer({ min: 1, max: 5 }),
+        statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
+      },
     })
 
     this.abortEventHandler.once('closed', () => p.cancel())
@@ -115,6 +143,10 @@ export class QuayClient {
       responseType: 'json',
       resolveBodyOnly: true,
       timeout: timeoutMs,
+      retry: {
+        calculateDelay: () => chance().integer({ min: 1, max: 5 }),
+        statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
+      },
     })
 
     this.abortEventHandler.once('closed', () => p.cancel())
@@ -132,13 +164,17 @@ export class QuayClient {
     timeoutMs: number
     packageName: string
   }): Promise<void> {
-    const p = got.delete<QuayNewBuildResult>(`${this.quayAddress}/api/v1/repository/build/${quayBuildId}`, {
+    const p = got.delete(`${this.quayAddress}/api/v1/repository/build/${quayBuildId}`, {
       headers: {
         Authorization: `Bearer ${this.quayToken}`,
       },
       responseType: 'json',
       resolveBodyOnly: true,
       timeout: timeoutMs,
+      retry: {
+        calculateDelay: () => chance().integer({ min: 1, max: 5 }),
+        statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
+      },
     })
     this.abortEventHandler.once('closed', () => p.cancel())
     await p
@@ -179,6 +215,10 @@ export class QuayClient {
         responseType: 'json',
         resolveBodyOnly: true,
         timeout: timeoutMs,
+        retry: {
+          calculateDelay: () => chance().integer({ min: 1, max: 5 }),
+          statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
+        },
       },
     )
     this.abortEventHandler.once('closed', () => p.cancel())
@@ -203,5 +243,50 @@ export class QuayClient {
       })}" with tags: "${imageTags.join(',')}"`,
     )
     return result
+  }
+
+  public async createNotification({
+    packageName,
+    repoName,
+    timeoutMs,
+    event,
+    webhookUrl,
+  }: {
+    webhookUrl: string
+    packageName: string
+    repoName: string
+    timeoutMs: number
+    event: QuayNotificationEvents
+  }): Promise<void> {
+    const p = got.post<CreateNotificationResult>(`${this.quayAddress}/api/v1/repository/${repoName}/notification/`, {
+      headers: {
+        Authorization: `Bearer ${this.quayToken}`,
+      },
+      json: {
+        config: { url: webhookUrl },
+        event,
+        eventConfig: {},
+        method: 'webhook',
+        title: event,
+      },
+      responseType: 'json',
+      resolveBodyOnly: true,
+      timeout: timeoutMs,
+      retry: {
+        calculateDelay: () => chance().integer({ min: 1, max: 5 }),
+        statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
+      },
+    })
+    this.abortEventHandler.once('closed', () => p.cancel())
+
+    await p
+
+    this.log.verbose(
+      `created notification: ${event} for package: "${packageName}" - repository: "${buildFullDockerImageName({
+        dockerRegistry: this.quayAddress,
+        imageName: repoName,
+        dockerOrganizationName: this.quayNamespace,
+      })}"`,
+    )
   }
 }

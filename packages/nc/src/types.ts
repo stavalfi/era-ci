@@ -86,8 +86,8 @@ export type GitRepoInfo = {
   commit: string
   repoNameWithOrgName: string
   repoName: string
-  auth: {
-    username: string
-    token: string
+  auth?: {
+    username?: string
+    token?: string
   }
 }

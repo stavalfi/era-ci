@@ -6,8 +6,8 @@ import {
   LocalSequentalTaskQueue,
   RunStrategy,
   Status,
-} from '../src'
-import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
+} from '@tahini/nc'
+import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
 
 const { createRepo } = createTest()
 
@@ -26,26 +26,9 @@ test('step should pass in json-report', async () => {
         stepName: 'step1',
         taskQueueClass: LocalSequentalTaskQueue,
         run: {
-          runStrategy: RunStrategy.allArtifacts,
-          runStepOnArtifacts: async () => {
-            return {
-              stepResult: {
-                errors: [],
-                notes: [],
-              },
-              artifactsResult: [
-                {
-                  artifactName: toActualName('a'),
-                  artifactStepResult: {
-                    durationMs: 1,
-                    errors: [],
-                    notes: [],
-                    executionStatus: ExecutionStatus.done,
-                    status: Status.passed,
-                  },
-                },
-              ],
-            }
+          runStrategy: RunStrategy.perArtifact,
+          runStepOnArtifact: async () => {
+            return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
           },
         },
       })(),
@@ -91,6 +74,38 @@ test('step should pass in json-report', async () => {
         },
       },
     ],
+    stepsResultOfArtifactsByArtifact: [
+      {
+        data: {
+          artifact: {
+            packageJson: {
+              name: toActualName('a'),
+            },
+          },
+          artifactResult: {
+            errors: [],
+            notes: [],
+            executionStatus: ExecutionStatus.done,
+            status: Status.passed,
+          },
+          stepsResult: [
+            {
+              data: {
+                stepInfo: {
+                  stepName: 'step1',
+                },
+                artifactStepResult: {
+                  errors: [],
+                  notes: [],
+                  executionStatus: ExecutionStatus.done,
+                  status: Status.passed,
+                },
+              },
+            },
+          ],
+        },
+      },
+    ],
   }
 
   expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
@@ -111,26 +126,9 @@ test('flow should fail because step failed (without throwing error from the step
         stepName: 'step1',
         taskQueueClass: LocalSequentalTaskQueue,
         run: {
-          runStrategy: RunStrategy.allArtifacts,
-          runStepOnArtifacts: async () => {
-            return {
-              stepResult: {
-                errors: [],
-                notes: [],
-              },
-              artifactsResult: [
-                {
-                  artifactName: toActualName('a'),
-                  artifactStepResult: {
-                    durationMs: 1,
-                    errors: [],
-                    notes: [],
-                    executionStatus: ExecutionStatus.done,
-                    status: Status.failed,
-                  },
-                },
-              ],
-            }
+          runStrategy: RunStrategy.perArtifact,
+          runStepOnArtifact: async () => {
+            return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
           },
         },
       })(),
@@ -178,6 +176,38 @@ test('flow should fail because step failed (without throwing error from the step
         },
       },
     ],
+    stepsResultOfArtifactsByArtifact: [
+      {
+        data: {
+          artifact: {
+            packageJson: {
+              name: toActualName('a'),
+            },
+          },
+          artifactResult: {
+            errors: [],
+            notes: [],
+            executionStatus: ExecutionStatus.done,
+            status: Status.failed,
+          },
+          stepsResult: [
+            {
+              data: {
+                stepInfo: {
+                  stepName: 'step1',
+                },
+                artifactStepResult: {
+                  errors: [],
+                  executionStatus: ExecutionStatus.done,
+                  notes: [],
+                  status: Status.failed,
+                },
+              },
+            },
+          ],
+        },
+      },
+    ],
   }
 
   expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
@@ -198,8 +228,8 @@ test('flow should fail because step failed (while throwing error from the step)'
         stepName: 'step1',
         taskQueueClass: LocalSequentalTaskQueue,
         run: {
-          runStrategy: RunStrategy.allArtifacts,
-          runStepOnArtifacts: async () => {
+          runStrategy: RunStrategy.perArtifact,
+          runStepOnArtifact: async () => {
             throw new Error('error123')
           },
         },
@@ -210,6 +240,7 @@ test('flow should fail because step failed (while throwing error from the step)'
   expect(passed).toBeFalsy()
 
   const expectedJsonReport: DeepPartial<JsonReport> = {
+    flowExecutionStatus: ExecutionStatus.done,
     flowResult: {
       errors: [],
       notes: [],
@@ -223,11 +254,7 @@ test('flow should fail because step failed (while throwing error from the step)'
             stepName: 'step1',
           },
           stepResult: {
-            errors: [
-              {
-                message: 'error123',
-              },
-            ],
+            errors: [],
             notes: [],
             executionStatus: ExecutionStatus.done,
             status: Status.failed,
@@ -241,7 +268,47 @@ test('flow should fail because step failed (while throwing error from the step)'
                   },
                 },
                 artifactStepResult: {
-                  errors: [],
+                  errors: [
+                    {
+                      message: 'error123',
+                    },
+                  ],
+                  notes: [],
+                  executionStatus: ExecutionStatus.done,
+                  status: Status.failed,
+                },
+              },
+            },
+          ],
+        },
+      },
+    ],
+    stepsResultOfArtifactsByArtifact: [
+      {
+        data: {
+          artifact: {
+            packageJson: {
+              name: toActualName('a'),
+            },
+          },
+          artifactResult: {
+            errors: [],
+            notes: [],
+            executionStatus: ExecutionStatus.done,
+            status: Status.failed,
+          },
+          stepsResult: [
+            {
+              data: {
+                stepInfo: {
+                  stepName: 'step1',
+                },
+                artifactStepResult: {
+                  errors: [
+                    {
+                      message: 'error123',
+                    },
+                  ],
                   notes: [],
                   executionStatus: ExecutionStatus.done,
                   status: Status.failed,

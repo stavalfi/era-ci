@@ -5,8 +5,8 @@ import {
   LocalSequentalTaskQueue,
   RunStrategy,
   Status,
-} from '../src'
-import { createTest } from './prepare-tests'
+} from '@tahini/nc'
+import { createTest } from '@tahini/e2e-tests-infra'
 
 const { createRepo } = createTest()
 

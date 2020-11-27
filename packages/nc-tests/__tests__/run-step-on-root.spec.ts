@@ -6,10 +6,50 @@ import {
   LocalSequentalTaskQueue,
   RunStrategy,
   Status,
-} from '../src'
-import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from './prepare-tests'
+} from '@tahini/nc'
+import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
 
 const { createRepo } = createTest()
+
+test('flow should pass because step pass', async () => {
+  const { runCi } = await createRepo({
+    packages: [
+      {
+        name: 'a',
+        version: '1.0.0',
+      },
+    ],
+  })
+  const { passed, jsonReport, flowId } = await runCi({
+    steps: createLinearStepsGraph([
+      createStep({
+        stepName: 'step1',
+        taskQueueClass: LocalSequentalTaskQueue,
+        run: {
+          runStrategy: RunStrategy.root,
+          runStepOnRoot: async () => {
+            return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
+          },
+        },
+      })(),
+    ]),
+  })
+
+  expect(passed).toBeTruthy()
+
+  const expectedJsonReport: DeepPartial<JsonReport> = {
+    flow: {
+      flowId,
+    },
+    flowResult: {
+      errors: [],
+      notes: [],
+      status: Status.passed,
+    },
+  }
+
+  expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
+})
 
 test('step should pass in json-report', async () => {
   const { runCi, toActualName } = await createRepo({
@@ -26,8 +66,8 @@ test('step should pass in json-report', async () => {
         stepName: 'step1',
         taskQueueClass: LocalSequentalTaskQueue,
         run: {
-          runStrategy: RunStrategy.perArtifact,
-          runStepOnArtifact: async () => {
+          runStrategy: RunStrategy.root,
+          runStepOnRoot: async () => {
             return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
           },
         },
@@ -74,38 +114,6 @@ test('step should pass in json-report', async () => {
         },
       },
     ],
-    stepsResultOfArtifactsByArtifact: [
-      {
-        data: {
-          artifact: {
-            packageJson: {
-              name: toActualName('a'),
-            },
-          },
-          artifactResult: {
-            errors: [],
-            notes: [],
-            executionStatus: ExecutionStatus.done,
-            status: Status.passed,
-          },
-          stepsResult: [
-            {
-              data: {
-                stepInfo: {
-                  stepName: 'step1',
-                },
-                artifactStepResult: {
-                  errors: [],
-                  notes: [],
-                  executionStatus: ExecutionStatus.done,
-                  status: Status.passed,
-                },
-              },
-            },
-          ],
-        },
-      },
-    ],
   }
 
   expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
@@ -126,8 +134,8 @@ test('flow should fail because step failed (without throwing error from the step
         stepName: 'step1',
         taskQueueClass: LocalSequentalTaskQueue,
         run: {
-          runStrategy: RunStrategy.perArtifact,
-          runStepOnArtifact: async () => {
+          runStrategy: RunStrategy.root,
+          runStepOnRoot: async () => {
             return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
           },
         },
@@ -152,8 +160,8 @@ test('flow should fail because step failed (without throwing error from the step
           },
           stepResult: {
             errors: [],
-            notes: [],
             executionStatus: ExecutionStatus.done,
+            notes: [],
             status: Status.failed,
           },
           artifactsResult: [
@@ -168,38 +176,6 @@ test('flow should fail because step failed (without throwing error from the step
                   errors: [],
                   notes: [],
                   executionStatus: ExecutionStatus.done,
-                  status: Status.failed,
-                },
-              },
-            },
-          ],
-        },
-      },
-    ],
-    stepsResultOfArtifactsByArtifact: [
-      {
-        data: {
-          artifact: {
-            packageJson: {
-              name: toActualName('a'),
-            },
-          },
-          artifactResult: {
-            errors: [],
-            notes: [],
-            executionStatus: ExecutionStatus.done,
-            status: Status.failed,
-          },
-          stepsResult: [
-            {
-              data: {
-                stepInfo: {
-                  stepName: 'step1',
-                },
-                artifactStepResult: {
-                  errors: [],
-                  executionStatus: ExecutionStatus.done,
-                  notes: [],
                   status: Status.failed,
                 },
               },
@@ -228,8 +204,8 @@ test('flow should fail because step failed (while throwing error from the step)'
         stepName: 'step1',
         taskQueueClass: LocalSequentalTaskQueue,
         run: {
-          runStrategy: RunStrategy.perArtifact,
-          runStepOnArtifact: async () => {
+          runStrategy: RunStrategy.root,
+          runStepOnRoot: async () => {
             throw new Error('error123')
           },
         },
@@ -240,7 +216,6 @@ test('flow should fail because step failed (while throwing error from the step)'
   expect(passed).toBeFalsy()
 
   const expectedJsonReport: DeepPartial<JsonReport> = {
-    flowExecutionStatus: ExecutionStatus.done,
     flowResult: {
       errors: [],
       notes: [],
@@ -254,9 +229,13 @@ test('flow should fail because step failed (while throwing error from the step)'
             stepName: 'step1',
           },
           stepResult: {
-            errors: [],
-            notes: [],
+            errors: [
+              {
+                message: 'error123',
+              },
+            ],
             executionStatus: ExecutionStatus.done,
+            notes: [],
             status: Status.failed,
           },
           artifactsResult: [
@@ -268,47 +247,7 @@ test('flow should fail because step failed (while throwing error from the step)'
                   },
                 },
                 artifactStepResult: {
-                  errors: [
-                    {
-                      message: 'error123',
-                    },
-                  ],
-                  notes: [],
-                  executionStatus: ExecutionStatus.done,
-                  status: Status.failed,
-                },
-              },
-            },
-          ],
-        },
-      },
-    ],
-    stepsResultOfArtifactsByArtifact: [
-      {
-        data: {
-          artifact: {
-            packageJson: {
-              name: toActualName('a'),
-            },
-          },
-          artifactResult: {
-            errors: [],
-            notes: [],
-            executionStatus: ExecutionStatus.done,
-            status: Status.failed,
-          },
-          stepsResult: [
-            {
-              data: {
-                stepInfo: {
-                  stepName: 'step1',
-                },
-                artifactStepResult: {
-                  errors: [
-                    {
-                      message: 'error123',
-                    },
-                  ],
+                  errors: [],
                   notes: [],
                   executionStatus: ExecutionStatus.done,
                   status: Status.failed,
