@@ -1,11 +1,13 @@
+import { QuayBuildStatusChangedTopicPayload, QuayNotificationEvents } from '@tahini/quay-task-queue'
 import fastify from 'fastify'
+import Redis from 'ioredis'
 import { getConfig } from './config'
 import { QueryStringOptions } from './types'
-import { downloadTarGz } from './utils'
-import Redis from 'ioredis'
-import { QuayBuildStatusChangedTopicPayload, QuayBuildStatus } from '@tahini/quay-task-queue'
+import { downloadTarGz, quayNotificationEventToBuildStatus } from './utils'
 
-export async function startService(env: Record<string, string | undefined>): Promise<string> {
+export async function startQuayHelperService(
+  env: Record<string, string | undefined>,
+): Promise<{ address: string; cleanup: () => Promise<unknown> }> {
   const config = getConfig(env)
 
   const redisConnection = new Redis(config.redisAddress, { lazyConnect: true })
@@ -27,54 +29,35 @@ export async function startService(env: Record<string, string | undefined>): Pro
     Querystring: QueryStringOptions
   }>('/download-git-repo-tar-gz', async (req, res) => res.send(downloadTarGz(req.query, config.auth)))
 
-  app.post<{ Body: { build_id: string } }>('/quay-build/queued', async (req, res) => {
-    const { build_id } = req.body
-    const payload: QuayBuildStatusChangedTopicPayload = {
-      quayBuildId: build_id,
-      quayBuildStatus: QuayBuildStatus.waiting,
-      changeDateMs: Date.now(),
-    }
-    await redisConnection.publish(config.quayBuildStatusChangedRedisTopic, JSON.stringify(payload))
-    res.send()
-  })
+  app.post<{ Params: { event: QuayNotificationEvents }; Body: { build_id: string } }>(
+    '/quay-build-notification/:event',
+    async (req, res) => {
+      const quayBuildStatus = quayNotificationEventToBuildStatus(req.params.event)
+      const { build_id } = req.body
+      const payload: QuayBuildStatusChangedTopicPayload = {
+        quayBuildId: build_id,
+        quayBuildStatus,
+        changeDateMs: Date.now(),
+      }
+      await redisConnection.publish(config.quayBuildStatusChangedRedisTopic, JSON.stringify(payload))
+      res.send()
+    },
+  )
 
-  app.post<{ Body: { build_id: string } }>('/quay-build/started', async (req, res) => {
-    const { build_id } = req.body
-    const payload: QuayBuildStatusChangedTopicPayload = {
-      quayBuildId: build_id,
-      quayBuildStatus: QuayBuildStatus.started,
-      changeDateMs: Date.now(),
-    }
-    await redisConnection.publish(config.quayBuildStatusChangedRedisTopic, JSON.stringify(payload))
-    res.send()
-  })
-
-  app.post<{ Body: { build_id: string } }>('/quay-build/completed', async (req, res) => {
-    const { build_id } = req.body
-    const payload: QuayBuildStatusChangedTopicPayload = {
-      quayBuildId: build_id,
-      quayBuildStatus: QuayBuildStatus.complete,
-      changeDateMs: Date.now(),
-    }
-    await redisConnection.publish(config.quayBuildStatusChangedRedisTopic, JSON.stringify(payload))
-    res.send()
-  })
-
-  app.post<{ Body: { build_id: string } }>('/quay-build/failed', async (req, res) => {
-    const { build_id } = req.body
-    const payload: QuayBuildStatusChangedTopicPayload = {
-      quayBuildId: build_id,
-      quayBuildStatus: QuayBuildStatus.error,
-      changeDateMs: Date.now(),
-    }
-    await redisConnection.publish(config.quayBuildStatusChangedRedisTopic, JSON.stringify(payload))
-    res.send()
-  })
-
-  return app.listen(config.port)
+  let closed = false
+  return {
+    address: await app.listen(config.port),
+    cleanup: async () => {
+      if (closed) {
+        return
+      }
+      closed = true
+      await app.close()
+    },
+  }
 }
 
 if (require.main === module) {
   // eslint-disable-next-line no-process-env
-  startService(process.env)
+  startQuayHelperService(process.env)
 }

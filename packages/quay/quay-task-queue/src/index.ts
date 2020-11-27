@@ -13,25 +13,25 @@ import {
   Status,
   buildFullDockerImageName,
 } from '@tahini/nc'
-import { BuildTriggerResult, QuayBuildStatus, QuayClient } from './quay-client'
+import { BuildTriggerResult, QuayBuildStatus, QuayClient, QuayNotificationEvents } from './quay-client'
 import { AbortEventHandler } from './types'
 
-export { QuayBuildStatus } from './quay-client'
+export { QuayBuildStatus, QuayNotificationEvents } from './quay-client'
 
 export type QuayBuildsTaskQueueConfigurations = {
   redisAddress: string
   quayAddress: 'https://quay.io' | string
+  quayServiceHelperAddress: string
   quayToken: string
   quayNamespace: string
-  quayBuildStatusPullIntervalMs: number
   taskTimeoutMs: number
   getQuayRepoInfo: (packageName: string) => { repoName: string; visibility: 'public' | 'private' }
   getCommitTarGzPublicAddress: (options: {
     repoNameWithOrgName: string
     gitCommit: string
-    gitAuth: {
-      username: string
-      token: string
+    gitAuth?: {
+      username?: string
+      token?: string
     }
   }) => string
 }
@@ -223,9 +223,20 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       await this.quayClient.createRepo({
         repoName,
         visibility,
-        packageName: packageName,
+        packageName,
         timeoutMs: this.options.taskQueueConfigurations.taskTimeoutMs - (Date.now() - startTaskMs),
       })
+      await Promise.all(
+        Object.values(QuayNotificationEvents).map(event =>
+          this.quayClient.createNotification({
+            event,
+            packageName,
+            repoName,
+            webhookUrl: `${this.options.taskQueueConfigurations.quayServiceHelperAddress}/quay-build-notification/${event}`,
+            timeoutMs: this.options.taskQueueConfigurations.taskTimeoutMs - (Date.now() - startTaskMs),
+          }),
+        ),
+      )
       buildTriggerResult = await this.quayClient.triggerBuild({
         packageName,
         imageTags,
@@ -236,8 +247,8 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
           repoNameWithOrgName: this.options.gitRepoInfo.repoNameWithOrgName,
           gitCommit: this.options.gitRepoInfo.commit,
           gitAuth: {
-            username: this.options.gitRepoInfo.auth.username,
-            token: this.options.gitRepoInfo.auth.username,
+            username: this.options.gitRepoInfo?.auth?.username,
+            token: this.options.gitRepoInfo?.auth?.username,
           },
         }),
         commit: this.options.gitRepoInfo.commit,

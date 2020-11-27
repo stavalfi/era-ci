@@ -61,7 +61,7 @@ export {
 } from './steps'
 export { ExampleTaskQueue, exampleTaskQueue, localSequentalTaskQueue, LocalSequentalTaskQueue } from './task-queues'
 export { Artifact, ConstrainResult, ExecutionStatus, Graph, PackageJson, Status } from './types'
-export { execaCommand, buildFullDockerImageName } from './utils'
+export { execaCommand, buildFullDockerImageName, getGitRepoInfo } from './utils'
 export { LoggerConfiguration, winstonLogger } from './winston-logger'
 
 async function main() {

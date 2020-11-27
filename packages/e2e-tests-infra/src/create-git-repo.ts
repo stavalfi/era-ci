@@ -1,10 +1,9 @@
 import { createFolder, FolderStructure } from 'create-folder-structure'
 import execa from 'execa'
 import { GitServer } from './git-server-testkit'
-import { Repo, TargetType, ToActualName, Package } from './types'
+import { Repo, TargetType, ToActualName, Package, PackageJson } from './types'
 import chance from 'chance'
 import path from 'path'
-import { PackageJson } from '@tahini/nc'
 
 async function initializeGitRepo({
   gitServer,

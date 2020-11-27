@@ -25,7 +25,7 @@ import { Repo, TestResources } from './types'
 import { addReportToStepsAsLastNodes } from './utils'
 import fse from 'fs-extra'
 
-export { DeepPartial } from './types'
+export { DeepPartial, TestResources } from './types'
 export { isDeepSubsetOf, isDeepSubsetOfOrPrint, sleep } from './utils'
 export { createGitRepo } from './create-git-repo'
 
@@ -166,7 +166,7 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
   }
 }
 
-type CreateRepo = (
+export type CreateRepo = (
   repo: Repo,
 ) => Promise<{
   repoPath: string

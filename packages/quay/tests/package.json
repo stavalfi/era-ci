@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "license": "UNLICENSED",
   "private": true,
-  "dependencies": {
-    "fastify": "^3.8.0",
-    "got": "^11.3.0",
+  "devDependencies": {
     "@tahini/quay-task-queue": "^1.0.0",
     "@tahini/quay-helper-service": "^1.0.0",
+    "@tahini/quay-mock-service": "^1.0.0",
+    "@tahini/e2e-tests-infra": "^1.0.0",
     "@tahini/nc": "^1.0.0"
   }
 }

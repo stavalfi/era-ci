@@ -19,7 +19,13 @@
       "path": "packages/quay/tests/tsconfig-build.json"
     },
     {
+      "path": "packages/quay/quay-mock-service/tsconfig-build.json"
+    },
+    {
       "path": "packages/e2e-tests-infra/tsconfig-build.json"
+    },
+    {
+      "path": "packages/nc-tests/tsconfig-build.json"
     }
   ]
 }
