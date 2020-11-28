@@ -52,7 +52,7 @@ test('task is executed and we expect the docker-image to be presentin the regist
     }),
   )
 
-  expect(getImageTags('package1')).resolves.toEqual(['1.0.0'])
+  expect(getImageTags(getResoureces().packages.package1.name)).resolves.toEqual(['1.0.0'])
 })
 
 // test('events are fired', async () => {
