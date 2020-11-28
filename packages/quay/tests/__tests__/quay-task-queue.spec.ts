@@ -1,5 +1,7 @@
-import { ExecutionStatus, Status } from '@tahini/nc'
+import { isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
+import { DoneTask, ExecutionStatus, RunningTask, ScheduledTask, Status, toTaskQueueEvent$ } from '@tahini/nc'
 import { QuayBuildsTaskQueue } from '@tahini/quay-task-queue'
+import { first, toArray, map } from 'rxjs/operators'
 import { beforeAfterEach } from './utils'
 
 const { getResoureces, getImageTags } = beforeAfterEach()
@@ -15,7 +17,7 @@ test('cleanup dont throw when queue is empty', async () => {
 })
 
 test('can add zero length array', async () => {
-  await taskQueue.addTasksToQueue([])
+  taskQueue.addTasksToQueue([])
 })
 
 test('cleanup can be called multiple times', async () => {
@@ -25,7 +27,7 @@ test('cleanup can be called multiple times', async () => {
 
 test('cant add tasks after cleanup', async () => {
   await taskQueue.cleanup()
-  expect(taskQueue.addTasksToQueue([])).rejects.toBeTruthy()
+  expect(() => taskQueue.addTasksToQueue([])).toThrow()
 })
 
 test('cleanup can be called multiple times concurrenctly', async () => {
@@ -33,7 +35,7 @@ test('cleanup can be called multiple times concurrenctly', async () => {
 })
 
 test('task is executed and we expect the docker-image to be presentin the registry', async () => {
-  await taskQueue.addTasksToQueue([
+  taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
       imageTags: ['1.0.0'],
@@ -42,102 +44,107 @@ test('task is executed and we expect the docker-image to be presentin the regist
     },
   ])
 
-  await new Promise((res, rej) =>
-    taskQueue.eventEmitter.addListener(ExecutionStatus.done, e => {
-      if (e.taskResult.status === Status.passed) {
-        res()
-      } else {
-        rej()
-      }
-    }),
-  )
+  await toTaskQueueEvent$(taskQueue.eventEmitter, { errorOnTaskNotPassed: true }).toPromise()
 
   expect(getImageTags(getResoureces().packages.package1.name)).resolves.toEqual(['1.0.0'])
 })
 
-// test('events are fired', async () => {
-//   const scheduled = jest.fn()
-//   const running = jest.fn()
+test('scheduled and running events are fired', async () => {
+  const scheduled = jest.fn()
+  const running = jest.fn()
 
-//   taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
-//   taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
+  taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
+  taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
 
-//   taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.resolve() }])
+  taskQueue.addTasksToQueue([
+    {
+      packageName: getResoureces().packages.package1.name,
+      imageTags: ['1.0.0'],
+      relativeContextPath: '/',
+      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+    },
+  ])
 
-//   await new Promise(res => taskQueue.eventEmitter.addListener(ExecutionStatus.done, res))
+  await toTaskQueueEvent$(taskQueue.eventEmitter, { errorOnTaskNotPassed: true }).toPromise()
 
-//   expect(scheduled).toHaveBeenCalledTimes(1)
-//   expect(running).toHaveBeenCalledTimes(1)
-// })
+  expect(scheduled).toHaveBeenCalledTimes(1)
+  expect(running).toHaveBeenCalledTimes(1)
+})
 
-// test('events are fired even when task failed', async () => {
-//   const scheduled = jest.fn()
-//   const running = jest.fn()
+test('events are fired even when task failed', async () => {
+  const scheduled = jest.fn()
+  const running = jest.fn()
 
-//   taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
-//   taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
+  taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
+  taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
 
-//   taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.reject('fail') }])
+  taskQueue.addTasksToQueue([
+    {
+      packageName: getResoureces().packages.package1.name,
+      imageTags: ['1.0.0'],
+      relativeContextPath: '/invalid-path-to-context',
+      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+    },
+  ])
 
-//   await new Promise(res => taskQueue.eventEmitter.addListener(ExecutionStatus.done, res))
+  const doneEvent = await toTaskQueueEvent$(taskQueue.eventEmitter)
+    .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.done))
+    .toPromise()
 
-//   expect(scheduled).toHaveBeenCalledTimes(1)
-//   expect(running).toHaveBeenCalledTimes(1)
-// })
+  expect(scheduled).toHaveBeenCalledTimes(1)
+  expect(running).toHaveBeenCalledTimes(1)
+  if (doneEvent.taskExecutionStatus === ExecutionStatus.done) {
+    expect(doneEvent.taskResult.status).toEqual(Status.failed)
+  }
+})
 
-// test('events schema is valid', async () => {
-//   expect.assertions(3)
+test('events schema is valid', async () => {
+  taskQueue.addTasksToQueue([
+    {
+      packageName: getResoureces().packages.package1.name,
+      imageTags: ['1.0.0'],
+      relativeContextPath: '/',
+      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+    },
+  ])
 
-//   taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, event => {
-//     expect(
-//       isDeepSubsetOfOrPrint(event, {
-//         taskExecutionStatus: ExecutionStatus.scheduled,
-//         taskInfo: {
-//           taskName: 'task1',
-//         },
-//         taskResult: {
-//           executionStatus: ExecutionStatus.scheduled,
-//         },
-//       }),
-//     ).toBeTruthy()
-//   })
+  const [scheduled, running, done] = await toTaskQueueEvent$(taskQueue.eventEmitter)
+    .pipe(
+      toArray(),
+      map(array => [array[0] as ScheduledTask, array[1] as RunningTask, array[2] as DoneTask]),
+    )
+    .toPromise()
 
-//   taskQueue.eventEmitter.addListener(ExecutionStatus.running, event => {
-//     expect(
-//       isDeepSubsetOfOrPrint(event, {
-//         taskExecutionStatus: ExecutionStatus.running,
-//         taskInfo: {
-//           taskName: 'task1',
-//         },
-//         taskResult: {
-//           executionStatus: ExecutionStatus.running,
-//         },
-//       }),
-//     ).toBeTruthy()
-//   })
+  expect(
+    isDeepSubsetOfOrPrint(scheduled, {
+      taskExecutionStatus: ExecutionStatus.scheduled,
+      taskResult: {
+        executionStatus: ExecutionStatus.scheduled,
+      },
+    }),
+  ).toBeTruthy()
 
-//   taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.resolve() }])
+  expect(
+    isDeepSubsetOfOrPrint(running, {
+      taskExecutionStatus: ExecutionStatus.running,
+      taskResult: {
+        executionStatus: ExecutionStatus.running,
+      },
+    }),
+  ).toBeTruthy()
 
-//   await new Promise(res =>
-//     taskQueue.eventEmitter.addListener(ExecutionStatus.done, event => {
-//       expect(
-//         isDeepSubsetOfOrPrint(event, {
-//           taskExecutionStatus: ExecutionStatus.done,
-//           taskInfo: {
-//             taskName: 'task1',
-//           },
-//           taskResult: {
-//             executionStatus: ExecutionStatus.done,
-//             status: Status.passed,
-//             notes: [],
-//             errors: [],
-//           },
-//         }),
-//       ).toBeTruthy()
-//       res()
-//     }),
-//   )
-// })
+  expect(
+    isDeepSubsetOfOrPrint(done, {
+      taskExecutionStatus: ExecutionStatus.done,
+      taskResult: {
+        executionStatus: ExecutionStatus.done,
+        status: Status.passed,
+        notes: [],
+        errors: [],
+      },
+    }),
+  ).toBeTruthy()
+})
 
 // test('done events schema is valid when task fail', async () => {
 //   taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.reject('error1') }])

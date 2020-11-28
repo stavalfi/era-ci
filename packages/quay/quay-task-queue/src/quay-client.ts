@@ -216,11 +216,11 @@ export class QuayClient {
         },
         responseType: 'json',
         resolveBodyOnly: true,
-        // timeout: timeoutMs,
-        // retry: {
-        //   calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
-        //   statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
-        // },
+        timeout: timeoutMs,
+        retry: {
+          calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
+          statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
+        },
       },
     )
     this.abortEventHandler.once('closed', () => p.cancel())
