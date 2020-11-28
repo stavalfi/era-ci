@@ -66,8 +66,9 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
       silent: loggerConfigurations.disabled,
     })
 
-    const createLog = (module: string): Log => {
+    const createLog = (module: string, options?: { disable?: boolean }): Log => {
       const log = mainLogger.child({ module })
+      log.silent = Boolean(options?.disable)
       const base: Omit<Log, 'infoFromStream' | 'errorFromStream'> = {
         error: (message, error) => {
           if (error === null || undefined) {
@@ -79,26 +80,30 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
         info: message => log.info(message),
         verbose: message => log.verbose(message),
         debug: message => log.debug(message),
-        noFormattingInfo: message => noFormattingLogger.info(message),
-        noFormattingError: message => noFormattingLogger.error(message),
+        noFormattingInfo: message => !options?.disable && noFormattingLogger.info(message),
+        noFormattingError: message => !options?.disable && noFormattingLogger.error(message),
       }
       return {
         ...base,
         infoFromStream: (stream: NodeJS.ReadableStream) => {
-          stream.pipe(process.stdout)
-          stream.on('data', chunk => {
-            const asString = chunk.toString()
-            const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString
-            noFormattingOnlyFileLogger.info(final)
-          })
+          if (!options?.disable) {
+            stream.pipe(process.stdout)
+            stream.on('data', chunk => {
+              const asString = chunk.toString()
+              const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString
+              noFormattingOnlyFileLogger.info(final)
+            })
+          }
         },
         errorFromStream: (stream: NodeJS.ReadableStream) => {
-          stream.pipe(process.stderr)
-          stream.on('data', chunk => {
-            const asString = chunk.toString()
-            const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString
-            noFormattingOnlyFileLogger.error(final)
-          })
+          if (!options?.disable) {
+            stream.pipe(process.stderr)
+            stream.on('data', chunk => {
+              const asString = chunk.toString()
+              const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString
+              noFormattingOnlyFileLogger.error(final)
+            })
+          }
         },
       }
     }

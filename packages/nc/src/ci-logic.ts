@@ -73,6 +73,7 @@ export async function ci<TaskQueue>(options: {
         return t.createFunc({
           log: logger.createLog(t.taskQueueName),
           gitRepoInfo,
+          logger,
         })
       }),
     )

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events'
 import { StrictEventEmitter } from 'strict-event-emitter-types'
-import { Log } from '../create-logger'
+import { Log, Logger } from '../create-logger'
 import { AbortResult, DoneResult, ExecutionStatus, GitRepoInfo, RunningResult, ScheduledResult, Status } from '../types'
 
 export type TaskInfo = {
@@ -52,7 +52,7 @@ export type TaskQueueBase<
 export type CreateTaskQueue<
   TaskQueueConfigurations,
   TaskQueue extends TaskQueueBase<TaskQueueConfigurations>
-> = (options: { log: Log; gitRepoInfo: GitRepoInfo }) => Promise<TaskQueue>
+> = (options: { log: Log; logger: Logger; gitRepoInfo: GitRepoInfo }) => Promise<TaskQueue>
 
 export type ConfigureTaskQueue<TaskQueueConfigurations, TaskQueue extends TaskQueueBase<TaskQueueConfigurations>> = (
   taskQueueConfigurations: TaskQueueConfigurations,
@@ -64,5 +64,6 @@ export type ConfigureTaskQueue<TaskQueueConfigurations, TaskQueue extends TaskQu
 export type TaskQueueOptions<TaskQueueConfigurations = void> = {
   taskQueueConfigurations: TaskQueueConfigurations
   log: Log
+  logger: Logger
   gitRepoInfo: GitRepoInfo
 }

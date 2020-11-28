@@ -31,6 +31,7 @@ beforeEach(async () => {
       repoName: '-',
       repoNameWithOrgName: '-/-',
     },
+    logger,
   })
 })
 

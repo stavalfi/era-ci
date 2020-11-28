@@ -88,14 +88,15 @@ test('events are fired even when task failed', async () => {
   ])
 
   const doneEvent = await toTaskQueueEvent$(taskQueue.eventEmitter)
-    .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.done))
+    .pipe(
+      first(e => e.taskExecutionStatus === ExecutionStatus.done),
+      map(e => e as DoneTask),
+    )
     .toPromise()
 
   expect(scheduled).toHaveBeenCalledTimes(1)
   expect(running).toHaveBeenCalledTimes(1)
-  if (doneEvent.taskExecutionStatus === ExecutionStatus.done) {
-    expect(doneEvent.taskResult.status).toEqual(Status.failed)
-  }
+  expect(doneEvent.taskResult.status).toEqual(Status.failed)
 })
 
 test('events schema is valid', async () => {
@@ -146,61 +147,69 @@ test('events schema is valid', async () => {
   ).toBeTruthy()
 })
 
-// test('done events schema is valid when task fail', async () => {
-//   taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.reject('error1') }])
+test('done events schema is valid when task fail', async () => {
+  taskQueue.addTasksToQueue([
+    {
+      packageName: getResoureces().packages.package1.name,
+      imageTags: ['1.0.0'],
+      relativeContextPath: '/invalid-path-to-context',
+      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+    },
+  ])
 
-//   expect.hasAssertions()
+  const done = await toTaskQueueEvent$(taskQueue.eventEmitter)
+    .pipe(
+      first(e => e.taskExecutionStatus === ExecutionStatus.done),
+      map(e => e as DoneTask),
+    )
+    .toPromise()
 
-//   await new Promise(res =>
-//     taskQueue.eventEmitter.addListener(ExecutionStatus.done, event => {
-//       expect(
-//         isDeepSubsetOfOrPrint(event, {
-//           taskExecutionStatus: ExecutionStatus.done,
-//           taskInfo: {
-//             taskName: 'task1',
-//           },
-//           taskResult: {
-//             executionStatus: ExecutionStatus.done,
-//             status: Status.failed,
-//             notes: [],
-//             errors: ['error1'],
-//           },
-//         }),
-//       ).toBeTruthy()
-//       res()
-//     }),
-//   )
-// })
+  expect(
+    isDeepSubsetOfOrPrint(done, {
+      taskExecutionStatus: ExecutionStatus.done,
+      taskResult: {
+        executionStatus: ExecutionStatus.done,
+        status: Status.failed,
+        errors: [],
+      },
+    }),
+  ).toBeTruthy()
+  expect(done.taskResult.notes[0]).toMatch('build-logs:')
+})
 
-// test('abort event is fired for all tasks when queue is cleaned before the tasks are executed', async () => {
-//   const scheduled = jest.fn()
-//   const running = jest.fn()
-//   const aborted = jest.fn()
+test('abort event is fired for all tasks when queue is cleaned before the tasks are executed', async () => {
+  const scheduled = jest.fn()
+  const running = jest.fn()
+  const aborted = jest.fn()
 
-//   taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
-//   taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
-//   taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
+  taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
+  taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
+  taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
 
-//   const shouldntBeCalled = jest.fn()
+  taskQueue.addTasksToQueue([
+    {
+      packageName: getResoureces().packages.package1.name,
+      imageTags: ['1.0.0'],
+      relativeContextPath: '/',
+      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+    },
+    {
+      packageName: getResoureces().packages.package2.name,
+      imageTags: ['1.0.0'],
+      relativeContextPath: '/',
+      relativeDockerfilePath: getResoureces().packages.package2.relativeDockerFilePath,
+    },
+  ])
 
-//   taskQueue.addTasksToQueue([
-//     {
-//       taskName: 'task1',
-//       func: () => sleep(300_000, cleanups),
-//     },
-//     {
-//       taskName: 'task2',
-//       func: shouldntBeCalled,
-//     },
-//   ])
+  await taskQueue.cleanup()
 
-//   await taskQueue.cleanup()
+  expect(scheduled).toHaveBeenCalledTimes(2)
+  expect(running).toHaveBeenCalledTimes(0)
+  expect(aborted).toHaveBeenCalledTimes(2)
 
-//   expect(scheduled).toHaveBeenCalledTimes(2)
-//   expect(running).toHaveBeenCalledTimes(0)
-//   expect(aborted).toHaveBeenCalledTimes(2)
-//   expect(shouldntBeCalled).not.toHaveBeenCalled()
-// })
+  expect(getImageTags(getResoureces().packages.package1.name)).resolves.toEqual([])
+  expect(getImageTags(getResoureces().packages.package2.name)).resolves.toEqual([])
+})
 
 // test('abort event is fired for running tasks', async () => {
 //   const aborted = jest.fn()

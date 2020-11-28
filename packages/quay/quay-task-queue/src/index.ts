@@ -1,18 +1,18 @@
+import {
+  createTaskQueue,
+  ExecutionStatus,
+  Status,
+  TaskInfo,
+  TaskQueueBase,
+  TaskQueueEventEmitter,
+  TaskQueueOptions,
+} from '@tahini/nc'
+import { queue } from 'async'
 import chance from 'chance'
 import { EventEmitter } from 'events'
 import got, { CancelError } from 'got'
 import Request from 'got/dist/source/core'
 import Redis from 'ioredis'
-import {
-  createTaskQueue,
-  TaskInfo,
-  TaskQueueBase,
-  TaskQueueEventEmitter,
-  TaskQueueOptions,
-  ExecutionStatus,
-  Status,
-  buildFullDockerImageName,
-} from '@tahini/nc'
 import { BuildTriggerResult, QuayBuildStatus, QuayClient, QuayNotificationEvents } from './quay-client'
 import { AbortEventHandler } from './types'
 
@@ -52,7 +52,6 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       startTaskMs: number
       taskInfo: TaskInfo
       packageName: string
-      fullDockerImageNames: string[]
       quayRepoName: string
       quayBuildName: string
       quayBuildId: string
@@ -67,6 +66,16 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     captureRejections: true,
   })
   private readonly quayClient: QuayClient
+  // we use this task-queue to track on non-blocking-functions (promises we don't await for) and wait for all in the cleanup.
+  // why we don't await on every function (instead of using this queue): because we want to emit events after functions returns
+  private readonly internalTaskQueue = queue<() => Promise<unknown>>(async (task, done) => {
+    try {
+      await task()
+      done()
+    } catch (error) {
+      done(error)
+    }
+  }, 1)
 
   constructor(
     private readonly options: TaskQueueOptions<QuayBuildsTaskQueueConfigurations>,
@@ -83,8 +92,18 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     options.log.verbose(`initialized ${QuayBuildsTaskQueue.name}`)
   }
 
-  private async onQuayBuildStatusChanged(topic: string, eventString: string) {
+  private onQuayBuildStatusChanged(topic: string, eventString: string) {
     const event: QuayBuildStatusChangedTopicPayload = JSON.parse(eventString)
+    if (!this.isQueueActive) {
+      this.options.log.debug(
+        `task-queue is closed. ignoring new event on topic: "${topic}" from quay-server: ${JSON.stringify(
+          event,
+          null,
+          2,
+        )}`,
+      )
+      return
+    }
     this.options.log.debug(`new event on topic: "${topic}" from quay-server: ${JSON.stringify(event, null, 2)}`)
     const build = Array.from(this.builds.values()).find(b => b.quayBuildId === event.quayBuildId)
     if (!build) {
@@ -125,27 +144,6 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     }
   }
 
-  private getFullImageNames({
-    dockerRegistry,
-    imageName,
-    imageNamespace,
-    imageTags,
-  }: {
-    dockerRegistry: string
-    imageNamespace: string
-    imageName: string
-    imageTags: string[]
-  }): string[] {
-    return imageTags.map(imageTag =>
-      buildFullDockerImageName({
-        dockerOrganizationName: imageNamespace,
-        dockerRegistry,
-        imageName,
-        imageTag,
-      }),
-    )
-  }
-
   public addTasksToQueue(
     tasksOptions: {
       packageName: string
@@ -159,8 +157,9 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       throw new Error(`task-queue was destroyed so you can not add new tasks to it`)
     }
 
-    // we want to make sure that all task-events are fired only after this function returns
-    setTimeout(() => {
+    this.options.log.info('stav0')
+
+    this.internalTaskQueue.push(() =>
       Promise.all(
         tasksOptions.map(async t => {
           const taskInfo: TaskInfo = {
@@ -171,10 +170,18 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
             // that we don't trigger the same build multiple times. and the task-ids will be saved in redis(?).
             taskId: chance().hash(),
           }
+          this.options.log.info('stav1')
+          this.eventEmitter.emit(ExecutionStatus.scheduled, {
+            taskExecutionStatus: ExecutionStatus.scheduled,
+            taskInfo,
+            taskResult: {
+              executionStatus: ExecutionStatus.scheduled,
+            },
+          })
           await this.buildImage({ ...t, taskInfo, startTaskMs })
         }),
-      )
-    }, 0)
+      ),
+    )
   }
 
   public getBuildLogs(taskId: string): Request {
@@ -205,15 +212,19 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     imageTags: string[]
   }): Promise<void> {
     if (!this.isQueueActive) {
-      throw new Error(`task-queue is closed`)
+      this.eventEmitter.emit(ExecutionStatus.aborted, {
+        taskExecutionStatus: ExecutionStatus.aborted,
+        taskInfo,
+        taskResult: {
+          executionStatus: ExecutionStatus.aborted,
+          durationMs: Date.now() - startTaskMs,
+          errors: [],
+          notes: [`task-queue was closed. aborting quay-build`],
+          status: Status.skippedAsFailed,
+        },
+      })
+      return
     }
-    this.eventEmitter.emit(ExecutionStatus.scheduled, {
-      taskExecutionStatus: ExecutionStatus.scheduled,
-      taskInfo,
-      taskResult: {
-        executionStatus: ExecutionStatus.scheduled,
-      },
-    })
     this.eventEmitter.emit(ExecutionStatus.running, {
       taskExecutionStatus: ExecutionStatus.running,
       taskInfo,
@@ -264,12 +275,6 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         lastEmittedTaskExecutionStatus: ExecutionStatus.running,
         startTaskMs,
         taskInfo,
-        fullDockerImageNames: this.getFullImageNames({
-          dockerRegistry: this.options.taskQueueConfigurations.quayAddress,
-          imageName: repoName,
-          imageNamespace: this.options.taskQueueConfigurations.quayNamespace,
-          imageTags: imageTags,
-        }),
         lastKnownQuayBuildStatus: buildTriggerResult.quayBuildStatus,
         packageName,
         ...buildTriggerResult,
@@ -322,6 +327,11 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     // ensure we don't send events of any processing or pending tasks
     this.isQueueActive = false
     this.queueStatusChanged.emit('closed')
+    if (!this.internalTaskQueue.idle()) {
+      // drain will not resolve if the queue is empty so we drain if it's not empty
+      await this.internalTaskQueue.drain()
+    }
+    this.internalTaskQueue.kill()
 
     await this.redisConnection.disconnect()
 
