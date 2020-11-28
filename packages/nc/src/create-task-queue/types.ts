@@ -45,6 +45,7 @@ export type TaskQueueBase<
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   TaskQueueConfigurations // I need this for type usage
 > = {
+  readonly eventEmitter: TaskQueueEventEmitter
   cleanup: () => Promise<unknown>
 }
 

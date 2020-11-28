@@ -36,6 +36,7 @@ export {
   TaskQueueBase,
   TaskQueueEventEmitter,
   TaskQueueOptions,
+  toTaskQueueEvent$,
 } from './create-task-queue'
 export { createImmutableCache } from './immutable-cache'
 export { RedisConfiguration, redisConnection } from './redis-connection'
@@ -59,7 +60,7 @@ export {
   test,
   validatePackages,
 } from './steps'
-export { ExampleTaskQueue, exampleTaskQueue, localSequentalTaskQueue, LocalSequentalTaskQueue } from './task-queues'
+export { localSequentalTaskQueue, LocalSequentalTaskQueue } from './task-queues'
 export { Artifact, ConstrainResult, ExecutionStatus, Graph, PackageJson, Status } from './types'
 export { execaCommand, buildFullDockerImageName, getGitRepoInfo } from './utils'
 export { LoggerConfiguration, winstonLogger } from './winston-logger'

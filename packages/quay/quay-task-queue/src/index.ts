@@ -146,39 +146,35 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     )
   }
 
-  public async addTasksToQueue(
+  public addTasksToQueue(
     tasksOptions: {
       packageName: string
       relativeContextPath: string
       relativeDockerfilePath: string
       imageTags: string[]
     }[],
-  ): Promise<void> {
+  ): void {
     const startTaskMs = Date.now()
     if (!this.isQueueActive) {
       throw new Error(`task-queue was destroyed so you can not add new tasks to it`)
     }
 
-    await Promise.all(
-      tasksOptions.map(async t => {
-        const taskInfo: TaskInfo = {
-          taskName: `${t.packageName}-docker-image`,
-          // for now, we support triggering a build on the same image+tag multiple
-          // times because maybe the caller may have retry algorithm so the taskId must be random.
-          // later on, we may stop supporting it and the taskId will be deterministic to make sure
-          // that we don't trigger the same build multiple times. and the task-ids will be saved in redis(?).
-          taskId: chance().hash(),
-        }
-        this.eventEmitter.emit(ExecutionStatus.scheduled, {
-          taskExecutionStatus: ExecutionStatus.scheduled,
-          taskInfo,
-          taskResult: {
-            executionStatus: ExecutionStatus.scheduled,
-          },
-        })
-        await this.buildImage({ ...t, taskInfo, startTaskMs })
-      }),
-    )
+    // we want to make sure that all task-events are fired only after this function returns
+    setTimeout(() => {
+      Promise.all(
+        tasksOptions.map(async t => {
+          const taskInfo: TaskInfo = {
+            taskName: `${t.packageName}-docker-image`,
+            // for now, we support triggering a build on the same image+tag multiple
+            // times because maybe the caller may have retry algorithm so the taskId must be random.
+            // later on, we may stop supporting it and the taskId will be deterministic to make sure
+            // that we don't trigger the same build multiple times. and the task-ids will be saved in redis(?).
+            taskId: chance().hash(),
+          }
+          await this.buildImage({ ...t, taskInfo, startTaskMs })
+        }),
+      )
+    }, 0)
   }
 
   public getBuildLogs(taskId: string): Request {
@@ -211,6 +207,13 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     if (!this.isQueueActive) {
       throw new Error(`task-queue is closed`)
     }
+    this.eventEmitter.emit(ExecutionStatus.scheduled, {
+      taskExecutionStatus: ExecutionStatus.scheduled,
+      taskInfo,
+      taskResult: {
+        executionStatus: ExecutionStatus.scheduled,
+      },
+    })
     this.eventEmitter.emit(ExecutionStatus.running, {
       taskExecutionStatus: ExecutionStatus.running,
       taskInfo,

@@ -228,7 +228,6 @@ export async function startQuayMockService(
       id: build.buildId,
       dockerfile_path: req.body.dockerfile_path,
     })
-
     try {
       await notify({
         db,

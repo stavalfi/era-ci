@@ -55,6 +55,7 @@ export function beforeAfterEach() {
           {
             name: testDependencies.toActualPackageName(`package${i}`),
             relativeDockerFilePath: path.join(
+              '/',
               'packages',
               testDependencies.toActualPackageName(`package${i}`),
               'Dockerfile',
