@@ -1,9 +1,12 @@
 import { CreateRepo, createTest, TestResources } from '@tahini/e2e-tests-infra'
-import { getGitRepoInfo, Logger, LogLevel, winstonLogger } from '@tahini/nc'
+import { getDockerImageLabelsAndTags, getGitRepoInfo, Log, Logger, LogLevel, winstonLogger } from '@tahini/nc'
 import { startQuayHelperService } from '@tahini/quay-helper-service'
 import { startQuayMockService } from '@tahini/quay-mock-service'
 import { QuayBuildsTaskQueue, quayBuildsTaskQueue } from '@tahini/quay-task-queue'
 import chance from 'chance'
+import _ from 'lodash'
+import path from 'path'
+import semver from 'semver'
 
 type TestDependencies = {
   quayServiceHelper: { address: string; cleanup: () => Promise<unknown> }
@@ -13,13 +16,11 @@ type TestDependencies = {
   repoPath: string
   logger: Logger
   queue: QuayBuildsTaskQueue
+  toActualPackageName: (packageName: string) => string
 }
 
-export function beforeAfterEach(): {
-  getResoureces: () => {
-    queue: QuayBuildsTaskQueue
-  }
-} {
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function beforeAfterEach() {
   const { getResoureces, createRepo } = createTest()
 
   let testDependencies: TestDependencies
@@ -36,10 +37,71 @@ export function beforeAfterEach(): {
     ])
   })
 
+  const getImageTags = (packageName: string) =>
+    publishedDockerImageTags({
+      dockerOrganizationName: testDependencies.quayNamespace,
+      dockerRegistry: getResoureces().dockerRegistry,
+      imageName: testDependencies.toActualPackageName(packageName),
+      log: testDependencies.logger.createLog('test'),
+      repoPath: testDependencies.repoPath,
+    })
+
   return {
-    getResoureces: () => ({
-      queue: testDependencies.queue,
-    }),
+    getImageTags,
+    getResoureces: () => {
+      const packages = Object.fromEntries(
+        _.range(0, 15).map(i => [
+          `package${i}`,
+          {
+            name: testDependencies.toActualPackageName(`package${i}`),
+            relativeDockerFilePath: path.join(
+              'packages',
+              testDependencies.toActualPackageName(`package${i}`),
+              'Dockerfile',
+            ),
+          },
+        ]),
+      )
+      return {
+        queue: testDependencies.queue,
+        repoPath: testDependencies.repoPath,
+        packages,
+      }
+    },
+  }
+}
+
+export async function publishedDockerImageTags({
+  dockerOrganizationName,
+  log,
+  repoPath,
+  dockerRegistry,
+  imageName,
+}: {
+  imageName: string
+  dockerOrganizationName: string
+  dockerRegistry: string
+  repoPath: string
+  log: Log
+}): Promise<Array<string>> {
+  try {
+    const result = await getDockerImageLabelsAndTags({
+      dockerOrganizationName,
+      packageJsonName: imageName,
+      dockerRegistry,
+      silent: true,
+      repoPath,
+      log,
+    })
+    const tags = result?.allTags.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
+    const sorted = semver.sort(tags.filter(tag => tag !== 'latest')).concat(tags.includes('latest') ? ['latest'] : [])
+    return sorted
+  } catch (e) {
+    if (e.stderr?.includes('manifest unknown')) {
+      return []
+    } else {
+      throw e
+    }
   }
 }
 
@@ -47,33 +109,42 @@ async function createTestDependencies(
   getResoureces: () => TestResources,
   createRepo: CreateRepo,
 ): Promise<TestDependencies> {
+  const redisTopic = `redis-topic-${chance().hash().slice(0, 8)}`
   const quayServiceHelper = await startQuayHelperService({
     PORT: '0',
     REDIS_ADDRESS: getResoureces().redisServerUri,
-    QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: `redis-topic-${chance().hash()}`,
+    QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: redisTopic,
+    NC_TEST_MODE: 'true',
   })
-  const quayNamespace = `namespace-${chance().hash()}`
-  const quayToken = `token-${chance().hash()}`
+  const quayNamespace = `namespace-${chance().hash().slice(0, 8)}`
+  const quayToken = `token-${chance().hash().slice(0, 8)}`
   const quayMockService = await startQuayMockService({
     dockerRegistryAddress: getResoureces().dockerRegistry,
     namespace: quayNamespace,
     token: quayToken,
   })
 
-  const { repoPath } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
+  const { repoPath, toActualName } = await createRepo({
+    packages: _.range(0, 15).map(i => ({
+      name: `package${i}`,
+      version: '1.0.0',
+      additionalFiles: {
+        Dockerfile: `\
+      FROM alpine
+      CMD ["echo","hello"]
+      `,
       },
-    ],
+    })),
   })
 
   const logger = await winstonLogger({
-    customLogLevel: LogLevel.verbose,
+    customLogLevel: LogLevel.debug,
     disabled: false,
     logFilePath: './nc.log',
   }).callInitializeLogger({ repoPath })
+
+  // eslint-disable-next-line no-process-env
+  process.env.QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC = redisTopic
 
   const queue = await quayBuildsTaskQueue({
     getCommitTarGzPublicAddress: () =>
@@ -87,7 +158,7 @@ async function createTestDependencies(
     quayServiceHelperAddress: quayServiceHelper.address,
     quayToken,
     redisAddress: getResoureces().redisServerUri,
-    taskTimeoutMs: 5 * 1000,
+    taskTimeoutMs: 10 * 1000,
   }).createFunc({
     log: logger.createLog('quayBuildsTaskQueue'),
     gitRepoInfo: await getGitRepoInfo(repoPath),
@@ -101,5 +172,6 @@ async function createTestDependencies(
     quayNamespace,
     queue,
     repoPath,
+    toActualPackageName: toActualName,
   }
 }

@@ -1,7 +1,11 @@
 import { QuayBuildStatus, QuayNotificationEvents } from '@tahini/quay-task-queue'
+import compressing from 'compressing'
+import { createFolder } from 'create-folder-structure'
+import execa from 'execa'
+import fse from 'fs-extra'
 import got from 'got'
+import path from 'path'
 import { Readable } from 'stream'
-import tar from 'tar'
 import { Auth, QueryStringOptions } from './types'
 
 function downloadFromGithub(
@@ -34,11 +38,25 @@ function downloadFromBitbucketCloud(
   return got.stream(url)
 }
 
-function downloadFromLocalFilesystem(repo_abs_path: string): Readable {
-  return tar.c({ gzip: true }, [repo_abs_path])
+async function downloadFromLocalFilesystem(repo_abs_path: string): Promise<Readable> {
+  const { stdout: gitRepoName } = await execa.command(`basename $(git remote get-url origin) .git`, {
+    shell: true,
+    cwd: repo_abs_path,
+  })
+  const { stdout: gitHeadCommit } = await execa.command(`git rev-parse HEAD`, {
+    shell: true,
+    cwd: repo_abs_path,
+  })
+  const newLocation = path.join(await createFolder(), `${gitRepoName}-${gitHeadCommit}`)
+
+  await fse.symlink(repo_abs_path, newLocation)
+
+  const tarStream = new compressing.tar.Stream()
+  tarStream.addEntry(newLocation)
+  return tarStream
 }
 
-export function downloadTarGz(options: QueryStringOptions, auth: Auth): Readable {
+export async function downloadTarGz(options: QueryStringOptions, auth: Auth): Promise<Readable> {
   switch (options.git_registry) {
     case 'github':
       return downloadFromGithub(options, auth)

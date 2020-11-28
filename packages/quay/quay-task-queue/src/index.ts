@@ -83,7 +83,9 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     options.log.verbose(`initialized ${QuayBuildsTaskQueue.name}`)
   }
 
-  private async onQuayBuildStatusChanged(event: QuayBuildStatusChangedTopicPayload) {
+  private async onQuayBuildStatusChanged(topic: string, eventString: string) {
+    const event: QuayBuildStatusChangedTopicPayload = JSON.parse(eventString)
+    this.options.log.debug(`new event on topic: "${topic}" from quay-server: ${JSON.stringify(event, null, 2)}`)
     const build = Array.from(this.builds.values()).find(b => b.quayBuildId === event.quayBuildId)
     if (!build) {
       this.options.log.error(
@@ -242,7 +244,8 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         imageTags,
         relativeContextPath,
         relativeDockerfilePath,
-        repoName,
+        gitRepoName: this.options.gitRepoInfo.repoName,
+        quayRepoName: repoName,
         archiveUrl: this.options.taskQueueConfigurations.getCommitTarGzPublicAddress({
           repoNameWithOrgName: this.options.gitRepoInfo.repoNameWithOrgName,
           gitCommit: this.options.gitRepoInfo.commit,

@@ -32,7 +32,7 @@ export type Db = {
 }
 
 export type Headers = {
-  Authorization: string
+  authorization: string
 }
 
 export enum QuayBuildStatus {
