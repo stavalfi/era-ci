@@ -14,6 +14,17 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
   private readonly queueState = { isQueueKilled: false }
   private readonly taskQueue = queue(this.startTask.bind(this), 1)
 
+  // we use this task-queue to track on non-blocking-functions (promises we don't await for) and wait for all in the cleanup.
+  // why we don't await on every function (instead of using this queue): because we want to emit events after functions returns
+  private readonly internalTaskQueue = queue<() => Promise<unknown>>(async (task, done) => {
+    try {
+      await task()
+      done()
+    } catch (error) {
+      done(error)
+    }
+  }, 1)
+
   constructor(private readonly options: TaskQueueOptions<void>) {
     this.options.log.verbose(`initialized local-sequental task-queue`)
   }
@@ -34,20 +45,22 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
       )
     }
 
-    for (const taskOptions of taskOptionsNormalized) {
-      const taskInfo: TaskInfo = {
-        taskName: taskOptions.taskName,
-        taskId: chance().hash(),
+    this.internalTaskQueue.push(async () => {
+      for (const taskOptions of taskOptionsNormalized) {
+        const taskInfo: TaskInfo = {
+          taskName: taskOptions.taskName,
+          taskId: chance().hash(),
+        }
+        this.eventEmitter.emit(ExecutionStatus.scheduled, {
+          taskExecutionStatus: ExecutionStatus.scheduled,
+          taskInfo,
+          taskResult: {
+            executionStatus: ExecutionStatus.scheduled,
+          },
+        })
+        this.taskQueue.push<ProccessedTask, unknown>({ taskInfo, func: taskOptions.func })
       }
-      this.eventEmitter.emit(ExecutionStatus.scheduled, {
-        taskExecutionStatus: ExecutionStatus.scheduled,
-        taskInfo,
-        taskResult: {
-          executionStatus: ExecutionStatus.scheduled,
-        },
-      })
-      this.taskQueue.push<ProccessedTask, unknown>({ taskInfo, func: taskOptions.func })
-    }
+    })
   }
 
   private async startTask(task: ProccessedTask, cb: ErrorCallback) {
@@ -103,6 +116,13 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
     // ensure we don't send events of any processing or pending tasks
     this.queueState.isQueueKilled = true
     this.taskQueue.pause()
+
+    if (!this.internalTaskQueue.idle()) {
+      // drain will not resolve if the queue is empty so we drain if it's not empty
+      await this.internalTaskQueue.drain()
+    }
+    this.internalTaskQueue.kill()
+
     // @ts-ignore - taskQueue is iterable so the types are wrong
     for (const t of [...this.taskQueue, ...this.taskQueue.workersList()]) {
       const task: ProccessedTask = t
