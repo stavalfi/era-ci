@@ -6,6 +6,7 @@ import { ExecutionStatus, Status } from '../types'
 
 type ProccessedTask = { taskInfo: TaskInfo; func: () => Promise<void> }
 
+type Func = () => Promise<void>
 export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
   public readonly eventEmitter: TaskQueueEventEmitter = new EventEmitter({
     captureRejections: true,
@@ -21,16 +22,19 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
    * this operation is not async to ensure that the caller can do other stuff before any of the tasks are executed
    * @param tasksOptions tasks array to preform
    */
-  public addTasksToQueue(tasksOptions: { taskName: string; func: () => Promise<void> }[]): void {
+  public addTasksToQueue(tasksOptions: ({ taskName: string; func: Func } | Func)[]): void {
+    const taskOptionsNormalized: { taskName: string; func: Func }[] = tasksOptions.map(t =>
+      typeof t === 'function' ? { taskName: 'anonymous-task', func: t } : t,
+    )
     if (this.queueState.isQueueKilled) {
       throw new Error(
-        `task-queue was destroyed so you can not add new tasks to it. ignored tasks-names: "${tasksOptions
+        `task-queue was destroyed so you can not add new tasks to it. ignored tasks-names: "${taskOptionsNormalized
           .map(t => t.taskName)
           .join(', ')}"`,
       )
     }
 
-    for (const taskOptions of tasksOptions) {
+    for (const taskOptions of taskOptionsNormalized) {
       const taskInfo: TaskInfo = {
         taskName: taskOptions.taskName,
         taskId: chance().hash(),

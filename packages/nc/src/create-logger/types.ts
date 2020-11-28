@@ -18,7 +18,7 @@ export type Log = {
 
 export type Logger = {
   logFilePath: string
-  createLog: (moduleName: string) => Log
+  createLog: (moduleName: string, options?: { disable?: boolean }) => Log
 }
 
 export type CreateLogger = {

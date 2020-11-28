@@ -24,6 +24,7 @@
     "got": "^11.3.0",
     "execa": "^4.0.1",
     "fs-extra": "^9.0.0",
-    "create-folder-structure": "^3.0.5"
+    "create-folder-structure": "^3.0.5",
+    "pino-pretty": "^4.3.0"
   }
 }

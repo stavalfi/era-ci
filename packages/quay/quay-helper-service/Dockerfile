@@ -21,4 +21,4 @@ RUN node change-version.js ${package_path} ${new_version} \
 && rm change-version.js \
 && yarn install --frozen-lockfile --production
 
-CMD node --unhandled-rejections=strict ./packages/quay/quay-helper-service/dist/src/index.js | yarn pino-pretty -t -i pip,hostname
+CMD node --unhandled-rejections=strict ./packages/quay/quay-helper-service/dist/src/index.js

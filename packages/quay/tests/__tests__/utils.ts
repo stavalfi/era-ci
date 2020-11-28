@@ -163,6 +163,7 @@ async function createTestDependencies(
   }).createFunc({
     log: logger.createLog('quayBuildsTaskQueue'),
     gitRepoInfo: await getGitRepoInfo(repoPath),
+    logger,
   })
 
   return {
