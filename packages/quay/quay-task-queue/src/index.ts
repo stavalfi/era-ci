@@ -10,11 +10,12 @@ import {
 import { queue } from 'async'
 import chance from 'chance'
 import { EventEmitter } from 'events'
-import got, { CancelError } from 'got'
+import got, { CancelError, TimeoutError } from 'got'
 import Request from 'got/dist/source/core'
 import Redis from 'ioredis'
 import { BuildTriggerResult, QuayBuildStatus, QuayClient, QuayNotificationEvents } from './quay-client'
 import { AbortEventHandler } from './types'
+import { serializeError } from 'serialize-error'
 
 export { QuayBuildStatus, QuayNotificationEvents } from './quay-client'
 
@@ -211,7 +212,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     relativeDockerfilePath: string
     imageTags: string[]
   }): Promise<void> {
-    if (!this.isQueueActive) {
+    const sendAbortEvent = (note: string) =>
       this.eventEmitter.emit(ExecutionStatus.aborted, {
         taskExecutionStatus: ExecutionStatus.aborted,
         taskInfo,
@@ -219,10 +220,13 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
           executionStatus: ExecutionStatus.aborted,
           durationMs: Date.now() - startTaskMs,
           errors: [],
-          notes: [`task-queue was closed. aborting quay-build`],
+          notes: [note],
           status: Status.skippedAsFailed,
         },
       })
+
+    if (!this.isQueueActive) {
+      sendAbortEvent(`task-queue was closed. aborting quay-build`)
       return
     }
     this.eventEmitter.emit(ExecutionStatus.running, {
@@ -242,6 +246,10 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         packageName,
         timeoutMs: this.options.taskQueueConfigurations.taskTimeoutMs - (Date.now() - startTaskMs),
       })
+      if (!this.isQueueActive) {
+        sendAbortEvent(`task-queue was closed. aborting quay-build`)
+        return
+      }
       await Promise.all(
         Object.values(QuayNotificationEvents).map(event =>
           this.quayClient.createNotification({
@@ -253,6 +261,10 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
           }),
         ),
       )
+      if (!this.isQueueActive) {
+        sendAbortEvent(`task-queue was closed. aborting quay-build`)
+        return
+      }
       buildTriggerResult = await this.quayClient.triggerBuild({
         packageName,
         imageTags,
@@ -280,41 +292,32 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         ...buildTriggerResult,
       })
     } catch (error: unknown) {
-      if (error instanceof CancelError) {
-        this.eventEmitter.emit(ExecutionStatus.aborted, {
-          taskExecutionStatus: ExecutionStatus.aborted,
-          taskInfo,
-          taskResult: {
-            executionStatus: ExecutionStatus.aborted,
-            durationMs: Date.now() - startTaskMs,
-            errors: [],
-            notes: [`quay-build aborted`],
-            status: Status.skippedAsFailed,
-          },
-        })
-        if (buildTriggerResult) {
-          await this.quayClient
-            .cancelBuild({ packageName, quayBuildId: buildTriggerResult.quayBuildId, timeoutMs: 5_000 })
-            .catch(() => {
-              // the build maybe was not triggered
-            })
-        }
-
-        this.eventEmitter.emit(ExecutionStatus.aborted, {
-          taskExecutionStatus: ExecutionStatus.aborted,
-          taskInfo,
-          taskResult: {
-            executionStatus: ExecutionStatus.aborted,
-            durationMs: Date.now() - startTaskMs,
-            errors: [],
-            notes: [`quay-build-timeout reached: quay-build canceled.`],
-            status: Status.skippedAsFailed,
-          },
-        })
-        return
-      } else {
-        throw error
+      if (buildTriggerResult) {
+        await this.quayClient
+          .cancelBuild({ packageName, quayBuildId: buildTriggerResult.quayBuildId, timeoutMs: 5_000 })
+          .catch(() => {
+            // the build maybe was not triggered
+          })
       }
+      if (error instanceof CancelError) {
+        sendAbortEvent(`task-queue was closed. aborting quay-build`)
+        return
+      }
+      if (error instanceof TimeoutError) {
+        sendAbortEvent(`task-timeout. aboring quay-build`)
+        return
+      }
+      this.eventEmitter.emit(ExecutionStatus.aborted, {
+        taskExecutionStatus: ExecutionStatus.aborted,
+        taskInfo,
+        taskResult: {
+          executionStatus: ExecutionStatus.aborted,
+          durationMs: Date.now() - startTaskMs,
+          errors: [serializeError(error)],
+          notes: [],
+          status: Status.skippedAsFailed,
+        },
+      })
     }
   }
 
@@ -332,6 +335,26 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       await this.internalTaskQueue.drain()
     }
     this.internalTaskQueue.kill()
+
+    const scheduledAndRunningTasks = Array.from(this.builds.values()).filter(
+      b =>
+        b.lastEmittedTaskExecutionStatus === ExecutionStatus.scheduled ||
+        b.lastEmittedTaskExecutionStatus === ExecutionStatus.running,
+    )
+
+    scheduledAndRunningTasks.forEach(b =>
+      this.eventEmitter.emit(ExecutionStatus.aborted, {
+        taskExecutionStatus: ExecutionStatus.aborted,
+        taskInfo: b.taskInfo,
+        taskResult: {
+          executionStatus: ExecutionStatus.aborted,
+          status: Status.skippedAsFailed,
+          durationMs: Date.now() - b.startTaskMs,
+          errors: [],
+          notes: [`queue closed. aborting`],
+        },
+      }),
+    )
 
     await this.redisConnection.disconnect()
 
