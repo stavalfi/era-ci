@@ -167,7 +167,7 @@ async function main2() {
       'example1',
       process.stdout,
       () => {
-        console.log('stav1')
+        console.log('--')
       },
       {
         follow: true,

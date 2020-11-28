@@ -14,14 +14,16 @@
   },
   "types": "dist/src/index.d.ts",
   "scripts": {
-    "start:dev": "yarn ts-node src/index.ts | yarn pino-pretty -t -i pip,hostname",
-    "start:prod": "node --unhandled-rejections=strict dist/src/index.js | yarn pino-pretty -t -i pip,hostname"
+    "start:dev": "yarn ts-node src/index.ts",
+    "start:prod": "node --unhandled-rejections=strict dist/src/index.js"
   },
   "dependencies": {
+    "@tahini/quay-task-queue": "^1.0.0",
+    "compressing": "^1.5.1",
     "fastify": "^3.8.0",
     "got": "^11.3.0",
-    "pino-pretty": "^4.3.0",
-    "@tahini/quay-task-queue": "^1.0.0",
-    "tar": "^6.0.5"
+    "execa": "^4.0.1",
+    "fs-extra": "^9.0.0",
+    "create-folder-structure": "^3.0.5"
   }
 }

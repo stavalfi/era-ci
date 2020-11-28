@@ -1,12 +1,14 @@
 import { buildFullDockerImageName } from '@tahini/nc'
 import chance from 'chance'
-import { createFolder } from 'create-folder-structure'
+import compressing from 'compressing'
+import { createFile, createFolder } from 'create-folder-structure'
 import execa from 'execa'
 import fastify from 'fastify'
+import fastifyRateLimiter from 'fastify-rate-limit'
+import fs from 'fs'
 import got from 'got'
 import HttpStatusCodes from 'http-status-codes'
 import path from 'path'
-import tar from 'tar'
 import {
   Config,
   CreateNotificationRequest,
@@ -22,7 +24,6 @@ import {
   TriggerBuildResponse,
 } from './types'
 import { notify } from './utils'
-import fastifyRateLimiter from 'fastify-rate-limit'
 
 export {
   Config,
@@ -38,7 +39,10 @@ export async function startQuayMockService(
   config: Config,
 ): Promise<{ address: string; cleanup: () => Promise<unknown> }> {
   const app = fastify({
-    logger: true,
+    logger: {
+      prettyPrint: true,
+      level: 'error',
+    },
   })
 
   app.register(fastifyRateLimiter, {
@@ -47,13 +51,20 @@ export async function startQuayMockService(
   })
 
   app.addHook<{ Headers: Headers }>('onRequest', async req => {
-    if (req.headers.Authorization !== config.token) {
-      throw new Error(`token is invalid`)
+    if (req.headers.authorization !== `Bearer ${config.token}`) {
+      throw new Error(
+        `token is invalid. expected: "${`Bearer ${config.token}`}". actual: "${req.headers.Authorization}".`,
+      )
     }
   })
 
   const db: Db = {
-    namespaces: {},
+    namespaces: {
+      [config.namespace]: {
+        namespace: config.namespace,
+        repos: {},
+      },
+    },
   }
 
   app.get<{
@@ -140,7 +151,7 @@ export async function startQuayMockService(
       for (const repo of Object.values(namespace.repos)) {
         if (repo.builds[req.params.quayBuildId]) {
           repo.builds[req.params.quayBuildId].status = QuayBuildStatus.cancelled
-          return
+          return res.send()
         }
       }
     }
@@ -169,7 +180,7 @@ export async function startQuayMockService(
           notificationId,
           webhookAddress: req.body.config.url,
         }
-        return
+        return res.send()
       }
     }
     throw new Error(`repo-name not found`)
@@ -194,20 +205,8 @@ export async function startQuayMockService(
       buildId,
       status: QuayBuildStatus.waiting,
     }
-    await notify({
-      db,
-      event: QuayNotificationEvents.buildQueued,
-      buildId,
-      repoName: req.params.repoName,
-    })
+
     const build = db.namespaces[req.params.namespace].repos[req.params.repoName].builds[buildId]
-    build.status = QuayBuildStatus.started
-    await notify({
-      db,
-      event: QuayNotificationEvents.buildStart,
-      buildId,
-      repoName: req.params.repoName,
-    })
 
     res.send({
       status: '',
@@ -229,20 +228,32 @@ export async function startQuayMockService(
       id: build.buildId,
       dockerfile_path: req.body.dockerfile_path,
     })
+
     try {
+      await notify({
+        db,
+        event: QuayNotificationEvents.buildQueued,
+        buildId,
+        repoName: req.params.repoName,
+      })
+
+      build.status = QuayBuildStatus.started
+
+      await notify({
+        db,
+        event: QuayNotificationEvents.buildStart,
+        buildId,
+        repoName: req.params.repoName,
+      })
+
+      const tarPath = await createFile()
+      await new Promise((res, rej) =>
+        got.stream(req.body.archive_url).pipe(fs.createWriteStream(tarPath)).once('finish', res).once('error', rej),
+      )
+
       const extractedContextPath = await createFolder()
 
-      await new Promise(res =>
-        got
-          .stream(req.body.archive_url)
-          .pipe(
-            tar.extract({
-              strip: 1,
-              C: extractedContextPath,
-            }),
-          )
-          .once('finish', res),
-      )
+      await compressing.tar.uncompress(tarPath, extractedContextPath)
 
       for (const imageTag of req.body.docker_tags) {
         const image = buildFullDockerImageName({
@@ -251,15 +262,15 @@ export async function startQuayMockService(
           dockerRegistry: config.dockerRegistryAddress,
           imageTag,
         })
+
         await execa.command(
           `docker build -f Dockerfile -t ${image} ${path.join(extractedContextPath, req.body.context)}`,
           {
-            cwd: path.join(extractedContextPath, req.body.dockerfile_path),
+            cwd: path.dirname(path.join(extractedContextPath, req.body.dockerfile_path)),
             stdio: 'inherit',
           },
         )
         await execa.command(`docker push ${image}`, {
-          cwd: path.join(extractedContextPath, req.body.dockerfile_path),
           stdio: 'inherit',
         })
         if ((build.status as QuayBuildStatus) !== QuayBuildStatus.cancelled) {
@@ -281,6 +292,7 @@ export async function startQuayMockService(
           buildId,
           repoName: req.params.repoName,
         })
+        app.log.error(e)
       }
     }
   })

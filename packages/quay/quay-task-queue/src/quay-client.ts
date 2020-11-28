@@ -88,7 +88,7 @@ export class QuayClient {
   }): Promise<QuayCreateRepoResult> {
     const p = got.post<QuayCreateRepoResult>(`${this.quayAddress}/api/v1/repository`, {
       headers: {
-        Authorization: `Bearer ${this.quayToken}`,
+        authorization: `Bearer ${this.quayToken}`,
       },
       json: {
         repo_kind: 'image',
@@ -101,7 +101,7 @@ export class QuayClient {
       resolveBodyOnly: true,
       timeout: timeoutMs,
       retry: {
-        calculateDelay: () => chance().integer({ min: 1, max: 5 }),
+        calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
         statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
       },
     })
@@ -138,13 +138,13 @@ export class QuayClient {
   }): Promise<QuayNewBuildResult['phase']> {
     const p = got.get<QuayNewBuildResult>(`${this.quayAddress}/api/v1/repository/build/${quayBuildId}/status`, {
       headers: {
-        Authorization: `Bearer ${this.quayToken}`,
+        authorization: `Bearer ${this.quayToken}`,
       },
       responseType: 'json',
       resolveBodyOnly: true,
       timeout: timeoutMs,
       retry: {
-        calculateDelay: () => chance().integer({ min: 1, max: 5 }),
+        calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
         statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
       },
     })
@@ -166,13 +166,13 @@ export class QuayClient {
   }): Promise<void> {
     const p = got.delete(`${this.quayAddress}/api/v1/repository/build/${quayBuildId}`, {
       headers: {
-        Authorization: `Bearer ${this.quayToken}`,
+        authorization: `Bearer ${this.quayToken}`,
       },
       responseType: 'json',
       resolveBodyOnly: true,
       timeout: timeoutMs,
       retry: {
-        calculateDelay: () => chance().integer({ min: 1, max: 5 }),
+        calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
         statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
       },
     })
@@ -182,7 +182,8 @@ export class QuayClient {
   }
 
   public async triggerBuild({
-    repoName,
+    gitRepoName,
+    quayRepoName,
     relativeContextPath,
     relativeDockerfilePath,
     imageTags,
@@ -191,7 +192,8 @@ export class QuayClient {
     commit,
     timeoutMs,
   }: {
-    repoName: string
+    gitRepoName: string
+    quayRepoName: string
     commit: string
     packageName: string
     relativeContextPath: string
@@ -201,24 +203,24 @@ export class QuayClient {
     timeoutMs: number
   }): Promise<BuildTriggerResult> {
     const p = got.post<QuayNewBuildResult>(
-      `${this.quayAddress}/api/v1/repository/${this.quayNamespace}/${repoName}/build/`,
+      `${this.quayAddress}/api/v1/repository/${this.quayNamespace}/${quayRepoName}/build/`,
       {
         headers: {
-          Authorization: `Bearer ${this.quayToken}`,
+          authorization: `Bearer ${this.quayToken}`,
         },
         json: {
           archive_url: archiveUrl,
           docker_tags: imageTags,
-          context: path.join(`/${repoName}-${commit}`, relativeContextPath),
-          dockerfile_path: path.join(`/${repoName}-${commit}`, relativeDockerfilePath),
+          context: path.join(`${gitRepoName}-${commit}`, relativeContextPath),
+          dockerfile_path: path.join(`${gitRepoName}-${commit}`, relativeDockerfilePath),
         },
         responseType: 'json',
         resolveBodyOnly: true,
-        timeout: timeoutMs,
-        retry: {
-          calculateDelay: () => chance().integer({ min: 1, max: 5 }),
-          statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
-        },
+        // timeout: timeoutMs,
+        // retry: {
+        //   calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
+        //   statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
+        // },
       },
     )
     this.abortEventHandler.once('closed', () => p.cancel())
@@ -260,7 +262,7 @@ export class QuayClient {
   }): Promise<void> {
     const p = got.post<CreateNotificationResult>(`${this.quayAddress}/api/v1/repository/${repoName}/notification/`, {
       headers: {
-        Authorization: `Bearer ${this.quayToken}`,
+        authorization: `Bearer ${this.quayToken}`,
       },
       json: {
         config: { url: webhookUrl },
@@ -273,7 +275,7 @@ export class QuayClient {
       resolveBodyOnly: true,
       timeout: timeoutMs,
       retry: {
-        calculateDelay: () => chance().integer({ min: 1, max: 5 }),
+        calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
         statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
       },
     })

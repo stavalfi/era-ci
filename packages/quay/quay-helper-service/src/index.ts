@@ -14,7 +14,10 @@ export async function startQuayHelperService(
   await redisConnection.connect()
 
   const app = fastify({
-    logger: true,
+    logger: {
+      prettyPrint: true,
+      level: env.NC_TEST_MODE ? 'error' : 'info',
+    },
   })
 
   app.get('/', async (_req, res) => res.send('alive'))
@@ -27,7 +30,7 @@ export async function startQuayHelperService(
    */
   app.get<{
     Querystring: QueryStringOptions
-  }>('/download-git-repo-tar-gz', async (req, res) => res.send(downloadTarGz(req.query, config.auth)))
+  }>('/download-git-repo-tar-gz', async (req, res) => res.send(await downloadTarGz(req.query, config.auth)))
 
   app.post<{ Params: { event: QuayNotificationEvents }; Body: { build_id: string } }>(
     '/quay-build-notification/:event',
