@@ -4,6 +4,7 @@ import { QuayBuildsTaskQueue } from '@tahini/quay-task-queue'
 import fs from 'fs'
 import path from 'path'
 import { first, toArray, map } from 'rxjs/operators'
+import { AbortTask } from '../../../nc/dist/src'
 import { beforeAfterEach } from './utils'
 
 const { getResoureces, getImageTags } = beforeAfterEach()
@@ -179,7 +180,7 @@ test('done events schema is valid when task fail', async () => {
   expect(done.taskResult.notes[0]).toMatch('build-logs:')
 })
 
-test('abort event is fired for all tasks when queue is cleaned before the tasks are executed', async () => {
+test('abort event is fired for all tasks when queue is cleaned (before the tasks are executed)', async () => {
   const scheduled = jest.fn()
   const running = jest.fn()
   const aborted = jest.fn()
@@ -213,7 +214,7 @@ test('abort event is fired for all tasks when queue is cleaned before the tasks 
   expect(getImageTags(getResoureces().packages.package2.name)).resolves.toEqual([])
 })
 
-test('abort event is fired for running tasks', async () => {
+test('abort event is fired for running tasks - while dockerfile is built', async () => {
   const aborted = jest.fn()
 
   taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
@@ -239,7 +240,7 @@ RUN sleep 10000 # make sure that this task will not end
     .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running))
     .toPromise()
 
-  //wait until the docker-build will start in quay-mock-service (we don't have event for that)
+  // wait until the docker-build will start in quay-mock-service (we don't have event for that)
   await new Promise(res => setTimeout(res, 3000))
 
   await taskQueue.cleanup()
@@ -247,27 +248,47 @@ RUN sleep 10000 # make sure that this task will not end
   expect(aborted).toHaveBeenCalledTimes(1)
 })
 
-// test('abort events schema is valid', async () => {
-//   taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => sleep(300_000, cleanups) }])
+test('abort events schema is valid', async () => {
+  await fs.promises.writeFile(
+    path.join(getResoureces().repoPath, getResoureces().packages.package1.relativeDockerFilePath),
+    `
+FROM alpine
+RUN sleep 10000 # make sure that this task will not end
+  `,
+  )
 
-//   expect.hasAssertions()
+  taskQueue.addTasksToQueue([
+    {
+      packageName: getResoureces().packages.package1.name,
+      imageTags: ['1.0.0'],
+      relativeContextPath: '/',
+      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+    },
+  ])
 
-//   taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, event => {
-//     expect(
-//       isDeepSubsetOfOrPrint(event, {
-//         taskExecutionStatus: ExecutionStatus.aborted,
-//         taskInfo: {
-//           taskName: 'task1',
-//         },
-//         taskResult: {
-//           executionStatus: ExecutionStatus.aborted,
-//           status: Status.skippedAsFailed,
-//           notes: [],
-//           errors: [],
-//         },
-//       }),
-//     ).toBeTruthy()
-//   })
+  await toTaskQueueEvent$(taskQueue.eventEmitter)
+    .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running))
+    .toPromise()
 
-//   await taskQueue.cleanup()
-// })
+  // I'm not awaiting because i don't want to miss the abored-event
+  taskQueue.cleanup()
+
+  const abort = await toTaskQueueEvent$(taskQueue.eventEmitter)
+    .pipe(
+      first(e => e.taskExecutionStatus === ExecutionStatus.aborted),
+      map(e => e as AbortTask),
+    )
+    .toPromise()
+
+  expect(
+    isDeepSubsetOfOrPrint(abort, {
+      taskExecutionStatus: ExecutionStatus.aborted,
+      taskResult: {
+        executionStatus: ExecutionStatus.aborted,
+        status: Status.skippedAsFailed,
+        notes: [],
+        errors: [],
+      },
+    }),
+  ).toBeTruthy()
+})

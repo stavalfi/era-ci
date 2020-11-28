@@ -158,31 +158,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       throw new Error(`task-queue was destroyed so you can not add new tasks to it`)
     }
 
-    this.options.log.info('stav0')
-
-    this.internalTaskQueue.push(() =>
-      Promise.all(
-        tasksOptions.map(async t => {
-          const taskInfo: TaskInfo = {
-            taskName: `${t.packageName}-docker-image`,
-            // for now, we support triggering a build on the same image+tag multiple
-            // times because maybe the caller may have retry algorithm so the taskId must be random.
-            // later on, we may stop supporting it and the taskId will be deterministic to make sure
-            // that we don't trigger the same build multiple times. and the task-ids will be saved in redis(?).
-            taskId: chance().hash(),
-          }
-          this.options.log.info('stav1')
-          this.eventEmitter.emit(ExecutionStatus.scheduled, {
-            taskExecutionStatus: ExecutionStatus.scheduled,
-            taskInfo,
-            taskResult: {
-              executionStatus: ExecutionStatus.scheduled,
-            },
-          })
-          await this.buildImage({ ...t, taskInfo, startTaskMs })
-        }),
-      ),
-    )
+    this.internalTaskQueue.push(() => Promise.all(tasksOptions.map(t => this.buildImage({ ...t, startTaskMs }))))
   }
 
   public getBuildLogs(taskId: string): Request {
@@ -199,19 +175,26 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
 
   private async buildImage({
     startTaskMs,
-    taskInfo,
     packageName,
     imageTags,
     relativeContextPath,
     relativeDockerfilePath,
   }: {
     startTaskMs: number
-    taskInfo: TaskInfo
     packageName: string
     relativeContextPath: string
     relativeDockerfilePath: string
     imageTags: string[]
   }): Promise<void> {
+    const taskInfo: TaskInfo = {
+      taskName: `${packageName}-docker-image`,
+      // for now, we support triggering a build on the same image+tag multiple
+      // times because maybe the caller may have retry algorithm so the taskId must be random.
+      // later on, we may stop supporting it and the taskId will be deterministic to make sure
+      // that we don't trigger the same build multiple times. and the task-ids will be saved in redis(?).
+      taskId: chance().hash(),
+    }
+
     const sendAbortEvent = (note: string) =>
       this.eventEmitter.emit(ExecutionStatus.aborted, {
         taskExecutionStatus: ExecutionStatus.aborted,
@@ -225,6 +208,14 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         },
       })
 
+    // if the queue closed after the user added new task, we will emit scheduled-event.
+    this.eventEmitter.emit(ExecutionStatus.scheduled, {
+      taskExecutionStatus: ExecutionStatus.scheduled,
+      taskInfo,
+      taskResult: {
+        executionStatus: ExecutionStatus.scheduled,
+      },
+    })
     if (!this.isQueueActive) {
       sendAbortEvent(`task-queue was closed. aborting quay-build`)
       return
