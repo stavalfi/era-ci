@@ -1,6 +1,8 @@
 import { isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
 import { DoneTask, ExecutionStatus, RunningTask, ScheduledTask, Status, toTaskQueueEvent$ } from '@tahini/nc'
 import { QuayBuildsTaskQueue } from '@tahini/quay-task-queue'
+import fs from 'fs'
+import path from 'path'
 import { first, toArray, map } from 'rxjs/operators'
 import { beforeAfterEach } from './utils'
 
@@ -211,24 +213,39 @@ test('abort event is fired for all tasks when queue is cleaned before the tasks 
   expect(getImageTags(getResoureces().packages.package2.name)).resolves.toEqual([])
 })
 
-// test('abort event is fired for running tasks', async () => {
-//   const aborted = jest.fn()
+test('abort event is fired for running tasks', async () => {
+  const aborted = jest.fn()
 
-//   taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
+  taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
 
-//   taskQueue.addTasksToQueue([
-//     {
-//       taskName: 'task1',
-//       func: () => sleep(300_000, cleanups),
-//     },
-//   ])
+  await fs.promises.writeFile(
+    path.join(getResoureces().repoPath, getResoureces().packages.package1.relativeDockerFilePath),
+    `
+FROM alpine
+RUN sleep 10000 # make sure that this task will not end
+  `,
+  )
 
-//   await new Promise(res => taskQueue.eventEmitter.addListener(ExecutionStatus.running, res))
+  taskQueue.addTasksToQueue([
+    {
+      packageName: getResoureces().packages.package1.name,
+      imageTags: ['1.0.0'],
+      relativeContextPath: '/',
+      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+    },
+  ])
 
-//   await taskQueue.cleanup()
+  await toTaskQueueEvent$(taskQueue.eventEmitter)
+    .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running))
+    .toPromise()
 
-//   expect(aborted).toHaveBeenCalledTimes(1)
-// })
+  //wait until the docker-build will start in quay-mock-service (we don't have event for that)
+  await new Promise(res => setTimeout(res, 3000))
+
+  await taskQueue.cleanup()
+
+  expect(aborted).toHaveBeenCalledTimes(1)
+})
 
 // test('abort events schema is valid', async () => {
 //   taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => sleep(300_000, cleanups) }])

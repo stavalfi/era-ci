@@ -116,7 +116,7 @@ export class QuayClient {
         return r
       },
       error => {
-        if (error.response.body.error_message === 'Repository already exists') {
+        if (error?.response?.body?.error_message === 'Repository already exists') {
           return {
             kind: 'image',
             namespace: this.quayNamespace,

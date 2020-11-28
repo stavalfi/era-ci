@@ -1,14 +1,7 @@
-import { buildFullDockerImageName } from '@tahini/nc'
 import chance from 'chance'
-import compressing from 'compressing'
-import { createFile, createFolder } from 'create-folder-structure'
-import execa from 'execa'
 import fastify from 'fastify'
 import fastifyRateLimiter from 'fastify-rate-limit'
-import fs from 'fs'
-import got from 'got'
 import HttpStatusCodes from 'http-status-codes'
-import path from 'path'
 import {
   Config,
   CreateNotificationRequest,
@@ -19,11 +12,10 @@ import {
   GetBuildStatusResponse,
   Headers,
   QuayBuildStatus,
-  QuayNotificationEvents,
   TriggerBuildRequest,
   TriggerBuildResponse,
 } from './types'
-import { notify } from './utils'
+import { buildDockerFile } from './utils'
 
 export {
   Config,
@@ -66,6 +58,8 @@ export async function startQuayMockService(
       },
     },
   }
+
+  const cleanups: (() => Promise<unknown>)[] = []
 
   app.get<{
     Params: never
@@ -208,7 +202,7 @@ export async function startQuayMockService(
 
     const build = db.namespaces[req.params.namespace].repos[req.params.repoName].builds[buildId]
 
-    res.send({
+    await res.send({
       status: '',
       error: null,
       display_name: chance().hash(),
@@ -228,83 +222,32 @@ export async function startQuayMockService(
       id: build.buildId,
       dockerfile_path: req.body.dockerfile_path,
     })
-    try {
-      await notify({
-        db,
-        event: QuayNotificationEvents.buildQueued,
-        buildId,
-        repoName: req.params.repoName,
-      })
 
-      build.status = QuayBuildStatus.started
-
-      await notify({
-        db,
-        event: QuayNotificationEvents.buildStart,
-        buildId,
-        repoName: req.params.repoName,
-      })
-
-      const tarPath = await createFile()
-      await new Promise((res, rej) =>
-        got.stream(req.body.archive_url).pipe(fs.createWriteStream(tarPath)).once('finish', res).once('error', rej),
-      )
-
-      const extractedContextPath = await createFolder()
-
-      await compressing.tar.uncompress(tarPath, extractedContextPath)
-
-      for (const imageTag of req.body.docker_tags) {
-        const image = buildFullDockerImageName({
-          dockerOrganizationName: req.params.namespace,
-          imageName: req.params.repoName,
-          dockerRegistry: config.dockerRegistryAddress,
-          imageTag,
-        })
-
-        await execa.command(
-          `docker build -f Dockerfile -t ${image} ${path.join(extractedContextPath, req.body.context)}`,
-          {
-            cwd: path.dirname(path.join(extractedContextPath, req.body.dockerfile_path)),
-            stdio: 'inherit',
-          },
-        )
-        await execa.command(`docker push ${image}`, {
-          stdio: 'inherit',
-        })
-        if ((build.status as QuayBuildStatus) !== QuayBuildStatus.cancelled) {
-          build.status = QuayBuildStatus.complete
-          await notify({
-            db,
-            event: QuayNotificationEvents.buildSuccess,
-            buildId,
-            repoName: req.params.repoName,
-          })
-        }
-      }
-    } catch (e) {
-      if ((build.status as QuayBuildStatus) !== QuayBuildStatus.cancelled) {
-        build.status = QuayBuildStatus.error
-        await notify({
-          db,
-          event: QuayNotificationEvents.buildFailure,
-          buildId,
-          repoName: req.params.repoName,
-        })
-        app.log.error(e)
-      }
-    }
+    await buildDockerFile({
+      ...req.body,
+      ...req.params,
+      build,
+      buildId,
+      cleanups,
+      db,
+      log: app.log,
+      config,
+    })
   })
 
+  const address = await app.listen(0)
+  // eslint-disable-next-line no-console
+  console.log(`quay-mock-service: "${address}"`)
   let closed = false
   return {
-    address: await app.listen(0),
+    address,
     cleanup: async () => {
       if (closed) {
         return
       }
       closed = true
       await app.close()
+      await Promise.allSettled(cleanups.map(f => f()))
     },
   }
 }
