@@ -18,6 +18,7 @@
       "@tahini/core": ["core/src/index.ts"],
       "@tahini/utils": ["utils/src/index.ts"],
       "@tahini/steps": ["steps/src/index.ts"],
+      "@tahini/loggers": ["loggers/src/index.ts"],
       "@tahini/quay-helper-service": ["quay/quay-helper-service/src/index.ts"],
       "@tahini/quay-task-queue": ["quay/quay-task-queue/src/index.ts"],
       "@tahini/quay-mock-service": ["quay/quay-mock-service/src/index.ts"],

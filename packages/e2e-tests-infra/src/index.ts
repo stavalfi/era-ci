@@ -8,8 +8,8 @@ import {
   redisConnection,
   StepInfo,
   TaskQueueBase,
-  winstonLogger,
 } from '@tahini/core'
+import { winstonLogger } from '@tahini/loggers'
 import { ExecutionStatus, Graph, Status } from '@tahini/utils'
 import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@tahini/steps'
 import chance from 'chance'

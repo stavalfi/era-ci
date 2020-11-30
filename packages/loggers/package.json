@@ -1,0 +1,24 @@
+{
+  "name": "@tahini/loggers",
+  "version": "1.2.26",
+  "license": "UNLICENSED",
+  "main": "dist/src/index.js",
+  "private": false,
+  "files": [
+    "dist",
+    "src",
+    "__tests__"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "types": "dist/src/index.d.ts",
+  "dependencies": {
+    "chalk": "^4.1.0",
+    "colors": "^1.4.0",
+    "randomcolor": "^0.6.2",
+    "winston": "^3.3.3",
+    "@tahini/core": "^1.0.0",
+    "@tahini/utils": "^1.0.0"
+  }
+}

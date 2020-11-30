@@ -8,6 +8,9 @@
   },
   "devDependencies": {
     "@tahini/e2e-tests-infra": "^1.0.0",
-    "@tahini/core": "^1.0.0"
+    "@tahini/core": "^1.0.0",
+    "@tahini/steps": "^1.0.0",
+    "@tahini/loggers": "^1.0.0",
+    "@tahini/utils": "^1.0.0"
   }
 }

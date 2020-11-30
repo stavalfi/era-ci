@@ -1,4 +1,5 @@
-import { LocalSequentalTaskQueue, localSequentalTaskQueue, LogLevel, winstonLogger } from '@tahini/core'
+import { LocalSequentalTaskQueue, localSequentalTaskQueue, LogLevel } from '@tahini/core'
+import { winstonLogger } from '@tahini/loggers'
 import { isDeepSubsetOfOrPrint, sleep } from '@tahini/e2e-tests-infra'
 import { ExecutionStatus, Status } from '@tahini/utils'
 import { createFolder } from 'create-folder-structure'
