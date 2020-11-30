@@ -1,11 +1,11 @@
 import { isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
-import { DoneTask, ExecutionStatus, RunningTask, ScheduledTask, Status, toTaskQueueEvent$ } from '@tahini/nc'
+import { AbortTask, DoneTask, ExecutionStatus, RunningTask, ScheduledTask, Status, toTaskEvent$ } from '@tahini/nc'
 import { QuayBuildsTaskQueue } from '@tahini/quay-task-queue'
 import fs from 'fs'
 import path from 'path'
-import { first, toArray, map } from 'rxjs/operators'
-import { AbortTask } from '../../../nc/dist/src'
-import { beforeAfterEach } from './utils'
+import { first, map, toArray } from 'rxjs/operators'
+import { beforeAfterEach } from '../utils'
+import { merge } from 'rxjs'
 
 const { getResoureces, getImageTags } = beforeAfterEach()
 
@@ -38,7 +38,7 @@ test('cleanup can be called multiple times concurrenctly', async () => {
 })
 
 test('task is executed and we expect the docker-image to be presentin the registry', async () => {
-  taskQueue.addTasksToQueue([
+  const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
       imageTags: ['1.0.0'],
@@ -47,9 +47,9 @@ test('task is executed and we expect the docker-image to be presentin the regist
     },
   ])
 
-  await toTaskQueueEvent$(taskQueue.eventEmitter, { errorOnTaskNotPassed: true }).toPromise()
+  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, errorOnTaskNotPassed: true }).toPromise()
 
-  expect(getImageTags(getResoureces().packages.package1.name)).resolves.toEqual(['1.0.0'])
+  await expect(getImageTags(getResoureces().packages.package1.name)).resolves.toEqual(['1.0.0'])
 })
 
 test('scheduled and running events are fired', async () => {
@@ -59,7 +59,7 @@ test('scheduled and running events are fired', async () => {
   taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
   taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
 
-  taskQueue.addTasksToQueue([
+  const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
       imageTags: ['1.0.0'],
@@ -68,7 +68,7 @@ test('scheduled and running events are fired', async () => {
     },
   ])
 
-  await toTaskQueueEvent$(taskQueue.eventEmitter, { errorOnTaskNotPassed: true }).toPromise()
+  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, errorOnTaskNotPassed: true }).toPromise()
 
   expect(scheduled).toHaveBeenCalledTimes(1)
   expect(running).toHaveBeenCalledTimes(1)
@@ -81,7 +81,7 @@ test('events are fired even when task failed', async () => {
   taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
   taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
 
-  taskQueue.addTasksToQueue([
+  const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
       imageTags: ['1.0.0'],
@@ -90,7 +90,7 @@ test('events are fired even when task failed', async () => {
     },
   ])
 
-  const doneEvent = await toTaskQueueEvent$(taskQueue.eventEmitter)
+  const doneEvent = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.done),
       map(e => e as DoneTask),
@@ -103,7 +103,7 @@ test('events are fired even when task failed', async () => {
 })
 
 test('events schema is valid', async () => {
-  taskQueue.addTasksToQueue([
+  const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
       imageTags: ['1.0.0'],
@@ -112,7 +112,7 @@ test('events schema is valid', async () => {
     },
   ])
 
-  const [scheduled, running, done] = await toTaskQueueEvent$(taskQueue.eventEmitter)
+  const [scheduled, running, done] = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
     .pipe(
       toArray(),
       map(array => [array[0] as ScheduledTask, array[1] as RunningTask, array[2] as DoneTask]),
@@ -151,7 +151,7 @@ test('events schema is valid', async () => {
 })
 
 test('done events schema is valid when task fail', async () => {
-  taskQueue.addTasksToQueue([
+  const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
       imageTags: ['1.0.0'],
@@ -160,7 +160,7 @@ test('done events schema is valid when task fail', async () => {
     },
   ])
 
-  const done = await toTaskQueueEvent$(taskQueue.eventEmitter)
+  const done = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.done),
       map(e => e as DoneTask),
@@ -210,8 +210,8 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
   expect(running).toHaveBeenCalledTimes(0)
   expect(aborted).toHaveBeenCalledTimes(2)
 
-  expect(getImageTags(getResoureces().packages.package1.name)).resolves.toEqual([])
-  expect(getImageTags(getResoureces().packages.package2.name)).resolves.toEqual([])
+  await expect(getImageTags(getResoureces().packages.package1.name)).resolves.toEqual([])
+  await expect(getImageTags(getResoureces().packages.package2.name)).resolves.toEqual([])
 })
 
 test('abort event is fired for running tasks - while dockerfile is built', async () => {
@@ -227,7 +227,7 @@ RUN sleep 10000 # make sure that this task will not end
   `,
   )
 
-  taskQueue.addTasksToQueue([
+  const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
       imageTags: ['1.0.0'],
@@ -236,7 +236,7 @@ RUN sleep 10000 # make sure that this task will not end
     },
   ])
 
-  await toTaskQueueEvent$(taskQueue.eventEmitter)
+  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
     .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running))
     .toPromise()
 
@@ -257,7 +257,7 @@ RUN sleep 10000 # make sure that this task will not end
   `,
   )
 
-  taskQueue.addTasksToQueue([
+  const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
       imageTags: ['1.0.0'],
@@ -266,14 +266,14 @@ RUN sleep 10000 # make sure that this task will not end
     },
   ])
 
-  await toTaskQueueEvent$(taskQueue.eventEmitter)
+  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
     .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running))
     .toPromise()
 
   // I'm not awaiting because i don't want to miss the abored-event
   taskQueue.cleanup()
 
-  const abort = await toTaskQueueEvent$(taskQueue.eventEmitter)
+  const abort = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.aborted),
       map(e => e as AbortTask),
@@ -291,4 +291,25 @@ RUN sleep 10000 # make sure that this task will not end
       },
     }),
   ).toBeTruthy()
+})
+
+test('multiple tasks', async () => {
+  const tasks = taskQueue.addTasksToQueue(
+    Object.values(getResoureces().packages).map((packageInfo, i) => ({
+      packageName: packageInfo.name,
+      imageTags: [`1.0.${i}`],
+      relativeContextPath: '/',
+      relativeDockerfilePath: packageInfo.relativeDockerFilePath,
+    })),
+  )
+
+  await merge(
+    ...tasks.map(task =>
+      toTaskEvent$(task.taskId, { eventEmitter: taskQueue.eventEmitter, errorOnTaskNotPassed: true }),
+    ),
+  ).toPromise()
+
+  for (const [i, packageInfo] of Object.values(getResoureces().packages).entries()) {
+    await expect(getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])
+  }
 })

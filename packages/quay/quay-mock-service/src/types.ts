@@ -1,4 +1,8 @@
 export type Config = {
+  rateLimit: {
+    max: number
+    timeWindowMs: number
+  }
   token: string
   namespace: string
   dockerRegistryAddress: string

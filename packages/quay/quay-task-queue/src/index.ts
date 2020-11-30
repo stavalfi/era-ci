@@ -10,12 +10,11 @@ import {
 import { queue } from 'async'
 import chance from 'chance'
 import { EventEmitter } from 'events'
-import got, { CancelError, TimeoutError } from 'got'
-import Request from 'got/dist/source/core'
+import { CancelError, TimeoutError } from 'got'
 import Redis from 'ioredis'
+import { serializeError } from 'serialize-error'
 import { BuildTriggerResult, QuayBuildStatus, QuayClient, QuayNotificationEvents } from './quay-client'
 import { AbortEventHandler } from './types'
-import { serializeError } from 'serialize-error'
 
 export { QuayBuildStatus, QuayNotificationEvents } from './quay-client'
 
@@ -82,6 +81,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     private readonly options: TaskQueueOptions<QuayBuildsTaskQueueConfigurations>,
     private readonly redisConnection: Redis.Redis,
   ) {
+    this.eventEmitter.setMaxListeners(Infinity)
     this.quayClient = new QuayClient(
       this.queueStatusChanged,
       options.taskQueueConfigurations.quayAddress,
@@ -89,11 +89,13 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       options.taskQueueConfigurations.quayNamespace,
       options.log,
     )
-    this.redisConnection.on('message', this.onQuayBuildStatusChanged.bind(this))
+    this.redisConnection.on('message', (topic: string, eventString: string) =>
+      this.internalTaskQueue.push(() => this.onQuayBuildStatusChanged(topic, eventString)),
+    )
     options.log.verbose(`initialized ${QuayBuildsTaskQueue.name}`)
   }
 
-  private onQuayBuildStatusChanged(topic: string, eventString: string) {
+  private async onQuayBuildStatusChanged(topic: string, eventString: string, retry = 0): Promise<void> {
     const event: QuayBuildStatusChangedTopicPayload = JSON.parse(eventString)
     if (!this.isQueueActive) {
       this.options.log.debug(
@@ -108,10 +110,14 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     this.options.log.debug(`new event on topic: "${topic}" from quay-server: ${JSON.stringify(event, null, 2)}`)
     const build = Array.from(this.builds.values()).find(b => b.quayBuildId === event.quayBuildId)
     if (!build) {
-      this.options.log.error(
-        `quay sent us a quay-build-id: "${event.quayBuildId}" which we don't know. looks like a bug. ignoring it...`,
-      )
-      return
+      if (retry >= 30) {
+        this.options.log.error(`can't find build-id: "${event.quayBuildId}" which we received from quay-helper-service`)
+      }
+      // quay sent us a quay-build-id: "${event.quayBuildId}" which we don't know.
+      // it means that quay gave us build-id in the REST-POST /build but we didn't process it yet and
+      // then quay sent us notification about this build-id. let's process this event again with a delay of 1 second.
+      await new Promise(res => setTimeout(res, 1000))
+      return this.onQuayBuildStatusChanged(topic, eventString)
     }
     build.lastKnownQuayBuildStatus = event.quayBuildStatus
 
@@ -152,25 +158,34 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       relativeDockerfilePath: string
       imageTags: string[]
     }[],
-  ): void {
+  ): TaskInfo[] {
     const startTaskMs = Date.now()
     if (!this.isQueueActive) {
       throw new Error(`task-queue was destroyed so you can not add new tasks to it`)
     }
 
-    this.internalTaskQueue.push(() => Promise.all(tasksOptions.map(t => this.buildImage({ ...t, startTaskMs }))))
+    const tasks: TaskInfo[] = tasksOptions.map(t => ({
+      taskName: `${t.packageName}-docker-image`,
+      // for now, we support triggering a build on the same image+tag multiple
+      // times because maybe the caller may have retry algorithm so the taskId must be random.
+      // later on, we may stop supporting it and the taskId will be deterministic to make sure
+      // that we don't trigger the same build multiple times. and the task-ids will be saved in redis(?).
+      taskId: chance().hash(),
+    }))
+
+    this.internalTaskQueue.push(() =>
+      Promise.all(tasksOptions.map((t, i) => this.buildImage({ ...t, taskInfo: tasks[i], startTaskMs }))),
+    )
+
+    return tasks
   }
 
-  public getBuildLogs(taskId: string): Request {
+  public getBuildLogsAddress(taskId: string): string {
     const build = this.builds.get(taskId)
     if (!build) {
       throw new Error(`taskId: ${taskId} not found`)
     }
-    return got.stream(build.quayBuildLogsAddress, {
-      headers: {
-        Authorization: `Bearer ${this.options.taskQueueConfigurations.quayToken}`,
-      },
-    })
+    return build.quayBuildLogsAddress
   }
 
   private async buildImage({
@@ -179,22 +194,15 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     imageTags,
     relativeContextPath,
     relativeDockerfilePath,
+    taskInfo,
   }: {
+    taskInfo: TaskInfo
     startTaskMs: number
     packageName: string
     relativeContextPath: string
     relativeDockerfilePath: string
     imageTags: string[]
   }): Promise<void> {
-    const taskInfo: TaskInfo = {
-      taskName: `${packageName}-docker-image`,
-      // for now, we support triggering a build on the same image+tag multiple
-      // times because maybe the caller may have retry algorithm so the taskId must be random.
-      // later on, we may stop supporting it and the taskId will be deterministic to make sure
-      // that we don't trigger the same build multiple times. and the task-ids will be saved in redis(?).
-      taskId: chance().hash(),
-    }
-
     const sendAbortEvent = (note: string) =>
       this.eventEmitter.emit(ExecutionStatus.aborted, {
         taskExecutionStatus: ExecutionStatus.aborted,
@@ -235,7 +243,6 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         repoName,
         visibility,
         packageName,
-        timeoutMs: this.options.taskQueueConfigurations.taskTimeoutMs - (Date.now() - startTaskMs),
       })
       if (!this.isQueueActive) {
         sendAbortEvent(`task-queue was closed. aborting quay-build`)
@@ -248,7 +255,6 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
             packageName,
             repoName,
             webhookUrl: `${this.options.taskQueueConfigurations.quayServiceHelperAddress}/quay-build-notification/${event}`,
-            timeoutMs: this.options.taskQueueConfigurations.taskTimeoutMs - (Date.now() - startTaskMs),
           }),
         ),
       )
@@ -272,7 +278,6 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
           },
         }),
         commit: this.options.gitRepoInfo.commit,
-        timeoutMs: this.options.taskQueueConfigurations.taskTimeoutMs - (Date.now() - startTaskMs),
       })
       this.builds.set(taskInfo.taskId, {
         lastEmittedTaskExecutionStatus: ExecutionStatus.running,
@@ -284,11 +289,9 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       })
     } catch (error: unknown) {
       if (buildTriggerResult) {
-        await this.quayClient
-          .cancelBuild({ packageName, quayBuildId: buildTriggerResult.quayBuildId, timeoutMs: 5_000 })
-          .catch(() => {
-            // the build maybe was not triggered
-          })
+        await this.quayClient.cancelBuild({ packageName, quayBuildId: buildTriggerResult.quayBuildId }).catch(() => {
+          // the build maybe was not triggered
+        })
       }
       if (error instanceof CancelError) {
         sendAbortEvent(`task-queue was closed. aborting quay-build`)

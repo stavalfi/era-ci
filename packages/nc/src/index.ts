@@ -36,7 +36,7 @@ export {
   TaskQueueBase,
   TaskQueueEventEmitter,
   TaskQueueOptions,
-  toTaskQueueEvent$,
+  toTaskEvent$,
 } from './create-task-queue'
 export { createImmutableCache } from './immutable-cache'
 export { RedisConfiguration, redisConnection } from './redis-connection'

@@ -26,6 +26,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
   }, 1)
 
   constructor(private readonly options: TaskQueueOptions<void>) {
+    this.eventEmitter.setMaxListeners(Infinity)
     this.options.log.verbose(`initialized local-sequental task-queue`)
   }
 
@@ -33,7 +34,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
    * this operation is not async to ensure that the caller can do other stuff before any of the tasks are executed
    * @param tasksOptions tasks array to preform
    */
-  public addTasksToQueue(tasksOptions: ({ taskName: string; func: Func } | Func)[]): void {
+  public addTasksToQueue(tasksOptions: ({ taskName: string; func: Func } | Func)[]): TaskInfo[] {
     const taskOptionsNormalized: { taskName: string; func: Func }[] = tasksOptions.map(t =>
       typeof t === 'function' ? { taskName: 'anonymous-task', func: t } : t,
     )
@@ -45,22 +46,25 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
       )
     }
 
+    const tasks: TaskInfo[] = taskOptionsNormalized.map(taskOptions => ({
+      taskName: taskOptions.taskName,
+      taskId: chance().hash(),
+    }))
+
     this.internalTaskQueue.push(async () => {
-      for (const taskOptions of taskOptionsNormalized) {
-        const taskInfo: TaskInfo = {
-          taskName: taskOptions.taskName,
-          taskId: chance().hash(),
-        }
+      for (const [i, taskOptions] of taskOptionsNormalized.entries()) {
         this.eventEmitter.emit(ExecutionStatus.scheduled, {
           taskExecutionStatus: ExecutionStatus.scheduled,
-          taskInfo,
+          taskInfo: tasks[i],
           taskResult: {
             executionStatus: ExecutionStatus.scheduled,
           },
         })
-        this.taskQueue.push<ProccessedTask, unknown>({ taskInfo, func: taskOptions.func })
+        this.taskQueue.push<ProccessedTask, unknown>({ taskInfo: tasks[i], func: taskOptions.func })
       }
     })
+
+    return tasks
   }
 
   private async startTask(task: ProccessedTask, cb: ErrorCallback) {

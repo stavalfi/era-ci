@@ -1,4 +1,4 @@
-import got from 'got'
+import got, { RequestError, RequiredRetryOptions } from 'got'
 import path from 'path'
 import { Log, buildFullDockerImageName } from '@tahini/nc'
 import { AbortEventHandler } from './types'
@@ -66,6 +66,17 @@ export type CreateNotificationResult = {
   event: QuayNotificationEvents
 }
 
+const defaultRetry: Partial<RequiredRetryOptions> = {
+  calculateDelay: ({ error }) => {
+    if (error instanceof RequestError) {
+      const wait = error.response?.headers['retry-after']
+      return wait === undefined ? 1000 : Number(wait)
+    }
+    return 1000
+  },
+  statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
+}
+
 export class QuayClient {
   constructor(
     private readonly abortEventHandler: AbortEventHandler,
@@ -79,12 +90,10 @@ export class QuayClient {
     packageName,
     repoName,
     visibility,
-    timeoutMs,
   }: {
     packageName: string
     repoName: string
     visibility: 'public' | 'private'
-    timeoutMs: number
   }): Promise<QuayCreateRepoResult> {
     const p = got.post<QuayCreateRepoResult>(`${this.quayAddress}/api/v1/repository`, {
       headers: {
@@ -99,19 +108,13 @@ export class QuayClient {
       },
       responseType: 'json',
       resolveBodyOnly: true,
-      timeout: timeoutMs,
-      retry: {
-        calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
-        statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
-      },
+      retry: defaultRetry,
     })
-
-    this.abortEventHandler.once('closed', () => p.cancel())
 
     return p.then(
       r => {
         this.log.info(
-          `created image-repository: "${this.quayAddress}/repository/${r.namespace}/${r.name}" for package: "${packageName}" with visibility: "${visibility}"`,
+          `created quay-repository: "${this.quayAddress}/repository/${r.namespace}/${r.name}" for package: "${packageName}" with visibility: "${visibility}"`,
         )
         return r
       },
@@ -129,24 +132,14 @@ export class QuayClient {
     )
   }
 
-  public async getBuildStatus({
-    quayBuildId,
-    timeoutMs,
-  }: {
-    quayBuildId: string
-    timeoutMs: number
-  }): Promise<QuayNewBuildResult['phase']> {
+  public async getBuildStatus({ quayBuildId }: { quayBuildId: string }): Promise<QuayNewBuildResult['phase']> {
     const p = got.get<QuayNewBuildResult>(`${this.quayAddress}/api/v1/repository/build/${quayBuildId}/status`, {
       headers: {
         authorization: `Bearer ${this.quayToken}`,
       },
       responseType: 'json',
       resolveBodyOnly: true,
-      timeout: timeoutMs,
-      retry: {
-        calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
-        statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
-      },
+      retry: defaultRetry,
     })
 
     this.abortEventHandler.once('closed', () => p.cancel())
@@ -155,26 +148,14 @@ export class QuayClient {
     return quayBuildStatus.phase
   }
 
-  public async cancelBuild({
-    quayBuildId,
-    timeoutMs,
-    packageName,
-  }: {
-    quayBuildId: string
-    timeoutMs: number
-    packageName: string
-  }): Promise<void> {
+  public async cancelBuild({ quayBuildId, packageName }: { quayBuildId: string; packageName: string }): Promise<void> {
     const p = got.delete(`${this.quayAddress}/api/v1/repository/build/${quayBuildId}`, {
       headers: {
         authorization: `Bearer ${this.quayToken}`,
       },
       responseType: 'json',
       resolveBodyOnly: true,
-      timeout: timeoutMs,
-      retry: {
-        calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
-        statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
-      },
+      retry: defaultRetry,
     })
     this.abortEventHandler.once('closed', () => p.cancel())
     await p
@@ -190,7 +171,6 @@ export class QuayClient {
     packageName,
     archiveUrl,
     commit,
-    timeoutMs,
   }: {
     gitRepoName: string
     quayRepoName: string
@@ -200,7 +180,6 @@ export class QuayClient {
     relativeDockerfilePath: string
     imageTags: string[]
     archiveUrl: string
-    timeoutMs: number
   }): Promise<BuildTriggerResult> {
     const p = got.post<QuayNewBuildResult>(
       `${this.quayAddress}/api/v1/repository/${this.quayNamespace}/${quayRepoName}/build/`,
@@ -216,7 +195,7 @@ export class QuayClient {
         },
         responseType: 'json',
         resolveBodyOnly: true,
-        timeout: timeoutMs,
+
         retry: {
           calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
           statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
@@ -236,13 +215,17 @@ export class QuayClient {
       quayBuildStatus: buildInfo.phase,
     }
     this.log.info(
-      `start image-build for package: "${packageName}": "${
-        result.quayBuildAddress
-      }" for image: "${buildFullDockerImageName({
-        dockerRegistry: this.quayAddress,
-        imageName: buildInfo.repository.name,
-        dockerOrganizationName: buildInfo.repository.namespace,
-      })}" with tags: "${imageTags.join(',')}"`,
+      `start image-build for package: "${packageName}": "${result.quayBuildAddress}" for image: "${
+        // eslint-disable-next-line no-process-env
+        process.env.NC_TEST_MODE
+          ? // in tests, docker-registry is not quay-server.
+            `localhost:35000/${buildInfo.repository.namespace}/${buildInfo.repository.name}`
+          : buildFullDockerImageName({
+              dockerRegistry: this.quayAddress,
+              imageName: buildInfo.repository.name,
+              dockerOrganizationName: buildInfo.repository.namespace,
+            })
+      }" with tags: "${imageTags.join(',')}"`,
     )
     return result
   }
@@ -250,14 +233,12 @@ export class QuayClient {
   public async createNotification({
     packageName,
     repoName,
-    timeoutMs,
     event,
     webhookUrl,
   }: {
     webhookUrl: string
     packageName: string
     repoName: string
-    timeoutMs: number
     event: QuayNotificationEvents
   }): Promise<void> {
     const p = got.post<CreateNotificationResult>(`${this.quayAddress}/api/v1/repository/${repoName}/notification/`, {
@@ -273,11 +254,7 @@ export class QuayClient {
       },
       responseType: 'json',
       resolveBodyOnly: true,
-      timeout: timeoutMs,
-      retry: {
-        calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
-        statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
-      },
+      retry: defaultRetry,
     })
     this.abortEventHandler.once('closed', () => p.cancel())
 

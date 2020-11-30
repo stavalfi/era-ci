@@ -1,5 +1,5 @@
 import { fromEvent, merge, Observable, of, throwError } from 'rxjs'
-import { concatMap, takeWhile } from 'rxjs/operators'
+import { concatMap, filter, takeWhile } from 'rxjs/operators'
 import { ExecutionStatus, Status } from '../types'
 import {
   AbortTask,
@@ -54,18 +54,20 @@ export function createTaskQueue<
   })
 }
 
-export function toTaskQueueEvent$(
-  eventEmitter: TaskQueueEventEmitter,
-  options?: {
+export function toTaskEvent$(
+  taskId: string,
+  options: {
+    eventEmitter: TaskQueueEventEmitter
     errorOnTaskNotPassed?: boolean
   },
 ): Observable<ScheduledTask | RunningTask | AbortTask | DoneTask> {
   return merge(
-    fromEvent<ScheduledTask>(eventEmitter, ExecutionStatus.scheduled, { once: true }),
-    fromEvent<RunningTask>(eventEmitter, ExecutionStatus.running, { once: true }),
-    fromEvent<AbortTask>(eventEmitter, ExecutionStatus.aborted, { once: true }),
-    fromEvent<DoneTask>(eventEmitter, ExecutionStatus.done, { once: true }),
+    fromEvent<ScheduledTask>(options.eventEmitter, ExecutionStatus.scheduled),
+    fromEvent<RunningTask>(options.eventEmitter, ExecutionStatus.running),
+    fromEvent<AbortTask>(options.eventEmitter, ExecutionStatus.aborted),
+    fromEvent<DoneTask>(options.eventEmitter, ExecutionStatus.done),
   ).pipe(
+    filter(e => e.taskInfo.taskId === taskId),
     takeWhile(e => ![ExecutionStatus.aborted, ExecutionStatus.done].includes(e.taskExecutionStatus), true),
     concatMap(e => {
       if (!options?.errorOnTaskNotPassed) {
