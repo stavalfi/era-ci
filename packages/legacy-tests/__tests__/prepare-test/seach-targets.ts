@@ -1,6 +1,7 @@
 import execa from 'execa'
 import semver from 'semver'
-import { getDockerImageLabelsAndTags, Log } from '@tahini/nc'
+import { Log } from '@tahini/core'
+import { getDockerImageLabelsAndTags } from '@tahini/steps'
 
 export async function latestNpmPackageDistTags(
   packageName: string,

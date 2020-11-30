@@ -1,5 +1,6 @@
 import { isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
-import { AbortedTask, DoneTask, ExecutionStatus, RunningTask, ScheduledTask, Status, toTaskEvent$ } from '@tahini/nc'
+import { AbortedTask, DoneTask, RunningTask, ScheduledTask, toTaskEvent$ } from '@tahini/core'
+import { ExecutionStatus, Status } from '@tahini/utils'
 import { QuayBuildsTaskQueue } from '@tahini/quay-task-queue'
 import fs from 'fs'
 import path from 'path'

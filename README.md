@@ -19,7 +19,7 @@ if `b` or `c` changes, the CI will run on the changed package(s) and also on `a`
 ### Install
 
 ```
-yarn add --dev -W @tahini/nc
+yarn add --dev -W @tahini/core
 ```
 
 #### Required Executables
@@ -32,7 +32,7 @@ yarn add --dev -W @tahini/nc
 1. Create a `nc.config.ts` file as a root file.
    - Look at an example of this monorepo for how to write the configurations.
 2. Create a `test` script in every package.
-3. Run NC locally: `node --unhandled-rejections=strict node_modules/@tahini/nc/dist/src/index.js --config-file ./nc.config.ts`
+3. Run NC locally: `node --unhandled-rejections=strict node_modules/@tahini/core/dist/src/index.js --config-file ./nc.config.ts`
 
 #### Use In Managed CI Systems
 

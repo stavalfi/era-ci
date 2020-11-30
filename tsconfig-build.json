@@ -7,7 +7,13 @@
       "path": "packages/legacy-tests/tsconfig-build.json"
     },
     {
-      "path": "packages/nc/tsconfig-build.json"
+      "path": "packages/utils/tsconfig-build.json"
+    },
+    {
+      "path": "packages/steps/tsconfig-build.json"
+    },
+    {
+      "path": "packages/core/tsconfig-build.json"
     },
     {
       "path": "packages/quay/quay-helper-service/tsconfig-build.json"

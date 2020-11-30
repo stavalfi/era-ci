@@ -808,17 +808,6 @@
   dependencies:
     defer-to-connect "^2.0.0"
 
-"@tahini/log@^1.0.0":
-  version "1.2.92"
-  resolved "https://registry.yarnpkg.com/@tahini/log/-/log-1.2.92.tgz#c1271a5288e81493b15b31c6ca95f7b066c10bab"
-  integrity sha512-XpOQRo4oErJ7OQ5Zy+Mw10mC4mdAgYDg4DlgRy87hSJpjMnEW9ZrV1bGdpBnUkAAw9ASL4pP9EHnz+JoqO1oCw==
-  dependencies:
-    chalk "^4.1.0"
-    ci-info "https://github.com/watson/ci-info.git"
-    fs-extra "^9.0.0"
-    randomcolor "^0.6.2"
-    winston "^3.3.3"
-
 "@types/async@^3.2.3":
   version "3.2.3"
   resolved "https://registry.yarnpkg.com/@types/async/-/async-3.2.3.tgz#c56f5e0fc02f8b37196f79239cc857e789b97bb4"

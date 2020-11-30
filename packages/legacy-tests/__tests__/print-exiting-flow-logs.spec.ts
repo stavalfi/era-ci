@@ -3,7 +3,7 @@ import { TargetType } from './prepare-test/types'
 
 const { createRepo } = newEnv()
 
-describe('@tahini/nc --print-flow <flow-id>', () => {
+describe('@tahini/core --print-flow <flow-id>', () => {
   test('ensure we can print old flow logs', async () => {
     const { runCi, getFlowLogs } = await createRepo({
       packages: [

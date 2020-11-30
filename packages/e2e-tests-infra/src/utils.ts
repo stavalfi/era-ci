@@ -1,5 +1,6 @@
+import { Config, createLinearStepsGraph, TaskQueueBase } from '@tahini/core'
+import { cliTableReporter, jsonReporter } from '@tahini/steps'
 import _ from 'lodash'
-import { cliTableReporter, Config, createLinearStepsGraph, jsonReporter, TaskQueueBase } from '@tahini/nc'
 
 export function isDeepSubsetOf({
   subset,

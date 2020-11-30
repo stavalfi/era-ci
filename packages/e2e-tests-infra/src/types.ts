@@ -1,4 +1,4 @@
-import { PackageJson, TargetType } from '@tahini/nc'
+import { PackageJson, TargetType } from '@tahini/utils'
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap } from 'package-json-type'
 import { GitServer } from './git-server-testkit'

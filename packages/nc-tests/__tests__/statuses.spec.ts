@@ -1,13 +1,7 @@
-import {
-  createLinearStepsGraph,
-  createStep,
-  ExecutionStatus,
-  JsonReport,
-  LocalSequentalTaskQueue,
-  RunStrategy,
-  Status,
-} from '@tahini/nc'
+import { createLinearStepsGraph, createStep, LocalSequentalTaskQueue, RunStrategy } from '@tahini/core'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
+import { JsonReport } from '@tahini/steps'
+import { ExecutionStatus, Status } from '@tahini/utils'
 
 const { createRepo } = createTest()
 

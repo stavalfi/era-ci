@@ -15,7 +15,7 @@
   "types": "dist/src/index.d.ts",
   "dependencies": {
     "got": "^11.3.0",
-    "@tahini/nc": "^1.0.0",
+    "@tahini/core": "^1.0.0",
     "http-status-codes": "^2.1.4",
     "chance": "^1.1.5",
     "async": "^3.2.0",
