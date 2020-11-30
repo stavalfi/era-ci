@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import chance from 'chance'
 import fastify from 'fastify'
 import fastifyRateLimiter from 'fastify-rate-limit'
@@ -33,13 +34,13 @@ export async function startQuayMockService(
   const app = fastify({
     logger: {
       prettyPrint: true,
-      level: 'error',
+      level: 'info',
     },
   })
 
   app.register(fastifyRateLimiter, {
-    max: 10,
-    timeWindow: 1 * 1000,
+    max: config.rateLimit.max,
+    timeWindow: config.rateLimit.timeWindowMs,
   })
 
   app.addHook<{ Headers: Headers }>('onRequest', async req => {
@@ -67,7 +68,9 @@ export async function startQuayMockService(
     Body: never
     Reply: 'alive'
     Headers: Headers
-  }>('/', async (_req, res) => res.send('alive'))
+  }>('/', async (_req, res) => {
+    res.send('alive')
+  })
 
   app.post<{
     Params: never
@@ -190,6 +193,7 @@ export async function startQuayMockService(
     Reply: TriggerBuildResponse
     Headers: Headers
   }>('/api/v1/repository/:namespace/:repoName/build/', async (req, res) => {
+    console.log('stav3', `localhost:35000/${req.params.namespace}/${req.params.repoName}`)
     const repo = db.namespaces[req.params.namespace].repos[req.params.repoName]
     if (!repo) {
       throw new Error(`repo not found`)
@@ -201,6 +205,8 @@ export async function startQuayMockService(
     }
 
     const build = db.namespaces[req.params.namespace].repos[req.params.repoName].builds[buildId]
+
+    app.log.info(`build-id: "${buildId}" - start building dockerfile`)
 
     await res.send({
       status: '',

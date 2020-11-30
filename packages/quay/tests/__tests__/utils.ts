@@ -20,13 +20,20 @@ type TestDependencies = {
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function beforeAfterEach() {
+export function beforeAfterEach(options?: {
+  quayMockService?: {
+    rateLimit?: {
+      max: number
+      timeWindowMs: number
+    }
+  }
+}) {
   const { getResoureces, createRepo } = createTest()
 
   let testDependencies: TestDependencies
 
   beforeEach(async () => {
-    testDependencies = await createTestDependencies(getResoureces, createRepo)
+    testDependencies = await createTestDependencies(getResoureces, createRepo, options)
   })
 
   afterEach(async () => {
@@ -64,6 +71,7 @@ export function beforeAfterEach() {
         ]),
       )
       return {
+        quayNamespace: testDependencies.quayNamespace,
         queue: testDependencies.queue,
         repoPath: testDependencies.repoPath,
         packages,
@@ -109,6 +117,14 @@ export async function publishedDockerImageTags({
 async function createTestDependencies(
   getResoureces: () => TestResources,
   createRepo: CreateRepo,
+  options?: {
+    quayMockService?: {
+      rateLimit?: {
+        max: number
+        timeWindowMs: number
+      }
+    }
+  },
 ): Promise<TestDependencies> {
   const redisTopic = `redis-topic-${chance().hash().slice(0, 8)}`
   const quayServiceHelper = await startQuayHelperService({
@@ -123,6 +139,7 @@ async function createTestDependencies(
     dockerRegistryAddress: getResoureces().dockerRegistry,
     namespace: quayNamespace,
     token: quayToken,
+    rateLimit: options?.quayMockService?.rateLimit || { max: 1000, timeWindowMs: 1000 * 1000 },
   })
 
   const { repoPath, toActualName } = await createRepo({

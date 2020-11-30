@@ -111,6 +111,11 @@ export async function buildDockerFile({
       await execa.command(`docker push ${image}`, {
         stdio: 'inherit',
       })
+
+      await execa.command(`docker rmi ${image}`, {
+        stdio: 'pipe',
+      })
+
       if ((build.status as QuayBuildStatus) !== QuayBuildStatus.cancelled) {
         build.status = QuayBuildStatus.complete
         await notify({
