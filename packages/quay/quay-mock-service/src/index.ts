@@ -34,7 +34,7 @@ export async function startQuayMockService(
   const app = fastify({
     logger: {
       prettyPrint: true,
-      level: 'info',
+      level: 'error',
     },
   })
 

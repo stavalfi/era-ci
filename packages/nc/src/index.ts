@@ -25,7 +25,7 @@ export { CreateLogger, Log, Logger, LogLevel } from './create-logger'
 export { createStep, RunStrategy, Step, StepInfo } from './create-step'
 export { createStepConstrain, StepConstrain, StepConstrainResult } from './create-step-constrain'
 export {
-  AbortTask,
+  AbortedTask,
   CreateTaskQueue,
   createTaskQueue,
   DoneTask,
@@ -37,6 +37,7 @@ export {
   TaskQueueEventEmitter,
   TaskQueueOptions,
   toTaskEvent$,
+  TaskTimeoutEventEmitter,
 } from './create-task-queue'
 export { createImmutableCache } from './immutable-cache'
 export { RedisConfiguration, redisConnection } from './redis-connection'

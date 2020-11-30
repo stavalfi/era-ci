@@ -1,9 +1,8 @@
-import got, { RequestError, RequiredRetryOptions } from 'got'
-import path from 'path'
-import { Log, buildFullDockerImageName } from '@tahini/nc'
-import { AbortEventHandler } from './types'
+import { buildFullDockerImageName, Log, TaskTimeoutEventEmitter } from '@tahini/nc'
+import got, { RequestError } from 'got'
 import HttpStatusCodes from 'http-status-codes'
-import chance from 'chance'
+import path from 'path'
+import { AbortEventHandler } from './types'
 
 export enum QuayBuildStatus {
   waiting = 'waiting',
@@ -66,19 +65,9 @@ export type CreateNotificationResult = {
   event: QuayNotificationEvents
 }
 
-const defaultRetry: Partial<RequiredRetryOptions> = {
-  calculateDelay: ({ error }) => {
-    if (error instanceof RequestError) {
-      const wait = error.response?.headers['retry-after']
-      return wait === undefined ? 1000 : Number(wait)
-    }
-    return 1000
-  },
-  statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
-}
-
 export class QuayClient {
   constructor(
+    private readonly taskTimeoutEventEmitter: TaskTimeoutEventEmitter,
     private readonly abortEventHandler: AbortEventHandler,
     private readonly quayAddress: string,
     private readonly quayToken: string,
@@ -86,79 +75,113 @@ export class QuayClient {
     private readonly log: Log,
   ) {}
 
+  private async request<ResponseBody, RequestBody = unknown>(options: {
+    method: 'get' | 'post' | 'delete'
+    api: string
+    requestBody?: RequestBody
+    taskId: string
+  }): Promise<ResponseBody> {
+    const p = got[options.method]<ResponseBody>(`${this.quayAddress}/${options.api}`, {
+      headers: {
+        authorization: `Bearer ${this.quayToken}`,
+      },
+      json: options.requestBody,
+      responseType: 'json',
+      resolveBodyOnly: true,
+      retry: {
+        calculateDelay: ({ error }) => {
+          if (error instanceof RequestError) {
+            const wait = error.response?.headers['retry-after']
+            return wait === undefined ? 1000 : Number(wait)
+          }
+          return 1000
+        },
+        statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
+      },
+    })
+
+    this.abortEventHandler.once('closed', () => p.cancel())
+    this.taskTimeoutEventEmitter.once('timeout', taskId => {
+      if (taskId === options.taskId) {
+        p.cancel()
+      }
+    })
+
+    return p
+  }
+
   public async createRepo({
     packageName,
+    taskId,
     repoName,
     visibility,
   }: {
+    taskId: string
     packageName: string
     repoName: string
     visibility: 'public' | 'private'
   }): Promise<QuayCreateRepoResult> {
-    const p = got.post<QuayCreateRepoResult>(`${this.quayAddress}/api/v1/repository`, {
-      headers: {
-        authorization: `Bearer ${this.quayToken}`,
-      },
-      json: {
-        repo_kind: 'image',
-        namespace: this.quayNamespace,
-        visibility,
-        repository: repoName,
-        description: `image repository to package: ${packageName}`,
-      },
-      responseType: 'json',
-      resolveBodyOnly: true,
-      retry: defaultRetry,
-    })
-
-    return p.then(
-      r => {
-        this.log.info(
-          `created quay-repository: "${this.quayAddress}/repository/${r.namespace}/${r.name}" for package: "${packageName}" with visibility: "${visibility}"`,
-        )
-        return r
-      },
-      error => {
-        if (error?.response?.body?.error_message === 'Repository already exists') {
-          return {
-            kind: 'image',
-            namespace: this.quayNamespace,
-            name: repoName,
-          }
-        } else {
-          throw error
+    try {
+      const r = await this.request<QuayCreateRepoResult>({
+        taskId,
+        method: 'post',
+        api: `api/v1/repository`,
+        requestBody: {
+          repo_kind: 'image',
+          namespace: this.quayNamespace,
+          visibility,
+          repository: repoName,
+          description: `image repository to package: ${packageName}`,
+        },
+      })
+      this.log.info(
+        `created quay-repository: "${this.quayAddress}/repository/${r.namespace}/${r.name}" for package: "${packageName}" with visibility: "${visibility}"`,
+      )
+      return r
+    } catch (error) {
+      if (error?.response?.body?.error_message === 'Repository already exists') {
+        return {
+          kind: 'image',
+          namespace: this.quayNamespace,
+          name: repoName,
         }
-      },
-    )
+      } else {
+        throw error
+      }
+    }
   }
 
-  public async getBuildStatus({ quayBuildId }: { quayBuildId: string }): Promise<QuayNewBuildResult['phase']> {
-    const p = got.get<QuayNewBuildResult>(`${this.quayAddress}/api/v1/repository/build/${quayBuildId}/status`, {
-      headers: {
-        authorization: `Bearer ${this.quayToken}`,
-      },
-      responseType: 'json',
-      resolveBodyOnly: true,
-      retry: defaultRetry,
+  public async getBuildStatus({
+    quayBuildId,
+    taskId,
+  }: {
+    quayBuildId: string
+    taskId: string
+  }): Promise<QuayNewBuildResult['phase']> {
+    const quayBuildStatus = await this.request<QuayNewBuildResult>({
+      taskId,
+      method: 'get',
+      api: `api/v1/repository/build/${quayBuildId}/status`,
     })
 
-    this.abortEventHandler.once('closed', () => p.cancel())
-
-    const quayBuildStatus = await p
     return quayBuildStatus.phase
   }
 
-  public async cancelBuild({ quayBuildId, packageName }: { quayBuildId: string; packageName: string }): Promise<void> {
-    const p = got.delete(`${this.quayAddress}/api/v1/repository/build/${quayBuildId}`, {
-      headers: {
-        authorization: `Bearer ${this.quayToken}`,
-      },
-      responseType: 'json',
-      resolveBodyOnly: true,
-      retry: defaultRetry,
+  public async cancelBuild({
+    quayBuildId,
+    packageName,
+    taskId,
+  }: {
+    quayBuildId: string
+    packageName: string
+    taskId: string
+  }): Promise<void> {
+    await this.request({
+      taskId,
+      method: 'delete',
+      api: `api/v1/repository/build/${quayBuildId}`,
     })
-    this.abortEventHandler.once('closed', () => p.cancel())
-    await p
+
     this.log.info(`canceled image-build for package: "${packageName}" in quay`)
   }
 
@@ -171,6 +194,7 @@ export class QuayClient {
     packageName,
     archiveUrl,
     commit,
+    taskId,
   }: {
     gitRepoName: string
     quayRepoName: string
@@ -180,31 +204,19 @@ export class QuayClient {
     relativeDockerfilePath: string
     imageTags: string[]
     archiveUrl: string
+    taskId: string
   }): Promise<BuildTriggerResult> {
-    const p = got.post<QuayNewBuildResult>(
-      `${this.quayAddress}/api/v1/repository/${this.quayNamespace}/${quayRepoName}/build/`,
-      {
-        headers: {
-          authorization: `Bearer ${this.quayToken}`,
-        },
-        json: {
-          archive_url: archiveUrl,
-          docker_tags: imageTags,
-          context: path.join(`${gitRepoName}-${commit}`, relativeContextPath),
-          dockerfile_path: path.join(`${gitRepoName}-${commit}`, relativeDockerfilePath),
-        },
-        responseType: 'json',
-        resolveBodyOnly: true,
-
-        retry: {
-          calculateDelay: () => chance().integer({ min: 1, max: 5 }) * 1000,
-          statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
-        },
+    const buildInfo = await this.request<QuayNewBuildResult>({
+      taskId,
+      method: 'post',
+      api: `api/v1/repository/${this.quayNamespace}/${quayRepoName}/build/`,
+      requestBody: {
+        archive_url: archiveUrl,
+        docker_tags: imageTags,
+        context: path.join(`${gitRepoName}-${commit}`, relativeContextPath),
+        dockerfile_path: path.join(`${gitRepoName}-${commit}`, relativeDockerfilePath),
       },
-    )
-    this.abortEventHandler.once('closed', () => p.cancel())
-
-    const buildInfo = await p
+    })
 
     const result = {
       quayRepoName: buildInfo.repository.name,
@@ -235,30 +247,26 @@ export class QuayClient {
     repoName,
     event,
     webhookUrl,
+    taskId,
   }: {
     webhookUrl: string
     packageName: string
     repoName: string
     event: QuayNotificationEvents
+    taskId: string
   }): Promise<void> {
-    const p = got.post<CreateNotificationResult>(`${this.quayAddress}/api/v1/repository/${repoName}/notification/`, {
-      headers: {
-        authorization: `Bearer ${this.quayToken}`,
-      },
-      json: {
+    await this.request<CreateNotificationResult>({
+      taskId,
+      method: 'post',
+      api: `api/v1/repository/${repoName}/notification/`,
+      requestBody: {
         config: { url: webhookUrl },
         event,
         eventConfig: {},
         method: 'webhook',
         title: event,
       },
-      responseType: 'json',
-      resolveBodyOnly: true,
-      retry: defaultRetry,
     })
-    this.abortEventHandler.once('closed', () => p.cancel())
-
-    await p
 
     this.log.verbose(
       `created notification: ${event} for package: "${packageName}" - repository: "${buildFullDockerImageName({

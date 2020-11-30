@@ -142,6 +142,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
       })
     }
     this.taskQueue.kill()
+    this.eventEmitter.removeAllListeners()
     this.options.log.verbose(`closed local-sequental task-queue and aborted scheduled tasks`)
   }
 }
