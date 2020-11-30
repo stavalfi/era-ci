@@ -2,7 +2,7 @@ import { fromEvent, merge, Observable, of, throwError } from 'rxjs'
 import { concatMap, filter, takeWhile } from 'rxjs/operators'
 import { ExecutionStatus, Status } from '../types'
 import {
-  AbortTask,
+  AbortedTask,
   ConfigureTaskQueue,
   DoneTask,
   RunningTask,
@@ -13,7 +13,7 @@ import {
 } from './types'
 
 export {
-  AbortTask,
+  AbortedTask,
   ConfigureTaskQueue,
   CreateTaskQueue,
   DoneTask,
@@ -24,6 +24,7 @@ export {
   TaskQueueBase,
   TaskQueueEventEmitter,
   TaskQueueOptions,
+  TaskTimeoutEventEmitter,
 } from './types'
 
 export function createTaskQueue<
@@ -60,11 +61,11 @@ export function toTaskEvent$(
     eventEmitter: TaskQueueEventEmitter
     errorOnTaskNotPassed?: boolean
   },
-): Observable<ScheduledTask | RunningTask | AbortTask | DoneTask> {
+): Observable<ScheduledTask | RunningTask | AbortedTask | DoneTask> {
   return merge(
     fromEvent<ScheduledTask>(options.eventEmitter, ExecutionStatus.scheduled),
     fromEvent<RunningTask>(options.eventEmitter, ExecutionStatus.running),
-    fromEvent<AbortTask>(options.eventEmitter, ExecutionStatus.aborted),
+    fromEvent<AbortedTask>(options.eventEmitter, ExecutionStatus.aborted),
     fromEvent<DoneTask>(options.eventEmitter, ExecutionStatus.done),
   ).pipe(
     filter(e => e.taskInfo.taskId === taskId),

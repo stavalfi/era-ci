@@ -176,7 +176,6 @@ async function createTestDependencies(
     quayServiceHelperAddress: quayServiceHelper.address,
     quayToken,
     redisAddress: getResoureces().redisServerUri,
-    taskTimeoutMs: 10 * 1000,
   }).createFunc({
     log: logger.createLog('quayBuildsTaskQueue'),
     gitRepoInfo: await getGitRepoInfo(repoPath),

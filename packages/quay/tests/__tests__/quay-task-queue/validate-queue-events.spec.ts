@@ -1,5 +1,5 @@
 import { isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
-import { AbortTask, DoneTask, ExecutionStatus, RunningTask, ScheduledTask, Status, toTaskEvent$ } from '@tahini/nc'
+import { AbortedTask, DoneTask, ExecutionStatus, RunningTask, ScheduledTask, Status, toTaskEvent$ } from '@tahini/nc'
 import { QuayBuildsTaskQueue } from '@tahini/quay-task-queue'
 import fs from 'fs'
 import path from 'path'
@@ -44,6 +44,7 @@ test('task is executed and we expect the docker-image to be presentin the regist
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      taskTimeoutMs: 10000,
     },
   ])
 
@@ -65,6 +66,7 @@ test('scheduled and running events are fired', async () => {
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      taskTimeoutMs: 10000,
     },
   ])
 
@@ -87,6 +89,7 @@ test('events are fired even when task failed', async () => {
       imageTags: ['1.0.0'],
       relativeContextPath: '/invalid-path-to-context',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      taskTimeoutMs: 10000,
     },
   ])
 
@@ -109,6 +112,7 @@ test('events schema is valid', async () => {
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      taskTimeoutMs: 10000,
     },
   ])
 
@@ -157,6 +161,7 @@ test('done events schema is valid when task fail', async () => {
       imageTags: ['1.0.0'],
       relativeContextPath: '/invalid-path-to-context',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      taskTimeoutMs: 10000,
     },
   ])
 
@@ -195,12 +200,14 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      taskTimeoutMs: 10000,
     },
     {
       packageName: getResoureces().packages.package2.name,
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package2.relativeDockerFilePath,
+      taskTimeoutMs: 10000,
     },
   ])
 
@@ -233,6 +240,7 @@ RUN sleep 10000 # make sure that this task will not end
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      taskTimeoutMs: 10000,
     },
   ])
 
@@ -263,6 +271,7 @@ RUN sleep 10000 # make sure that this task will not end
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      taskTimeoutMs: 10000,
     },
   ])
 
@@ -276,7 +285,7 @@ RUN sleep 10000 # make sure that this task will not end
   const abort = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.aborted),
-      map(e => e as AbortTask),
+      map(e => e as AbortedTask),
     )
     .toPromise()
 
@@ -300,6 +309,7 @@ test('multiple tasks', async () => {
       imageTags: [`1.0.${i}`],
       relativeContextPath: '/',
       relativeDockerfilePath: packageInfo.relativeDockerFilePath,
+      taskTimeoutMs: 10000,
     })),
   )
 

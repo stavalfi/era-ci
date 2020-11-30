@@ -6,11 +6,12 @@ import {
   TaskQueueBase,
   TaskQueueEventEmitter,
   TaskQueueOptions,
+  TaskTimeoutEventEmitter,
 } from '@tahini/nc'
 import { queue } from 'async'
 import chance from 'chance'
 import { EventEmitter } from 'events'
-import { CancelError, TimeoutError } from 'got'
+import { CancelError } from 'got'
 import Redis from 'ioredis'
 import { serializeError } from 'serialize-error'
 import { BuildTriggerResult, QuayBuildStatus, QuayClient, QuayNotificationEvents } from './quay-client'
@@ -24,7 +25,6 @@ export type QuayBuildsTaskQueueConfigurations = {
   quayServiceHelperAddress: string
   quayToken: string
   quayNamespace: string
-  taskTimeoutMs: number
   getQuayRepoInfo: (packageName: string) => { repoName: string; visibility: 'public' | 'private' }
   getCommitTarGzPublicAddress: (options: {
     repoNameWithOrgName: string
@@ -46,9 +46,11 @@ export type QuayBuildStatusChangedTopicPayload = {
 
 export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueConfigurations> {
   public readonly eventEmitter: TaskQueueEventEmitter = new EventEmitter({ captureRejections: true })
-  private readonly builds: Map<
+  public readonly taskTimeoutEventEmitter: TaskTimeoutEventEmitter = new EventEmitter({ captureRejections: true })
+  private readonly tasks: Map<
     string,
     {
+      taskTimeoutMs: number
       startTaskMs: number
       taskInfo: TaskInfo
       packageName: string
@@ -68,31 +70,91 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
   private readonly quayClient: QuayClient
   // we use this task-queue to track on non-blocking-functions (promises we don't await for) and wait for all in the cleanup.
   // why we don't await on every function (instead of using this queue): because we want to emit events after functions returns
-  private readonly internalTaskQueue = queue<() => Promise<unknown>>(async (task, done) => {
-    try {
-      await task()
-      done()
-    } catch (error) {
-      done(error)
-    }
-  }, 1)
+  private readonly internalTaskQueue = queue<() => Promise<unknown>>(
+    (task, done) => task().then(() => done(), done),
+    10,
+  )
+  private readonly cleanups: (() => Promise<unknown>)[] = []
 
   constructor(
     private readonly options: TaskQueueOptions<QuayBuildsTaskQueueConfigurations>,
     private readonly redisConnection: Redis.Redis,
   ) {
+    this.internalTaskQueue.error(error => options.log.error(`failed to run a task in internalTaskQueue`, error))
     this.eventEmitter.setMaxListeners(Infinity)
     this.quayClient = new QuayClient(
+      this.taskTimeoutEventEmitter,
       this.queueStatusChanged,
       options.taskQueueConfigurations.quayAddress,
       options.taskQueueConfigurations.quayToken,
       options.taskQueueConfigurations.quayNamespace,
       options.log,
     )
+    this.taskTimeoutEventEmitter.on('timeout', async taskId => {
+      const task = this.tasks.get(taskId)
+      if (!task) {
+        throw new Error(`taskId not found: "${taskId}"`)
+      }
+      if (task.quayBuildId) {
+        await this.quayClient
+          .cancelBuild({
+            taskId: task.taskInfo.taskId,
+            packageName: task.packageName,
+            quayBuildId: task.quayBuildId,
+          })
+          .catch(() => {
+            // the build maybe was not triggered
+          })
+      }
+      this.eventEmitter.emit(ExecutionStatus.aborted, {
+        taskExecutionStatus: ExecutionStatus.aborted,
+        taskInfo: task.taskInfo,
+        taskResult: {
+          executionStatus: ExecutionStatus.aborted,
+          durationMs: Date.now() - task.startTaskMs,
+          errors: [],
+          notes: [`task timeout`],
+          status: Status.failed,
+        },
+      })
+    })
     this.redisConnection.on('message', (topic: string, eventString: string) =>
       this.internalTaskQueue.push(() => this.onQuayBuildStatusChanged(topic, eventString)),
     )
+
     options.log.verbose(`initialized ${QuayBuildsTaskQueue.name}`)
+  }
+
+  private isTaskTimeout(
+    options:
+      | {
+          taskId: string
+        }
+      | {
+          quayBuildId: string
+        }
+      | {
+          startTaskMs: number
+          taskTimeoutMs: number
+        },
+  ): boolean {
+    if ('quayBuildId' in options) {
+      const task = Array.from(this.tasks.values()).find(b => b.quayBuildId === options.quayBuildId)
+      if (!task) {
+        throw new Error(`quayBuildId not found: "${options.quayBuildId}"`)
+      }
+      return this.isTaskTimeout({ startTaskMs: task.startTaskMs, taskTimeoutMs: task.taskTimeoutMs })
+    } else {
+      if ('taskId' in options) {
+        const task = this.tasks.get(options.taskId)
+        if (!task) {
+          throw new Error(`taskId not found: "${options.taskId}"`)
+        }
+        return this.isTaskTimeout({ startTaskMs: task.startTaskMs, taskTimeoutMs: task.taskTimeoutMs })
+      } else {
+        return options.taskTimeoutMs < Date.now() - options.startTaskMs
+      }
+    }
   }
 
   private async onQuayBuildStatusChanged(topic: string, eventString: string, retry = 0): Promise<void> {
@@ -108,8 +170,8 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       return
     }
     this.options.log.debug(`new event on topic: "${topic}" from quay-server: ${JSON.stringify(event, null, 2)}`)
-    const build = Array.from(this.builds.values()).find(b => b.quayBuildId === event.quayBuildId)
-    if (!build) {
+    const task = Array.from(this.tasks.values()).find(b => b.quayBuildId === event.quayBuildId)
+    if (!task) {
       if (retry >= 30) {
         this.options.log.error(`can't find build-id: "${event.quayBuildId}" which we received from quay-helper-service`)
       }
@@ -119,15 +181,15 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       await new Promise(res => setTimeout(res, 1000))
       return this.onQuayBuildStatusChanged(topic, eventString)
     }
-    build.lastKnownQuayBuildStatus = event.quayBuildStatus
+    task.lastKnownQuayBuildStatus = event.quayBuildStatus
 
     if (event.quayBuildStatus === 'complete') {
       this.eventEmitter.emit(ExecutionStatus.done, {
         taskExecutionStatus: ExecutionStatus.done,
-        taskInfo: build.taskInfo,
+        taskInfo: task.taskInfo,
         taskResult: {
           executionStatus: ExecutionStatus.done,
-          durationMs: Date.now() - build.startTaskMs,
+          durationMs: Date.now() - task.startTaskMs,
           errors: [],
           notes: [],
           status: Status.passed,
@@ -138,12 +200,12 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     if (event.quayBuildStatus === 'error') {
       this.eventEmitter.emit(ExecutionStatus.done, {
         taskExecutionStatus: ExecutionStatus.done,
-        taskInfo: build.taskInfo,
+        taskInfo: task.taskInfo,
         taskResult: {
           executionStatus: ExecutionStatus.done,
-          durationMs: Date.now() - build.startTaskMs,
+          durationMs: Date.now() - task.startTaskMs,
           errors: [],
-          notes: [`build-logs: "${build.quayBuildLogsAddress}"`],
+          notes: [`build-logs: "${task.quayBuildLogsAddress}"`],
           status: Status.failed,
         },
       })
@@ -157,6 +219,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       relativeContextPath: string
       relativeDockerfilePath: string
       imageTags: string[]
+      taskTimeoutMs: number
     }[],
   ): TaskInfo[] {
     const startTaskMs = Date.now()
@@ -173,6 +236,14 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       taskId: chance().hash(),
     }))
 
+    tasks.forEach((task, i) => {
+      const id = setTimeout(
+        () => this.taskTimeoutEventEmitter.emit('timeout', task.taskId),
+        tasksOptions[i].taskTimeoutMs,
+      )
+      this.cleanups.push(async () => clearTimeout(id))
+    })
+
     this.internalTaskQueue.push(() =>
       Promise.all(tasksOptions.map((t, i) => this.buildImage({ ...t, taskInfo: tasks[i], startTaskMs }))),
     )
@@ -181,11 +252,11 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
   }
 
   public getBuildLogsAddress(taskId: string): string {
-    const build = this.builds.get(taskId)
-    if (!build) {
+    const task = this.tasks.get(taskId)
+    if (!task) {
       throw new Error(`taskId: ${taskId} not found`)
     }
-    return build.quayBuildLogsAddress
+    return task.quayBuildLogsAddress
   }
 
   private async buildImage({
@@ -195,6 +266,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     relativeContextPath,
     relativeDockerfilePath,
     taskInfo,
+    taskTimeoutMs,
   }: {
     taskInfo: TaskInfo
     startTaskMs: number
@@ -202,6 +274,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     relativeContextPath: string
     relativeDockerfilePath: string
     imageTags: string[]
+    taskTimeoutMs: number
   }): Promise<void> {
     const sendAbortEvent = (note: string) =>
       this.eventEmitter.emit(ExecutionStatus.aborted, {
@@ -224,8 +297,13 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         executionStatus: ExecutionStatus.scheduled,
       },
     })
+
     if (!this.isQueueActive) {
       sendAbortEvent(`task-queue was closed. aborting quay-build`)
+      return
+    }
+    if (this.isTaskTimeout({ taskTimeoutMs, startTaskMs })) {
+      sendAbortEvent(`task-timeout`)
       return
     }
     this.eventEmitter.emit(ExecutionStatus.running, {
@@ -240,6 +318,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     let buildTriggerResult: BuildTriggerResult | undefined
     try {
       await this.quayClient.createRepo({
+        taskId: taskInfo.taskId,
         repoName,
         visibility,
         packageName,
@@ -248,9 +327,14 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         sendAbortEvent(`task-queue was closed. aborting quay-build`)
         return
       }
+      if (this.isTaskTimeout({ taskTimeoutMs, startTaskMs })) {
+        sendAbortEvent(`task-timeout`)
+        return
+      }
       await Promise.all(
         Object.values(QuayNotificationEvents).map(event =>
           this.quayClient.createNotification({
+            taskId: taskInfo.taskId,
             event,
             packageName,
             repoName,
@@ -262,7 +346,12 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         sendAbortEvent(`task-queue was closed. aborting quay-build`)
         return
       }
+      if (this.isTaskTimeout({ taskTimeoutMs, startTaskMs })) {
+        sendAbortEvent(`task-timeout`)
+        return
+      }
       buildTriggerResult = await this.quayClient.triggerBuild({
+        taskId: taskInfo.taskId,
         packageName,
         imageTags,
         relativeContextPath,
@@ -279,7 +368,8 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         }),
         commit: this.options.gitRepoInfo.commit,
       })
-      this.builds.set(taskInfo.taskId, {
+      this.tasks.set(taskInfo.taskId, {
+        taskTimeoutMs,
         lastEmittedTaskExecutionStatus: ExecutionStatus.running,
         startTaskMs,
         taskInfo,
@@ -289,16 +379,18 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       })
     } catch (error: unknown) {
       if (buildTriggerResult) {
-        await this.quayClient.cancelBuild({ packageName, quayBuildId: buildTriggerResult.quayBuildId }).catch(() => {
-          // the build maybe was not triggered
-        })
+        await this.quayClient
+          .cancelBuild({ taskId: taskInfo.taskId, packageName, quayBuildId: buildTriggerResult.quayBuildId })
+          .catch(() => {
+            // the build maybe was not triggered
+          })
       }
-      if (error instanceof CancelError) {
+      if (error instanceof CancelError && !this.isQueueActive) {
         sendAbortEvent(`task-queue was closed. aborting quay-build`)
         return
       }
-      if (error instanceof TimeoutError) {
-        sendAbortEvent(`task-timeout. aboring quay-build`)
+      if (error instanceof CancelError && this.isTaskTimeout({ taskId: taskInfo.taskId })) {
+        sendAbortEvent(`task-timeout`)
         return
       }
       this.eventEmitter.emit(ExecutionStatus.aborted, {
@@ -321,6 +413,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     }
 
     this.options.log.verbose(`closing quay-builds task-queue and aborting scheduled and running tasks`)
+    await Promise.allSettled(this.cleanups.map(f => f()))
     // ensure we don't send events of any processing or pending tasks
     this.isQueueActive = false
     this.queueStatusChanged.emit('closed')
@@ -330,7 +423,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     }
     this.internalTaskQueue.kill()
 
-    const scheduledAndRunningTasks = Array.from(this.builds.values()).filter(
+    const scheduledAndRunningTasks = Array.from(this.tasks.values()).filter(
       b =>
         b.lastEmittedTaskExecutionStatus === ExecutionStatus.scheduled ||
         b.lastEmittedTaskExecutionStatus === ExecutionStatus.running,
@@ -349,6 +442,9 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         },
       }),
     )
+
+    this.eventEmitter.removeAllListeners()
+    this.taskTimeoutEventEmitter.removeAllListeners()
 
     await this.redisConnection.disconnect()
 
