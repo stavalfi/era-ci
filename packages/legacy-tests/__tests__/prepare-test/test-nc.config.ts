@@ -1,11 +1,5 @@
-import {
-  config,
-  createLinearStepsGraph,
-  localSequentalTaskQueue,
-  LogLevel,
-  redisConnection,
-  winstonLogger,
-} from '@tahini/core'
+import { config, createLinearStepsGraph, localSequentalTaskQueue, LogLevel, redisConnection } from '@tahini/core'
+import { winstonLogger } from '@tahini/loggers'
 import {
   build,
   cliTableReporter,

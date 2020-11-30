@@ -1,6 +1,7 @@
 import { CreateRepo, createTest, TestResources } from '@tahini/e2e-tests-infra'
-import { Log, Logger, LogLevel, winstonLogger } from '@tahini/core'
+import { Log, Logger, LogLevel } from '@tahini/core'
 import { getGitRepoInfo } from '@tahini/utils'
+import { winstonLogger } from '@tahini/loggers'
 import { getDockerImageLabelsAndTags } from '@tahini/steps'
 import { startQuayHelperService } from '@tahini/quay-helper-service'
 import { startQuayMockService } from '@tahini/quay-mock-service'

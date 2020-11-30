@@ -12,6 +12,9 @@
       "path": "../../steps/tsconfig-build.json"
     },
     {
+      "path": "../../loggers/tsconfig-build.json"
+    },
+    {
       "path": "../../e2e-tests-infra/tsconfig-build.json"
     },
     {

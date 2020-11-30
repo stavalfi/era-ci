@@ -10,6 +10,7 @@
     "lodash": "4.17.20",
     "@tahini/core": "^1.0.0",
     "@tahini/steps": "^1.0.0",
-    "@tahini/utils": "^1.0.0"
+    "@tahini/utils": "^1.0.0",
+    "@tahini/loggers": "^1.0.0"
   }
 }

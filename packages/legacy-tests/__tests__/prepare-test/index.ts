@@ -1,7 +1,8 @@
 /// <reference path="../../../../declarations.d.ts" />
 
 import { buildFullDockerImageName } from '@tahini/utils'
-import { LogLevel, winstonLogger } from '@tahini/core'
+import { LogLevel } from '@tahini/core'
+import { winstonLogger } from '@tahini/loggers'
 import chance from 'chance'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'

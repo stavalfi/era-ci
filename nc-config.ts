@@ -1,13 +1,7 @@
 import ciInfo from 'ci-info'
 import _ from 'lodash'
-import {
-  config,
-  createLinearStepsGraph,
-  localSequentalTaskQueue,
-  LogLevel,
-  redisConnection,
-  winstonLogger,
-} from './packages/core/src'
+import { config, createLinearStepsGraph, localSequentalTaskQueue, LogLevel, redisConnection } from './packages/core/src'
+import { winstonLogger } from './packages/loggers/src'
 import {
   build,
   cliTableReporter,

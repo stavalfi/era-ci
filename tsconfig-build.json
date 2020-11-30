@@ -10,6 +10,9 @@
       "path": "packages/utils/tsconfig-build.json"
     },
     {
+      "path": "packages/loggers/tsconfig-build.json"
+    },
+    {
       "path": "packages/steps/tsconfig-build.json"
     },
     {

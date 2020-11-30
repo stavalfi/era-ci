@@ -7,6 +7,18 @@
   "references": [
     {
       "path": "../e2e-tests-infra/tsconfig-build.json"
+    },
+    {
+      "path": "../core/tsconfig-build.json"
+    },
+    {
+      "path": "../steps/tsconfig-build.json"
+    },
+    {
+      "path": "../utils/tsconfig-build.json"
+    },
+    {
+      "path": "../loggers/tsconfig-build.json"
     }
   ]
 }

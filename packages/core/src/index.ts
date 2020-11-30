@@ -31,7 +31,7 @@ export {
   skipIfArtifactStepResultMissingOrPassedInCacheConstrain,
 } from './artifact-step-constrains'
 export { createLinearStepsGraph } from './create-linear-steps-graph'
-export { CreateLogger, Log, Logger, LogLevel } from './create-logger'
+export { CreateLogger, Log, Logger, LogLevel, createLogger } from './create-logger'
 export {
   createStep,
   RunStrategy,
@@ -72,7 +72,6 @@ export {
 export { createImmutableCache } from './immutable-cache'
 export { RedisConfiguration, redisConnection } from './redis-connection'
 export { localSequentalTaskQueue, LocalSequentalTaskQueue } from './task-queues'
-export { LoggerConfiguration, winstonLogger } from './winston-logger'
 
 async function main() {
   try {
