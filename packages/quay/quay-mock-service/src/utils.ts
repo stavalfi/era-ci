@@ -1,4 +1,4 @@
-import { buildFullDockerImageName } from '@tahini/nc'
+import { buildFullDockerImageName } from '@tahini/utils'
 import compressing from 'compressing'
 import { createFile, createFolder } from 'create-folder-structure'
 import execa from 'execa'

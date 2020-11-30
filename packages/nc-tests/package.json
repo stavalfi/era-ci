@@ -1,5 +1,5 @@
 {
-  "name": "@tahini/nc-tests",
+  "name": "@tahini/core-tests",
   "version": "1.0.0",
   "license": "UNLICENSED",
   "private": true,
@@ -7,7 +7,7 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@tahini/e2e-tests-infra":"^1.0.0",
-    "@tahini/nc":"^1.0.0"
+    "@tahini/e2e-tests-infra": "^1.0.0",
+    "@tahini/core": "^1.0.0"
   }
 }

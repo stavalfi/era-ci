@@ -1,25 +1,27 @@
 import ciInfo from 'ci-info'
 import _ from 'lodash'
 import {
-  build,
-  cliTableReporter,
   config,
   createLinearStepsGraph,
+  localSequentalTaskQueue,
+  LogLevel,
+  redisConnection,
+  winstonLogger,
+} from './packages/core/src'
+import {
+  build,
+  cliTableReporter,
   dockerPublish,
-  execaCommand,
   install,
   jsonReporter,
   k8sGcloudDeployment,
   lint,
-  localSequentalTaskQueue,
-  LogLevel,
   npmPublish,
   NpmScopeAccess,
-  redisConnection,
   test,
   validatePackages,
-  winstonLogger,
-} from './packages/nc'
+} from './packages/steps/src'
+import { execaCommand } from './packages/utils/src'
 
 const {
   NPM_REGISTRY = 'https://registry.npmjs.org/',

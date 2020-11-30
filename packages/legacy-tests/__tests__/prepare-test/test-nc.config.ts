@@ -1,20 +1,22 @@
 import {
-  build,
-  cliTableReporter,
   config,
   createLinearStepsGraph,
+  localSequentalTaskQueue,
+  LogLevel,
+  redisConnection,
+  winstonLogger,
+} from '@tahini/core'
+import {
+  build,
+  cliTableReporter,
   dockerPublish,
   install,
   jsonReporter,
-  localSequentalTaskQueue,
-  LogLevel,
   npmPublish,
   NpmScopeAccess,
-  redisConnection,
-  test,
   validatePackages,
-  winstonLogger,
-} from '@tahini/nc'
+  test,
+} from '@tahini/steps'
 
 const {
   SHOULD_PUBLISH_NPM,

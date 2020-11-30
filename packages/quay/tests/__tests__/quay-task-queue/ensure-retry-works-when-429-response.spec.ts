@@ -1,4 +1,4 @@
-import { toTaskEvent$ } from '@tahini/nc'
+import { toTaskEvent$ } from '@tahini/core'
 import { QuayBuildsTaskQueue } from '@tahini/quay-task-queue'
 import { merge } from 'rxjs'
 import { beforeAfterEach } from '../utils'

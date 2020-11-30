@@ -1,4 +1,5 @@
-import { AbortedTask, ExecutionStatus, toTaskEvent$ } from '@tahini/nc'
+import { AbortedTask, toTaskEvent$ } from '@tahini/core'
+import { ExecutionStatus } from '@tahini/utils'
 import { QuayBuildsTaskQueue } from '@tahini/quay-task-queue'
 import path from 'path'
 import fs from 'fs'

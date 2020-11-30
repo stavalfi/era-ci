@@ -9,9 +9,9 @@
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
     "test": "jest --no-cache",
     "clean": "yarn workspace scripts clean",
-    "run-ci": "yarn build && node --unhandled-rejections=strict packages/nc/dist/src/index.js --config-file ./nc-config.ts",
+    "run-ci": "yarn build && node --unhandled-rejections=strict packages/core/dist/src/index.js --config-file ./nc-config.ts",
     "build:tsc": "yarn tsc -b tsconfig-build.json",
-    "build": "yarn build:tsc && chmod +x packages/nc/dist/src/index.js",
+    "build": "yarn build:tsc && chmod +x packages/core/dist/src/index.js",
     "build:watch": "yarn build:tsc --watch",
     "test-resources:up": "docker-compose -f ./packages/legacy-tests/__tests__/prepare-test/docker-compose.yml up -d",
     "test-resources:down": "docker-compose -f ./packages/legacy-tests/__tests__/prepare-test/docker-compose.yml down"

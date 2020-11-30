@@ -6,7 +6,10 @@
   "include": ["src", "__tests__"],
   "references": [
     {
-      "path": "../../nc/tsconfig-build.json"
+      "path": "../../core/tsconfig-build.json"
+    },
+    {
+      "path": "../../steps/tsconfig-build.json"
     },
     {
       "path": "../../e2e-tests-infra/tsconfig-build.json"

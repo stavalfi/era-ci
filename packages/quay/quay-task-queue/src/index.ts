@@ -1,13 +1,12 @@
 import {
   createTaskQueue,
-  ExecutionStatus,
-  Status,
   TaskInfo,
   TaskQueueBase,
   TaskQueueEventEmitter,
   TaskQueueOptions,
   TaskTimeoutEventEmitter,
-} from '@tahini/nc'
+} from '@tahini/core'
+import { ExecutionStatus, Status } from '@tahini/utils'
 import { queue } from 'async'
 import chance from 'chance'
 import { EventEmitter } from 'events'

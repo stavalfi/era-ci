@@ -1,13 +1,7 @@
-import { createFolder } from 'create-folder-structure'
-import {
-  ExecutionStatus,
-  LocalSequentalTaskQueue,
-  localSequentalTaskQueue,
-  LogLevel,
-  Status,
-  winstonLogger,
-} from '@tahini/nc'
+import { LocalSequentalTaskQueue, localSequentalTaskQueue, LogLevel, winstonLogger } from '@tahini/core'
 import { isDeepSubsetOfOrPrint, sleep } from '@tahini/e2e-tests-infra'
+import { ExecutionStatus, Status } from '@tahini/utils'
+import { createFolder } from 'create-folder-structure'
 
 let taskQueue: LocalSequentalTaskQueue
 let cleanups: (() => Promise<unknown>)[] = []

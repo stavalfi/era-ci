@@ -1,4 +1,4 @@
-import { Log } from '@tahini/nc'
+import { Log } from '@tahini/core'
 import ciInfo from 'ci-info'
 import execa, { StdioOption } from 'execa'
 import fse from 'fs-extra'
@@ -59,7 +59,7 @@ export async function runNcExecutable({
     }
   }
   const configFilePath = require.resolve('./test-nc.config.ts')
-  const nc = require.resolve('@tahini/nc/dist/src/index.js')
+  const nc = require.resolve('@tahini/core/dist/src/index.js')
   const withFlowId = printFlowId ? `--print-flow ${printFlowId}` : ''
   const command = `node --unhandled-rejections=strict ${nc} --config-file ${configFilePath} --repo-path ${repoPath} ${withFlowId}`
   return execa.command(command, {

@@ -1,4 +1,5 @@
-import { buildFullDockerImageName, Log, TaskTimeoutEventEmitter } from '@tahini/nc'
+import { Log, TaskTimeoutEventEmitter } from '@tahini/core'
+import { buildFullDockerImageName } from '@tahini/utils'
 import got, { RequestError } from 'got'
 import HttpStatusCodes from 'http-status-codes'
 import path from 'path'
