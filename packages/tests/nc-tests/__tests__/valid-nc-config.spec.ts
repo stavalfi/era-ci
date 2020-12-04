@@ -1,7 +1,8 @@
-import { createLinearStepsGraph, createStep, RunStrategy } from '@tahini/core'
+import { createStep, RunStrategy } from '@tahini/core'
 import { createTest } from '@tahini/e2e-tests-infra'
 import { ExecutionStatus, Status } from '@tahini/utils'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
+import { createLinearStepsGraph } from '@tahini/steps-graph'
 
 const { createRepo } = createTest()
 

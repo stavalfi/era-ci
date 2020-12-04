@@ -22,7 +22,6 @@ export {
   createKeyValueStoreConnection,
   KeyValueStoreConnection,
 } from './create-key-value-store-connection'
-export { createLinearStepsGraph } from './create-linear-steps-graph'
 export { CreateLogger, Log, Logger, LogLevel, createLogger } from './create-logger'
 export {
   createStep,

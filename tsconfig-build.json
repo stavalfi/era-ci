@@ -7,6 +7,9 @@
       "path": "packages/utils/tsconfig-build.json"
     },
     {
+      "path": "packages/steps-graph/tsconfig-build.json"
+    },
+    {
       "path": "packages/key-value-stores/tsconfig-build.json"
     },
     {

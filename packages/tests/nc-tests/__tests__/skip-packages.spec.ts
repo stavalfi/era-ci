@@ -1,8 +1,9 @@
-import { createArtifactStepConstrain, createLinearStepsGraph, createStep, RunStrategy } from '@tahini/core'
+import { createArtifactStepConstrain, createStep, RunStrategy } from '@tahini/core'
 import { ExecutionStatus, Status, ConstrainResult } from '@tahini/utils'
 import { JsonReport } from '@tahini/steps'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
+import { createLinearStepsGraph } from '@tahini/steps-graph'
 
 const { createRepo } = createTest()
 
