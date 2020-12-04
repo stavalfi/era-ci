@@ -2,10 +2,9 @@ import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '@tahini
 import { createArtifactStepConstrain, createStep, RunStrategy } from '@tahini/core'
 import { skipIfStepIsDisabledConstrain } from '@tahini/step-constrains'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
-import { ConstrainResult, execaCommand, ExecutionStatus, Status } from '@tahini/utils'
+import { ConstrainResult, execaCommand, ExecutionStatus, Status, getPackageTargetType, TargetType } from '@tahini/utils'
 import { createFile } from 'create-folder-structure'
-import { fullImageNameCacheKey } from './docker-publish'
-import { getPackageTargetType, TargetType } from './utils'
+import { fullImageNameCacheKey } from './utils'
 
 export type K8sGcloudDeploymentConfiguration = {
   isStepEnabled: boolean

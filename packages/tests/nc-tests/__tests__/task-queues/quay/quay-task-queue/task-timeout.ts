@@ -32,7 +32,7 @@ test('ensure task is aborted when it reaches timeout (while the retry mechanism 
     },
   ])
 
-  const aborted = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
+  const aborted = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.aborted),
       map(e => e as AbortedTask),
@@ -61,7 +61,7 @@ RUN sleep 10000 # make sure that this task will not end
     },
   ])
 
-  const aborted = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
+  const aborted = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.aborted),
       map(e => e as AbortedTask),

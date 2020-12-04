@@ -4,7 +4,7 @@ import { EventEmitter } from 'events'
 import { createTaskQueue, TaskInfo, TaskQueueBase, TaskQueueEventEmitter, TaskQueueOptions } from '@tahini/core'
 import { ExecutionStatus, Status } from '@tahini/utils'
 
-type ProccessedTask = { taskInfo: TaskInfo; func: () => Promise<void> }
+type ProccessedTask = { taskInfo: TaskInfo; func: () => Promise<void>; startMs: number }
 
 type Func = () => Promise<void>
 export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
@@ -60,7 +60,11 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
             executionStatus: ExecutionStatus.scheduled,
           },
         })
-        this.taskQueue.push<ProccessedTask, unknown>({ taskInfo: tasks[i], func: taskOptions.func })
+        this.taskQueue.push<ProccessedTask, unknown>({
+          taskInfo: tasks[i],
+          func: taskOptions.func,
+          startMs: Date.now(),
+        })
       }
     })
 
@@ -138,6 +142,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
           errors: [],
           notes: [],
           status: Status.skippedAsFailed,
+          durationMs: Date.now() - task.startMs,
         },
       })
     }

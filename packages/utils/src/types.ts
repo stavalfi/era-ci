@@ -61,7 +61,7 @@ export type DoneResult = {
 export type AbortResult<StatusType extends Status> = {
   executionStatus: ExecutionStatus.aborted
   status: StatusType
-  durationMs?: number
+  durationMs: number
   notes: Array<string>
   errors: Array<ErrorObject>
 }
@@ -90,4 +90,9 @@ export type GitRepoInfo = {
     username?: string
     token?: string
   }
+}
+
+export enum TargetType {
+  docker = 'docker',
+  npm = 'npm',
 }

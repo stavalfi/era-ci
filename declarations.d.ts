@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/camelcase */
-
 declare module 'object-deep-contain' {
   export default function (bigObject: unknown, smallerObject: unknown): boolean
 }
@@ -30,18 +28,6 @@ declare module 'npm-login-noninteractive' {
     scope?: string,
     configPath?: string,
   ): void
-}
-
-declare module 'object-delete-key' {
-  export default function (
-    originalInput: unknown,
-    originalOpts: {
-      key?: string
-      value?: string
-      cleanup?: boolean
-      only?: 'any' | 'object-type' | 'array-type'
-    },
-  ): object
 }
 
 declare module 'node-git-server' {

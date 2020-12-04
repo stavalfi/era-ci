@@ -49,7 +49,7 @@ test('task is executed and we expect the docker-image to be presentin the regist
     },
   ])
 
-  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, errorOnTaskNotPassed: true }).toPromise()
+  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: true }).toPromise()
 
   await expect(getImageTags(getResoureces().packages.package1.name)).resolves.toEqual(['1.0.0'])
 })
@@ -71,7 +71,7 @@ test('scheduled and running events are fired', async () => {
     },
   ])
 
-  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, errorOnTaskNotPassed: true }).toPromise()
+  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: true }).toPromise()
 
   expect(scheduled).toHaveBeenCalledTimes(1)
   expect(running).toHaveBeenCalledTimes(1)
@@ -94,7 +94,7 @@ test('events are fired even when task failed', async () => {
     },
   ])
 
-  const doneEvent = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
+  const doneEvent = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.done),
       map(e => e as DoneTask),
@@ -117,7 +117,10 @@ test('events schema is valid', async () => {
     },
   ])
 
-  const [scheduled, running, done] = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
+  const [scheduled, running, done] = await toTaskEvent$(taskId, {
+    eventEmitter: taskQueue.eventEmitter,
+    throwOnTaskNotPassed: true,
+  })
     .pipe(
       toArray(),
       map(array => [array[0] as ScheduledTask, array[1] as RunningTask, array[2] as DoneTask]),
@@ -166,7 +169,7 @@ test('done events schema is valid when task fail', async () => {
     },
   ])
 
-  const done = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
+  const done = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.done),
       map(e => e as DoneTask),
@@ -245,7 +248,7 @@ RUN sleep 10000 # make sure that this task will not end
     },
   ])
 
-  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
+  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
     .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running))
     .toPromise()
 
@@ -276,14 +279,14 @@ RUN sleep 10000 # make sure that this task will not end
     },
   ])
 
-  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
+  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
     .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running))
     .toPromise()
 
   // I'm not awaiting because i don't want to miss the abored-event
   taskQueue.cleanup()
 
-  const abort = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter })
+  const abort = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.aborted),
       map(e => e as AbortedTask),
@@ -316,7 +319,7 @@ test('multiple tasks', async () => {
 
   await merge(
     ...tasks.map(task =>
-      toTaskEvent$(task.taskId, { eventEmitter: taskQueue.eventEmitter, errorOnTaskNotPassed: true }),
+      toTaskEvent$(task.taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: true }),
     ),
   ).toPromise()
 

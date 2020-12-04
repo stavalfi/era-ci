@@ -15,14 +15,14 @@ export type ImmutableCache = {
       | {
           flowId: string
           repoHash: string
-          artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+          artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
         }
       | undefined
     >
     setArtifactStepResult: (options: {
       stepId: string
       artifactHash: string
-      artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+      artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
     }) => Promise<void>
   }
   get: <T>(
@@ -156,7 +156,7 @@ export async function createImmutableCache({
         repoHash: artifactStepResult.repoHash,
         artifactStepResult: artifactStepResult.value as
           | DoneResult
-          | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>,
+          | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>,
       }
     },
     setArtifactStepResult: async ({ artifactHash, stepId, artifactStepResult }) => {

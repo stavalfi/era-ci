@@ -38,10 +38,10 @@ export type DoneStepResultOfArtifacts = {
 export type AbortStepResultOfArtifacts = {
   stepExecutionStatus: ExecutionStatus.aborted // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   stepInfo: StepInfo
-  stepResult: AbortResult<Status.failed | Status.passed | Status.skippedAsFailed | Status.skippedAsPassed>
+  stepResult: AbortResult<Status>
   artifactsResult: Graph<{
     artifact: Artifact
-    artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+    artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
   }>
 }
 
@@ -53,7 +53,7 @@ export type RunningStepResultOfArtifacts = {
     artifact: Artifact
     artifactStepResult:
       | DoneResult
-      | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+      | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
       | RunningResult
       | ScheduledResult
   }>
@@ -89,10 +89,10 @@ export type DoneStepsResultOfArtifact = {
 export type AbortStepsResultOfArtifact = {
   artifactExecutionStatus: ExecutionStatus.aborted // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
   artifact: Artifact
-  artifactResult: AbortResult<Status.failed | Status.passed | Status.skippedAsFailed | Status.skippedAsPassed>
+  artifactResult: AbortResult<Status>
   stepsResult: Graph<{
     stepInfo: StepInfo
-    artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+    artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
   }>
 }
 
@@ -104,7 +104,7 @@ export type RunningStepsResultOfArtifact = {
     stepInfo: StepInfo
     artifactStepResult:
       | DoneResult
-      | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+      | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
       | RunningResult
       | ScheduledResult
   }>
@@ -156,7 +156,7 @@ export type UserRunStepOptions<TaskQueue extends TaskQueueBase<unknown>, StepCon
 
 export type UserArtifactResult = {
   artifactName: string
-  artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+  artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
 }
 
 export type UserStepResult = {
@@ -175,11 +175,17 @@ export type RunStepOnArtifact<TaskQueue extends TaskQueueBase<unknown>, StepConf
   options: UserRunStepOptions<TaskQueue, StepConfigurations> & {
     currentArtifact: Node<{ artifact: Artifact }>
   },
-) => Promise<Omit<DoneResult, 'durationMs'>>
+) => Promise<
+  | Omit<DoneResult, 'durationMs'>
+  | Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>, 'durationMs'>
+>
 
 export type RunStepOnRoot<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations>,
-) => Promise<Omit<DoneResult, 'durationMs'>>
+) => Promise<
+  | Omit<DoneResult, 'durationMs'>
+  | Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>, 'durationMs'>
+>
 
 export type Step<TaskQueue extends TaskQueueBase<unknown>> = {
   stepName: string
@@ -225,6 +231,6 @@ export type CreateStepOptions<
     onArtifact?: Array<ArtifactInStepConstrain<NormalizedStepConfigurations>>
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  taskQueueClass: { new (options: TaskQueueOptions<any>): TaskQueue }
+  taskQueueClass: { new (options: TaskQueueOptions<any>, ...params: any[]): TaskQueue }
   run: Run<TaskQueue, NormalizedStepConfigurations>
 }

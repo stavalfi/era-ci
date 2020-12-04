@@ -25,7 +25,7 @@ export type DoneTask = {
 export type AbortedTask = {
   taskExecutionStatus: ExecutionStatus.aborted
   taskInfo: TaskInfo
-  taskResult: AbortResult<Status.skippedAsFailed | Status.failed | Status.passed>
+  taskResult: AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
 }
 
 export type RunningTask = {

@@ -19,7 +19,7 @@ export type StepConstrainResult =
     }
   | {
       constrainResult: ConstrainResult.shouldSkip
-      stepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
+      stepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>, 'durationMs'>
     }
 
 export type CombinedStepConstrainResult =
@@ -32,7 +32,7 @@ export type CombinedStepConstrainResult =
     }
   | {
       constrainResult: ConstrainResult.shouldSkip
-      stepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
+      stepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>, 'durationMs'>
     }
 
 export type StepConstrain<StepConfiguration> = {
