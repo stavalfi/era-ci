@@ -1,7 +1,6 @@
 import {
   createArtifactStepConstrain,
   createStep,
-  LocalSequentalTaskQueue,
   Log,
   RunStrategy,
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
@@ -13,6 +12,7 @@ import _ from 'lodash'
 import os from 'os'
 import path from 'path'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 
 export enum NpmScopeAccess {
   public = 'public',

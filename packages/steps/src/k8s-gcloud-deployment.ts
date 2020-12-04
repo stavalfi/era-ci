@@ -1,7 +1,6 @@
 import {
   createArtifactStepConstrain,
   createStep,
-  LocalSequentalTaskQueue,
   RunStrategy,
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
   skipIfStepIsDisabledConstrain,
@@ -10,6 +9,7 @@ import { ConstrainResult, execaCommand, ExecutionStatus, Status } from '@tahini/
 import { createFile } from 'create-folder-structure'
 import { fullImageNameCacheKey } from './docker-publish'
 import { getPackageTargetType, TargetType } from './utils'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 
 export type K8sGcloudDeploymentConfiguration = {
   isStepEnabled: boolean

@@ -4,9 +4,6 @@
   "compilerOptions": { "outDir": "dist" }, // only the compiled root-ts-files will be there
   "references": [
     {
-      "path": "packages/legacy-tests/tsconfig-build.json"
-    },
-    {
       "path": "packages/utils/tsconfig-build.json"
     },
     {
@@ -19,22 +16,22 @@
       "path": "packages/core/tsconfig-build.json"
     },
     {
-      "path": "packages/quay/quay-helper-service/tsconfig-build.json"
+      "path": "packages/quay-helper-service/tsconfig-build.json"
     },
     {
-      "path": "packages/quay/quay-task-queue/tsconfig-build.json"
+      "path": "packages/tests/legacy-tests/tsconfig-build.json"
     },
     {
-      "path": "packages/quay/tests/tsconfig-build.json"
+      "path": "packages/tests/quay-mock-service/tsconfig-build.json"
     },
     {
-      "path": "packages/quay/quay-mock-service/tsconfig-build.json"
+      "path": "packages/tests/e2e-tests-infra/tsconfig-build.json"
     },
     {
-      "path": "packages/e2e-tests-infra/tsconfig-build.json"
+      "path": "packages/tests/nc-tests/tsconfig-build.json"
     },
     {
-      "path": "packages/nc-tests/tsconfig-build.json"
+      "path": "packages/task-queues/tsconfig-build.json"
     }
   ]
 }

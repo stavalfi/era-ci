@@ -1,0 +1,19 @@
+{
+  "name": "@tahini/core-tests",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@tahini/e2e-tests-infra": "^1.0.0",
+    "@tahini/quay-helper-service": "^1.0.0",
+    "@tahini/quay-mock-service": "^1.0.0",
+    "@tahini/core": "^1.0.0",
+    "@tahini/steps": "^1.0.0",
+    "@tahini/loggers": "^1.0.0",
+    "@tahini/task-queues": "^1.0.0",
+    "@tahini/utils": "^1.0.0"
+  }
+}

@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "license": "UNLICENSED",
   "scripts": {
-    "lint:code": "(rm packages/legacy-tests/__tests__/prepare-test/compiled-nc.config.js || true) && eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
+    "lint:code": "(rm packages/tests/legacy-tests/__tests__/prepare-test/compiled-nc.config.js || true) && eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "lint:versions": "syncpack list-mismatches",
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
     "test": "jest --no-cache",
@@ -13,19 +13,19 @@
     "build:tsc": "yarn tsc -b tsconfig-build.json",
     "build": "yarn build:tsc && chmod +x packages/core/dist/src/index.js",
     "build:watch": "yarn build:tsc --watch",
-    "test-resources:up": "docker-compose -f ./packages/legacy-tests/__tests__/prepare-test/docker-compose.yml up -d",
-    "test-resources:down": "docker-compose -f ./packages/legacy-tests/__tests__/prepare-test/docker-compose.yml down"
+    "test-resources:up": "docker-compose -f ./packages/tests/legacy-tests/__tests__/prepare-test/docker-compose.yml up -d",
+    "test-resources:down": "docker-compose -f ./packages/tests/legacy-tests/__tests__/prepare-test/docker-compose.yml down"
   },
   "repository": {
     "url": "https://github.com/stavalfi/nc"
   },
   "workspaces": [
     "packages/*",
-    "packages/quay/*"
+    "packages/tests/*"
   ],
   "husky": {
     "hooks": {
-      "pre-commit": "(rm packages/legacy-tests/__tests__/prepare-test/compiled-nc.config.js || true) && yarn lint:staged-files"
+      "pre-commit": "(rm packages/tests/legacy-tests/__tests__/prepare-test/compiled-nc.config.js || true) && yarn lint:staged-files"
     }
   },
   "devDependencies": {
