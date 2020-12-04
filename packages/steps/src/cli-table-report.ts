@@ -1,4 +1,6 @@
-import { createStep, RunStrategy, skipIfStepResultNotPassedConstrain, stepToString } from '@tahini/core'
+import { createStep, RunStrategy, stepToString } from '@tahini/core'
+import { skipIfStepResultNotPassedConstrain } from '@tahini/step-constrains'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import { ExecutionStatus, Status } from '@tahini/utils'
 import Table, { CellOptions } from 'cli-table3'
 import colors from 'colors/safe'
@@ -6,7 +8,6 @@ import _ from 'lodash'
 import prettyMs from 'pretty-ms'
 import { deserializeError, ErrorObject } from 'serialize-error'
 import { JsonReport, jsonReporterCacheKey, jsonReporterStepName, stringToJsonReport } from './json-reporter'
-import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 
 //
 // Fix colors not appearing in non-tty environments

@@ -6,6 +6,12 @@
   "include": ["src", "__tests__"],
   "references": [
     {
+      "path": "../../artifact-step-constrains/tsconfig-build.json"
+    },
+    {
+      "path": "../../step-constrains/tsconfig-build.json"
+    },
+    {
       "path": "../e2e-tests-infra/tsconfig-build.json"
     },
     {

@@ -1,8 +1,9 @@
+import { createStep, RunStrategy } from '@tahini/core'
+import { skipIfStepResultNotPassedConstrain } from '@tahini/step-constrains'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
+import { execaCommand, ExecutionStatus, Status } from '@tahini/utils'
 import fse from 'fs-extra'
 import path from 'path'
-import { createStep, RunStrategy, skipIfStepResultNotPassedConstrain } from '@tahini/core'
-import { execaCommand, ExecutionStatus, Status } from '@tahini/utils'
-import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 
 export const install = createStep({
   stepName: 'install',

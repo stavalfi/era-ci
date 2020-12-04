@@ -1,4 +1,4 @@
-import { createArtifactStepConstrain } from '../create-artifact-step-constrain'
+import { createArtifactStepConstrain } from '@tahini/core'
 import { didPassOrSkippedAsPassed, ConstrainResult, ExecutionStatus, Status } from '@tahini/utils'
 
 export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createArtifactStepConstrain<{

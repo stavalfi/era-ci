@@ -1,0 +1,20 @@
+{
+  "name": "@tahini/step-constrains",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "main": "dist/src/index.js",
+  "private": false,
+  "files": [
+    "dist",
+    "src",
+    "__tests__"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "types": "dist/src/index.d.ts",
+  "dependencies": {
+    "@tahini/core": "^1.0.0",
+    "@tahini/utils": "^1.0.0"
+  }
+}

@@ -16,6 +16,8 @@
     "baseUrl": "packages",
     "paths": {
       "@tahini/core": ["core/src/index.ts"],
+      "@tahini/artifact-step-constrains": ["artifact-step-constrains/src/index.ts"],
+      "@tahini/step-constrains": ["step-constrains/src/index.ts"],
       "@tahini/utils": ["utils/src/index.ts"],
       "@tahini/steps": ["steps/src/index.ts"],
       "@tahini/loggers": ["loggers/src/index.ts"],

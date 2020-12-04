@@ -1,4 +1,4 @@
-import { createStepConstrain } from '../create-step-constrain'
+import { createStepConstrain } from '@tahini/core'
 import { ConstrainResult, ExecutionStatus, Status, didPassOrSkippedAsPassed } from '@tahini/utils'
 
 export const skipIfStepResultNotPassedConstrain = createStepConstrain<{

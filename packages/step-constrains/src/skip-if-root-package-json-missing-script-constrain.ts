@@ -1,4 +1,4 @@
-import { createStepConstrain } from '../create-step-constrain'
+import { createStepConstrain } from '@tahini/core'
 import { ConstrainResult, ExecutionStatus, Status } from '@tahini/utils'
 
 export const skipIfRootPackageJsonMissingScriptConstrain = createStepConstrain<{ scriptName: string }>({

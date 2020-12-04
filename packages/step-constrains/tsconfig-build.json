@@ -9,15 +9,6 @@
       "path": "../utils/tsconfig-build.json"
     },
     {
-      "path": "../task-queues/tsconfig-build.json"
-    },
-    {
-      "path": "../step-constrains/tsconfig-build.json"
-    },
-    {
-      "path": "../artifact-step-constrains/tsconfig-build.json"
-    },
-    {
       "path": "../core/tsconfig-build.json"
     }
   ]
