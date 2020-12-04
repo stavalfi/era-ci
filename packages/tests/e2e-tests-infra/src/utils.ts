@@ -1,4 +1,5 @@
-import { Config, createLinearStepsGraph, TaskQueueBase } from '@tahini/core'
+import { Config, TaskQueueBase } from '@tahini/core'
+import { createLinearStepsGraph } from '@tahini/steps-graph'
 import { cliTableReporter, jsonReporter } from '@tahini/steps'
 import _ from 'lodash'
 

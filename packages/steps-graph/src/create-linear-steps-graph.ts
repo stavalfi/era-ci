@@ -1,5 +1,4 @@
-import { Step, StepInfo } from './create-step'
-import { TaskQueueBase, TaskQueueOptions } from './create-task-queue'
+import { Step, StepInfo, TaskQueueBase, TaskQueueOptions } from '@tahini/core'
 import { Graph } from '@tahini/utils'
 
 export function createLinearStepsGraph<TaskQueueConfigurations>(

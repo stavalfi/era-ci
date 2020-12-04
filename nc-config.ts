@@ -1,6 +1,7 @@
 import ciInfo from 'ci-info'
 import _ from 'lodash'
-import { config, createLinearStepsGraph, LogLevel } from './packages/core/src'
+import { config, LogLevel } from './packages/core/src'
+import { createLinearStepsGraph } from './packages/steps-graph'
 import { localSequentalTaskQueue } from './packages/task-queues/src'
 import { winstonLogger } from './packages/loggers/src'
 import {
