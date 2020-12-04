@@ -14,22 +14,14 @@ export {
   ArtifactInStepConstrain,
   ArtifactInStepConstrainResult,
   createArtifactStepConstrain,
+  CombinedArtifactInStepConstrainResult,
+  runCanRunStepOnArtifactPredicates,
 } from './create-artifact-step-constrain'
 export {
   CreateKeyValueStoreConnection,
   createKeyValueStoreConnection,
   KeyValueStoreConnection,
 } from './create-key-value-store-connection'
-export {
-  skipIfRootPackageJsonMissingScriptConstrain,
-  skipIfStepIsDisabledConstrain,
-  skipIfStepResultNotPassedConstrain,
-} from './step-constrains'
-export {
-  skipIfArtifactPackageJsonMissingScriptConstrain,
-  skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
-  skipIfArtifactStepResultMissingOrPassedInCacheConstrain,
-} from './artifact-step-constrains'
 export { createLinearStepsGraph } from './create-linear-steps-graph'
 export { CreateLogger, Log, Logger, LogLevel, createLogger } from './create-logger'
 export {
@@ -53,7 +45,13 @@ export {
   UserRunStepOptions,
   toStepsResultOfArtifactsByArtifact,
 } from './create-step'
-export { createStepConstrain, StepConstrain, StepConstrainResult } from './create-step-constrain'
+export {
+  createStepConstrain,
+  StepConstrain,
+  StepConstrainResult,
+  CombinedStepConstrainResult,
+  runConstrains,
+} from './create-step-constrain'
 export {
   AbortedTask,
   CreateTaskQueue,

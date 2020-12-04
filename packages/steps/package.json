@@ -50,6 +50,8 @@
     "ws": "^7.3.1",
     "@tahini/task-queues": "^1.0.0",
     "@tahini/utils": "^1.0.0",
-    "@tahini/core": "^1.0.0"
+    "@tahini/core": "^1.0.0",
+    "@tahini/artifact-step-constrains": "^1.0.0",
+    "@tahini/step-constrains": "^1.0.0"
   }
 }

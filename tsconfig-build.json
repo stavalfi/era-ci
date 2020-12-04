@@ -7,6 +7,12 @@
       "path": "packages/utils/tsconfig-build.json"
     },
     {
+      "path": "packages/artifact-step-constrains/tsconfig-build.json"
+    },
+    {
+      "path": "packages/step-constrains/tsconfig-build.json"
+    },
+    {
       "path": "packages/loggers/tsconfig-build.json"
     },
     {

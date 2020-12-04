@@ -1,14 +1,12 @@
 import {
-  createStep,
-  RunStrategy,
   skipIfArtifactPackageJsonMissingScriptConstrain,
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
   skipIfArtifactStepResultMissingOrPassedInCacheConstrain,
-  UserRunStepOptions,
-} from '@tahini/core'
+} from '@tahini/artifact-step-constrains'
+import { createStep, RunStrategy, UserRunStepOptions } from '@tahini/core'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import { execaCommand, ExecutionStatus, Status } from '@tahini/utils'
 import _ from 'lodash'
-import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 
 export const test = createStep<
   LocalSequentalTaskQueue,
