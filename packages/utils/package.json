@@ -7,8 +7,7 @@
   "files": [
     "dist",
     "src",
-    "__tests__",
-    ".nc-swcrc.config"
+    "__tests__"
   ],
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"

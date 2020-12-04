@@ -4,7 +4,6 @@ import {
   createStep,
   DoneStepResultOfArtifacts,
   DoneStepsResultOfArtifact,
-  LocalSequentalTaskQueue,
   RunStrategy,
   ScheduledStepResultOfArtifacts,
   ScheduledStepsResultOfArtifact,
@@ -26,6 +25,7 @@ import {
   Status,
 } from '@tahini/utils'
 import _ from 'lodash'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 
 export type JsonReport = {
   flow: {

@@ -9,9 +9,6 @@
       "path": "../utils/tsconfig-build.json"
     },
     {
-      "path": "../task-queues/tsconfig-build.json"
-    },
-    {
       "path": "../core/tsconfig-build.json"
     }
   ]

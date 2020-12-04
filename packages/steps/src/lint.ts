@@ -1,10 +1,6 @@
-import {
-  createStep,
-  LocalSequentalTaskQueue,
-  RunStrategy,
-  skipIfRootPackageJsonMissingScriptConstrain,
-} from '@tahini/core'
+import { createStep, RunStrategy, skipIfRootPackageJsonMissingScriptConstrain } from '@tahini/core'
 import { execaCommand, ExecutionStatus, Status } from '@tahini/utils'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 
 export const lint = createStep<LocalSequentalTaskQueue, { lintScriptName: string } | void, { lintScriptName: string }>({
   stepName: 'lint',

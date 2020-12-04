@@ -1,7 +1,6 @@
 import {
   createArtifactStepConstrain,
   createStep,
-  LocalSequentalTaskQueue,
   Log,
   RunStrategy,
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
@@ -18,6 +17,7 @@ import {
 import _ from 'lodash'
 import semver from 'semver'
 import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 
 export type DockerPublishConfiguration = {
   isStepEnabled: boolean

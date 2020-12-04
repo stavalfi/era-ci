@@ -71,7 +71,6 @@ export {
 } from './create-task-queue'
 export { createImmutableCache } from './immutable-cache'
 export { RedisConfiguration, redisConnection } from './redis-connection'
-export { localSequentalTaskQueue, LocalSequentalTaskQueue } from './task-queues'
 
 async function main() {
   try {

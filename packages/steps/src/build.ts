@@ -1,10 +1,6 @@
-import {
-  createStep,
-  RunStrategy,
-  skipIfRootPackageJsonMissingScriptConstrain,
-  LocalSequentalTaskQueue,
-} from '@tahini/core'
+import { createStep, RunStrategy, skipIfRootPackageJsonMissingScriptConstrain } from '@tahini/core'
 import { ExecutionStatus, Status, execaCommand } from '@tahini/utils'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 
 export const build = createStep({
   stepName: 'build',
