@@ -34,6 +34,9 @@
     },
     {
       "path": "../../quay-helper-service/tsconfig-build.json"
+    },
+    {
+      "path": "../../key-value-stores/tsconfig-build.json"
     }
   ]
 }

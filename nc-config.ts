@@ -1,6 +1,6 @@
 import ciInfo from 'ci-info'
 import _ from 'lodash'
-import { config, createLinearStepsGraph, LogLevel, redisConnection } from './packages/core/src'
+import { config, createLinearStepsGraph, LogLevel } from './packages/core/src'
 import { localSequentalTaskQueue } from './packages/task-queues/src'
 import { winstonLogger } from './packages/loggers/src'
 import {
@@ -17,6 +17,7 @@ import {
   validatePackages,
 } from './packages/steps/src'
 import { execaCommand } from './packages/utils/src'
+import { redisConnection } from './packages/key-value-stores/src'
 
 const {
   NPM_REGISTRY = 'https://registry.npmjs.org/',

@@ -19,6 +19,9 @@
     },
     {
       "path": "../../loggers/tsconfig-build.json"
+    },
+    {
+      "path": "../../key-value-stores/tsconfig-build.json"
     }
   ]
 }

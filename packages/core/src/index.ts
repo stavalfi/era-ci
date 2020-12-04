@@ -68,7 +68,6 @@ export {
   TaskTimeoutEventEmitter,
 } from './create-task-queue'
 export { createImmutableCache } from './immutable-cache'
-export { RedisConfiguration, redisConnection } from './redis-connection'
 
 async function main() {
   try {

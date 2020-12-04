@@ -1,14 +1,6 @@
-import {
-  ci,
-  config,
-  Config,
-  createImmutableCache,
-  LogLevel,
-  redisConnection,
-  StepInfo,
-  TaskQueueBase,
-} from '@tahini/core'
+import { ci, config, Config, createImmutableCache, LogLevel, StepInfo, TaskQueueBase } from '@tahini/core'
 import { localSequentalTaskQueue } from '@tahini/task-queues'
+import { redisConnection } from '@tahini/key-value-stores'
 import { winstonLogger } from '@tahini/loggers'
 import { ExecutionStatus, Graph, Status } from '@tahini/utils'
 import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@tahini/steps'

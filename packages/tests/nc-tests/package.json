@@ -16,6 +16,7 @@
     "@tahini/loggers": "^1.0.0",
     "@tahini/task-queues": "^1.0.0",
     "@tahini/core": "^1.0.0",
-    "@tahini/utils": "^1.0.0"
+    "@tahini/utils": "^1.0.0",
+    "@tahini/key-value-stores": "^1.0.0"
   }
 }

@@ -1,4 +1,5 @@
-import { config, createLinearStepsGraph, LogLevel, redisConnection } from '@tahini/core'
+import { config, createLinearStepsGraph, LogLevel } from '@tahini/core'
+import { redisConnection } from '@tahini/key-value-stores'
 import { localSequentalTaskQueue } from '@tahini/task-queues'
 import { winstonLogger } from '@tahini/loggers'
 import {
