@@ -11,6 +11,7 @@
     "@tahini/core": "^1.0.0",
     "@tahini/steps": "^1.0.0",
     "@tahini/utils": "^1.0.0",
-    "@tahini/loggers": "^1.0.0"
+    "@tahini/loggers": "^1.0.0",
+    "@tahini/key-value-stores": "^1.0.0"
   }
 }

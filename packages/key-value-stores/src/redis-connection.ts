@@ -1,7 +1,7 @@
 import Redis from 'ioredis'
-import { promisify } from 'util'
 import zlib from 'zlib'
-import { createKeyValueStoreConnection } from './create-key-value-store-connection'
+import { promisify } from 'util'
+import { createKeyValueStoreConnection } from '@tahini/core'
 
 export type RedisConfiguration = {
   redisServerUri: string
