@@ -3,6 +3,7 @@ import {
   RunStrategy,
   skipIfArtifactPackageJsonMissingScriptConstrain,
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
+  skipIfArtifactStepResultMissingOrPassedInCacheConstrain,
   UserRunStepOptions,
 } from '@tahini/core'
 import { execaCommand, ExecutionStatus, Status } from '@tahini/utils'
@@ -32,7 +33,7 @@ export const test = createStep<
         stepNameToSearchInCache: 'test',
         skipAsFailedIfStepNotFoundInCache: false,
       }),
-      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+      skipIfArtifactStepResultMissingOrPassedInCacheConstrain({
         stepNameToSearchInCache: 'test',
         skipAsFailedIfStepNotFoundInCache: false,
       }),
