@@ -63,7 +63,7 @@ export async function ci<TaskQueue>(options: {
     })
     cleanups.push(immutableCache.cleanup)
 
-    const gitRepoInfo = await getGitRepoInfo(options.repoPath)
+    const gitRepoInfo = await getGitRepoInfo(options.repoPath, log)
 
     const taskQueues = await Promise.all(
       options.config.taskQueues.map(t => {

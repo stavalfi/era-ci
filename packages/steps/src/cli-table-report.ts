@@ -5,6 +5,7 @@ import { ExecutionStatus, Status } from '@tahini/utils'
 import Table, { CellOptions } from 'cli-table3'
 import colors from 'colors/safe'
 import _ from 'lodash'
+// import os from 'os'
 import prettyMs from 'pretty-ms'
 import { deserializeError, ErrorObject } from 'serialize-error'
 import { JsonReport, jsonReporterCacheKey, jsonReporterStepName, stringToJsonReport } from './json-reporter'
@@ -238,7 +239,7 @@ function formatErrors(errors: Array<ErrorObject>) {
     errors
       ?.filter(Boolean)
       .map(deserializeError)
-      .map(e => `${e}`) || []
+      .map(e => `${e.stack || e}`) || []
   )
 }
 

@@ -181,7 +181,7 @@ async function createTestDependencies(
     redisAddress: getResoureces().redisServerUri,
   }).createFunc({
     log: logger.createLog('quayBuildsTaskQueue'),
-    gitRepoInfo: await getGitRepoInfo(repoPath),
+    gitRepoInfo: await getGitRepoInfo(repoPath, logger.createLog('--')),
     logger,
   })
 

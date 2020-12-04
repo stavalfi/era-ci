@@ -1,12 +1,12 @@
 import winston from 'winston'
 import { randomModuleColor } from './modules-color'
 
-const { combine, timestamp, printf, errors } = winston.format
+// const { combine, timestamp, printf, errors } = winston.format
 
-export const defaultFormat = combine(
-  timestamp(),
+export const defaultFormat = winston.format.combine(
+  winston.format.timestamp(),
   winston.format.colorize(),
-  printf(log => {
+  winston.format.printf(log => {
     const withModule = log.module ? ` [${randomModuleColor(log.module)}] ` : ' '
     const base = `${log.timestamp}${withModule}${log.level}`
     if (log.stack) {
@@ -24,10 +24,10 @@ export const defaultFormat = combine(
       }
     }
   }),
-  errors({ stack: true }), // <-- use errors format
+  winston.format.errors({ stack: true }), // <-- use errors format
 )
 
-export const noFormat = combine(printf(log => log.message))
+export const noFormat = winston.format.combine(winston.format.printf(log => log.message))
 
 export const createConsoleTransport = (format: winston.Logform.Format): winston.transports.ConsoleTransportInstance =>
   new winston.transports.Console({

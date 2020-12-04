@@ -17,6 +17,7 @@ import fse from 'fs-extra'
 import _ from 'lodash'
 import os from 'os'
 import path from 'path'
+import npmLogin from 'npm-login-noninteractive'
 
 export enum NpmScopeAccess {
   public = 'public',
@@ -155,16 +156,7 @@ export async function npmRegistryLogin({
   // it's an ugly why to check if we are in a test but at least,
   // it doesn't use env-var (that the user can use by mistake) or addtional ci-parameter.
   if (npmRegistryEmail === 'root@root.root') {
-    const npmLoginPath = require.resolve('.bin/npm-login-noninteractive')
-
-    if (!silent) {
-      log.verbose(`logging in to npm-registry: "${npmRegistry}"`)
-    }
-    // `npm-login-noninteractive` has a node-api but it prints logs so this is ugly workaround to avoid printing the logs
-    await execaCommand(
-      `${npmLoginPath} -u ${npmRegistryUsername} -p ${npmRegistryToken} -e ${npmRegistryEmail} -r ${npmRegistry}`,
-      { cwd: repoPath, stdio: 'pipe', log },
-    )
+    npmLogin(npmRegistryUsername, npmRegistryToken, npmRegistryEmail, npmRegistry)
     if (!silent) {
       log.verbose(`logged in to npm-registry: "${npmRegistry}"`)
     }
