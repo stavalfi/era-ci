@@ -78,16 +78,33 @@ async function runStepOnEveryArtifact<TaskQueue extends TaskQueueBase<unknown>, 
           ...userRunStepOptions,
           currentArtifact: userRunStepOptions.artifacts[i],
         })
-        artifactsResult.push({
-          artifactName: artifact.data.artifact.packageJson.name,
-          artifactStepResult: {
-            executionStatus: ExecutionStatus.done,
-            status: stepResult.status,
-            notes: stepResult.notes,
-            durationMs: Date.now() - userRunStepOptions.startStepMs,
-            errors: stepResult.errors,
-          },
-        })
+        // can't do it shorter because typescript complains
+        switch (stepResult.executionStatus) {
+          case ExecutionStatus.aborted:
+            artifactsResult.push({
+              artifactName: artifact.data.artifact.packageJson.name,
+              artifactStepResult: {
+                executionStatus: ExecutionStatus.aborted,
+                status: stepResult.status,
+                notes: stepResult.notes,
+                durationMs: Date.now() - userRunStepOptions.startStepMs,
+                errors: stepResult.errors,
+              },
+            })
+            break
+          case ExecutionStatus.done:
+            artifactsResult.push({
+              artifactName: artifact.data.artifact.packageJson.name,
+              artifactStepResult: {
+                executionStatus: ExecutionStatus.done,
+                status: stepResult.status,
+                notes: stepResult.notes,
+                durationMs: Date.now() - userRunStepOptions.startStepMs,
+                errors: stepResult.errors,
+              },
+            })
+            break
+        }
       } catch (error: unknown) {
         artifactsResult.push({
           artifactName: artifact.data.artifact.packageJson.name,
@@ -108,6 +125,7 @@ async function runStepOnEveryArtifact<TaskQueue extends TaskQueueBase<unknown>, 
           status: canRunResult.artifactStepResult.status,
           notes: canRunResult.artifactStepResult.notes,
           errors: canRunResult.artifactStepResult.errors,
+          durationMs: Date.now() - userRunStepOptions.startStepMs,
         },
       })
     }
@@ -140,16 +158,32 @@ async function runStepOnRoot<TaskQueue extends TaskQueueBase<unknown>, StepConfi
       notes: result.notes,
       errors: result.errors,
     },
-    artifactsResult: userRunStepOptions.artifacts.map(node => ({
-      artifactName: node.data.artifact.packageJson.name,
-      artifactStepResult: {
-        errors: [],
-        executionStatus: ExecutionStatus.done,
-        status: result.status,
-        notes: [],
-        durationMs: Date.now() - userRunStepOptions.startStepMs,
-      },
-    })),
+    artifactsResult: userRunStepOptions.artifacts.map(node => {
+      switch (result.executionStatus) {
+        case ExecutionStatus.done:
+          return {
+            artifactName: node.data.artifact.packageJson.name,
+            artifactStepResult: {
+              errors: [],
+              executionStatus: ExecutionStatus.done,
+              status: result.status,
+              notes: [],
+              durationMs: Date.now() - userRunStepOptions.startStepMs,
+            },
+          }
+        case ExecutionStatus.aborted:
+          return {
+            artifactName: node.data.artifact.packageJson.name,
+            artifactStepResult: {
+              errors: [],
+              executionStatus: ExecutionStatus.aborted,
+              status: result.status,
+              notes: [],
+              durationMs: Date.now() - userRunStepOptions.startStepMs,
+            },
+          }
+      }
+    }),
   }
 }
 
@@ -194,7 +228,7 @@ async function getUserStepResult<
         errors: [],
       },
       artifactsResult: userRunStepOptions.artifacts.map((node, i) => {
-        let status: Status.skippedAsFailed | Status.skippedAsPassed
+        let status: Status.skippedAsFailed | Status.skippedAsPassed | Status.failed
         if (canRunAllArtifacts.constrainResult === ConstrainResult.shouldSkip) {
           status = canRunAllArtifacts.stepResult.status
         } else {
@@ -303,7 +337,7 @@ async function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurati
 
     const artifactsResult: Graph<{
       artifact: Artifact
-      artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>
+      artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
     }> = runStepOptions.artifacts.map(node => {
       const result = userStepResult.artifactsResult[node.index]
       if (result.artifactStepResult.status === Status.passed || result.artifactStepResult.status === Status.failed) {
@@ -328,6 +362,7 @@ async function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurati
             artifactStepResult: {
               executionStatus: ExecutionStatus.aborted,
               status: result.artifactStepResult.status,
+              durationMs: result.artifactStepResult.durationMs,
               errors: result.artifactStepResult.errors,
               notes: result.artifactStepResult.notes,
             },
@@ -380,19 +415,19 @@ async function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurati
           errors: userStepResult.stepResult.errors,
           executionStatus: ExecutionStatus.aborted,
           notes: userStepResult.stepResult.notes,
+          durationMs: Date.now() - startStepMs,
           status: calculateCombinedStatus(userStepResult.artifactsResult.map(a => a.artifactStepResult.status)),
         },
         artifactsResult: artifactsResult,
       }
     }
   } catch (error: unknown) {
-    const endDurationMs = Date.now() - startStepMs
     const result: StepResultOfArtifacts = {
       stepExecutionStatus: ExecutionStatus.done,
       stepInfo: runStepOptions.currentStepInfo.data.stepInfo,
       stepResult: {
         executionStatus: ExecutionStatus.done,
-        durationMs: endDurationMs,
+        durationMs: Date.now() - startStepMs,
         notes: [],
         status: Status.failed,
         errors: [serializeError(error)],
@@ -404,7 +439,7 @@ async function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurati
           artifactStepResult: {
             errors: [],
             executionStatus: ExecutionStatus.done,
-            durationMs: endDurationMs,
+            durationMs: Date.now() - startStepMs,
             notes: [],
             status: Status.failed,
           },
@@ -441,7 +476,7 @@ export function createStep<
         artifact: Artifact
         artifactStepResult:
           | DoneResult
-          | AbortResult<Status.skippedAsPassed | Status.skippedAsFailed>
+          | AbortResult<Status.skippedAsPassed | Status.skippedAsFailed | Status.failed>
           | RunningResult
           | ScheduledResult
       }> = result.artifactsResult

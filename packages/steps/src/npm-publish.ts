@@ -2,12 +2,21 @@ import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '@tahini
 import { createArtifactStepConstrain, createStep, Log, RunStrategy } from '@tahini/core'
 import { skipIfStepIsDisabledConstrain } from '@tahini/step-constrains'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
-import { ConstrainResult, execaCommand, ExecutionStatus, PackageJson, Status } from '@tahini/utils'
+import {
+  calculateNewVersion,
+  ConstrainResult,
+  execaCommand,
+  ExecutionStatus,
+  getPackageTargetType,
+  PackageJson,
+  setPackageVersion,
+  Status,
+  TargetType,
+} from '@tahini/utils'
 import fse from 'fs-extra'
 import _ from 'lodash'
 import os from 'os'
 import path from 'path'
-import { calculateNewVersion, getPackageTargetType, setPackageVersion, TargetType } from './utils'
 
 export enum NpmScopeAccess {
   public = 'public',

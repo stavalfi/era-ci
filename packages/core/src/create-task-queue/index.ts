@@ -59,7 +59,7 @@ export function toTaskEvent$(
   taskId: string,
   options: {
     eventEmitter: TaskQueueEventEmitter
-    errorOnTaskNotPassed?: boolean
+    throwOnTaskNotPassed: boolean
   },
 ): Observable<ScheduledTask | RunningTask | AbortedTask | DoneTask> {
   return merge(
@@ -71,7 +71,7 @@ export function toTaskEvent$(
     filter(e => e.taskInfo.taskId === taskId),
     takeWhile(e => ![ExecutionStatus.aborted, ExecutionStatus.done].includes(e.taskExecutionStatus), true),
     concatMap(e => {
-      if (!options?.errorOnTaskNotPassed) {
+      if (!options?.throwOnTaskNotPassed) {
         return of(e)
       }
       switch (e.taskExecutionStatus) {

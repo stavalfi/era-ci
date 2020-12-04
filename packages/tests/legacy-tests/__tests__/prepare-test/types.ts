@@ -1,7 +1,8 @@
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap, IPackageJson } from 'package-json-type'
 import execa, { StdioOption } from 'execa'
-import { TargetType, NpmScopeAccess } from '@tahini/steps'
+import { NpmScopeAccess } from '@tahini/steps'
+import { TargetType } from '@tahini/utils'
 
 export { TargetType }
 

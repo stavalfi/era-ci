@@ -31,7 +31,7 @@ test('multiple tasks', async () => {
 
   await merge(
     ...tasks.map(task =>
-      toTaskEvent$(task.taskId, { eventEmitter: taskQueue.eventEmitter, errorOnTaskNotPassed: true }),
+      toTaskEvent$(task.taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: true }),
     ),
   ).toPromise()
 

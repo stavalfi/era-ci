@@ -1,9 +1,8 @@
 import { createStep, RunStrategy } from '@tahini/core'
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { ExecutionStatus, Status, getPackageTargetType, TargetType } from '@tahini/utils'
 import _ from 'lodash'
 import { IDependencyMap } from 'package-json-type'
 import semver from 'semver'
-import { getPackageTargetType, TargetType } from './utils'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 
 export const validatePackages = createStep({

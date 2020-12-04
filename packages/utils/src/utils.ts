@@ -6,7 +6,7 @@ import _ from 'lodash'
 import nodegit from 'nodegit'
 import path from 'path'
 import semver from 'semver'
-import { Artifact, ExecutionStatus, GitRepoInfo, PackageJson, Status, UnionArrayValues } from './types'
+import { Artifact, ExecutionStatus, GitRepoInfo, PackageJson, Status, TargetType, UnionArrayValues } from './types'
 
 export const didPassOrSkippedAsPassed = (status: Status): boolean =>
   [Status.passed, Status.skippedAsPassed].includes(status)
@@ -175,11 +175,6 @@ export const setPackageVersion = async ({
       `could not find the following substring in package.json: '${from}'. is there any missing/extra spaces? package.json as string: ${packageJsonAsString}`,
     )
   }
-}
-
-export enum TargetType {
-  docker = 'docker',
-  npm = 'npm',
 }
 
 export function calculateNewVersion({

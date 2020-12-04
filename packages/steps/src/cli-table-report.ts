@@ -86,7 +86,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
               (_, i) => RESULT_STATUS_COLORED[node.data.stepsResult[i].data.artifactStepResult.status],
             ),
             artifactStatus: RESULT_STATUS_COLORED[node.data.artifactResult.status],
-            duration: node.data.artifactResult.durationMs ?? '0',
+            duration: prettyMs(node.data.artifactResult.durationMs),
             notes: [
               ...node.data.artifactResult.notes,
               ..._.flatMapDeep(
@@ -119,7 +119,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
                 packageName: node.data.artifact.packageJson.name,
                 stepsStatus: node.data.stepsResult.map(s => RESULT_STATUS_COLORED[s.data.artifactStepResult.status]),
                 artifactStatus: RESULT_STATUS_COLORED[node.data.artifactResult.status],
-                duration: node.data.artifactResult.durationMs,
+                duration: prettyMs(node.data.artifactResult.durationMs),
                 notes: node.data.artifactResult.notes,
               }
             case ExecutionStatus.aborted:
@@ -127,7 +127,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
                 packageName: node.data.artifact.packageJson.name,
                 stepsStatus: node.data.stepsResult.map(s => RESULT_STATUS_COLORED[s.data.artifactStepResult.status]),
                 artifactStatus: RESULT_STATUS_COLORED[node.data.artifactResult.status],
-                duration: node.data.artifactResult.durationMs ?? '0',
+                duration: prettyMs(node.data.artifactResult.durationMs),
                 notes: node.data.artifactResult.notes,
               }
             case ExecutionStatus.running:
