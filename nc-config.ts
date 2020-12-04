@@ -1,9 +1,9 @@
 import ciInfo from 'ci-info'
 import _ from 'lodash'
-import { config, LogLevel } from './packages/core/src'
+import { config, LogLevel } from './packages/core/dist/src/index.js'
 import { createLinearStepsGraph } from './packages/steps-graph'
-import { localSequentalTaskQueue } from './packages/task-queues/src'
-import { winstonLogger } from './packages/loggers/src'
+import { localSequentalTaskQueue } from './packages/task-queues/dist/src/index.js'
+import { winstonLogger } from './packages/loggers/dist/src/index.js'
 import {
   build,
   cliTableReporter,
@@ -16,9 +16,9 @@ import {
   NpmScopeAccess,
   test,
   validatePackages,
-} from './packages/steps/src'
-import { execaCommand } from './packages/utils/src'
-import { redisConnection } from './packages/key-value-stores/src'
+} from './packages/steps/dist/src/index.js'
+import { execaCommand } from './packages/utils/dist/src/index.js'
+import { redisConnection } from './packages/key-value-stores/dist/src/index.js'
 
 const {
   NPM_REGISTRY = 'https://registry.npmjs.org/',

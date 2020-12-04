@@ -3,7 +3,6 @@ import fs from 'fs'
 import gitRemoteOriginUrl from 'git-remote-origin-url'
 import gitUrlParse from 'git-url-parse'
 import _ from 'lodash'
-import nodegit from 'nodegit'
 import path from 'path'
 import semver from 'semver'
 import { Artifact, ExecutionStatus, GitRepoInfo, PackageJson, Status, TargetType, UnionArrayValues } from './types'
@@ -139,16 +138,25 @@ export const buildFullDockerImageName = ({
     .replace(`https://`, '')}/${dockerOrganizationName}/${buildDockerImageName(imageName)}${withImageTag}`
 }
 
-export async function getGitRepoInfo(repoPath: string): Promise<GitRepoInfo> {
+export async function getGitRepoInfo(
+  repoPath: string,
+  log: {
+    verbose: (message: string) => void
+    infoFromStream: (stream: NodeJS.ReadableStream) => void
+    errorFromStream: (stream: NodeJS.ReadableStream) => void
+  },
+): Promise<GitRepoInfo> {
   const gitInfo = gitUrlParse(await gitRemoteOriginUrl(repoPath))
-  const git = await nodegit.Repository.open(path.join(repoPath, '.git'))
-  const commit = await git.getHeadCommit()
+  const { stdout: headCommit } = await execaCommand(`git rev-parse HEAD`, {
+    log,
+    stdio: 'pipe',
+  })
   return {
     auth: {
       username: '1',
       token: gitInfo.token,
     },
-    commit: commit.sha(),
+    commit: headCommit,
     repoName: gitInfo.name,
     repoNameWithOrgName: gitInfo.full_name,
   }
@@ -244,7 +252,7 @@ export async function getPackageTargetType(
 ): Promise<TargetType | undefined> {
   const isNpm = !packageJson.private
   // @ts-ignore
-  const isDocker: boolean = await fs.promises.exists(path.join(packagePath, 'Dockerfile'))
+  const isDocker: boolean = fs.existsSync(path.join(packagePath, 'Dockerfile'))
 
   if (isDocker) {
     return TargetType.docker
