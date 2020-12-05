@@ -70,16 +70,16 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
       const log = mainLogger.child({ module })
       log.silent = Boolean(options?.disable)
       const base: Omit<Log, 'infoFromStream' | 'errorFromStream'> = {
-        error: (message, error) => {
+        error: (message, error, json) => {
           if (error === null || undefined) {
             log.error(message)
           } else {
-            log.error(message, error instanceof Error ? error : { unknownErrorType: error })
+            log.error(message, error instanceof Error ? error : { unknownErrorType: error }, { json })
           }
         },
-        info: message => log.info(message),
-        verbose: message => log.verbose(message),
-        debug: message => log.debug(message),
+        info: (message, json) => log.info(message, { json }),
+        verbose: (message, json) => log.verbose(message, { json }),
+        debug: (message, json) => log.debug(message, { json }),
         noFormattingInfo: message => !options?.disable && noFormattingLogger.info(message),
         noFormattingError: message => !options?.disable && noFormattingLogger.error(message),
       }

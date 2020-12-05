@@ -203,7 +203,7 @@ const customConstrain = createArtifactStepConstrain<void, void, NpmPublishConfig
 
     if (!npmVersionResult) {
       return {
-        constrainResult: ConstrainResult.shouldRun,
+        constrainResult: ConstrainResult.ignoreThisConstrain,
         artifactStepResult: { errors: [], notes: [] },
       }
     }
@@ -231,7 +231,7 @@ const customConstrain = createArtifactStepConstrain<void, void, NpmPublishConfig
     }
 
     return {
-      constrainResult: ConstrainResult.shouldRun,
+      constrainResult: ConstrainResult.ignoreThisConstrain,
       artifactStepResult: { errors: [], notes: [] },
     }
   },

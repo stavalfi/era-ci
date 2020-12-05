@@ -217,6 +217,43 @@ async function getUserStepResult<
     }),
   ])
 
+  const stepName = userRunStepOptions.currentStepInfo.data.stepInfo.displayName
+
+  for (const [artifactIndex, artifactResult] of canRunPerArtifact.entries()) {
+    const artifactName = userRunStepOptions.artifacts[artifactIndex].data.artifact.packageJson.name
+    if (artifactResult.constrainsResult.length > 0) {
+      userRunStepOptions.log.debug(
+        `constains result for artifact: "${artifactName}" for step: "${stepName}" are:`,
+        Object.fromEntries(
+          artifactResult.constrainsResult.map((c, i) => [
+            // the same constrain may appear multiple times so we need to diffrentiate between them in the keys
+            `(${i})-${c.constrainName}`,
+            {
+              options: c.constrainOptions,
+              result: c.constrainResult,
+            },
+          ]),
+        ),
+      )
+    }
+  }
+
+  if (canRunAllArtifacts.constrainsResult.length > 0) {
+    userRunStepOptions.log.debug(
+      `constains result for step: "${stepName}" are:`,
+      Object.fromEntries(
+        canRunAllArtifacts.constrainsResult.map((c, i) => [
+          // the same constrain may appear multiple times so we need to diffrentiate between them in the keys
+          `(${i})-${c.constrainName}`,
+          {
+            options: c.constrainOptions || {},
+            result: c.constrainResult,
+          },
+        ]),
+      ),
+    )
+  }
+
   const shouldSkipStep =
     canRunAllArtifacts.constrainResult === ConstrainResult.shouldSkip ||
     canRunPerArtifact.every(x => x.constrainResult === ConstrainResult.shouldSkip)

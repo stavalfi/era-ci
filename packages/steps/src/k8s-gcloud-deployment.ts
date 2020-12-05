@@ -36,7 +36,7 @@ const customConstrain = createArtifactStepConstrain<void, void, K8sGcloudDeploym
     }
 
     return {
-      constrainResult: ConstrainResult.shouldRun,
+      constrainResult: ConstrainResult.ignoreThisConstrain,
       artifactStepResult: { errors: [], notes: [] },
     }
   },

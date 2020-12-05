@@ -88,6 +88,8 @@ export const quayDockerPublish = createStep<QuayBuildsTaskQueue, QuayDockerPubli
             imageTag: newVersion,
           })
 
+          const notes = [...taskResult.taskResult.notes]
+
           if (taskResult.taskResult.status === Status.passed) {
             await immutableCache.set({
               key: getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
@@ -102,12 +104,13 @@ export const quayDockerPublish = createStep<QuayBuildsTaskQueue, QuayDockerPubli
               value: fullImageNameNewVersion,
               ttl: fullImageNameCacheTtl,
             })
+            notes.push(`published: "${fullImageNameNewVersion}"`)
           }
 
           return {
             executionStatus: ExecutionStatus.done,
             errors: taskResult.taskResult.errors,
-            notes: [...taskResult.taskResult.notes, `published: "${fullImageNameNewVersion}"`],
+            notes,
             status: taskResult.taskResult.status,
           }
         }
