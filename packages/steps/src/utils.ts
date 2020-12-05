@@ -27,6 +27,7 @@ export const fullImageNameCacheKey = ({ packageHash }: { packageHash: string }):
 
 export async function calculateNextVersion({
   packageJson,
+  imageName,
   dockerOrganizationName,
   dockerRegistry,
   packagePath,
@@ -34,6 +35,7 @@ export async function calculateNextVersion({
   log,
 }: {
   packageJson: PackageJson
+  imageName: string
   dockerRegistry: string
   dockerOrganizationName: string
   packagePath: string
@@ -43,7 +45,7 @@ export async function calculateNextVersion({
   const dockerLatestTagInfo = await getDockerImageLabelsAndTags({
     dockerRegistry,
     dockerOrganizationName,
-    packageJsonName: packageJson.name,
+    imageName,
     repoPath,
     log,
   })
@@ -115,7 +117,7 @@ export async function isDockerVersionAlreadyPublished({
     curl -s -L -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -H "Authorization: Bearer $token" "https://registry-1.docker.io/v2/${repo}/blobs/$digest" | jq .config.Labels
     */
 export async function getDockerImageLabelsAndTags({
-  packageJsonName,
+  imageName,
   dockerOrganizationName,
   dockerRegistry,
   silent,
@@ -123,7 +125,7 @@ export async function getDockerImageLabelsAndTags({
   log,
   registryAuth,
 }: {
-  packageJsonName: string
+  imageName: string
   dockerOrganizationName: string
   dockerRegistry: string
   silent?: boolean
@@ -133,11 +135,13 @@ export async function getDockerImageLabelsAndTags({
     username: string
     token: string
   }
-}): Promise<{ latestHash?: string; latestTag?: string; allTags: Array<string> } | undefined> {
+}): Promise<
+  { latestHash?: string; latestTag?: string; allTags: Array<string>; allValidTagsSorted: Array<string> } | undefined
+> {
   const fullImageNameWithoutTag = buildFullDockerImageName({
     dockerOrganizationName,
     dockerRegistry,
-    imageName: packageJsonName,
+    imageName,
   })
   const withAuth = registryAuth ? `--creds ${registryAuth.username}:${registryAuth.token}` : ''
 
@@ -153,14 +157,14 @@ export async function getDockerImageLabelsAndTags({
       log,
     )
     const tagsResultJson = JSON.parse(tagsResult || '{}')
-    const allTags = tagsResultJson?.Tags || []
+    const allTags: Array<string> = tagsResultJson?.Tags || []
 
     const highestPublishedTag = getHighestDockerTag(allTags)
 
     const fullImageName = buildFullDockerImageName({
       dockerOrganizationName,
       dockerRegistry,
-      imageName: packageJsonName,
+      imageName,
       imageTag: highestPublishedTag,
     })
 
@@ -182,10 +186,15 @@ export async function getDockerImageLabelsAndTags({
     if (!silent) {
       log.verbose(`labels of image "${fullImageName}": ${JSON.stringify(labels, null, 2)}`)
     }
+
+    const tags = allTags.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean)
+    const sorted = semver.sort(tags.filter(tag => tag !== 'latest')).concat(tags.includes('latest') ? ['latest'] : [])
+
     const result = {
       latestHash: labels['latest-hash'],
       latestTag: labels['latest-tag'],
       allTags,
+      allValidTagsSorted: sorted,
     }
 
     if (!silent) {

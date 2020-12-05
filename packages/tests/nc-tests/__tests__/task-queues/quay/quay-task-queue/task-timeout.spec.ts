@@ -25,6 +25,8 @@ test('ensure task is aborted when it reaches timeout (while the retry mechanism 
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
+      repoName: getResoureces().packages.package1.name,
+      visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
@@ -54,6 +56,8 @@ RUN sleep 10000 # make sure that this task will not end
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
+      repoName: getResoureces().packages.package1.name,
+      visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,

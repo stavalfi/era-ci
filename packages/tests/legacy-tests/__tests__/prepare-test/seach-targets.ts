@@ -47,9 +47,9 @@ export async function publishedDockerImageTags({
   log,
   repoPath,
   dockerRegistry,
-  packageJsonName,
+  imageName,
 }: {
-  packageJsonName: string
+  imageName: string
   dockerOrganizationName: string
   dockerRegistry: string
   repoPath: string
@@ -58,7 +58,7 @@ export async function publishedDockerImageTags({
   try {
     const result = await getDockerImageLabelsAndTags({
       dockerOrganizationName,
-      packageJsonName,
+      imageName,
       dockerRegistry,
       silent: true,
       repoPath,

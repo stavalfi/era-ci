@@ -126,7 +126,7 @@ export async function runCiUsingConfigFile({
             publishedNpmPackageVersions(packageName, npmRegistry.address),
             latestNpmPackageVersion(packageName, npmRegistry.address),
             publishedDockerImageTags({
-              packageJsonName: packageName,
+              imageName: packageName,
               dockerOrganizationName,
               dockerRegistry,
               repoPath,

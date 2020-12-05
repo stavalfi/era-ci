@@ -25,6 +25,8 @@
     "@tahini/loggers": "^1.0.0",
     "@tahini/task-queues": "^1.0.0",
     "@tahini/steps-graph": "^1.0.0",
-    "@tahini/key-value-stores": "^1.0.0"
+    "@tahini/key-value-stores": "^1.0.0",
+    "@tahini/quay-mock-service": "^1.0.0",
+    "@tahini/quay-helper-service": "^1.0.0"
   }
 }

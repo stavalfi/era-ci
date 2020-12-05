@@ -245,10 +245,12 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
       skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'build',
         skipAsFailedIfStepNotFoundInCache: true,
+        skipAsPassedIfStepNotExists: false,
       }),
       skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'test',
         skipAsFailedIfStepNotFoundInCache: true,
+        skipAsPassedIfStepNotExists: false,
       }),
       customConstrain(),
     ],

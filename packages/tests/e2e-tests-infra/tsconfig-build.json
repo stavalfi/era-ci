@@ -25,6 +25,12 @@
     },
     {
       "path": "../../key-value-stores/tsconfig-build.json"
+    },
+    {
+      "path": "../quay-mock-service/tsconfig-build.json"
+    },
+    {
+      "path": "../../quay-helper-service/tsconfig-build.json"
     }
   ]
 }

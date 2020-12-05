@@ -3,7 +3,13 @@ import { localSequentalTaskQueue } from '@tahini/task-queues'
 import { redisConnection } from '@tahini/key-value-stores'
 import { winstonLogger } from '@tahini/loggers'
 import { ExecutionStatus, Graph, Status } from '@tahini/utils'
-import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@tahini/steps'
+import {
+  getDockerImageLabelsAndTags,
+  JsonReport,
+  jsonReporter,
+  jsonReporterCacheKey,
+  stringToJsonReport,
+} from '@tahini/steps'
 import chance from 'chance'
 import fse from 'fs-extra'
 import path from 'path'
@@ -99,7 +105,10 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
         redisConnection({
           redisServerUri: getResoureces().redisServerUri,
         }),
-      taskQueues: configurations.taskQueues || [localSequentalTaskQueue()],
+      taskQueues: [
+        localSequentalTaskQueue(),
+        ...(configurations.taskQueues?.filter(t => t.taskQueueName !== localSequentalTaskQueue().taskQueueName) || []),
+      ],
       steps: options?.dontAddReportSteps
         ? configurations.steps || []
         : addReportToStepsAsLastNodes(configurations.steps),
@@ -157,6 +166,7 @@ export type CreateRepo = (
   repo: Repo,
 ) => Promise<{
   repoPath: string
+  getImageTags: (packageName: string) => Promise<string[]>
   runCi: RunCi
   toActualName: (packageName: string) => string
 }>
@@ -176,9 +186,28 @@ const createRepo: CreateRepo = async repo => {
     gitIgnoreFiles: ['nc.log'],
   })
 
+  const logger = await winstonLogger({
+    customLogLevel: LogLevel.verbose,
+    disabled: false,
+    logFilePath: './nc.log',
+  }).callInitializeLogger({ repoPath })
+
+  const getImageTags = async (packageName: string): Promise<string[]> => {
+    const result = await getDockerImageLabelsAndTags({
+      dockerOrganizationName: getResoureces().quayNamespace,
+      imageName: toActualName(packageName),
+      dockerRegistry: getResoureces().dockerRegistry,
+      repoPath,
+      log: logger.createLog('test'),
+      silent: true,
+    })
+    return result?.allValidTagsSorted || []
+  }
+
   return {
     repoPath,
     toActualName,
+    getImageTags,
     runCi: runCi({ repoPath }),
   }
 }

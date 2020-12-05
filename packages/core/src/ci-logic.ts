@@ -34,8 +34,13 @@ export async function ci<TaskQueue>(options: {
 
     log = logger.createLog('ci-logic')
 
+    const gitRepoInfo = await getGitRepoInfo(options.repoPath, log)
+
     // in the legacy-tests, we extract the flowId using regex from this line (super ugly :S)
     log.info(`Starting CI - flow-id: "${flowId}"`)
+    log.info(`directory: "${options.repoPath}"`)
+    log.info(`git-repo: "${gitRepoInfo.repoName}"`)
+    log.info(`git-commit: "${gitRepoInfo.commit}"`)
 
     const packagesPath = await getPackages({ repoPath: options.repoPath, log })
 
@@ -63,8 +68,6 @@ export async function ci<TaskQueue>(options: {
     })
     cleanups.push(immutableCache.cleanup)
 
-    const gitRepoInfo = await getGitRepoInfo(options.repoPath, log)
-
     const taskQueues = await Promise.all(
       options.config.taskQueues.map(t => {
         if (!logger) {
@@ -74,9 +77,11 @@ export async function ci<TaskQueue>(options: {
           log: logger.createLog(t.taskQueueName),
           gitRepoInfo,
           logger,
+          repoPath: options.repoPath,
         })
       }),
     )
+    cleanups.push(...taskQueues.map(t => () => t.cleanup()))
 
     steps = options.config.steps.map(s => ({ ...s, data: { stepInfo: s.data.stepInfo } }))
 

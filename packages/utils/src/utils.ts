@@ -150,6 +150,7 @@ export async function getGitRepoInfo(
   const { stdout: headCommit } = await execaCommand(`git rev-parse HEAD`, {
     log,
     stdio: 'pipe',
+    cwd: repoPath,
   })
   return {
     auth: {
