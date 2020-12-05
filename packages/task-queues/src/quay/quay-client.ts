@@ -91,13 +91,12 @@ export class QuayClient {
       resolveBodyOnly: true,
       retry: {
         calculateDelay: ({ error }) => {
-          if (error instanceof RequestError) {
+          if (error instanceof RequestError && error.response?.statusCode === HttpStatusCodes.TOO_MANY_REQUESTS) {
             const wait = error.response?.headers['retry-after']
             return wait === undefined ? 1000 : Number(wait)
           }
-          return 1000
+          return 0 // cancel the retry mechanism
         },
-        statusCodes: [HttpStatusCodes.TOO_MANY_REQUESTS],
       },
     })
 

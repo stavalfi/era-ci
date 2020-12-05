@@ -128,7 +128,7 @@ async function createTestDependencies(
   })
 
   const logger = await winstonLogger({
-    customLogLevel: LogLevel.debug,
+    customLogLevel: LogLevel.trace,
     disabled: false,
     logFilePath: './nc.log',
   }).callInitializeLogger({ repoPath })

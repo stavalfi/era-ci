@@ -47,7 +47,7 @@ export const newEnv: NewEnv = () => {
 
     const testLog = (
       await winstonLogger({
-        customLogLevel: LogLevel.verbose,
+        customLogLevel: LogLevel.trace,
         logFilePath: 'test-logs.log',
         disabled: true,
       }).callInitializeLogger({ repoPath })

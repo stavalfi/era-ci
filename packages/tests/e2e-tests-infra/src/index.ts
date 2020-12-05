@@ -36,7 +36,7 @@ const getJsonReport = async ({
   jsonReportStepId: string
 }): Promise<JsonReport> => {
   const logger = await winstonLogger({
-    customLogLevel: LogLevel.verbose,
+    customLogLevel: LogLevel.trace,
     disabled: false,
     logFilePath: './nc.log',
   }).callInitializeLogger({ repoPath })
@@ -173,7 +173,7 @@ const createRepo: CreateRepo = async ({ repo, configurations = {}, dontAddReport
   })
 
   const logger = await winstonLogger({
-    customLogLevel: LogLevel.verbose,
+    customLogLevel: LogLevel.trace,
     disabled: false,
     logFilePath: './nc.log',
   }).callInitializeLogger({ repoPath })
@@ -196,7 +196,7 @@ const createRepo: CreateRepo = async ({ repo, configurations = {}, dontAddReport
     logger:
       configurations.logger ||
       winstonLogger({
-        customLogLevel: LogLevel.debug,
+        customLogLevel: LogLevel.trace,
         disabled: false,
         logFilePath,
       }),

@@ -278,7 +278,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         // times because maybe the caller may have retry algorithm so the taskId must be random.
         // later on, we may stop supporting it and the taskId will be deterministic to make sure
         // that we don't trigger the same build multiple times. and the task-ids will be saved in redis(?).
-        taskId: chance().hash(),
+        taskId: chance().hash().slice(0, 8),
       }
 
       tasks.push(taskInfo)
@@ -303,7 +303,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       this.internalTaskQueue.push(() => this.buildImage(task))
 
       this.options.log.verbose(
-        `triggered task: "${taskInfo.taskId}" to build docker-image for package: "${taskOptions.packageName}"`,
+        `created task: "${taskInfo.taskId}" to build docker-image for package: "${taskOptions.packageName}"`,
       )
     }
 
@@ -319,6 +319,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
   }
 
   private async buildImage(task: Task): Promise<void> {
+    this.options.log.trace(`starting to process task: "${task.taskInfo.taskId}"`)
     const sendAbortEvent = (options: { notes: string[]; errors: ErrorObject[] }) => {
       if (
         task.lastEmittedTaskExecutionStatus === ExecutionStatus.aborted ||

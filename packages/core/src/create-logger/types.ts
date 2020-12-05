@@ -3,6 +3,7 @@ export enum LogLevel {
   info = 'info',
   verbose = 'verbose',
   debug = 'debug',
+  trace = 'trace',
 }
 
 export type Log = {
@@ -10,6 +11,7 @@ export type Log = {
   [LogLevel.info]: (message: string, json?: Record<string, unknown>) => void
   [LogLevel.verbose]: (message: string, json?: Record<string, unknown>) => void
   [LogLevel.debug]: (message: string, json?: Record<string, unknown>) => void
+  [LogLevel.trace]: (message: string, json?: Record<string, unknown>) => void
   noFormattingInfo: (message: string) => void
   noFormattingError: (message: string) => void
   infoFromStream: (stream: NodeJS.ReadableStream) => void
