@@ -14,8 +14,10 @@ export async function runCanRunStepOnArtifactPredicates<StepConfiguration>({
   predicates: Array<ArtifactInStepConstrain<StepConfiguration>>
 }): Promise<CombinedArtifactInStepConstrainResult> {
   const results = await Promise.all(
-    predicates.map(p =>
-      p.callConstrain({ userRunStepOptions, currentArtifact }).catch<ArtifactInStepConstrainResult>(error => ({
+    predicates.map(async p => {
+      const { invoke, constrainOptions } = await p.callConstrain({ userRunStepOptions, currentArtifact })
+      return invoke().catch<ArtifactInStepConstrainResult>(error => ({
+        constrainName: p.constrainName,
         constrainResult: ConstrainResult.shouldSkip,
         artifactStepResult: {
           executionStatus: ExecutionStatus.aborted,
@@ -23,14 +25,15 @@ export async function runCanRunStepOnArtifactPredicates<StepConfiguration>({
           notes: [],
           errors: [serializeError(error)],
         },
-      })),
-    ),
+        constrainOptions,
+      }))
+    }),
   )
   const canRun = results.every(x =>
     [ConstrainResult.shouldRun, ConstrainResult.ignoreThisConstrain].includes(x.constrainResult),
   )
   const notes = _.uniq(_.flatMapDeep(results.map(r => r.artifactStepResult.notes)))
-  const errors = _.flatMapDeep<ErrorObject>(results.map(r => r.artifactStepResult.errors ?? []))
+  const errors = _.flatMapDeep<ErrorObject>(results.map(r => r.artifactStepResult.errors))
   if (canRun) {
     return {
       constrainResult: ConstrainResult.shouldRun,
@@ -38,6 +41,7 @@ export async function runCanRunStepOnArtifactPredicates<StepConfiguration>({
         notes,
         errors,
       },
+      constrainsResult: results,
     }
   } else {
     const artifactStepResultStatus = calculateCombinedStatus(
@@ -53,6 +57,7 @@ export async function runCanRunStepOnArtifactPredicates<StepConfiguration>({
         status: artifactStepResultStatus,
         errors,
       },
+      constrainsResult: results,
     }
   }
 }

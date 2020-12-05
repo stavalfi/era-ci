@@ -1,5 +1,5 @@
 import { UserRunStepOptions } from '../create-step/types'
-import { StepConstrain, StepConstrainResult } from './types'
+import { StepConstrain, StepConstrainResultBase } from './types'
 
 export function createStepConstrain<
   Configurations = void,
@@ -12,7 +12,7 @@ export function createStepConstrain<
     options: {
       constrainConfigurations: NormalizedConfigurations
     } & Omit<UserRunStepOptions<never, StepConfiguration>, 'taskQueue'>,
-  ) => Promise<StepConstrainResult>
+  ) => Promise<StepConstrainResultBase>
 }) {
   return (configurations: Configurations): StepConstrain<StepConfiguration> => ({
     constrainName: createOptions.constrainName,
@@ -21,10 +21,22 @@ export function createStepConstrain<
       const normalizeConfigurations: NormalizedCacheConfigurations = createOptions.normalizeConfigurations
         ? await createOptions.normalizeConfigurations(configurations)
         : configurations
-      return createOptions.constrain({
-        ...options.userRunStepOptions,
-        constrainConfigurations: normalizeConfigurations,
-      })
+
+      return {
+        constrainOptions: normalizeConfigurations,
+        invoke: async () => {
+          const result = await createOptions.constrain({
+            ...options.userRunStepOptions,
+            constrainConfigurations: normalizeConfigurations,
+          })
+
+          return {
+            ...result,
+            constrainName: createOptions.constrainName,
+            constrainOptions: normalizeConfigurations,
+          }
+        },
+      }
     },
   })
 }

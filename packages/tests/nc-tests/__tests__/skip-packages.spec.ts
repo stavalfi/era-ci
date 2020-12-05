@@ -28,7 +28,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                 createArtifactStepConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
-                    constrainResult: ConstrainResult.shouldRun,
+                    constrainResult: ConstrainResult.ignoreThisConstrain,
                     artifactStepResult: {
                       errors: [],
                       notes: [],

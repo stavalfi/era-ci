@@ -25,7 +25,7 @@ export const skipIfImageTagAlreadyPublishedConstrain = createArtifactStepConstra
 
     if (!dockerVersionResult) {
       return {
-        constrainResult: ConstrainResult.shouldRun,
+        constrainResult: ConstrainResult.ignoreThisConstrain,
         artifactStepResult: { errors: [], notes: [] },
       }
     }

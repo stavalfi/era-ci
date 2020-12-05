@@ -2,15 +2,10 @@ import { ErrorObject } from 'serialize-error'
 import { UserRunStepOptions } from '../create-step'
 import { AbortResult, Artifact, ConstrainResult, Node, Status } from '@tahini/utils'
 
-export type ArtifactInStepConstrainResult =
+export type ArtifactInStepConstrainResultBase =
   | {
-      constrainResult: ConstrainResult.shouldRun
-      artifactStepResult: {
-        notes: Array<string>
-        errors: Array<ErrorObject>
-      }
-    }
-  | {
+      // it means that this constrain decided not to skip this artifact
+      // so we need to find other constrain that will decide to skip
       constrainResult: ConstrainResult.ignoreThisConstrain
       artifactStepResult: {
         notes: Array<string>
@@ -22,7 +17,12 @@ export type ArtifactInStepConstrainResult =
       artifactStepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
     }
 
-export type CombinedArtifactInStepConstrainResult =
+export type ArtifactInStepConstrainResult = {
+  constrainName: string
+  constrainOptions: unknown
+} & ArtifactInStepConstrainResultBase
+
+export type CombinedArtifactInStepConstrainResult = { constrainsResult: Array<ArtifactInStepConstrainResult> } & (
   | {
       constrainResult: ConstrainResult.shouldRun
       artifactStepResult: {
@@ -34,6 +34,7 @@ export type CombinedArtifactInStepConstrainResult =
       constrainResult: ConstrainResult.shouldSkip
       artifactStepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
     }
+)
 
 export type ArtifactInStepConstrain<StepConfiguration> = {
   constrainName: string
@@ -41,5 +42,8 @@ export type ArtifactInStepConstrain<StepConfiguration> = {
     options: {
       userRunStepOptions: Omit<UserRunStepOptions<never, StepConfiguration>, 'taskQueue'>
     } & { currentArtifact: Node<{ artifact: Artifact }> },
-  ) => Promise<ArtifactInStepConstrainResult>
+  ) => Promise<{
+    constrainOptions: unknown
+    invoke: () => Promise<ArtifactInStepConstrainResult>
+  }>
 }

@@ -58,7 +58,7 @@ export const INVALIDATE_CACHE_HASH = '1'
 type SupportedExecaCommandOptions = Omit<execa.Options, 'stderr' | 'stdout' | 'all' | 'stdin'> &
   Required<Pick<execa.Options, 'stdio'>> & {
     log: {
-      verbose: (message: string) => void
+      verbose: (message: string, json?: Record<string, unknown>) => void
       infoFromStream: (stream: NodeJS.ReadableStream) => void
       errorFromStream: (stream: NodeJS.ReadableStream) => void
     }
@@ -101,7 +101,7 @@ export async function getPackages({
 }: {
   repoPath: string
   log: {
-    verbose: (message: string) => void
+    verbose: (message: string, json?: Record<string, unknown>) => void
     infoFromStream: (stream: NodeJS.ReadableStream) => void
     errorFromStream: (stream: NodeJS.ReadableStream) => void
   }
@@ -141,7 +141,7 @@ export const buildFullDockerImageName = ({
 export async function getGitRepoInfo(
   repoPath: string,
   log: {
-    verbose: (message: string) => void
+    verbose: (message: string, json?: Record<string, unknown>) => void
     infoFromStream: (stream: NodeJS.ReadableStream) => void
     errorFromStream: (stream: NodeJS.ReadableStream) => void
   },

@@ -1,6 +1,6 @@
-import { UserRunStepOptions } from '../create-step'
 import { Artifact, Node } from '@tahini/utils'
-import { ArtifactInStepConstrain, ArtifactInStepConstrainResult } from './types'
+import { UserRunStepOptions } from '../create-step'
+import { ArtifactInStepConstrain, ArtifactInStepConstrainResultBase } from './types'
 
 export function createArtifactStepConstrain<
   Configurations = void,
@@ -15,7 +15,7 @@ export function createArtifactStepConstrain<
     } & Omit<UserRunStepOptions<never, StepConfiguration>, 'taskQueue'> & {
         currentArtifact: Node<{ artifact: Artifact }>
       },
-  ) => Promise<ArtifactInStepConstrainResult>
+  ) => Promise<ArtifactInStepConstrainResultBase>
 }) {
   return (configurations: Configurations): ArtifactInStepConstrain<StepConfiguration> => ({
     constrainName: createOptions.constrainName,
@@ -24,11 +24,23 @@ export function createArtifactStepConstrain<
       const normalizeConfigurations: NormalizedConfigurations = createOptions.normalizeConfigurations
         ? await createOptions.normalizeConfigurations(configurations)
         : configurations
-      return createOptions.constrain({
-        ...options.userRunStepOptions,
-        currentArtifact: options.currentArtifact,
-        constrainConfigurations: normalizeConfigurations,
-      })
+
+      return {
+        constrainOptions: normalizeConfigurations,
+        invoke: async () => {
+          const result = await createOptions.constrain({
+            ...options.userRunStepOptions,
+            currentArtifact: options.currentArtifact,
+            constrainConfigurations: normalizeConfigurations,
+          })
+
+          return {
+            ...result,
+            constrainName: createOptions.constrainName,
+            constrainOptions: normalizeConfigurations,
+          }
+        },
+      }
     },
   })
 }
