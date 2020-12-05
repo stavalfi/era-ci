@@ -9,27 +9,30 @@ const { createRepo } = createTest()
 
 test('flow should pass because step pass', async () => {
   const { runCi } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
-  })
-  const { passed, jsonReport, flowId } = await runCi({
-    steps: createLinearStepsGraph([
-      createStep({
-        stepName: 'step1',
-        taskQueueClass: LocalSequentalTaskQueue,
-        run: {
-          runStrategy: RunStrategy.root,
-          runStepOnRoot: async () => {
-            return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
-          },
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
         },
-      })(),
-    ]),
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        createStep({
+          stepName: 'step1',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: {
+            runStrategy: RunStrategy.root,
+            runStepOnRoot: async () => {
+              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
+            },
+          },
+        })(),
+      ]),
+    },
   })
+  const { passed, jsonReport, flowId } = await runCi()
 
   expect(passed).toBeTruthy()
 
@@ -49,27 +52,30 @@ test('flow should pass because step pass', async () => {
 
 test('step should pass in json-report', async () => {
   const { runCi, toActualName } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
-  })
-  const { jsonReport } = await runCi({
-    steps: createLinearStepsGraph([
-      createStep({
-        stepName: 'step1',
-        taskQueueClass: LocalSequentalTaskQueue,
-        run: {
-          runStrategy: RunStrategy.root,
-          runStepOnRoot: async () => {
-            return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
-          },
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
         },
-      })(),
-    ]),
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        createStep({
+          stepName: 'step1',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: {
+            runStrategy: RunStrategy.root,
+            runStepOnRoot: async () => {
+              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
+            },
+          },
+        })(),
+      ]),
+    },
   })
+  const { jsonReport } = await runCi()
 
   const expectedJsonReport: DeepPartial<JsonReport> = {
     flowResult: {
@@ -117,27 +123,30 @@ test('step should pass in json-report', async () => {
 
 test('flow should fail because step failed (without throwing error from the step)', async () => {
   const { runCi, toActualName } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
-  })
-  const { passed, jsonReport } = await runCi({
-    steps: createLinearStepsGraph([
-      createStep({
-        stepName: 'step1',
-        taskQueueClass: LocalSequentalTaskQueue,
-        run: {
-          runStrategy: RunStrategy.root,
-          runStepOnRoot: async () => {
-            return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
-          },
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
         },
-      })(),
-    ]),
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        createStep({
+          stepName: 'step1',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: {
+            runStrategy: RunStrategy.root,
+            runStepOnRoot: async () => {
+              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
+            },
+          },
+        })(),
+      ]),
+    },
   })
+  const { passed, jsonReport } = await runCi()
 
   expect(passed).toBeFalsy()
 
@@ -187,27 +196,30 @@ test('flow should fail because step failed (without throwing error from the step
 
 test('flow should fail because step failed (while throwing error from the step)', async () => {
   const { runCi, toActualName } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
-  })
-  const { passed, jsonReport } = await runCi({
-    steps: createLinearStepsGraph([
-      createStep({
-        stepName: 'step1',
-        taskQueueClass: LocalSequentalTaskQueue,
-        run: {
-          runStrategy: RunStrategy.root,
-          runStepOnRoot: async () => {
-            throw new Error('error123')
-          },
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
         },
-      })(),
-    ]),
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        createStep({
+          stepName: 'step1',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: {
+            runStrategy: RunStrategy.root,
+            runStepOnRoot: async () => {
+              throw new Error('error123')
+            },
+          },
+        })(),
+      ]),
+    },
   })
+  const { passed, jsonReport } = await runCi()
 
   expect(passed).toBeFalsy()
 

@@ -6,32 +6,33 @@ const { createRepo } = createTest()
 
 test('ensure ci dont fail when there are no steps', async () => {
   const { runCi } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
-  })
-  const { passed } = await runCi(
-    {
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+        },
+      ],
+    },
+    configurations: {
       steps: [],
     },
-    {
-      dontAddReportSteps: true,
-    },
-  )
+    dontAddReportSteps: true,
+  })
+  const { passed } = await runCi()
   expect(passed).toBeTruthy()
 })
 
 test('ensure json-report contains the corrent flow-id', async () => {
   const { runCi } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+        },
+      ],
+    },
   })
 
   const { jsonReport, flowId } = await runCi()
@@ -41,12 +42,14 @@ test('ensure json-report contains the corrent flow-id', async () => {
 
 test('ensure json-report contains the all the steps until it (not included)', async () => {
   const { runCi } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+        },
+      ],
+    },
   })
 
   const { jsonReport } = await runCi()
@@ -57,12 +60,14 @@ test('ensure json-report contains the all the steps until it (not included)', as
 
 test('flow should be skippedAsPassed because there are no steps', async () => {
   const { runCi } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+        },
+      ],
+    },
   })
 
   const { jsonReport } = await runCi()
@@ -81,12 +86,14 @@ test('flow should be skippedAsPassed because there are no steps', async () => {
 
 test('verify artifact in json-report', async () => {
   const { runCi, toActualName } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+        },
+      ],
+    },
   })
   const { jsonReport } = await runCi()
 

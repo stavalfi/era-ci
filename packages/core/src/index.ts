@@ -43,6 +43,7 @@ export {
   StepsResultOfArtifactsByStep,
   UserRunStepOptions,
   toStepsResultOfArtifactsByArtifact,
+  UserStepResult,
 } from './create-step'
 export {
   createStepConstrain,

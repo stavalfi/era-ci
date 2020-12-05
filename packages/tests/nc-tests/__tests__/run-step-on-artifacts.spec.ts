@@ -1,4 +1,4 @@
-import { createStep, RunStrategy } from '@tahini/core'
+import { createStep, RunStrategy, UserStepResult } from '@tahini/core'
 import { ExecutionStatus, Status } from '@tahini/utils'
 import { JsonReport } from '@tahini/steps'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
@@ -9,44 +9,47 @@ const { createRepo } = createTest()
 
 test('step should pass in json-report', async () => {
   const { runCi, toActualName } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
-  })
-  const { jsonReport } = await runCi({
-    steps: createLinearStepsGraph([
-      createStep({
-        stepName: 'step1',
-        taskQueueClass: LocalSequentalTaskQueue,
-        run: {
-          runStrategy: RunStrategy.allArtifacts,
-          runStepOnArtifacts: async () => {
-            return {
-              stepResult: {
-                errors: [],
-                notes: [],
-              },
-              artifactsResult: [
-                {
-                  artifactName: toActualName('a'),
-                  artifactStepResult: {
-                    durationMs: 1,
-                    errors: [],
-                    notes: [],
-                    executionStatus: ExecutionStatus.done,
-                    status: Status.passed,
-                  },
-                },
-              ],
-            }
-          },
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
         },
-      })(),
-    ]),
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        createStep({
+          stepName: 'step1',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: {
+            runStrategy: RunStrategy.allArtifacts,
+            runStepOnArtifacts: async (): Promise<UserStepResult> => {
+              return {
+                stepResult: {
+                  errors: [],
+                  notes: [],
+                },
+                artifactsResult: [
+                  {
+                    artifactName: toActualName('a'),
+                    artifactStepResult: {
+                      durationMs: 1,
+                      errors: [],
+                      notes: [],
+                      executionStatus: ExecutionStatus.done,
+                      status: Status.passed,
+                    },
+                  },
+                ],
+              }
+            },
+          },
+        })(),
+      ]),
+    },
   })
+  const { jsonReport } = await runCi()
 
   const expectedJsonReport: DeepPartial<JsonReport> = {
     flowResult: {
@@ -94,44 +97,47 @@ test('step should pass in json-report', async () => {
 
 test('flow should fail because step failed (without throwing error from the step)', async () => {
   const { runCi, toActualName } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
-  })
-  const { passed, jsonReport } = await runCi({
-    steps: createLinearStepsGraph([
-      createStep({
-        stepName: 'step1',
-        taskQueueClass: LocalSequentalTaskQueue,
-        run: {
-          runStrategy: RunStrategy.allArtifacts,
-          runStepOnArtifacts: async () => {
-            return {
-              stepResult: {
-                errors: [],
-                notes: [],
-              },
-              artifactsResult: [
-                {
-                  artifactName: toActualName('a'),
-                  artifactStepResult: {
-                    durationMs: 1,
-                    errors: [],
-                    notes: [],
-                    executionStatus: ExecutionStatus.done,
-                    status: Status.failed,
-                  },
-                },
-              ],
-            }
-          },
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
         },
-      })(),
-    ]),
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        createStep({
+          stepName: 'step1',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: {
+            runStrategy: RunStrategy.allArtifacts,
+            runStepOnArtifacts: async (): Promise<UserStepResult> => {
+              return {
+                stepResult: {
+                  errors: [],
+                  notes: [],
+                },
+                artifactsResult: [
+                  {
+                    artifactName: toActualName('a'),
+                    artifactStepResult: {
+                      durationMs: 1,
+                      errors: [],
+                      notes: [],
+                      executionStatus: ExecutionStatus.done,
+                      status: Status.failed,
+                    },
+                  },
+                ],
+              }
+            },
+          },
+        })(),
+      ]),
+    },
   })
+  const { passed, jsonReport } = await runCi()
 
   expect(passed).toBeFalsy()
 
@@ -181,27 +187,30 @@ test('flow should fail because step failed (without throwing error from the step
 
 test('flow should fail because step failed (while throwing error from the step)', async () => {
   const { runCi, toActualName } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
-  })
-  const { passed, jsonReport } = await runCi({
-    steps: createLinearStepsGraph([
-      createStep({
-        stepName: 'step1',
-        taskQueueClass: LocalSequentalTaskQueue,
-        run: {
-          runStrategy: RunStrategy.allArtifacts,
-          runStepOnArtifacts: async () => {
-            throw new Error('error123')
-          },
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
         },
-      })(),
-    ]),
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        createStep({
+          stepName: 'step1',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: {
+            runStrategy: RunStrategy.allArtifacts,
+            runStepOnArtifacts: async () => {
+              throw new Error('error123')
+            },
+          },
+        })(),
+      ]),
+    },
   })
+  const { passed, jsonReport } = await runCi()
 
   expect(passed).toBeFalsy()
 
