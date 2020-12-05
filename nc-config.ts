@@ -45,7 +45,7 @@ export default config({
     redisServerUri: REDIS_ENDPOINT!,
   }),
   logger: winstonLogger({
-    customLogLevel: LogLevel.verbose,
+    customLogLevel: LogLevel.trace,
     disabled: false,
     logFilePath: './nc.log',
   }),

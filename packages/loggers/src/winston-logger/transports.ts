@@ -1,21 +1,21 @@
 import winston from 'winston'
+import { LogLevel } from '@tahini/core'
 import { randomModuleColor } from './modules-color'
-
-// const { combine, timestamp, printf, errors } = winston.format
 
 export const defaultFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.colorize(),
   winston.format.printf(log => {
+    const logLevel = log.level.replace('silly', LogLevel.trace)
     const withModule = log.module ? ` [${randomModuleColor(log.module)}] ` : ' '
-    const base = `${log.timestamp}${withModule}${log.level}`
+    const base = `${log.timestamp}${withModule}${logLevel}`
     let final = ''
     if (log.stack) {
       // workaround to print error with stacktrace: https://github.com/winstonjs/winston/issues/1338#issuecomment-643473267
       let returnLog = `${base}: ${log.message.replace(log.stack.split('\n')[0].substr(7), '')}`
       returnLog += '\n'
-      returnLog += '[' + log.level + '] '
-      returnLog += log.stack.replace(/\n/g, `\n[${log.level}]\t`)
+      returnLog += '[' + logLevel + '] '
+      returnLog += log.stack.replace(/\n/g, `\n[${logLevel}]\t`)
       final = `${returnLog}: `
     } else {
       if (log.unknownErrorType) {
@@ -26,8 +26,8 @@ export const defaultFormat = winston.format.combine(
     }
     if (log.json) {
       final += '\n'
-      final += '[' + log.level + '] '
-      final += JSON.stringify(log.json, null, 2).replace(/\n/g, `\n[${log.level}]\t`)
+      final += '[' + logLevel + '] '
+      final += JSON.stringify(log.json, null, 2).replace(/\n/g, `\n[${logLevel}]\t`)
     }
     return final
   }),

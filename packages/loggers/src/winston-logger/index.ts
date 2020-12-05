@@ -44,9 +44,8 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
   },
   initializeLogger: async ({ loggerConfigurations }) => {
     await fse.remove(loggerConfigurations.logFilePath)
-
     const mainLogger = winston.createLogger({
-      level: loggerConfigurations.customLogLevel,
+      level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [
         createConsoleTransport(defaultFormat),
         createFileTransport(loggerConfigurations.logFilePath, defaultFormat),
@@ -55,13 +54,13 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
     })
 
     const noFormattingLogger = winston.createLogger({
-      level: loggerConfigurations.customLogLevel,
+      level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [createConsoleTransport(noFormat), createFileTransport(loggerConfigurations.logFilePath, noFormat)],
       silent: loggerConfigurations.disabled,
     })
 
     const noFormattingOnlyFileLogger = winston.createLogger({
-      level: loggerConfigurations.customLogLevel,
+      level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [createFileTransport(loggerConfigurations.logFilePath, noFormat)],
       silent: loggerConfigurations.disabled,
     })
@@ -80,6 +79,7 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
         info: (message, json) => log.info(message, { json }),
         verbose: (message, json) => log.verbose(message, { json }),
         debug: (message, json) => log.debug(message, { json }),
+        trace: (message, json) => log.silly(message, { json }),
         noFormattingInfo: message => !options?.disable && noFormattingLogger.info(message),
         noFormattingError: message => !options?.disable && noFormattingLogger.error(message),
       }

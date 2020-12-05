@@ -219,7 +219,7 @@ export async function getDockerImageLabelsAndTags({
       e.stderr?.includes('invalid status code from registry 404 (Not Found)')
     ) {
       if (!silent) {
-        log.verbose(`"${fullImageNameWithoutTag}" weren't published before so we can't find this image`)
+        log.verbose(`image: "${fullImageNameWithoutTag}" weren't published before so we can't find this image`)
       }
     } else {
       throw e
