@@ -96,7 +96,7 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
       logger:
         configurations.logger ||
         winstonLogger({
-          customLogLevel: LogLevel.verbose,
+          customLogLevel: LogLevel.debug,
           disabled: false,
           logFilePath,
         }),
