@@ -10,41 +10,44 @@ const { createRepo } = createTest()
 describe('define custom predicate to check if we need to run the step on a package', () => {
   test('return true and expect the step to run', async () => {
     const { runCi, toActualName } = await createRepo({
-      packages: [
-        {
-          name: 'a',
-          version: '1.0.0',
-        },
-      ],
-    })
-    const { jsonReport } = await runCi({
-      steps: createLinearStepsGraph([
-        createStep({
-          stepName: 'step1',
-          taskQueueClass: LocalSequentalTaskQueue,
-          constrains: {
-            onArtifact: [
-              createArtifactStepConstrain({
-                constrainName: 'test-constrain',
-                constrain: async () => ({
-                  constrainResult: ConstrainResult.shouldRun,
-                  artifactStepResult: {
-                    errors: [],
-                    notes: [],
-                  },
-                }),
-              })(),
-            ],
+      repo: {
+        packages: [
+          {
+            name: 'a',
+            version: '1.0.0',
           },
-          run: {
-            runStrategy: RunStrategy.perArtifact,
-            runStepOnArtifact: async () => {
-              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
+        ],
+      },
+      configurations: {
+        steps: createLinearStepsGraph([
+          createStep({
+            stepName: 'step1',
+            taskQueueClass: LocalSequentalTaskQueue,
+            constrains: {
+              onArtifact: [
+                createArtifactStepConstrain({
+                  constrainName: 'test-constrain',
+                  constrain: async () => ({
+                    constrainResult: ConstrainResult.shouldRun,
+                    artifactStepResult: {
+                      errors: [],
+                      notes: [],
+                    },
+                  }),
+                })(),
+              ],
             },
-          },
-        })(),
-      ]),
+            run: {
+              runStrategy: RunStrategy.perArtifact,
+              runStepOnArtifact: async () => {
+                return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
+              },
+            },
+          })(),
+        ]),
+      },
     })
+    const { jsonReport } = await runCi()
 
     const expectedJsonReport: DeepPartial<JsonReport> = {
       flowResult: {
@@ -92,44 +95,47 @@ describe('define custom predicate to check if we need to run the step on a packa
 
   test('return false and expect the step not to run', async () => {
     const { runCi, toActualName } = await createRepo({
-      packages: [
-        {
-          name: 'a',
-          version: '1.0.0',
-        },
-      ],
-    })
-    const { jsonReport } = await runCi({
-      steps: createLinearStepsGraph([
-        createStep({
-          stepName: 'step1',
-          taskQueueClass: LocalSequentalTaskQueue,
-          constrains: {
-            onArtifact: [
-              createArtifactStepConstrain({
-                constrainName: 'test-constrain',
-                constrain: async () => ({
-                  constrainResult: ConstrainResult.shouldSkip,
-                  artifactStepResult: {
-                    errors: [],
-                    notes: [],
-                    executionStatus: ExecutionStatus.aborted,
-                    status: Status.skippedAsPassed,
-                  },
-                }),
-              })(),
-            ],
+      repo: {
+        packages: [
+          {
+            name: 'a',
+            version: '1.0.0',
           },
-          run: {
-            runStrategy: RunStrategy.perArtifact,
-            runStepOnArtifact: async () => {
-              // we will never be here
-              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
+        ],
+      },
+      configurations: {
+        steps: createLinearStepsGraph([
+          createStep({
+            stepName: 'step1',
+            taskQueueClass: LocalSequentalTaskQueue,
+            constrains: {
+              onArtifact: [
+                createArtifactStepConstrain({
+                  constrainName: 'test-constrain',
+                  constrain: async () => ({
+                    constrainResult: ConstrainResult.shouldSkip,
+                    artifactStepResult: {
+                      errors: [],
+                      notes: [],
+                      executionStatus: ExecutionStatus.aborted,
+                      status: Status.skippedAsPassed,
+                    },
+                  }),
+                })(),
+              ],
             },
-          },
-        })(),
-      ]),
+            run: {
+              runStrategy: RunStrategy.perArtifact,
+              runStepOnArtifact: async () => {
+                // we will never be here
+                return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
+              },
+            },
+          })(),
+        ]),
+      },
     })
+    const { jsonReport } = await runCi()
 
     const expectedJsonReport: DeepPartial<JsonReport> = {
       flowResult: {
@@ -177,44 +183,47 @@ describe('define custom predicate to check if we need to run the step on a packa
 
   test('return false with notes and expect the step not to run with notes', async () => {
     const { runCi, toActualName } = await createRepo({
-      packages: [
-        {
-          name: 'a',
-          version: '1.0.0',
-        },
-      ],
-    })
-    const { jsonReport } = await runCi({
-      steps: createLinearStepsGraph([
-        createStep({
-          stepName: 'step1',
-          taskQueueClass: LocalSequentalTaskQueue,
-          constrains: {
-            onArtifact: [
-              createArtifactStepConstrain({
-                constrainName: 'test-constrain',
-                constrain: async () => ({
-                  constrainResult: ConstrainResult.shouldSkip,
-                  artifactStepResult: {
-                    errors: [],
-                    notes: ['note1', 'note2'],
-                    executionStatus: ExecutionStatus.aborted,
-                    status: Status.skippedAsPassed,
-                  },
-                }),
-              })(),
-            ],
+      repo: {
+        packages: [
+          {
+            name: 'a',
+            version: '1.0.0',
           },
-          run: {
-            runStrategy: RunStrategy.perArtifact,
-            runStepOnArtifact: async () => {
-              // we will never be here
-              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
+        ],
+      },
+      configurations: {
+        steps: createLinearStepsGraph([
+          createStep({
+            stepName: 'step1',
+            taskQueueClass: LocalSequentalTaskQueue,
+            constrains: {
+              onArtifact: [
+                createArtifactStepConstrain({
+                  constrainName: 'test-constrain',
+                  constrain: async () => ({
+                    constrainResult: ConstrainResult.shouldSkip,
+                    artifactStepResult: {
+                      errors: [],
+                      notes: ['note1', 'note2'],
+                      executionStatus: ExecutionStatus.aborted,
+                      status: Status.skippedAsPassed,
+                    },
+                  }),
+                })(),
+              ],
             },
-          },
-        })(),
-      ]),
+            run: {
+              runStrategy: RunStrategy.perArtifact,
+              runStepOnArtifact: async () => {
+                // we will never be here
+                return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
+              },
+            },
+          })(),
+        ]),
+      },
     })
+    const { jsonReport } = await runCi()
 
     const expectedJsonReport: DeepPartial<JsonReport> = {
       flowResult: {
@@ -262,44 +271,47 @@ describe('define custom predicate to check if we need to run the step on a packa
 
   test('return false with duplicate notes and expect the step not to run with out duplicate notes', async () => {
     const { runCi, toActualName } = await createRepo({
-      packages: [
-        {
-          name: 'a',
-          version: '1.0.0',
-        },
-      ],
-    })
-    const { jsonReport } = await runCi({
-      steps: createLinearStepsGraph([
-        createStep({
-          stepName: 'step1',
-          taskQueueClass: LocalSequentalTaskQueue,
-          constrains: {
-            onArtifact: [
-              createArtifactStepConstrain({
-                constrainName: 'test-constrain',
-                constrain: async () => ({
-                  constrainResult: ConstrainResult.shouldSkip,
-                  artifactStepResult: {
-                    errors: [],
-                    notes: ['note1', 'note2', 'note1', 'note2'],
-                    executionStatus: ExecutionStatus.aborted,
-                    status: Status.skippedAsPassed,
-                  },
-                }),
-              })(),
-            ],
+      repo: {
+        packages: [
+          {
+            name: 'a',
+            version: '1.0.0',
           },
-          run: {
-            runStrategy: RunStrategy.perArtifact,
-            runStepOnArtifact: async () => {
-              // we will never be here
-              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
+        ],
+      },
+      configurations: {
+        steps: createLinearStepsGraph([
+          createStep({
+            stepName: 'step1',
+            taskQueueClass: LocalSequentalTaskQueue,
+            constrains: {
+              onArtifact: [
+                createArtifactStepConstrain({
+                  constrainName: 'test-constrain',
+                  constrain: async () => ({
+                    constrainResult: ConstrainResult.shouldSkip,
+                    artifactStepResult: {
+                      errors: [],
+                      notes: ['note1', 'note2', 'note1', 'note2'],
+                      executionStatus: ExecutionStatus.aborted,
+                      status: Status.skippedAsPassed,
+                    },
+                  }),
+                })(),
+              ],
             },
-          },
-        })(),
-      ]),
+            run: {
+              runStrategy: RunStrategy.perArtifact,
+              runStepOnArtifact: async () => {
+                // we will never be here
+                return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
+              },
+            },
+          })(),
+        ]),
+      },
     })
+    const { jsonReport } = await runCi()
 
     const expectedJsonReport: DeepPartial<JsonReport> = {
       flowResult: {

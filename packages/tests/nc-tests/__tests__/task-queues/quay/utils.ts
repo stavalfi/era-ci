@@ -113,16 +113,18 @@ async function createTestDependencies(
   })
 
   const { repoPath, toActualName } = await createRepo({
-    packages: _.range(0, 15).map(i => ({
-      name: `package${i}`,
-      version: '1.0.0',
-      additionalFiles: {
-        Dockerfile: `\
-      FROM alpine
-      CMD ["echo","hello"]
-      `,
-      },
-    })),
+    repo: {
+      packages: _.range(0, 15).map(i => ({
+        name: `package${i}`,
+        version: '1.0.0',
+        additionalFiles: {
+          Dockerfile: `\
+        FROM alpine
+        CMD ["echo","hello"]
+        `,
+        },
+      })),
+    },
   })
 
   const logger = await winstonLogger({

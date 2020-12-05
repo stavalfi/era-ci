@@ -74,12 +74,7 @@ const getJsonReport = async ({
   }
 }
 
-type RunCi = <TaskQueue extends TaskQueueBase<unknown>>(
-  config?: Partial<Config<TaskQueue>>,
-  options?: {
-    dontAddReportSteps?: boolean
-  },
-) => Promise<{
+type RunCi = () => Promise<{
   flowId: string
   steps: Graph<{ stepInfo: StepInfo }>
   jsonReport: JsonReport
@@ -88,31 +83,20 @@ type RunCi = <TaskQueue extends TaskQueueBase<unknown>>(
   flowLogs: string
 }>
 
-const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configurations = {}, options) => {
-  const logFilePath = path.join(repoPath, 'nc.log')
+const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
+  repoPath,
+  configurations,
+  logFilePath,
+  stepsDontContainReport,
+}: {
+  repoPath: string
+  configurations: Config<TaskQueue>
+  logFilePath: string
+  stepsDontContainReport: boolean
+}): RunCi => async () => {
   const { flowId, repoHash, steps, passed, fatalError } = await ci({
     repoPath,
-    config: config({
-      logger:
-        configurations.logger ||
-        winstonLogger({
-          customLogLevel: LogLevel.debug,
-          disabled: false,
-          logFilePath,
-        }),
-      keyValueStore:
-        configurations.keyValueStore ||
-        redisConnection({
-          redisServerUri: getResoureces().redisServerUri,
-        }),
-      taskQueues: [
-        localSequentalTaskQueue(),
-        ...(configurations.taskQueues?.filter(t => t.taskQueueName !== localSequentalTaskQueue().taskQueueName) || []),
-      ],
-      steps: options?.dontAddReportSteps
-        ? configurations.steps || []
-        : addReportToStepsAsLastNodes(configurations.steps),
-    }),
+    config: configurations,
   })
 
   if (!repoHash) {
@@ -123,13 +107,13 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
     throw new Error(`ci didn't return steps-graph. can't find json-report`)
   }
   const jsonReportStepId = steps.find(s => s.data.stepInfo.stepName === jsonReporter().stepName)?.data.stepInfo.stepId
-  if (!fatalError && !options?.dontAddReportSteps && !jsonReportStepId) {
+  if (!fatalError && !stepsDontContainReport && !jsonReportStepId) {
     throw new Error(`can't find jsonReportStepId. can't find json-report`)
   }
 
   const jsonReport =
     !fatalError &&
-    !options?.dontAddReportSteps &&
+    !stepsDontContainReport &&
     (await getJsonReport({
       repoPath,
       flowId,
@@ -162,16 +146,18 @@ const runCi = ({ repoPath }: { repoPath: string }): RunCi => async (configuratio
   }
 }
 
-export type CreateRepo = (
-  repo: Repo,
-) => Promise<{
+export type CreateRepo = <TaskQueue extends TaskQueueBase<unknown>>(options: {
+  repo: Repo
+  configurations?: Partial<Config<TaskQueue>>
+  dontAddReportSteps?: boolean
+}) => Promise<{
   repoPath: string
   getImageTags: (packageName: string) => Promise<string[]>
   runCi: RunCi
   toActualName: (packageName: string) => string
 }>
 
-const createRepo: CreateRepo = async repo => {
+const createRepo: CreateRepo = async ({ repo, configurations = {}, dontAddReportSteps }) => {
   const resourcesNamesPostfix = chance().hash().slice(0, 8)
 
   const toActualName = (name: string): string =>
@@ -204,11 +190,38 @@ const createRepo: CreateRepo = async repo => {
     return result?.allValidTagsSorted || []
   }
 
+  const logFilePath = path.join(repoPath, 'nc.log')
+
+  const finalConfigurations = config({
+    logger:
+      configurations.logger ||
+      winstonLogger({
+        customLogLevel: LogLevel.debug,
+        disabled: false,
+        logFilePath,
+      }),
+    keyValueStore:
+      configurations.keyValueStore ||
+      redisConnection({
+        redisServerUri: getResoureces().redisServerUri,
+      }),
+    taskQueues: [
+      localSequentalTaskQueue(),
+      ...(configurations.taskQueues?.filter(t => t.taskQueueName !== localSequentalTaskQueue().taskQueueName) || []),
+    ],
+    steps: dontAddReportSteps ? configurations.steps || [] : addReportToStepsAsLastNodes(configurations.steps),
+  })
+
   return {
     repoPath,
     toActualName,
     getImageTags,
-    runCi: runCi({ repoPath }),
+    runCi: runCi({
+      repoPath,
+      configurations: finalConfigurations,
+      logFilePath,
+      stepsDontContainReport: Boolean(dontAddReportSteps),
+    }),
   }
 }
 

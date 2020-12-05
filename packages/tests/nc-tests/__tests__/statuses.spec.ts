@@ -9,37 +9,40 @@ const { createRepo } = createTest()
 
 test('passed,passed => passed', async () => {
   const { runCi, toActualName } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-      },
-    ],
-  })
-  const { jsonReport } = await runCi({
-    steps: createLinearStepsGraph([
-      createStep({
-        stepName: 'step1',
-        taskQueueClass: LocalSequentalTaskQueue,
-        run: {
-          runStrategy: RunStrategy.perArtifact,
-          runStepOnArtifact: async () => {
-            return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
-          },
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
         },
-      })(),
-      createStep({
-        stepName: 'step2',
-        taskQueueClass: LocalSequentalTaskQueue,
-        run: {
-          runStrategy: RunStrategy.perArtifact,
-          runStepOnArtifact: async () => {
-            return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        createStep({
+          stepName: 'step1',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: {
+            runStrategy: RunStrategy.perArtifact,
+            runStepOnArtifact: async () => {
+              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
+            },
           },
-        },
-      })(),
-    ]),
+        })(),
+        createStep({
+          stepName: 'step2',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: {
+            runStrategy: RunStrategy.perArtifact,
+            runStepOnArtifact: async () => {
+              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
+            },
+          },
+        })(),
+      ]),
+    },
   })
+  const { jsonReport } = await runCi()
 
   const expectedJsonReport: DeepPartial<JsonReport> = {
     flowResult: {

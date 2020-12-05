@@ -50,6 +50,7 @@ export {
   StepsResultOfArtifactsByArtifact,
   StepsResultOfArtifactsByStep,
   UserRunStepOptions,
+  UserStepResult,
 } from './types'
 export { stepToString, toStepsResultOfArtifactsByArtifact } from './utils'
 
