@@ -35,6 +35,11 @@ export type TestResources = {
   dockerRegistry: string
   gitServer: GitServer
   redisServerUri: string
+  quayMockService: string
+  quayHelperService: string
+  quayNamespace: string
+  quayToken: string
+  quayBuildStatusChangedRedisTopic: string
 }
 
 export type ToActualName = (name: string) => string

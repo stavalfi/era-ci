@@ -6,13 +6,14 @@ import { createStep, RunStrategy, toTaskEvent$ } from '@tahini/core'
 import { skipIfStepIsDisabledConstrain } from '@tahini/step-constrains'
 import { QuayBuildsTaskQueue } from '@tahini/task-queues'
 import { buildFullDockerImageName, ExecutionStatus, Status, TargetType } from '@tahini/utils'
+import path from 'path'
 import { last } from 'rxjs/operators'
 import { skipIfImageTagAlreadyPublishedConstrain } from './artifact-step-constrains'
 import { QuayDockerPublishConfiguration } from './types'
 import { calculateNextVersion, fullImageNameCacheKey, getVersionCacheKey } from './utils'
 
-export const dockerPublish = createStep<QuayBuildsTaskQueue, QuayDockerPublishConfiguration>({
-  stepName: 'docker-publish',
+export const quayDockerPublish = createStep<QuayBuildsTaskQueue, QuayDockerPublishConfiguration>({
+  stepName: 'quay-docker-publish',
   taskQueueClass: QuayBuildsTaskQueue,
   constrains: {
     onArtifact: [
@@ -23,10 +24,12 @@ export const dockerPublish = createStep<QuayBuildsTaskQueue, QuayDockerPublishCo
       skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'build',
         skipAsFailedIfStepNotFoundInCache: true,
+        skipAsPassedIfStepNotExists: true,
       }),
       skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'test',
         skipAsFailedIfStepNotFoundInCache: true,
+        skipAsPassedIfStepNotExists: true,
       }),
     ],
     onStep: [skipIfStepIsDisabledConstrain()],
@@ -41,15 +44,21 @@ export const dockerPublish = createStep<QuayBuildsTaskQueue, QuayDockerPublishCo
         packagePath: currentArtifact.data.artifact.packagePath,
         repoPath,
         log,
+        imageName: currentArtifact.data.artifact.packageJson.name,
       })
 
       const [task] = taskQueue.addTasksToQueue([
         {
           packageName: currentArtifact.data.artifact.packageJson.name,
           relativeContextPath: '/',
-          relativeDockerfilePath: currentArtifact.data.artifact.packagePath,
+          relativeDockerfilePath: path.relative(
+            repoPath,
+            path.join(currentArtifact.data.artifact.packagePath, 'Dockerfile'),
+          ),
           imageTags: [newVersion],
           taskTimeoutMs: stepConfigurations.dockerfileBuildTimeoutMs,
+          repoName: currentArtifact.data.artifact.packageJson.name,
+          visibility: stepConfigurations.imagesVisibility,
         },
       ])
 
@@ -80,7 +89,7 @@ export const dockerPublish = createStep<QuayBuildsTaskQueue, QuayDockerPublishCo
           })
 
           if (taskResult.taskResult.status === Status.passed) {
-            await await immutableCache.set({
+            await immutableCache.set({
               key: getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
               value: newVersion,
               ttl: immutableCache.ttls.ArtifactStepResult,

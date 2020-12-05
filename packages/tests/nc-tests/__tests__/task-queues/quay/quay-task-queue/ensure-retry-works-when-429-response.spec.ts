@@ -22,6 +22,8 @@ test('multiple tasks', async () => {
   const tasks = taskQueue.addTasksToQueue(
     Object.values(getResoureces().packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,
+      repoName: packageInfo.name,
+      visibility: 'public',
       imageTags: [`1.0.${i}`],
       relativeContextPath: '/',
       relativeDockerfilePath: packageInfo.relativeDockerFilePath,

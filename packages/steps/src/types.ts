@@ -10,6 +10,7 @@ export type DockerPublishConfiguration = {
 
 export type QuayDockerPublishConfiguration = DockerPublishConfiguration & {
   dockerfileBuildTimeoutMs: number
+  imagesVisibility: 'public' | 'private'
 }
 export type LocalDockerPublishConfiguration = DockerPublishConfiguration & {
   remoteSshDockerHost?: string

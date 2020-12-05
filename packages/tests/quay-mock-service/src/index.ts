@@ -193,7 +193,6 @@ export async function startQuayMockService(
     Reply: TriggerBuildResponse
     Headers: Headers
   }>('/api/v1/repository/:namespace/:repoName/build/', async (req, res) => {
-    console.log('stav3', `localhost:35000/${req.params.namespace}/${req.params.repoName}`)
     const repo = db.namespaces[req.params.namespace].repos[req.params.repoName]
     if (!repo) {
       throw new Error(`repo not found`)

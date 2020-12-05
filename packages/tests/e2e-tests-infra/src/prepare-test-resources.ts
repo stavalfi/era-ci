@@ -1,5 +1,8 @@
 import { GitServer, starGittServer } from './git-server-testkit'
 import { TestResources } from './types'
+import { startQuayHelperService } from '@tahini/quay-helper-service'
+import { startQuayMockService } from '@tahini/quay-mock-service'
+import chance from 'chance'
 
 type Deployment = { address: string; cleanup: () => Promise<unknown> }
 
@@ -9,7 +12,12 @@ export function resourcesBeforeAfterAll(): {
   let dockerRegistry: Deployment
   let npmRegistryDeployment: Deployment
   let redisDeployment: Deployment
+  let quayMockService: Deployment
+  let quayHelperService: Deployment
   let gitServer: GitServer
+  let quayNamespace: string
+  let quayToken: string
+  let quayBuildStatusChangedRedisTopic: string
 
   // verdaccio allow us to login as any user & password & email
   const verdaccioCardentials = {
@@ -18,7 +26,7 @@ export function resourcesBeforeAfterAll(): {
     email: 'root@root.root',
   }
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     gitServer = await starGittServer()
     npmRegistryDeployment = {
       cleanup: () => Promise.resolve(),
@@ -32,16 +40,36 @@ export function resourcesBeforeAfterAll(): {
       cleanup: () => Promise.resolve(),
       address: `http://localhost:35000`,
     }
+    quayNamespace = `quay-namespace-${chance().hash()}`
+    quayToken = `quay-token-${chance().hash()}`
+    quayMockService = await startQuayMockService({
+      dockerRegistryAddress: dockerRegistry.address,
+      namespace: quayNamespace,
+      rateLimit: {
+        max: 100000,
+        timeWindowMs: 1000,
+      },
+      token: quayToken,
+    })
+    quayBuildStatusChangedRedisTopic = `reids-topic-${chance().hash()}`
+    quayHelperService = await startQuayHelperService({
+      PORT: '0',
+      REDIS_ADDRESS: redisDeployment.address,
+      QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: quayBuildStatusChangedRedisTopic,
+      NC_TEST_MODE: 'true',
+    })
   })
-  afterAll(async () => {
-    await Promise.all(
+  afterEach(async () => {
+    await Promise.allSettled(
       [
         gitServer && gitServer.close(),
         npmRegistryDeployment && npmRegistryDeployment.cleanup(),
         redisDeployment && redisDeployment.cleanup(),
         dockerRegistry && dockerRegistry.cleanup(),
+        quayMockService && quayMockService.cleanup(),
+        quayHelperService && quayHelperService.cleanup(),
       ].filter(Boolean),
-    ).catch(() => Promise.resolve())
+    )
   })
 
   return {
@@ -53,6 +81,11 @@ export function resourcesBeforeAfterAll(): {
       dockerRegistry: dockerRegistry.address,
       redisServerUri: redisDeployment.address,
       gitServer,
+      quayNamespace,
+      quayToken,
+      quayMockService: quayMockService.address,
+      quayBuildStatusChangedRedisTopic,
+      quayHelperService: quayHelperService.address,
     }),
   }
 }

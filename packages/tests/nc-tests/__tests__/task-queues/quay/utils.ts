@@ -1,15 +1,14 @@
+import { Logger, LogLevel } from '@tahini/core'
 import { CreateRepo, createTest, TestResources } from '@tahini/e2e-tests-infra'
-import { Log, Logger, LogLevel } from '@tahini/core'
-import { getGitRepoInfo } from '@tahini/utils'
-import { getDockerImageLabelsAndTags } from '@tahini/steps'
 import { winstonLogger } from '@tahini/loggers'
 import { startQuayHelperService } from '@tahini/quay-helper-service'
 import { startQuayMockService } from '@tahini/quay-mock-service'
+import { getDockerImageLabelsAndTags } from '@tahini/steps'
 import { QuayBuildsTaskQueue, quayBuildsTaskQueue } from '@tahini/task-queues'
+import { getGitRepoInfo } from '@tahini/utils'
 import chance from 'chance'
 import _ from 'lodash'
 import path from 'path'
-import semver from 'semver'
 
 type TestDependencies = {
   quayServiceHelper: { address: string; cleanup: () => Promise<unknown> }
@@ -48,13 +47,14 @@ export function beforeAfterEach(options?: {
   })
 
   const getImageTags = (packageName: string) =>
-    publishedDockerImageTags({
+    getDockerImageLabelsAndTags({
       dockerOrganizationName: testDependencies.quayNamespace,
-      dockerRegistry: getResoureces().dockerRegistry,
       imageName: testDependencies.toActualPackageName(packageName),
-      log: testDependencies.logger.createLog('test'),
+      dockerRegistry: getResoureces().dockerRegistry,
       repoPath: testDependencies.repoPath,
-    })
+      log: testDependencies.logger.createLog('test'),
+      silent: true,
+    }).then(r => r?.allValidTagsSorted || [])
 
   return {
     getImageTags,
@@ -70,6 +70,7 @@ export function beforeAfterEach(options?: {
               testDependencies.toActualPackageName(`package${i}`),
               'Dockerfile',
             ),
+            path: path.join(testDependencies.repoPath, 'packages', testDependencies.toActualPackageName(`package${i}`)),
           },
         ]),
       )
@@ -80,40 +81,6 @@ export function beforeAfterEach(options?: {
         packages,
       }
     },
-  }
-}
-
-export async function publishedDockerImageTags({
-  dockerOrganizationName,
-  log,
-  repoPath,
-  dockerRegistry,
-  imageName,
-}: {
-  imageName: string
-  dockerOrganizationName: string
-  dockerRegistry: string
-  repoPath: string
-  log: Log
-}): Promise<Array<string>> {
-  try {
-    const result = await getDockerImageLabelsAndTags({
-      dockerOrganizationName,
-      packageJsonName: imageName,
-      dockerRegistry,
-      silent: true,
-      repoPath,
-      log,
-    })
-    const tags = result?.allTags.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
-    const sorted = semver.sort(tags.filter(tag => tag !== 'latest')).concat(tags.includes('latest') ? ['latest'] : [])
-    return sorted
-  } catch (e) {
-    if (e.stderr?.includes('manifest unknown')) {
-      return []
-    } else {
-      throw e
-    }
   }
 }
 
@@ -170,10 +137,6 @@ async function createTestDependencies(
   const queue = await quayBuildsTaskQueue({
     getCommitTarGzPublicAddress: () =>
       `${quayServiceHelper.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
-    getQuayRepoInfo: packageName => ({
-      repoName: packageName,
-      visibility: 'private',
-    }),
     quayAddress: quayMockService.address,
     quayNamespace,
     quayServiceHelperAddress: quayServiceHelper.address,
@@ -183,6 +146,7 @@ async function createTestDependencies(
     log: logger.createLog('quayBuildsTaskQueue'),
     gitRepoInfo: await getGitRepoInfo(repoPath, logger.createLog('--')),
     logger,
+    repoPath,
   })
 
   return {

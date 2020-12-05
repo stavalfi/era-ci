@@ -59,10 +59,12 @@ export const dockerPublish = createStep<LocalSequentalTaskQueue, LocalDockerPubl
       skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'build',
         skipAsFailedIfStepNotFoundInCache: true,
+        skipAsPassedIfStepNotExists: true,
       }),
       skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'test',
         skipAsFailedIfStepNotFoundInCache: true,
+        skipAsPassedIfStepNotExists: true,
       }),
     ],
     onStep: [skipIfStepIsDisabledConstrain()],
@@ -84,6 +86,7 @@ export const dockerPublish = createStep<LocalSequentalTaskQueue, LocalDockerPubl
         packagePath: currentArtifact.data.artifact.packagePath,
         repoPath,
         log,
+        imageName: currentArtifact.data.artifact.packageJson.name,
       })
 
       const fullImageNameNewVersion = buildFullDockerImageName({

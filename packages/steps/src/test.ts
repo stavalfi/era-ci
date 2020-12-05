@@ -30,10 +30,12 @@ export const test = createStep<
       skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'test',
         skipAsFailedIfStepNotFoundInCache: false,
+        skipAsPassedIfStepNotExists: true, // this setting doesn't make sense here but we must specify it
       }),
       skipIfArtifactStepResultMissingOrPassedInCacheConstrain({
         stepNameToSearchInCache: 'test',
         skipAsFailedIfStepNotFoundInCache: false,
+        skipAsPassedIfStepNotExists: true, // this setting doesn't make sense here but we must specify it
       }),
     ],
   },

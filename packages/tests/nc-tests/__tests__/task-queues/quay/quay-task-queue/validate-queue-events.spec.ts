@@ -42,6 +42,8 @@ test('task is executed and we expect the docker-image to be presentin the regist
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
+      repoName: getResoureces().packages.package1.name,
+      visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
@@ -64,6 +66,8 @@ test('scheduled and running events are fired', async () => {
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
+      repoName: getResoureces().packages.package1.name,
+      visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
@@ -77,6 +81,38 @@ test('scheduled and running events are fired', async () => {
   expect(running).toHaveBeenCalledTimes(1)
 })
 
+test('illegal parameter - relativeContextPath', async () => {
+  expect(() =>
+    taskQueue.addTasksToQueue([
+      {
+        packageName: getResoureces().packages.package1.name,
+        repoName: getResoureces().packages.package1.name,
+        visibility: 'public',
+        imageTags: ['1.0.0'],
+        relativeContextPath: '/invalid-path-to-context',
+        relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+        taskTimeoutMs: 10000,
+      },
+    ]),
+  ).toThrow()
+})
+
+test('illegal parameter - relativeDockerfilePath', async () => {
+  expect(() =>
+    taskQueue.addTasksToQueue([
+      {
+        packageName: getResoureces().packages.package1.name,
+        repoName: getResoureces().packages.package1.name,
+        visibility: 'public',
+        imageTags: ['1.0.0'],
+        relativeContextPath: '/',
+        relativeDockerfilePath: '/invalid-path-to-context',
+        taskTimeoutMs: 10000,
+      },
+    ]),
+  ).toThrow()
+})
+
 test('events are fired even when task failed', async () => {
   const scheduled = jest.fn()
   const running = jest.fn()
@@ -84,11 +120,21 @@ test('events are fired even when task failed', async () => {
   taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
   taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
 
+  await fs.promises.writeFile(
+    path.join(getResoureces().repoPath, getResoureces().packages.package1.relativeDockerFilePath),
+    `
+FROM alpine
+RUN exit 1
+  `,
+  )
+
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
+      repoName: getResoureces().packages.package1.name,
+      visibility: 'public',
       imageTags: ['1.0.0'],
-      relativeContextPath: '/invalid-path-to-context',
+      relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
@@ -110,6 +156,8 @@ test('events schema is valid', async () => {
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
+      repoName: getResoureces().packages.package1.name,
+      visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
@@ -159,11 +207,21 @@ test('events schema is valid', async () => {
 })
 
 test('done events schema is valid when task fail', async () => {
+  await fs.promises.writeFile(
+    path.join(getResoureces().repoPath, getResoureces().packages.package1.relativeDockerFilePath),
+    `
+FROM alpine
+RUN exit 1
+  `,
+  )
+
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
+      repoName: getResoureces().packages.package1.name,
+      visibility: 'public',
       imageTags: ['1.0.0'],
-      relativeContextPath: '/invalid-path-to-context',
+      relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
@@ -201,6 +259,8 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
   taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
+      repoName: getResoureces().packages.package1.name,
+      visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
@@ -208,6 +268,8 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
     },
     {
       packageName: getResoureces().packages.package2.name,
+      repoName: getResoureces().packages.package2.name,
+      visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package2.relativeDockerFilePath,
@@ -241,6 +303,8 @@ RUN sleep 10000 # make sure that this task will not end
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
+      repoName: getResoureces().packages.package1.name,
+      visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
@@ -272,6 +336,8 @@ RUN sleep 10000 # make sure that this task will not end
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResoureces().packages.package1.name,
+      repoName: getResoureces().packages.package1.name,
+      visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
@@ -310,6 +376,8 @@ test('multiple tasks', async () => {
   const tasks = taskQueue.addTasksToQueue(
     Object.values(getResoureces().packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,
+      repoName: packageInfo.name,
+      visibility: 'public',
       imageTags: [`1.0.${i}`],
       relativeContextPath: '/',
       relativeDockerfilePath: packageInfo.relativeDockerFilePath,

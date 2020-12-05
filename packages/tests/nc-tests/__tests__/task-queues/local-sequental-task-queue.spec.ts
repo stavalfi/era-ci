@@ -10,11 +10,12 @@ let cleanups: (() => Promise<unknown>)[] = []
 
 beforeEach(async () => {
   cleanups = []
+  const repoPath = await createFolder()
   const logger = await winstonLogger({
     customLogLevel: LogLevel.debug,
     logFilePath: 'nc.log',
     disabled: false,
-  }).callInitializeLogger({ repoPath: await createFolder() })
+  }).callInitializeLogger({ repoPath })
 
   taskQueue = await localSequentalTaskQueue().createFunc({
     log: logger.createLog('task-queue'),
@@ -28,6 +29,7 @@ beforeEach(async () => {
       repoNameWithOrgName: '-/-',
     },
     logger,
+    repoPath,
   })
 })
 
