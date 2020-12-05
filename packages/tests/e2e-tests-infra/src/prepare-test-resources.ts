@@ -52,6 +52,8 @@ export function resourcesBeforeAfterAll(): {
       token: quayToken,
     })
     quayBuildStatusChangedRedisTopic = `reids-topic-${chance().hash()}`
+    // eslint-disable-next-line no-process-env
+    process.env.QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC = quayBuildStatusChangedRedisTopic
     quayHelperService = await startQuayHelperService({
       PORT: '0',
       REDIS_ADDRESS: redisDeployment.address,
