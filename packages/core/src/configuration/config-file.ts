@@ -60,8 +60,7 @@ export async function readNcConfigurationFile<TaskQueue>(ciConfigFilePath: strin
   })
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const configGeneratorFunction = require(outputFilePath)
-  const configuration = await configGeneratorFunction.default
+  const configuration = (await import(outputFilePath)).default.default
 
   // await fse.remove(outputFilePath).catch(() => {
   //   // ignore error

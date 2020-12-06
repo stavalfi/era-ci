@@ -1,6 +1,6 @@
 {
   "name": "@tahini/steps",
-  "version": "1.2.26",
+  "version": "1.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": false,

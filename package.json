@@ -29,6 +29,9 @@
     }
   },
   "devDependencies": {
+    "@swc/core": "^1.2.9",
+    "@swc/jest": "^0.1.2",
+    "@swc/register": "^0.1.7",
     "@types/async": "^3.2.3",
     "@types/chance": "^1.0.8",
     "@types/ci-info": "^2.0.0",
@@ -73,7 +76,7 @@
     "pretty-quick": "3.0.0",
     "semver": "^7.3.2",
     "syncpack": "^5.0.1",
-    "ts-jest": "26.3.0",
+    "ts-jest": "^26.4.4",
     "ts-node": "9.0.0",
     "typescript": "^4.0.3"
   },
