@@ -1,8 +1,8 @@
-import { createStep, RunStrategy } from '@tahini/core'
+import { createStep, RunStrategy, TaskQueueBase } from '@tahini/core'
 import { createTest } from '@tahini/e2e-tests-infra'
-import { ExecutionStatus, Status } from '@tahini/utils'
-import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import { createLinearStepsGraph } from '@tahini/steps-graph'
+import { ExecutionStatus, Status } from '@tahini/utils'
+import { EventEmitter } from 'events'
 
 const { createRepo } = createTest()
 
@@ -29,6 +29,13 @@ test('no steps and no task-queues in config is considered as valid', async () =>
 })
 
 test('should throw error if user forgot to declare a task-queue which one of the steps needs', async () => {
+  class MissingTaskQueue implements TaskQueueBase<void> {
+    public readonly eventEmitter = new EventEmitter()
+    async cleanup() {
+      //
+    }
+  }
+
   const { runCi } = await createRepo({
     repo: {
       packages: [
@@ -39,11 +46,11 @@ test('should throw error if user forgot to declare a task-queue which one of the
       ],
     },
     configurations: {
-      taskQueues: [], // we "forgot" to declare LocalSequentalTaskQueue
+      taskQueues: [], // we "forgot" to declare LocalSequentalTaskQueue so we expect an error.
       steps: createLinearStepsGraph([
         createStep({
           stepName: 'step1',
-          taskQueueClass: LocalSequentalTaskQueue,
+          taskQueueClass: MissingTaskQueue,
           run: {
             runStrategy: RunStrategy.perArtifact,
             runStepOnArtifact: async () => {
@@ -59,7 +66,7 @@ test('should throw error if user forgot to declare a task-queue which one of the
 
   expect(flowLogs).toEqual(
     expect.stringContaining(
-      `can't find task-queue: "${LocalSequentalTaskQueue.name}" for step: "step1" needs. did you forgot to declare the task-queue in the configuration file?`,
+      `can't find task-queue: "${MissingTaskQueue.name}" for step: "step1" needs. did you forgot to declare the task-queue in the configuration file?`,
     ),
   )
   expect(passed).toBeFalsy()

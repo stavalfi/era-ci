@@ -14,7 +14,7 @@
   },
   "types": "dist/src/index.d.ts",
   "scripts": {
-    "start:dev": "yarn ts-node src/index.ts",
+    "start:dev": "node -r @swc/register src/index.ts",
     "start:prod": "node --unhandled-rejections=strict dist/src/index.js"
   },
   "dependencies": {

@@ -47,7 +47,6 @@ describe('skip publish of package that did not change from the last publish', ()
         },
       ],
     })
-
     const master1 = await runCi({
       targetsInfo: {
         docker: {
@@ -57,7 +56,6 @@ describe('skip publish of package that did not change from the last publish', ()
       },
     })
     expect(master1.published.get('a')?.docker?.tags).toEqual(['1.0.0'])
-
     const master2 = await runCi({
       targetsInfo: {
         docker: {

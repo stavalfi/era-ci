@@ -13,6 +13,9 @@
     "registry": "https://registry.npmjs.org/"
   },
   "types": "dist/src/index.d.ts",
+  "scripts": {
+    "start:dev": "node -r @swc/register src/index.ts"
+  },
   "dependencies": {
     "@tahini/core": "^1.0.0",
     "compressing": "^1.5.1",

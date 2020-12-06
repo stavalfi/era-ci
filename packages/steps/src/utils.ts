@@ -73,8 +73,8 @@ export async function isDockerVersionAlreadyPublished({
   dockerOrganizationName: string
   repoPath: string
   registryAuth?: {
-    username: string
-    token: string
+    username?: string
+    token?: string
   }
   log: Log
 }): Promise<boolean> {
@@ -84,7 +84,8 @@ export async function isDockerVersionAlreadyPublished({
     imageName: packageName,
     imageTag,
   })
-  const withAuth = registryAuth ? `--creds ${registryAuth.username}:${registryAuth.token}` : ''
+  const withAuth =
+    registryAuth?.username && registryAuth?.token ? `--creds ${registryAuth.username}:${registryAuth.token}` : ''
   try {
     await runSkopeoCommand(
       `skopeo inspect ${withAuth} ${
@@ -132,8 +133,8 @@ export async function getDockerImageLabelsAndTags({
   repoPath: string
   log: Log
   registryAuth?: {
-    username: string
-    token: string
+    username?: string
+    token?: string
   }
 }): Promise<
   { latestHash?: string; latestTag?: string; allTags: Array<string>; allValidTagsSorted: Array<string> } | undefined
@@ -143,7 +144,8 @@ export async function getDockerImageLabelsAndTags({
     dockerRegistry,
     imageName,
   })
-  const withAuth = registryAuth ? `--creds ${registryAuth.username}:${registryAuth.token}` : ''
+  const withAuth =
+    registryAuth?.username && registryAuth?.token ? `--creds ${registryAuth.username}:${registryAuth.token}` : ''
 
   try {
     if (!silent) {
