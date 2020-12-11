@@ -471,5 +471,3 @@ async function main2() {
     console.log(podName)
   })
 }
-
-// main2()

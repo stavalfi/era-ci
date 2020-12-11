@@ -20,6 +20,7 @@ module.exports = {
     globalThis: false, // it means that it is not writeable
   },
   rules: {
+    '@typescript-eslint/no-extra-semi': 'off',
     'no-process-exit': 'error',
     'no-process-env': 'error',
     'no-console': 'error',
