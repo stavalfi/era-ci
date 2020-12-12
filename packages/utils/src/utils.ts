@@ -4,8 +4,26 @@ import gitRemoteOriginUrl from 'git-remote-origin-url'
 import gitUrlParse from 'git-url-parse'
 import _ from 'lodash'
 import path from 'path'
+import { defer, Observable } from 'rxjs'
+import { concatMap } from 'rxjs/operators'
 import semver from 'semver'
 import { Artifact, ExecutionStatus, GitRepoInfo, PackageJson, Status, TargetType, UnionArrayValues } from './types'
+
+export function concatMapOnce<T>(predicate: (value: T) => boolean, fn: (value: T) => Promise<void>) {
+  return (source: Observable<T>) =>
+    defer(() => {
+      let first = true
+      return source.pipe(
+        concatMap(async payload => {
+          if (first && predicate(payload)) {
+            first = false
+            await fn(payload)
+          }
+          return payload
+        }),
+      )
+    })
+}
 
 export const didPassOrSkippedAsPassed = (status: Status): boolean =>
   [Status.passed, Status.skippedAsPassed].includes(status)

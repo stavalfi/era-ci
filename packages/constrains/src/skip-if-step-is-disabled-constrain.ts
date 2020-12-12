@@ -6,7 +6,7 @@ export const skipIfStepIsDisabledConstrain = createConstrain<void, void, { isSte
   constrain: async ({ stepConfigurations }) => {
     if (stepConfigurations.isStepEnabled) {
       return {
-        constrainResultType: ConstrainResultType.ignoreThisConstrain,
+        resultType: ConstrainResultType.ignoreThisConstrain,
         result: {
           errors: [],
           notes: [],
@@ -14,7 +14,7 @@ export const skipIfStepIsDisabledConstrain = createConstrain<void, void, { isSte
       }
     } else {
       return {
-        constrainResultType: ConstrainResultType.shouldSkip,
+        resultType: ConstrainResultType.shouldSkip,
         result: {
           errors: [],
           executionStatus: ExecutionStatus.aborted,

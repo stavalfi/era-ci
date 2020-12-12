@@ -26,7 +26,7 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createCon
     if (!step) {
       if (skipAsPassedIfStepNotExists) {
         return {
-          constrainResultType: ConstrainResultType.ignoreThisConstrain,
+          resultType: ConstrainResultType.ignoreThisConstrain,
           result: {
             errors: [],
             notes: [],
@@ -34,7 +34,7 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createCon
         }
       } else {
         return {
-          constrainResultType: ConstrainResultType.shouldSkip,
+          resultType: ConstrainResultType.shouldSkip,
           result: {
             errors: [],
             executionStatus: ExecutionStatus.aborted,
@@ -55,7 +55,7 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createCon
     if (!actualStepResult) {
       if (skipAsFailedIfStepNotFoundInCache) {
         return {
-          constrainResultType: ConstrainResultType.shouldSkip,
+          resultType: ConstrainResultType.shouldSkip,
           result: {
             errors: [],
             notes: [`could not find step result of: "${step.data.stepInfo.displayName}"`],
@@ -65,7 +65,7 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createCon
         }
       } else {
         return {
-          constrainResultType: ConstrainResultType.ignoreThisConstrain,
+          resultType: ConstrainResultType.ignoreThisConstrain,
           result: {
             errors: [],
             notes: [],
@@ -92,7 +92,7 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createCon
         notes.push(`step: "${step.data.stepInfo.displayName}" passed in flow: "${actualStepResult.flowId}"`)
       }
       return {
-        constrainResultType: ConstrainResultType.shouldSkip,
+        resultType: ConstrainResultType.shouldSkip,
         result: {
           errors: [],
           notes,
@@ -102,7 +102,7 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createCon
       }
     } else {
       return {
-        constrainResultType: ConstrainResultType.ignoreThisConstrain,
+        resultType: ConstrainResultType.ignoreThisConstrain,
         result: {
           errors: [],
           notes: [],

@@ -1,23 +1,13 @@
-import {
-  ConstrainResultType,
-  createStep,
-  createStepExperimental,
-  runConstrains,
-  RunStrategy,
-  StepResultEventType,
-  stepToString,
-} from '@tahini/core'
 import { skipIfStepResultNotPassedConstrain } from '@tahini/constrains'
+import { ConstrainResultType, createStepExperimental, StepEventType, stepToString } from '@tahini/core'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import { ExecutionStatus, Status } from '@tahini/utils'
 import Table, { CellOptions } from 'cli-table3'
 import colors from 'colors/safe'
 import _ from 'lodash'
-// import os from 'os'
 import prettyMs from 'pretty-ms'
 import { deserializeError, ErrorObject } from 'serialize-error'
 import { JsonReport, jsonReporterCacheKey, jsonReporterStepName, stringToJsonReport } from './json-reporter'
-import { of } from 'rxjs'
 
 //
 // Fix colors not appearing in non-tty environments
@@ -522,20 +512,17 @@ export const cliTableReporter = createStepExperimental({
   stepName: 'cli-table-reporter',
   taskQueueClass: LocalSequentalTaskQueue,
   run: async options => {
-    const constrainsResult = await runConstrains({
-      options,
-      stepConstrains: [
-        skipIfStepResultNotPassedConstrain({
-          stepName: jsonReporterStepName,
-        }),
-      ],
-    })
+    const constrainsResult = await options.runConstrains([
+      skipIfStepResultNotPassedConstrain({
+        stepName: jsonReporterStepName,
+      }),
+    ])
 
     if (constrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-      return of({
-        type: StepResultEventType.stepResult,
-        stepResult: constrainsResult.stepConstrainsResult.combinedResult,
-      })
+      return {
+        type: StepEventType.step,
+        stepResult: constrainsResult.combinedResult,
+      }
     }
 
     const jsonReporterStepId = options.steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data.stepInfo
@@ -573,12 +560,12 @@ export const cliTableReporter = createStepExperimental({
     }
     options.log.noFormattingInfo(summaryReport)
 
-    return of({
-      type: StepResultEventType.stepResult,
+    return {
+      type: StepEventType.step,
       stepResult: {
         executionStatus: ExecutionStatus.done,
         status: Status.passed,
       },
-    })
+    }
   },
 })

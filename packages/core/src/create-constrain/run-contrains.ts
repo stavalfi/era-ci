@@ -2,7 +2,7 @@ import { Artifact, calculateCombinedStatus, ExecutionStatus, Node, Status } from
 import _ from 'lodash'
 import { ErrorObject, serializeError } from 'serialize-error'
 import { UserRunStepOptions } from '../create-step'
-import { CombinedConstrainResult, Constrain, ConstrainResult, ConstrainResultType, RunConstrainsResult } from './types'
+import { CombinedConstrainResult, Constrain, ConstrainResult, ConstrainResultType, RunConstrains } from './types'
 
 function getCombinedResult(individualConstrainsResults: ConstrainResult[]): CombinedConstrainResult {
   const canRun = individualConstrainsResults.every(x =>
@@ -39,63 +39,25 @@ function getCombinedResult(individualConstrainsResults: ConstrainResult[]): Comb
       }
 }
 
-export async function runConstrains<StepConfiguration>({
-  options,
-  stepConstrains = [],
-}: {
-  options: Omit<UserRunStepOptions<never, StepConfiguration>, 'taskQueue'>
-  stepConstrains?: Array<Constrain<StepConfiguration>>
-  artifactConstrains?: Array<(currentArtifact: Node<{ artifact: Artifact }>) => Constrain<StepConfiguration>>
-}): Promise<RunConstrainsResult> {
-  const [stepConstrainsResults, artifactsConstrainsResults] = await Promise.all([
-    Promise.all(
-      stepConstrains.map(async c => {
-        const { invoke, constrainOptions } = await c.callConstrain({ userRunStepOptions: options })
-        return invoke().catch<ConstrainResult>(error => ({
-          constrainName: c.constrainName,
-          resultType: ConstrainResultType.shouldSkip,
-          result: {
-            executionStatus: ExecutionStatus.aborted,
-            status: Status.skippedAsFailed,
-            notes: [],
-            errors: [serializeError(error)],
-          },
-          constrainOptions,
-        }))
-      }),
-    ),
-    Promise.all(
-      options.artifacts.map(artifact =>
-        Promise.all(
-          artifactConstrains.map(async prepareConstrain => {
-            const c = prepareConstrain(artifact)
-            const { invoke, constrainOptions } = await c.callConstrain({ userRunStepOptions: options })
-            return invoke().catch<ConstrainResult>(error => ({
-              constrainName: c.constrainName,
-              resultType: ConstrainResultType.shouldSkip,
-              result: {
-                executionStatus: ExecutionStatus.aborted,
-                status: Status.skippedAsFailed,
-                notes: [],
-                errors: [serializeError(error)],
-              },
-              constrainOptions,
-            }))
-          }),
-        ),
-      ),
-    ),
-  ])
-
-  const stepConstrainsResult = getCombinedResult(stepConstrainsResults)
-  const artifactConstrainsResult = artifactsConstrainsResults.map(getCombinedResult)
-  const combinedResultType = artifactConstrainsResult.every(x =>
-    [ConstrainResultType.shouldRun, ConstrainResultType.ignoreThisConstrain].includes(x.combinedResultType),
+export const prepareRunConstrains = <StepConfiguration>(
+  options: Omit<UserRunStepOptions<never, StepConfiguration>, 'taskQueue'>,
+): RunConstrains<StepConfiguration> => async (constrains): Promise<CombinedConstrainResult> => {
+  const stepConstrainsResults = await Promise.all(
+    constrains.map(async c => {
+      const { invoke, constrainOptions } = await c.callConstrain({ userRunStepOptions: options })
+      return invoke().catch<ConstrainResult>(error => ({
+        constrainName: c.constrainName,
+        resultType: ConstrainResultType.shouldSkip,
+        result: {
+          executionStatus: ExecutionStatus.aborted,
+          status: Status.skippedAsFailed,
+          notes: [],
+          errors: [serializeError(error)],
+        },
+        constrainOptions,
+      }))
+    }),
   )
 
-  return {
-    combinedResultType: combinedResultType ? ConstrainResultType.shouldRun : ConstrainResultType.shouldSkip,
-    stepConstrainsResult,
-    artifactConstrainsResult,
-  }
+  return getCombinedResult(stepConstrainsResults)
 }

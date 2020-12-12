@@ -1,82 +1,93 @@
-import { createStep, RunStrategy } from '@tahini/core'
-import { ExecutionStatus, Status, getPackageTargetType, TargetType } from '@tahini/utils'
+import { createStepExperimental, StepEventType, StepOutputEvents } from '@tahini/core'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
+import { Artifact, ExecutionStatus, getPackageTargetType, Node, Status, TargetType } from '@tahini/utils'
 import _ from 'lodash'
 import { IDependencyMap } from 'package-json-type'
+import { from } from 'rxjs'
+import { mergeMap } from 'rxjs/operators'
 import semver from 'semver'
-import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 
-export const validatePackages = createStep({
+export const validatePackages = createStepExperimental({
   stepName: 'validate-packages',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: {
-    runStrategy: RunStrategy.perArtifact,
-    runStepOnArtifact: async ({ currentArtifact, artifacts }) => {
-      const problems: Array<string> = []
+  run: async ({ artifacts }) => {
+    return from(artifacts).pipe(
+      mergeMap<
+        Node<{
+          artifact: Artifact
+        }>,
+        Promise<StepOutputEvents[StepEventType]>
+      >(async artifact => {
+        const problems: Array<string> = []
 
-      if (!currentArtifact.data.artifact.packageJson.name) {
-        problems.push(`missing name property in package.json`)
-      }
+        if (!artifact.data.artifact.packageJson.name) {
+          problems.push(`missing name property in package.json`)
+        }
 
-      if (!currentArtifact.data.artifact.packageJson.version) {
-        problems.push(`missing version property in package.json`)
-      }
+        if (!artifact.data.artifact.packageJson.version) {
+          problems.push(`missing version property in package.json`)
+        }
 
-      if (!semver.valid(currentArtifact.data.artifact.packageJson.version)) {
-        problems.push(
-          `version property in package.json is invalid: "${currentArtifact.data.artifact.packageJson.version}"`,
+        if (!semver.valid(artifact.data.artifact.packageJson.version)) {
+          problems.push(`version property in package.json is invalid: "${artifact.data.artifact.packageJson.version}"`)
+        }
+
+        const deps: IDependencyMap = {
+          ...artifact.data.artifact.packageJson.dependencies,
+          ...artifact.data.artifact.packageJson.devDependencies,
+          ...artifact.data.artifact.packageJson.peerDependencies,
+        }
+
+        const currentArtifactTargetType = await getPackageTargetType(
+          artifact.data.artifact.packagePath,
+          artifact.data.artifact.packageJson,
         )
-      }
 
-      const deps: IDependencyMap = {
-        ...currentArtifact.data.artifact.packageJson.dependencies,
-        ...currentArtifact.data.artifact.packageJson.devDependencies,
-        ...currentArtifact.data.artifact.packageJson.peerDependencies,
-      }
-
-      const currentArtifactTargetType = await getPackageTargetType(
-        currentArtifact.data.artifact.packagePath,
-        currentArtifact.data.artifact.packageJson,
-      )
-
-      const depsProblems = await Promise.all(
-        Object.entries(deps).map(async ([dep, versionRange]) => {
-          const depInMonoRepo = artifacts.find(a => a.data.artifact.packageJson.name === dep)?.data.artifact
-          if (!depInMonoRepo) {
-            return []
-          }
-          const depVersion = depInMonoRepo.packageJson.version
-
-          const depProblems: Array<string> = []
-
-          if (depVersion) {
-            const isInRange = semver.satisfies(depVersion, versionRange)
-            if (isInRange) {
-              const depTargetType = await getPackageTargetType(depInMonoRepo.packagePath, depInMonoRepo.packageJson)
-              if (currentArtifactTargetType === TargetType.npm && !depTargetType) {
-                depProblems.push(
-                  `the package "${currentArtifact.data.artifact.packageJson.name}" can't depend on dependency: "${dep}" in version "${versionRange}" becuase this version represents a private-npm-package`,
-                )
+        const depsProblems = _.flatMapDeep(
+          await Promise.all(
+            Object.entries(deps).map(async ([dep, versionRange]) => {
+              const depInMonoRepo = artifacts.find(a => a.data.artifact.packageJson.name === dep)?.data.artifact
+              if (!depInMonoRepo) {
+                return []
               }
+              const depVersion = depInMonoRepo.packageJson.version
 
-              if (depTargetType === TargetType.docker) {
-                depProblems.push(
-                  `the package "${currentArtifact.data.artifact.packageJson.name}" can't depend on dependency: "${dep}" in version "${versionRange}" becuase this version represents a docker-package`,
-                )
+              const depProblems: Array<string> = []
+
+              if (depVersion) {
+                const isInRange = semver.satisfies(depVersion, versionRange)
+                if (isInRange) {
+                  const depTargetType = await getPackageTargetType(depInMonoRepo.packagePath, depInMonoRepo.packageJson)
+                  if (currentArtifactTargetType === TargetType.npm && !depTargetType) {
+                    depProblems.push(
+                      `the package "${artifact.data.artifact.packageJson.name}" can't depend on dependency: "${dep}" in version "${versionRange}" becuase this version represents a private-npm-package`,
+                    )
+                  }
+
+                  if (depTargetType === TargetType.docker) {
+                    depProblems.push(
+                      `the package "${artifact.data.artifact.packageJson.name}" can't depend on dependency: "${dep}" in version "${versionRange}" becuase this version represents a docker-package`,
+                    )
+                  }
+                }
               }
-            }
-          }
-          return depProblems
-        }),
-      ).then(x => _.flatMapDeep(x))
+              return depProblems
+            }),
+          ),
+        )
 
-      problems.push(...depsProblems)
+        problems.push(...depsProblems)
 
-      return {
-        errors: [],
-        notes: problems,
-        executionStatus: ExecutionStatus.done,
-        status: problems.length === 0 ? Status.passed : Status.failed,
-      }
-    },
+        return {
+          type: StepEventType.artifactStep,
+          artifactName: artifact.data.artifact.packageJson.name,
+          artifactStepResult: {
+            notes: problems,
+            executionStatus: ExecutionStatus.done,
+            status: problems.length === 0 ? Status.passed : Status.failed,
+          },
+        }
+      }),
+    )
   },
 })

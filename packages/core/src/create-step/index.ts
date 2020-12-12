@@ -56,7 +56,7 @@ async function runStepOnEveryArtifact<TaskQueue extends TaskQueueBase<unknown>, 
   const artifactsResult: UserArtifactResult[] = []
   for (const [i, artifact] of userRunStepOptions.artifacts.entries()) {
     const canRunResult = canRunStepResultOnArtifacts[i]
-    if (canRunResult.constrainResultType === ConstrainResultType.shouldRun) {
+    if (canRunResult.resultType === ConstrainResultType.shouldRun) {
       try {
         const stepResult = await runStepOnArtifact({
           ...userRunStepOptions,
@@ -213,7 +213,7 @@ async function getUserStepResult<
             `(${i})-${c.constrainName}`,
             {
               options: c.constrainOptions,
-              result: c.constrainResultType,
+              result: c.resultType,
             },
           ]),
         ),
@@ -230,7 +230,7 @@ async function getUserStepResult<
           `(${i})-${c.constrainName}`,
           {
             options: c.constrainOptions || {},
-            result: c.constrainResultType,
+            result: c.resultType,
           },
         ]),
       ),
@@ -238,8 +238,8 @@ async function getUserStepResult<
   }
 
   const shouldSkipStep =
-    canRunAllArtifacts.constrainResultType === ConstrainResultType.shouldSkip ||
-    canRunPerArtifact.every(x => x.constrainResultType === ConstrainResultType.shouldSkip)
+    canRunAllArtifacts.resultType === ConstrainResultType.shouldSkip ||
+    canRunPerArtifact.every(x => x.resultType === ConstrainResultType.shouldSkip)
 
   let userStepResult: UserStepResult
   if (shouldSkipStep) {
@@ -250,11 +250,11 @@ async function getUserStepResult<
       },
       artifactsResult: userRunStepOptions.artifacts.map((node, i) => {
         let status: Status.skippedAsFailed | Status.skippedAsPassed | Status.failed
-        if (canRunAllArtifacts.constrainResultType === ConstrainResultType.shouldSkip) {
+        if (canRunAllArtifacts.resultType === ConstrainResultType.shouldSkip) {
           status = canRunAllArtifacts.stepResult.status
         } else {
           const canRun = canRunPerArtifact[i]
-          if (canRun.constrainResultType !== ConstrainResultType.shouldSkip) {
+          if (canRun.resultType !== ConstrainResultType.shouldSkip) {
             throw new Error(`we can't be here`)
           }
           status = canRun.artifactStepResult.status

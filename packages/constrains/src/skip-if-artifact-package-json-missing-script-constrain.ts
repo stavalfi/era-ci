@@ -13,7 +13,7 @@ export const skipIfArtifactPackageJsonMissingScriptConstrain = createConstrain<{
       currentArtifact.data.artifact.packageJson.scripts[scriptName]
     ) {
       return {
-        constrainResultType: ConstrainResultType.ignoreThisConstrain,
+        resultType: ConstrainResultType.ignoreThisConstrain,
         result: {
           errors: [],
           notes: [],
@@ -21,7 +21,7 @@ export const skipIfArtifactPackageJsonMissingScriptConstrain = createConstrain<{
       }
     } else {
       return {
-        constrainResultType: ConstrainResultType.shouldSkip,
+        resultType: ConstrainResultType.shouldSkip,
         result: {
           errors: [],
           executionStatus: ExecutionStatus.aborted,

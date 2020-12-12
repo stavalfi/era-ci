@@ -13,6 +13,7 @@ import {
 import { Observable } from 'rxjs'
 import { ErrorObject } from 'serialize-error'
 import { ArtifactInStepConstrain } from '../create-artifact-step-constrain'
+import { RunConstrains } from '../create-constrain/types'
 import { Log, Logger } from '../create-logger'
 import { StepConstrain } from '../create-step-constrain'
 import { TaskQueueBase, TaskQueueOptions } from '../create-task-queue'
@@ -145,7 +146,7 @@ export type RunStepOptions<TaskQueue extends TaskQueueBase<unknown>> = {
   immutableCache: ImmutableCache
   logger: Logger
   taskQueue: TaskQueue
-  stepInputEvents$: Observable<StepInputEvents[StepInputEventType]>
+  stepInputEvents$: Observable<StepInputEvents[StepEventType]>
 }
 
 export type UserRunStepOptions<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = RunStepOptions<
@@ -154,6 +155,7 @@ export type UserRunStepOptions<TaskQueue extends TaskQueueBase<unknown>, StepCon
   log: Log
   stepConfigurations: StepConfigurations
   startStepMs: number
+  runConstrains: RunConstrains<StepConfigurations>
 }
 
 export type UserArtifactResult = {
@@ -161,52 +163,58 @@ export type UserArtifactResult = {
   artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
 }
 
-export enum StepResultEventType {
-  artifactStepResult = 'artifact-step-result',
-  stepResult = 'step-result',
+export enum StepEventType {
+  artifactStep = 'artifact-step',
+  step = 'step',
 }
 
-export type StepResultEvents = {
-  [StepResultEventType.artifactStepResult]: {
-    type: StepResultEventType.artifactStepResult
+export type StepOutputEvents = {
+  [StepEventType.artifactStep]: {
+    type: StepEventType.artifactStep
     artifactName: string
     artifactStepResult:
       | ScheduledResult
       | RunningResult
-      | (Omit<
-          AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>,
-          'durationMs' | 'errors' | 'notes'
-        > &
-          Partial<{ notes: Array<string>; errors: Array<ErrorObject> }>)
-      | (Omit<DoneResult | 'errors' | 'notes', 'durationMs'> &
-          Partial<{ notes: Array<string>; errors: Array<ErrorObject> }>)
+      | {
+          executionStatus: ExecutionStatus.aborted
+          status: Status.skippedAsFailed | Status.skippedAsPassed | Status.failed
+          notes?: Array<string>
+          errors?: Array<ErrorObject>
+        }
+      | {
+          executionStatus: ExecutionStatus.done
+          status: Status.passed | Status.failed
+          notes?: Array<string>
+          errors?: Array<ErrorObject>
+        }
   }
-  [StepResultEventType.stepResult]: {
-    type: StepResultEventType.stepResult
+  [StepEventType.step]: {
+    type: StepEventType.step
     stepResult:
       | ScheduledResult
       | RunningResult
-      | (Omit<
-          AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>,
-          'durationMs' | 'errors' | 'notes'
-        > &
-          Partial<{ notes: Array<string>; errors: Array<ErrorObject> }>)
-      | (Omit<DoneResult | 'errors' | 'notes', 'durationMs'> &
-          Partial<{ notes: Array<string>; errors: Array<ErrorObject> }>)
+      | {
+          executionStatus: ExecutionStatus.aborted
+          status: Status.skippedAsFailed | Status.skippedAsPassed | Status.failed
+          notes?: Array<string>
+          errors?: Array<ErrorObject>
+        }
+      | {
+          executionStatus: ExecutionStatus.done
+          status: Status.passed | Status.failed
+          notes?: Array<string>
+          errors?: Array<ErrorObject>
+        }
   }
-}
-
-export enum StepInputEventType {
-  artifactStepResult = 'artifact-step-result',
-  stepResult = 'step-result',
 }
 
 export type StepInputEvents = {
-  [StepInputEventType.artifactStepResult]: StepResultEvents[StepResultEventType.artifactStepResult] & {
-    stepInfo: StepInfo
+  [StepEventType.artifactStep]: StepOutputEvents[StepEventType.artifactStep] & {
+    step: Node<{ stepInfo: StepInfo }>
+    artifact: Node<{ artifact: Artifact }>
   }
-  [StepInputEventType.stepResult]: StepResultEvents[StepResultEventType.stepResult] & {
-    stepInfo: StepInfo
+  [StepEventType.step]: StepOutputEvents[StepEventType.step] & {
+    step: Node<{ stepInfo: StepInfo }>
   }
 }
 
@@ -240,7 +248,10 @@ export type RunStepOnRoot<TaskQueue extends TaskQueueBase<unknown>, StepConfigur
 
 export type RunStepExperimental<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations>,
-) => Observable<StepResultEvents[StepResultEventType]> | Promise<Observable<StepResultEvents[StepResultEventType]>>
+) =>
+  | Observable<StepOutputEvents[StepEventType]>
+  | Promise<Observable<StepOutputEvents[StepEventType]>>
+  | Promise<StepOutputEvents[StepEventType.step]>
 
 export type Step<TaskQueue extends TaskQueueBase<unknown>> = {
   stepName: string
@@ -251,7 +262,7 @@ export type Step<TaskQueue extends TaskQueueBase<unknown>> = {
 export type StepExperimental<TaskQueue extends TaskQueueBase<unknown>> = {
   stepName: string
   taskQueueClass: { new (options: TaskQueueOptions<unknown>): TaskQueue }
-  runStep: (runStepOptions: RunStepOptions<TaskQueue>) => Observable<StepResultEvents[StepResultEventType]>
+  runStep: (runStepOptions: RunStepOptions<TaskQueue>) => Observable<StepOutputEvents[StepEventType]>
 }
 
 export enum RunStrategy {

@@ -28,7 +28,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                 createConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
-                    constrainResultType: ConstrainResultType.ignoreThisConstrain,
+                    resultType: ConstrainResultType.ignoreThisConstrain,
                     artifactStepResult: {
                       errors: [],
                       notes: [],
@@ -113,7 +113,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                 createConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
-                    constrainResultType: ConstrainResultType.shouldSkip,
+                    resultType: ConstrainResultType.shouldSkip,
                     artifactStepResult: {
                       errors: [],
                       notes: [],
@@ -201,7 +201,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                 createConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
-                    constrainResultType: ConstrainResultType.shouldSkip,
+                    resultType: ConstrainResultType.shouldSkip,
                     artifactStepResult: {
                       errors: [],
                       notes: ['note1', 'note2'],
@@ -289,7 +289,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                 createConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
-                    constrainResultType: ConstrainResultType.shouldSkip,
+                    resultType: ConstrainResultType.shouldSkip,
                     artifactStepResult: {
                       errors: [],
                       notes: ['note1', 'note2', 'note1', 'note2'],
