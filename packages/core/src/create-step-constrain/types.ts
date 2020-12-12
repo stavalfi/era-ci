@@ -6,14 +6,14 @@ export type StepConstrainResultBase =
   | {
       // it means that this constrain decided not to skip this step
       // so we need to find other constrain that will decide to skip
-      constrainResultType: ConstrainResultType.ignoreThisConstrain
+      resultType: ConstrainResultType.ignoreThisConstrain
       stepResult: {
         notes: Array<string>
         errors: Array<ErrorObject>
       }
     }
   | {
-      constrainResultType: ConstrainResultType.shouldSkip
+      resultType: ConstrainResultType.shouldSkip
       stepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>, 'durationMs'>
     }
 
@@ -24,14 +24,14 @@ export type StepConstrainResult = {
 
 export type CombinedStepConstrainResult = { constrainsResult: Array<StepConstrainResult> } & (
   | {
-      constrainResultType: ConstrainResultType.shouldRun
+      resultType: ConstrainResultType.shouldRun
       stepResult: {
         notes: Array<string>
         errors: Array<ErrorObject>
       }
     }
   | {
-      constrainResultType: ConstrainResultType.shouldSkip
+      resultType: ConstrainResultType.shouldSkip
       stepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>, 'durationMs'>
     }
 )

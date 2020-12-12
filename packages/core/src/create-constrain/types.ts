@@ -55,14 +55,6 @@ export type Constrain<StepConfiguration> = {
   }>
 }
 
-export type RunConstrainsResult =
-  | {
-      combinedResultType: ConstrainResultType.shouldRun
-      stepConstrainsResult: CombinedConstrainResultShouldRun
-      artifactConstrainsResult: Array<CombinedConstrainResult>
-    }
-  | {
-      combinedResultType: ConstrainResultType.shouldSkip
-      stepConstrainsResult: CombinedConstrainResultShouldSkip
-      artifactConstrainsResult: Array<CombinedConstrainResult>
-    }
+export type RunConstrains<StepConfiguration> = (
+  constrains: Array<Constrain<StepConfiguration>>,
+) => Promise<CombinedConstrainResult>

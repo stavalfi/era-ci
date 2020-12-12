@@ -38,7 +38,7 @@ export const skipIfImageTagAlreadyPublishedConstrain = createConstrain<
 
     if (!dockerVersionResult) {
       return {
-        constrainResultType: ConstrainResultType.ignoreThisConstrain,
+        resultType: ConstrainResultType.ignoreThisConstrain,
         result: { errors: [], notes: [] },
       }
     }
@@ -55,7 +55,7 @@ export const skipIfImageTagAlreadyPublishedConstrain = createConstrain<
       })
     ) {
       return {
-        constrainResultType: ConstrainResultType.shouldSkip,
+        resultType: ConstrainResultType.shouldSkip,
         result: {
           errors: [],
           notes: [
@@ -68,7 +68,7 @@ export const skipIfImageTagAlreadyPublishedConstrain = createConstrain<
     }
 
     return {
-      constrainResultType: ConstrainResultType.ignoreThisConstrain,
+      resultType: ConstrainResultType.ignoreThisConstrain,
       result: { errors: [], notes: [] },
     }
   },

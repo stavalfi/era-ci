@@ -14,7 +14,7 @@ export const skipIfArtifactTargetTypeNotSupportedConstrain = createConstrain<{
 
     if (targetType !== supportedTargetType) {
       return {
-        constrainResultType: ConstrainResultType.shouldSkip,
+        resultType: ConstrainResultType.shouldSkip,
         result: {
           errors: [],
           notes: [],
@@ -25,7 +25,7 @@ export const skipIfArtifactTargetTypeNotSupportedConstrain = createConstrain<{
     }
 
     return {
-      constrainResultType: ConstrainResultType.ignoreThisConstrain,
+      resultType: ConstrainResultType.ignoreThisConstrain,
       result: {
         errors: [],
         notes: [],

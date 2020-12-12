@@ -1,23 +1,35 @@
-import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from 'constrains/src'
-import { createConstrain, createStep, Log, RunStrategy } from '@tahini/core'
 import { skipIfStepIsDisabledConstrain } from '@tahini/constrains'
+import {
+  ConstrainResultType,
+  createConstrain,
+  createStepExperimental,
+  Log,
+  StepEventType,
+  StepInputEvents,
+  StepOutputEvents,
+} from '@tahini/core'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import {
+  Artifact,
   calculateNewVersion,
-  ConstrainResultType,
+  concatMapOnce,
   execaCommand,
   ExecutionStatus,
   getPackageTargetType,
+  Node,
   PackageJson,
   setPackageVersion,
   Status,
   TargetType,
 } from '@tahini/utils'
+import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from 'constrains/src'
 import fse from 'fs-extra'
 import _ from 'lodash'
+import npmLogin from 'npm-login-noninteractive'
 import os from 'os'
 import path from 'path'
-import npmLogin from 'npm-login-noninteractive'
+import { of } from 'rxjs'
+import { mergeMap } from 'rxjs/operators'
 
 export enum NpmScopeAccess {
   public = 'public',
@@ -165,9 +177,19 @@ export async function npmRegistryLogin({
   }
 }
 
-const customConstrain = createConstrain<void, void, NpmPublishConfiguration>({
+const customConstrain = createConstrain<
+  { currentArtifact: Node<{ artifact: Artifact }> },
+  { currentArtifact: Node<{ artifact: Artifact }> },
+  NpmPublishConfiguration
+>({
   constrainName: 'custom-constrain',
-  constrain: async ({ currentArtifact, stepConfigurations, immutableCache, repoPath, log }) => {
+  constrain: async ({
+    stepConfigurations,
+    immutableCache,
+    repoPath,
+    log,
+    constrainConfigurations: { currentArtifact },
+  }) => {
     const targetType = await getPackageTargetType(
       currentArtifact.data.artifact.packagePath,
       currentArtifact.data.artifact.packageJson,
@@ -175,8 +197,8 @@ const customConstrain = createConstrain<void, void, NpmPublishConfiguration>({
 
     if (targetType !== TargetType.npm) {
       return {
-        constrainResultType: ConstrainResultType.shouldSkip,
-        artifactStepResult: {
+        resultType: ConstrainResultType.shouldSkip,
+        result: {
           errors: [],
           notes: [],
           executionStatus: ExecutionStatus.aborted,
@@ -203,8 +225,8 @@ const customConstrain = createConstrain<void, void, NpmPublishConfiguration>({
 
     if (!npmVersionResult) {
       return {
-        constrainResultType: ConstrainResultType.ignoreThisConstrain,
-        artifactStepResult: { errors: [], notes: [] },
+        resultType: ConstrainResultType.ignoreThisConstrain,
+        result: { errors: [], notes: [] },
       }
     }
 
@@ -218,8 +240,8 @@ const customConstrain = createConstrain<void, void, NpmPublishConfiguration>({
       })
     ) {
       return {
-        constrainResultType: ConstrainResultType.shouldSkip,
-        artifactStepResult: {
+        resultType: ConstrainResultType.shouldSkip,
+        result: {
           errors: [],
           notes: [
             `this package was already published in flow: "${npmVersionResult.flowId}" with the same content as version: ${npmVersionResult.value}`,
@@ -231,102 +253,130 @@ const customConstrain = createConstrain<void, void, NpmPublishConfiguration>({
     }
 
     return {
-      constrainResultType: ConstrainResultType.ignoreThisConstrain,
-      artifactStepResult: { errors: [], notes: [] },
+      resultType: ConstrainResultType.ignoreThisConstrain,
+      result: { errors: [], notes: [] },
     }
   },
 })
 
-export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfiguration>({
+// TODO: each step also supported to work without other steps -> we need to verify this in tests
+export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPublishConfiguration>({
   stepName: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,
-  constrains: {
-    onArtifact: [
-      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-        stepNameToSearchInCache: 'build',
-        skipAsFailedIfStepNotFoundInCache: true,
-        skipAsPassedIfStepNotExists: false,
-      }),
-      skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-        stepNameToSearchInCache: 'test',
-        skipAsFailedIfStepNotFoundInCache: true,
-        skipAsPassedIfStepNotExists: false,
-      }),
-      customConstrain(),
-    ],
-    onStep: [skipIfStepIsDisabledConstrain()],
-  },
-  run: {
-    runStrategy: RunStrategy.perArtifact,
-    beforeAll: ({ stepConfigurations, repoPath, log }) =>
-      npmRegistryLogin({
-        npmRegistry: stepConfigurations.registry,
-        npmRegistryEmail: stepConfigurations.publishAuth.email,
-        npmRegistryToken: stepConfigurations.publishAuth.token,
-        npmRegistryUsername: stepConfigurations.publishAuth.username,
-        repoPath,
-        log,
-      }),
-    runStepOnArtifact: async ({ currentArtifact, stepConfigurations, repoPath, log, immutableCache }) => {
-      const newVersion = await calculateNextNewVersion({
-        npmRegistry: stepConfigurations.registry,
-        packageJson: currentArtifact.data.artifact.packageJson,
-        packagePath: currentArtifact.data.artifact.packagePath,
-        repoPath,
-        log,
-      })
+  run: async ({ stepConfigurations, repoPath, log, immutableCache, stepInputEvents$, runConstrains }) => {
+    const constrainsResult = await runConstrains([skipIfStepIsDisabledConstrain()])
 
-      await setPackageVersion({
-        artifact: currentArtifact.data.artifact,
-        fromVersion: currentArtifact.data.artifact.packageJson.version,
-        toVersion: newVersion,
+    if (constrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
+      return of({
+        type: StepEventType.step,
+        stepResult: constrainsResult.combinedResult,
       })
+    }
 
-      await execaCommand(
-        `yarn publish --registry ${stepConfigurations.registry} --non-interactive ${
-          currentArtifact.data.artifact.packageJson.name?.includes('@')
-            ? `--access ${stepConfigurations.npmScopeAccess}`
-            : ''
-        }`,
-        {
-          stdio: 'inherit',
-          cwd: currentArtifact.data.artifact.packagePath,
-          env: {
-            // npm need this env-var for auth - this is needed only for production publishing.
-            // in tests it doesn't do anything and we login manually to npm in tests.
-            NPM_AUTH_TOKEN: stepConfigurations.publishAuth.token,
-            NPM_TOKEN: stepConfigurations.publishAuth.token,
-          },
-          log,
-        },
-      )
-        .then(() =>
-          immutableCache.set({
-            key: getVersionCacheKey({
-              artifactHash: currentArtifact.data.artifact.packageHash,
-              artifactName: currentArtifact.data.artifact.packageJson.name,
+    return stepInputEvents$.pipe(
+      concatMapOnce(
+        e => e.type === StepEventType.artifactStep && e.artifactStepResult.executionStatus === ExecutionStatus.done,
+        () =>
+          npmRegistryLogin({
+            npmRegistry: stepConfigurations.registry,
+            npmRegistryEmail: stepConfigurations.publishAuth.email,
+            npmRegistryToken: stepConfigurations.publishAuth.token,
+            npmRegistryUsername: stepConfigurations.publishAuth.username,
+            repoPath,
+            log,
+          }),
+      ),
+      mergeMap<StepInputEvents[StepEventType], Promise<StepOutputEvents[StepEventType]>>(async e => {
+        if (e.type === StepEventType.artifactStep && e.artifactStepResult.executionStatus === ExecutionStatus.done) {
+          const constrainsResult = await runConstrains([
+            skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+              currentArtifact: e.artifact,
+              stepNameToSearchInCache: 'build',
+              skipAsFailedIfStepNotFoundInCache: true,
+              skipAsPassedIfStepNotExists: false,
             }),
-            value: newVersion,
-            ttl: immutableCache.ttls.ArtifactStepResult,
-          }),
-        )
-        .finally(async () =>
-          // revert version to what it was before we changed it
-          setPackageVersion({
-            artifact: currentArtifact.data.artifact,
-            fromVersion: newVersion,
-            toVersion: currentArtifact.data.artifact.packageJson.version,
-          }),
-        )
+            skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+              currentArtifact: e.artifact,
+              stepNameToSearchInCache: 'test',
+              skipAsFailedIfStepNotFoundInCache: true,
+              skipAsPassedIfStepNotExists: false,
+            }),
+            customConstrain({ currentArtifact: e.artifact }),
+          ])
 
-      log.info(`published npm target: "${currentArtifact.data.artifact.packageJson.name}@${newVersion}"`)
+          if (constrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
+            return {
+              type: StepEventType.step,
+              stepResult: constrainsResult.combinedResult,
+            }
+          }
 
-      return {
-        errors: [],
-        notes: [`published: "${currentArtifact.data.artifact.packageJson.name}@${newVersion}"`],
-        executionStatus: ExecutionStatus.done,
-        status: Status.passed,
-      }
-    },
+          const newVersion = await calculateNextNewVersion({
+            npmRegistry: stepConfigurations.registry,
+            packageJson: e.artifact.data.artifact.packageJson,
+            packagePath: e.artifact.data.artifact.packagePath,
+            repoPath,
+            log,
+          })
+
+          await setPackageVersion({
+            artifact: e.artifact.data.artifact,
+            fromVersion: e.artifact.data.artifact.packageJson.version,
+            toVersion: newVersion,
+          })
+
+          await execaCommand(
+            `yarn publish --registry ${stepConfigurations.registry} --non-interactive ${
+              e.artifact.data.artifact.packageJson.name?.includes('@')
+                ? `--access ${stepConfigurations.npmScopeAccess}`
+                : ''
+            }`,
+            {
+              stdio: 'inherit',
+              cwd: e.artifact.data.artifact.packagePath,
+              env: {
+                // npm need this env-var for auth - this is needed only for production publishing.
+                // in tests it doesn't do anything and we login manually to npm in tests.
+                NPM_AUTH_TOKEN: stepConfigurations.publishAuth.token,
+                NPM_TOKEN: stepConfigurations.publishAuth.token,
+              },
+              log,
+            },
+          )
+            .then(() =>
+              immutableCache.set({
+                key: getVersionCacheKey({
+                  artifactHash: e.artifact.data.artifact.packageHash,
+                  artifactName: e.artifact.data.artifact.packageJson.name,
+                }),
+                value: newVersion,
+                ttl: immutableCache.ttls.ArtifactStepResult,
+              }),
+            )
+            .finally(async () =>
+              // revert version to what it was before we changed it
+              setPackageVersion({
+                artifact: e.artifact.data.artifact,
+                fromVersion: newVersion,
+                toVersion: e.artifact.data.artifact.packageJson.version,
+              }),
+            )
+
+          log.info(`published npm target: "${e.artifact.data.artifact.packageJson.name}@${newVersion}"`)
+
+          return {
+            type: StepEventType.artifactStep,
+            artifactName: e.artifact.data.artifact.packageJson.name,
+            artifactStepResult: {
+              notes: [`published: "${e.artifact.data.artifact.packageJson.name}@${newVersion}"`],
+              executionStatus: ExecutionStatus.done,
+              status: Status.passed,
+            },
+          }
+        } else {
+          return e
+        }
+      }),
+    )
   },
 })

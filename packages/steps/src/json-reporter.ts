@@ -1,17 +1,18 @@
 import {
   AbortStepResultOfArtifacts,
   AbortStepsResultOfArtifact,
-  createStep,
+  createStepExperimental,
   DoneStepResultOfArtifacts,
   DoneStepsResultOfArtifact,
-  RunStrategy,
   ScheduledStepResultOfArtifacts,
   ScheduledStepsResultOfArtifact,
+  StepEventType,
   StepInfo,
   StepResultOfArtifacts,
   StepsResultOfArtifact,
   toStepsResultOfArtifactsByArtifact,
 } from '@tahini/core'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import {
   AbortResult,
   Artifact,
@@ -25,7 +26,6 @@ import {
   Status,
 } from '@tahini/utils'
 import _ from 'lodash'
-import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 
 export type JsonReport = {
   flow: {
@@ -259,50 +259,53 @@ function getJsonReport({
 
 export const jsonReporterStepName = 'json-reporter'
 
-export const jsonReporter = createStep({
+export const jsonReporter = createStepExperimental({
   stepName: jsonReporterStepName,
   taskQueueClass: LocalSequentalTaskQueue,
-  run: {
-    runStrategy: RunStrategy.root,
-    runStepOnRoot: async ({
-      immutableCache,
+  run: async ({
+    immutableCache,
+    flowId,
+    repoHash,
+    startFlowMs,
+    steps,
+    artifacts,
+    stepsResultOfArtifactsByStep,
+    currentStepInfo,
+  }) => {
+    const withoutThisStep = {
+      steps: removeNodeFromGraph({ graph: steps, nodeIndexToRemove: currentStepInfo.index }),
+      stepsResultOfArtifactsByStep: removeNodeFromGraph({
+        graph: stepsResultOfArtifactsByStep,
+        nodeIndexToRemove: currentStepInfo.index,
+      }),
+    }
+    const jsonReport = getJsonReport({
+      startFlowMs,
+      artifacts,
       flowId,
       repoHash,
-      startFlowMs,
-      steps,
-      artifacts,
-      stepsResultOfArtifactsByStep,
-      currentStepInfo,
-    }) => {
-      const withoutThisStep = {
-        steps: removeNodeFromGraph({ graph: steps, nodeIndexToRemove: currentStepInfo.index }),
-        stepsResultOfArtifactsByStep: removeNodeFromGraph({
-          graph: stepsResultOfArtifactsByStep,
-          nodeIndexToRemove: currentStepInfo.index,
-        }),
-      }
-      const jsonReport = getJsonReport({
-        startFlowMs,
+      steps: withoutThisStep.steps,
+      stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
+      stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
         artifacts,
-        flowId,
-        repoHash,
-        steps: withoutThisStep.steps,
         stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
-        stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
-          artifacts,
-          stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
-        }),
-      })
+      }),
+    })
 
-      const jsonReportTtl = immutableCache.ttls.ArtifactStepResult
+    const jsonReportTtl = immutableCache.ttls.ArtifactStepResult
 
-      await immutableCache.set({
-        key: jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
-        value: jsonReportToString({ jsonReport }),
-        ttl: jsonReportTtl,
-      })
+    await immutableCache.set({
+      key: jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
+      value: jsonReportToString({ jsonReport }),
+      ttl: jsonReportTtl,
+    })
 
-      return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
-    },
+    return {
+      type: StepEventType.step,
+      stepResult: {
+        executionStatus: ExecutionStatus.done,
+        status: Status.passed,
+      },
+    }
   },
 })

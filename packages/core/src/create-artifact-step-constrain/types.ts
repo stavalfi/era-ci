@@ -6,14 +6,14 @@ export type ArtifactInStepConstrainResultBase =
   | {
       // it means that this constrain decided not to skip this artifact
       // so we need to find other constrain that will decide to skip
-      constrainResultType: ConstrainResultType.ignoreThisConstrain
+      resultType: ConstrainResultType.ignoreThisConstrain
       artifactStepResult: {
         notes: Array<string>
         errors: Array<ErrorObject>
       }
     }
   | {
-      constrainResultType: ConstrainResultType.shouldSkip
+      resultType: ConstrainResultType.shouldSkip
       artifactStepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
     }
 
@@ -24,14 +24,14 @@ export type ArtifactInStepConstrainResult = {
 
 export type CombinedArtifactInStepConstrainResult = { constrainsResult: Array<ArtifactInStepConstrainResult> } & (
   | {
-      constrainResultType: ConstrainResultType.shouldRun
+      resultType: ConstrainResultType.shouldRun
       artifactStepResult: {
         notes: Array<string>
         errors: Array<ErrorObject>
       }
     }
   | {
-      constrainResultType: ConstrainResultType.shouldSkip
+      resultType: ConstrainResultType.shouldSkip
       artifactStepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
     }
 )

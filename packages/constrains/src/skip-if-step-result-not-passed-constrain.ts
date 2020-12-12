@@ -11,7 +11,7 @@ export const skipIfStepResultNotPassedConstrain = createConstrain<{
 
     if (!step) {
       return {
-        constrainResultType: ConstrainResultType.shouldSkip,
+        resultType: ConstrainResultType.shouldSkip,
         result: {
           errors: [],
           executionStatus: ExecutionStatus.aborted,
@@ -32,7 +32,7 @@ export const skipIfStepResultNotPassedConstrain = createConstrain<{
       didPassOrSkippedAsPassed(actualStepResult.status)
     ) {
       return {
-        constrainResultType: ConstrainResultType.ignoreThisConstrain,
+        resultType: ConstrainResultType.ignoreThisConstrain,
         result: { errors: [], notes: [] },
       }
     } else {
@@ -50,7 +50,7 @@ export const skipIfStepResultNotPassedConstrain = createConstrain<{
           break
       }
       return {
-        constrainResultType: ConstrainResultType.shouldSkip,
+        resultType: ConstrainResultType.shouldSkip,
         result: {
           errors: [],
           notes: [`step: "${step.data.stepInfo.displayName}" ${reason}`],

@@ -18,7 +18,7 @@ export async function runCanRunStepOnArtifactPredicates<StepConfiguration>({
       const { invoke, constrainOptions } = await p.callConstrain({ userRunStepOptions, currentArtifact })
       return invoke().catch<ArtifactInStepConstrainResult>(error => ({
         constrainName: p.constrainName,
-        constrainResultType: ConstrainResultType.shouldSkip,
+        resultType: ConstrainResultType.shouldSkip,
         artifactStepResult: {
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsFailed,
@@ -30,13 +30,13 @@ export async function runCanRunStepOnArtifactPredicates<StepConfiguration>({
     }),
   )
   const canRun = results.every(x =>
-    [ConstrainResultType.shouldRun, ConstrainResultType.ignoreThisConstrain].includes(x.constrainResultType),
+    [ConstrainResultType.shouldRun, ConstrainResultType.ignoreThisConstrain].includes(x.resultType),
   )
   const notes = _.uniq(_.flatMapDeep(results.map(r => r.artifactStepResult.notes)))
   const errors = _.flatMapDeep<ErrorObject>(results.map(r => r.artifactStepResult.errors))
   if (canRun) {
     return {
-      constrainResultType: ConstrainResultType.shouldRun,
+      resultType: ConstrainResultType.shouldRun,
       artifactStepResult: {
         notes,
         errors,
@@ -47,12 +47,12 @@ export async function runCanRunStepOnArtifactPredicates<StepConfiguration>({
     const artifactStepResultStatus = calculateCombinedStatus(
       _.flatMapDeep(
         results.map(r =>
-          r.constrainResultType === ConstrainResultType.shouldSkip ? [r.artifactStepResult.status] : [],
+          r.resultType === ConstrainResultType.shouldSkip ? [r.artifactStepResult.status] : [],
         ),
       ),
     )
     return {
-      constrainResultType: ConstrainResultType.shouldSkip,
+      resultType: ConstrainResultType.shouldSkip,
       artifactStepResult: {
         notes,
         executionStatus: ExecutionStatus.aborted,

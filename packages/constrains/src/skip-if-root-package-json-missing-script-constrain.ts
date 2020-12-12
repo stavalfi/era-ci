@@ -7,7 +7,7 @@ export const skipIfRootPackageJsonMissingScriptConstrain = createConstrain<{ scr
     const scriptName = constrainConfigurations.scriptName
     if (rootPackageJson.scripts && scriptName in rootPackageJson.scripts && rootPackageJson.scripts[scriptName]) {
       return {
-        constrainResultType: ConstrainResultType.ignoreThisConstrain,
+        resultType: ConstrainResultType.ignoreThisConstrain,
         result: {
           errors: [],
           notes: [],
@@ -15,7 +15,7 @@ export const skipIfRootPackageJsonMissingScriptConstrain = createConstrain<{ scr
       }
     } else {
       return {
-        constrainResultType: ConstrainResultType.shouldSkip,
+        resultType: ConstrainResultType.shouldSkip,
         result: {
           errors: [],
           executionStatus: ExecutionStatus.aborted,
