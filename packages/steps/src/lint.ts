@@ -1,5 +1,5 @@
 import { createStep, RunStrategy } from '@tahini/core'
-import { skipIfRootPackageJsonMissingScriptConstrain } from '@tahini/step-constrains'
+import { skipIfRootPackageJsonMissingScriptConstrain } from '@tahini/constrains'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import { execaCommand, ExecutionStatus, Status } from '@tahini/utils'
 

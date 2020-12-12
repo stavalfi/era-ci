@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { ErrorObject, serializeError } from 'serialize-error'
 import { UserRunStepOptions } from '../create-step'
-import { ConstrainResult, ExecutionStatus, Status, calculateCombinedStatus } from '@tahini/utils'
+import { ConstrainResultType, ExecutionStatus, Status, calculateCombinedStatus } from '@tahini/utils'
 import { CombinedStepConstrainResult, StepConstrain, StepConstrainResult } from './types'
 
 export async function runConstrains<StepConfiguration>({
@@ -16,7 +16,7 @@ export async function runConstrains<StepConfiguration>({
       const { constrainOptions, invoke } = await p.callConstrain({ userRunStepOptions })
       return invoke().catch<StepConstrainResult>(error => ({
         constrainName: p.constrainName,
-        constrainResult: ConstrainResult.shouldSkip,
+        constrainResultType: ConstrainResultType.shouldSkip,
         stepResult: {
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsFailed,
@@ -28,13 +28,13 @@ export async function runConstrains<StepConfiguration>({
     }),
   )
   const canRun = results.every(x =>
-    [ConstrainResult.shouldRun, ConstrainResult.ignoreThisConstrain].includes(x.constrainResult),
+    [ConstrainResultType.shouldRun, ConstrainResultType.ignoreThisConstrain].includes(x.constrainResultType),
   )
   const notes = _.uniq(_.flatMapDeep(results.map(x => x.stepResult.notes)))
   const errors = _.flatMapDeep<ErrorObject>(results.map(x => x.stepResult.errors))
   if (canRun) {
     return {
-      constrainResult: ConstrainResult.shouldRun,
+      constrainResultType: ConstrainResultType.shouldRun,
       stepResult: {
         notes,
         errors,
@@ -43,10 +43,12 @@ export async function runConstrains<StepConfiguration>({
     }
   } else {
     const artifactStepResultStatus = calculateCombinedStatus(
-      _.flatMapDeep(results.map(r => (r.constrainResult === ConstrainResult.shouldSkip ? [r.stepResult.status] : []))),
+      _.flatMapDeep(
+        results.map(r => (r.constrainResultType === ConstrainResultType.shouldSkip ? [r.stepResult.status] : [])),
+      ),
     )
     return {
-      constrainResult: ConstrainResult.shouldSkip,
+      constrainResultType: ConstrainResultType.shouldSkip,
       stepResult: {
         notes,
         executionStatus: ExecutionStatus.aborted,

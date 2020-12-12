@@ -1,5 +1,13 @@
-import { createStep, RunStrategy, stepToString } from '@tahini/core'
-import { skipIfStepResultNotPassedConstrain } from '@tahini/step-constrains'
+import {
+  ConstrainResultType,
+  createStep,
+  createStepExperimental,
+  runConstrains,
+  RunStrategy,
+  StepResultEventType,
+  stepToString,
+} from '@tahini/core'
+import { skipIfStepResultNotPassedConstrain } from '@tahini/constrains'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import { ExecutionStatus, Status } from '@tahini/utils'
 import Table, { CellOptions } from 'cli-table3'
@@ -9,6 +17,7 @@ import _ from 'lodash'
 import prettyMs from 'pretty-ms'
 import { deserializeError, ErrorObject } from 'serialize-error'
 import { JsonReport, jsonReporterCacheKey, jsonReporterStepName, stringToJsonReport } from './json-reporter'
+import { of } from 'rxjs'
 
 //
 // Fix colors not appearing in non-tty environments
@@ -509,51 +518,67 @@ function generateSummaryReport(jsonReport: JsonReport): string {
   return ciTable.toString()
 }
 
-export const cliTableReporter = createStep({
+export const cliTableReporter = createStepExperimental({
   stepName: 'cli-table-reporter',
   taskQueueClass: LocalSequentalTaskQueue,
-  constrains: {
-    onStep: [skipIfStepResultNotPassedConstrain({ stepName: jsonReporterStepName })],
-  },
-  run: {
-    runStrategy: RunStrategy.root,
-    runStepOnRoot: async ({ immutableCache, flowId, log, steps }) => {
-      const jsonReporterStepId = steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data.stepInfo
-        .stepId
-      if (!jsonReporterStepId) {
-        throw new Error(`cli-table-reporter can't find json-reporter-step-id. is it part of the flow?`)
-      }
-      const jsonReportResult = await immutableCache.get(
-        jsonReporterCacheKey({ flowId, stepId: jsonReporterStepId }),
-        r => {
-          if (typeof r === 'string') {
-            return stringToJsonReport({ jsonReportAsString: r })
-          } else {
-            throw new Error(
-              `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-            )
-          }
-        },
-      )
-      if (!jsonReportResult) {
-        throw new Error(`can't find json-report in the cache. printing the report is aborted`)
-      }
+  run: async options => {
+    const constrainsResult = await runConstrains({
+      options,
+      stepConstrains: [
+        skipIfStepResultNotPassedConstrain({
+          stepName: jsonReporterStepName,
+        }),
+      ],
+    })
 
-      const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value)
-      const packagesErrorsReport = generatePackagesErrorsReport(jsonReportResult.value)
-      const stepsErrorsReport = generateStepsErrorsReport(jsonReportResult.value)
-      const summaryReport = generateSummaryReport(jsonReportResult.value)
+    if (constrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
+      return of({
+        type: StepResultEventType.stepResult,
+        stepResult: constrainsResult.stepConstrainsResult.combinedResult,
+      })
+    }
 
-      log.noFormattingInfo(packagesStatusReport)
-      if (packagesErrorsReport) {
-        log.noFormattingInfo(packagesErrorsReport)
-      }
-      if (stepsErrorsReport) {
-        log.noFormattingInfo(stepsErrorsReport)
-      }
-      log.noFormattingInfo(summaryReport)
+    const jsonReporterStepId = options.steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data.stepInfo
+      .stepId
+    if (!jsonReporterStepId) {
+      throw new Error(`cli-table-reporter can't find json-reporter-step-id. is it part of the flow?`)
+    }
+    const jsonReportResult = await options.immutableCache.get(
+      jsonReporterCacheKey({ flowId: options.flowId, stepId: jsonReporterStepId }),
+      r => {
+        if (typeof r === 'string') {
+          return stringToJsonReport({ jsonReportAsString: r })
+        } else {
+          throw new Error(
+            `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+          )
+        }
+      },
+    )
+    if (!jsonReportResult) {
+      throw new Error(`can't find json-report in the cache. printing the report is aborted`)
+    }
 
-      return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
-    },
+    const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value)
+    const packagesErrorsReport = generatePackagesErrorsReport(jsonReportResult.value)
+    const stepsErrorsReport = generateStepsErrorsReport(jsonReportResult.value)
+    const summaryReport = generateSummaryReport(jsonReportResult.value)
+
+    options.log.noFormattingInfo(packagesStatusReport)
+    if (packagesErrorsReport) {
+      options.log.noFormattingInfo(packagesErrorsReport)
+    }
+    if (stepsErrorsReport) {
+      options.log.noFormattingInfo(stepsErrorsReport)
+    }
+    options.log.noFormattingInfo(summaryReport)
+
+    return of({
+      type: StepResultEventType.stepResult,
+      stepResult: {
+        executionStatus: ExecutionStatus.done,
+        status: Status.passed,
+      },
+    })
   },
 })

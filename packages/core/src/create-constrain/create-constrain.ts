@@ -1,5 +1,7 @@
-import { UserRunStepOptions } from '../create-step/types'
-import { StepConstrain, StepConstrainResultBase } from './types'
+import { UserRunStepOptions } from '../create-step'
+import { Constrain, ConstrainResultBase } from './types'
+
+
 
 export function createConstrain<
   Configurations = void,
@@ -12,13 +14,13 @@ export function createConstrain<
     options: {
       constrainConfigurations: NormalizedConfigurations
     } & Omit<UserRunStepOptions<never, StepConfiguration>, 'taskQueue'>,
-  ) => Promise<StepConstrainResultBase>
+  ) => Promise<ConstrainResultBase>
 }) {
-  return (configurations: Configurations): StepConstrain<StepConfiguration> => ({
+  return (configurations: Configurations): Constrain<StepConfiguration> => ({
     constrainName: createOptions.constrainName,
     callConstrain: async options => {
       // @ts-ignore - we need to find a way to ensure that if NormalizedConfigurations is defined, also normalizedConfigurations is defined.
-      const normalizeConfigurations: NormalizedCacheConfigurations = createOptions.normalizeConfigurations
+      const normalizeConfigurations: NormalizedConfigurations = createOptions.normalizeConfigurations
         ? await createOptions.normalizeConfigurations(configurations)
         : configurations
 

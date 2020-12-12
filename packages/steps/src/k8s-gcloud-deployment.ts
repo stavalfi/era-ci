@@ -1,8 +1,15 @@
-import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '@tahini/artifact-step-constrains'
-import { createArtifactStepConstrain, createStep, RunStrategy } from '@tahini/core'
-import { skipIfStepIsDisabledConstrain } from '@tahini/step-constrains'
+import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from 'constrains/src'
+import { createConstrain, createStep, RunStrategy } from '@tahini/core'
+import { skipIfStepIsDisabledConstrain } from '@tahini/constrains'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
-import { ConstrainResult, execaCommand, ExecutionStatus, Status, getPackageTargetType, TargetType } from '@tahini/utils'
+import {
+  ConstrainResultType,
+  execaCommand,
+  ExecutionStatus,
+  Status,
+  getPackageTargetType,
+  TargetType,
+} from '@tahini/utils'
 import { createFile } from 'create-folder-structure'
 import { fullImageNameCacheKey } from './utils'
 
@@ -16,7 +23,7 @@ export type K8sGcloudDeploymentConfiguration = {
   artifactNameToContainerName: (options: { artifactName: string }) => string
 }
 
-const customConstrain = createArtifactStepConstrain<void, void, K8sGcloudDeploymentConfiguration>({
+const customConstrain = createConstrain<void, void, K8sGcloudDeploymentConfiguration>({
   constrainName: 'custom-constrain',
   constrain: async ({ currentArtifact }) => {
     const targetType = await getPackageTargetType(
@@ -25,7 +32,7 @@ const customConstrain = createArtifactStepConstrain<void, void, K8sGcloudDeploym
     )
     if (targetType !== TargetType.docker) {
       return {
-        constrainResult: ConstrainResult.shouldSkip,
+        constrainResultType: ConstrainResultType.shouldSkip,
         artifactStepResult: {
           errors: [],
           notes: [],
@@ -36,7 +43,7 @@ const customConstrain = createArtifactStepConstrain<void, void, K8sGcloudDeploym
     }
 
     return {
-      constrainResult: ConstrainResult.ignoreThisConstrain,
+      constrainResultType: ConstrainResultType.ignoreThisConstrain,
       artifactStepResult: { errors: [], notes: [] },
     }
   },

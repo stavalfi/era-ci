@@ -2,7 +2,7 @@ import { Artifact, Node } from '@tahini/utils'
 import { UserRunStepOptions } from '../create-step'
 import { ArtifactInStepConstrain, ArtifactInStepConstrainResultBase } from './types'
 
-export function createArtifactStepConstrain<
+export function createConstrain<
   Configurations = void,
   NormalizedConfigurations = Configurations,
   StepConfiguration = unknown

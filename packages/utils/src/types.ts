@@ -74,12 +74,6 @@ export type ScheduledResult = {
   executionStatus: ExecutionStatus.scheduled
 }
 
-export enum ConstrainResult {
-  shouldRun = 'should-run',
-  shouldSkip = 'should-skip',
-  ignoreThisConstrain = 'ignore-this-constrain',
-}
-
 // ---------------------
 
 export type GitRepoInfo = {

@@ -16,10 +16,7 @@
       "path": "packages/key-value-stores/tsconfig-build.json"
     },
     {
-      "path": "packages/artifact-step-constrains/tsconfig-build.json"
-    },
-    {
-      "path": "packages/step-constrains/tsconfig-build.json"
+      "path": "packages/constrains/tsconfig-build.json"
     },
     {
       "path": "packages/loggers/tsconfig-build.json"

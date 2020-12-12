@@ -1,19 +1,19 @@
 import { ErrorObject } from 'serialize-error'
 import { UserRunStepOptions } from '../create-step'
-import { AbortResult, ConstrainResult, Status } from '@tahini/utils'
+import { AbortResult, ConstrainResultType, Status } from '@tahini/utils'
 
 export type StepConstrainResultBase =
   | {
       // it means that this constrain decided not to skip this step
       // so we need to find other constrain that will decide to skip
-      constrainResult: ConstrainResult.ignoreThisConstrain
+      constrainResultType: ConstrainResultType.ignoreThisConstrain
       stepResult: {
         notes: Array<string>
         errors: Array<ErrorObject>
       }
     }
   | {
-      constrainResult: ConstrainResult.shouldSkip
+      constrainResultType: ConstrainResultType.shouldSkip
       stepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>, 'durationMs'>
     }
 
@@ -24,14 +24,14 @@ export type StepConstrainResult = {
 
 export type CombinedStepConstrainResult = { constrainsResult: Array<StepConstrainResult> } & (
   | {
-      constrainResult: ConstrainResult.shouldRun
+      constrainResultType: ConstrainResultType.shouldRun
       stepResult: {
         notes: Array<string>
         errors: Array<ErrorObject>
       }
     }
   | {
-      constrainResult: ConstrainResult.shouldSkip
+      constrainResultType: ConstrainResultType.shouldSkip
       stepResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>, 'durationMs'>
     }
 )

@@ -1,29 +1,41 @@
-import { createArtifactStepConstrain } from '@tahini/core'
-import { didPassOrSkippedAsPassed, ConstrainResult, ExecutionStatus, Status } from '@tahini/utils'
+import { ConstrainResultType, createConstrain } from '@tahini/core'
+import { Artifact, didPassOrSkippedAsPassed, ExecutionStatus, Node, Status } from '@tahini/utils'
 
-export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createArtifactStepConstrain<{
+export const skipIfArtifactStepResultMissingOrFailedInCacheConstrain = createConstrain<{
   stepNameToSearchInCache: string
   skipAsFailedIfStepNotFoundInCache: boolean
   skipAsPassedIfStepNotExists: boolean
+  currentArtifact: Node<{ artifact: Artifact }>
 }>({
-  constrainName: 'skip-if-artifact-step-result-missing-or-passed-in-cache-constrain',
-  constrain: async ({ currentArtifact, immutableCache, currentStepInfo, constrainConfigurations, steps, flowId }) => {
-    const stepName = constrainConfigurations.stepNameToSearchInCache
+  constrainName: 'skip-if-artifact-step-result-missing-or-failed-in-cache-constrain',
+  constrain: async ({
+    immutableCache,
+    currentStepInfo,
+    steps,
+    flowId,
+    constrainConfigurations: {
+      currentArtifact,
+      stepNameToSearchInCache,
+      skipAsPassedIfStepNotExists,
+      skipAsFailedIfStepNotFoundInCache,
+    },
+  }) => {
+    const stepName = stepNameToSearchInCache
     const step = steps.find(step => step.data.stepInfo.stepName === stepName)
 
     if (!step) {
-      if (constrainConfigurations.skipAsPassedIfStepNotExists) {
+      if (skipAsPassedIfStepNotExists) {
         return {
-          constrainResult: ConstrainResult.ignoreThisConstrain,
-          artifactStepResult: {
+          constrainResultType: ConstrainResultType.ignoreThisConstrain,
+          result: {
             errors: [],
             notes: [],
           },
         }
       } else {
         return {
-          constrainResult: ConstrainResult.shouldSkip,
-          artifactStepResult: {
+          constrainResultType: ConstrainResultType.shouldSkip,
+          result: {
             errors: [],
             executionStatus: ExecutionStatus.aborted,
             status: Status.skippedAsFailed,
@@ -41,10 +53,10 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createArt
     })
 
     if (!actualStepResult) {
-      if (constrainConfigurations.skipAsFailedIfStepNotFoundInCache) {
+      if (skipAsFailedIfStepNotFoundInCache) {
         return {
-          constrainResult: ConstrainResult.shouldSkip,
-          artifactStepResult: {
+          constrainResultType: ConstrainResultType.shouldSkip,
+          result: {
             errors: [],
             notes: [`could not find step result of: "${step.data.stepInfo.displayName}"`],
             executionStatus: ExecutionStatus.aborted,
@@ -53,8 +65,8 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createArt
         }
       } else {
         return {
-          constrainResult: ConstrainResult.ignoreThisConstrain,
-          artifactStepResult: {
+          constrainResultType: ConstrainResultType.ignoreThisConstrain,
+          result: {
             errors: [],
             notes: [],
           },
@@ -63,37 +75,37 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createArt
     }
 
     if (didPassOrSkippedAsPassed(actualStepResult.artifactStepResult.status)) {
+      return {
+        constrainResultType: ConstrainResultType.ignoreThisConstrain,
+        result: {
+          errors: [],
+          notes: [],
+        },
+      }
+    } else {
       const isResultFromThisFlow = flowId === actualStepResult.flowId
       const isThisStep = currentStepInfo.data.stepInfo.stepId === step.data.stepInfo.stepId
       const notes: string[] = []
       if (isResultFromThisFlow && isThisStep) {
         // we are running the ci again and nothing was changed in the repo
-        notes.push(`step already passed`)
+        notes.push(`step already failed`)
       }
       if (isResultFromThisFlow && !isThisStep) {
-        notes.push(`step: "${step.data.stepInfo.displayName}" passed`)
+        notes.push(`step: "${step.data.stepInfo.displayName}" failed`)
       }
       if (!isResultFromThisFlow && isThisStep) {
-        notes.push(`step already passed in flow: "${actualStepResult.flowId}"`)
+        notes.push(`step already failed in flow: "${actualStepResult.flowId}"`)
       }
       if (!isResultFromThisFlow && !isThisStep) {
-        notes.push(`step: "${step.data.stepInfo.displayName}" passed in flow: "${actualStepResult.flowId}"`)
+        notes.push(`step: "${step.data.stepInfo.displayName}" failed in flow: "${actualStepResult.flowId}"`)
       }
       return {
-        constrainResult: ConstrainResult.shouldSkip,
-        artifactStepResult: {
+        constrainResultType: ConstrainResultType.shouldSkip,
+        result: {
           errors: [],
           notes,
           executionStatus: ExecutionStatus.aborted,
-          status: Status.skippedAsPassed,
-        },
-      }
-    } else {
-      return {
-        constrainResult: ConstrainResult.ignoreThisConstrain,
-        artifactStepResult: {
-          errors: [],
-          notes: [],
+          status: Status.skippedAsFailed,
         },
       }
     }

@@ -1,9 +1,3 @@
-import { ErrorObject } from 'serialize-error'
-import { ArtifactInStepConstrain } from '../create-artifact-step-constrain'
-import { Log, Logger } from '../create-logger'
-import { StepConstrain } from '../create-step-constrain'
-import { TaskQueueBase, TaskQueueOptions } from '../create-task-queue'
-import { ImmutableCache } from '../immutable-cache'
 import {
   AbortResult,
   Artifact,
@@ -16,6 +10,13 @@ import {
   ScheduledResult,
   Status,
 } from '@tahini/utils'
+import { Observable } from 'rxjs'
+import { ErrorObject } from 'serialize-error'
+import { ArtifactInStepConstrain } from '../create-artifact-step-constrain'
+import { Log, Logger } from '../create-logger'
+import { StepConstrain } from '../create-step-constrain'
+import { TaskQueueBase, TaskQueueOptions } from '../create-task-queue'
+import { ImmutableCache } from '../immutable-cache'
 
 export type StepInfo = {
   stepName: string
@@ -144,6 +145,7 @@ export type RunStepOptions<TaskQueue extends TaskQueueBase<unknown>> = {
   immutableCache: ImmutableCache
   logger: Logger
   taskQueue: TaskQueue
+  stepInputEvents$: Observable<StepInputEvents[StepInputEventType]>
 }
 
 export type UserRunStepOptions<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = RunStepOptions<
@@ -157,6 +159,55 @@ export type UserRunStepOptions<TaskQueue extends TaskQueueBase<unknown>, StepCon
 export type UserArtifactResult = {
   artifactName: string
   artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
+}
+
+export enum StepResultEventType {
+  artifactStepResult = 'artifact-step-result',
+  stepResult = 'step-result',
+}
+
+export type StepResultEvents = {
+  [StepResultEventType.artifactStepResult]: {
+    type: StepResultEventType.artifactStepResult
+    artifactName: string
+    artifactStepResult:
+      | ScheduledResult
+      | RunningResult
+      | (Omit<
+          AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>,
+          'durationMs' | 'errors' | 'notes'
+        > &
+          Partial<{ notes: Array<string>; errors: Array<ErrorObject> }>)
+      | (Omit<DoneResult | 'errors' | 'notes', 'durationMs'> &
+          Partial<{ notes: Array<string>; errors: Array<ErrorObject> }>)
+  }
+  [StepResultEventType.stepResult]: {
+    type: StepResultEventType.stepResult
+    stepResult:
+      | ScheduledResult
+      | RunningResult
+      | (Omit<
+          AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>,
+          'durationMs' | 'errors' | 'notes'
+        > &
+          Partial<{ notes: Array<string>; errors: Array<ErrorObject> }>)
+      | (Omit<DoneResult | 'errors' | 'notes', 'durationMs'> &
+          Partial<{ notes: Array<string>; errors: Array<ErrorObject> }>)
+  }
+}
+
+export enum StepInputEventType {
+  artifactStepResult = 'artifact-step-result',
+  stepResult = 'step-result',
+}
+
+export type StepInputEvents = {
+  [StepInputEventType.artifactStepResult]: StepResultEvents[StepResultEventType.artifactStepResult] & {
+    stepInfo: StepInfo
+  }
+  [StepInputEventType.stepResult]: StepResultEvents[StepResultEventType.stepResult] & {
+    stepInfo: StepInfo
+  }
 }
 
 export type UserStepResult = {
@@ -187,16 +238,27 @@ export type RunStepOnRoot<TaskQueue extends TaskQueueBase<unknown>, StepConfigur
   | Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>, 'durationMs'>
 >
 
+export type RunStepExperimental<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = (
+  options: UserRunStepOptions<TaskQueue, StepConfigurations>,
+) => Observable<StepResultEvents[StepResultEventType]> | Promise<Observable<StepResultEvents[StepResultEventType]>>
+
 export type Step<TaskQueue extends TaskQueueBase<unknown>> = {
   stepName: string
   taskQueueClass: { new (options: TaskQueueOptions<unknown>): TaskQueue }
   runStep: (runStepOptions: RunStepOptions<TaskQueue>) => Promise<StepResultOfArtifacts>
 }
 
+export type StepExperimental<TaskQueue extends TaskQueueBase<unknown>> = {
+  stepName: string
+  taskQueueClass: { new (options: TaskQueueOptions<unknown>): TaskQueue }
+  runStep: (runStepOptions: RunStepOptions<TaskQueue>) => Observable<StepResultEvents[StepResultEventType]>
+}
+
 export enum RunStrategy {
   perArtifact = 'per-artifact',
   allArtifacts = 'all-artfifacts',
   root = 'root',
+  experimental = 'experimental',
 }
 
 export type Run<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = {
@@ -216,6 +278,10 @@ export type Run<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = 
       runStrategy: RunStrategy.root
       runStepOnRoot: RunStepOnRoot<TaskQueue, StepConfigurations>
     }
+  | {
+      runStrategy: RunStrategy.experimental
+      runStepOnRoot: RunStepOnRoot<TaskQueue, StepConfigurations>
+    }
 )
 
 export type CreateStepOptions<
@@ -233,4 +299,17 @@ export type CreateStepOptions<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   taskQueueClass: { new (options: TaskQueueOptions<any>, ...params: any[]): TaskQueue }
   run: Run<TaskQueue, NormalizedStepConfigurations>
+}
+
+export type CreateStepOptionsExperimental<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TaskQueue extends TaskQueueBase<any>,
+  StepConfigurations = void,
+  NormalizedStepConfigurations = StepConfigurations
+> = {
+  stepName: string
+  normalizeStepConfigurations?: (stepConfigurations: StepConfigurations) => Promise<NormalizedStepConfigurations>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  taskQueueClass: { new (options: TaskQueueOptions<any>, ...params: any[]): TaskQueue }
+  run: RunStepExperimental<TaskQueue, StepConfigurations>
 }

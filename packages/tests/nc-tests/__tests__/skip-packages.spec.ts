@@ -1,5 +1,5 @@
-import { createArtifactStepConstrain, createStep, RunStrategy } from '@tahini/core'
-import { ExecutionStatus, Status, ConstrainResult } from '@tahini/utils'
+import { createConstrain, createStep, RunStrategy } from '@tahini/core'
+import { ExecutionStatus, Status, ConstrainResultType } from '@tahini/utils'
 import { JsonReport } from '@tahini/steps'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
@@ -25,10 +25,10 @@ describe('define custom predicate to check if we need to run the step on a packa
             taskQueueClass: LocalSequentalTaskQueue,
             constrains: {
               onArtifact: [
-                createArtifactStepConstrain({
+                createConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
-                    constrainResult: ConstrainResult.ignoreThisConstrain,
+                    constrainResultType: ConstrainResultType.ignoreThisConstrain,
                     artifactStepResult: {
                       errors: [],
                       notes: [],
@@ -110,10 +110,10 @@ describe('define custom predicate to check if we need to run the step on a packa
             taskQueueClass: LocalSequentalTaskQueue,
             constrains: {
               onArtifact: [
-                createArtifactStepConstrain({
+                createConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
-                    constrainResult: ConstrainResult.shouldSkip,
+                    constrainResultType: ConstrainResultType.shouldSkip,
                     artifactStepResult: {
                       errors: [],
                       notes: [],
@@ -198,10 +198,10 @@ describe('define custom predicate to check if we need to run the step on a packa
             taskQueueClass: LocalSequentalTaskQueue,
             constrains: {
               onArtifact: [
-                createArtifactStepConstrain({
+                createConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
-                    constrainResult: ConstrainResult.shouldSkip,
+                    constrainResultType: ConstrainResultType.shouldSkip,
                     artifactStepResult: {
                       errors: [],
                       notes: ['note1', 'note2'],
@@ -286,10 +286,10 @@ describe('define custom predicate to check if we need to run the step on a packa
             taskQueueClass: LocalSequentalTaskQueue,
             constrains: {
               onArtifact: [
-                createArtifactStepConstrain({
+                createConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
-                    constrainResult: ConstrainResult.shouldSkip,
+                    constrainResultType: ConstrainResultType.shouldSkip,
                     artifactStepResult: {
                       errors: [],
                       notes: ['note1', 'note2', 'note1', 'note2'],

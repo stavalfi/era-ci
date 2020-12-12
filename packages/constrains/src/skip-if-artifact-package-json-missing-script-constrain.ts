@@ -1,26 +1,28 @@
-import { createArtifactStepConstrain } from '@tahini/core'
-import { ConstrainResult, ExecutionStatus, Status } from '@tahini/utils'
+import { ConstrainResultType, createConstrain } from '@tahini/core'
+import { Artifact, ExecutionStatus, Node, Status } from '@tahini/utils'
 
-export const skipIfArtifactPackageJsonMissingScriptConstrain = createArtifactStepConstrain<{ scriptName: string }>({
+export const skipIfArtifactPackageJsonMissingScriptConstrain = createConstrain<{
+  scriptName: string
+  currentArtifact: Node<{ artifact: Artifact }>
+}>({
   constrainName: 'skip-if-artifact-package-json-missing-script-constrain',
-  constrain: async ({ constrainConfigurations, currentArtifact }) => {
-    const scriptName = constrainConfigurations.scriptName
+  constrain: async ({ constrainConfigurations: { currentArtifact, scriptName } }) => {
     if (
       currentArtifact.data.artifact.packageJson.scripts &&
       scriptName in currentArtifact.data.artifact.packageJson.scripts &&
       currentArtifact.data.artifact.packageJson.scripts[scriptName]
     ) {
       return {
-        constrainResult: ConstrainResult.ignoreThisConstrain,
-        artifactStepResult: {
+        constrainResultType: ConstrainResultType.ignoreThisConstrain,
+        result: {
           errors: [],
           notes: [],
         },
       }
     } else {
       return {
-        constrainResult: ConstrainResult.shouldSkip,
-        artifactStepResult: {
+        constrainResultType: ConstrainResultType.shouldSkip,
+        result: {
           errors: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsPassed,
