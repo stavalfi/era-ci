@@ -2,7 +2,7 @@ import {
   skipIfArtifactPackageJsonMissingScriptConstrain,
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
   skipIfArtifactStepResultMissingOrPassedInCacheConstrain,
-} from '@tahini/artifact-step-constrains'
+} from 'constrains/src'
 import { createStep, RunStrategy, UserRunStepOptions } from '@tahini/core'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import { execaCommand, ExecutionStatus, Status } from '@tahini/utils'

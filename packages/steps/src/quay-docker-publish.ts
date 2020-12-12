@@ -1,14 +1,14 @@
 import {
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
   skipIfArtifactTargetTypeNotSupportedConstrain,
-} from '@tahini/artifact-step-constrains'
+} from 'constrains/src'
 import { createStep, RunStrategy, toTaskEvent$ } from '@tahini/core'
-import { skipIfStepIsDisabledConstrain } from '@tahini/step-constrains'
+import { skipIfStepIsDisabledConstrain } from '@tahini/constrains'
 import { QuayBuildsTaskQueue } from '@tahini/task-queues'
 import { buildFullDockerImageName, ExecutionStatus, Status, TargetType } from '@tahini/utils'
 import path from 'path'
 import { last } from 'rxjs/operators'
-import { skipIfImageTagAlreadyPublishedConstrain } from './artifact-step-constrains'
+import { skipIfImageTagAlreadyPublishedConstrain } from './constrains'
 import { QuayDockerPublishConfiguration } from './types'
 import { calculateNextVersion, fullImageNameCacheKey, getVersionCacheKey } from './utils'
 

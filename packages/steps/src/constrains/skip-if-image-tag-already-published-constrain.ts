@@ -1,15 +1,28 @@
-import { createArtifactStepConstrain } from '@tahini/core'
-import { ConstrainResult, ExecutionStatus, Status } from '@tahini/utils'
-import { DockerPublishConfiguration } from '../types'
+import { ConstrainResultType, createConstrain } from '@tahini/core'
+import { Artifact, ExecutionStatus, Node, Status } from '@tahini/utils'
 import { getVersionCacheKey, isDockerVersionAlreadyPublished } from '../utils'
 
-export const skipIfImageTagAlreadyPublishedConstrain = createArtifactStepConstrain<
-  void,
-  void,
-  DockerPublishConfiguration
+export const skipIfImageTagAlreadyPublishedConstrain = createConstrain<
+  { currentArtifact: Node<{ artifact: Artifact }> },
+  { currentArtifact: Node<{ artifact: Artifact }> },
+  {
+    isStepEnabled: boolean
+    registry: string
+    registryAuth?: {
+      username: string
+      token: string
+    }
+    dockerOrganizationName: string
+  }
 >({
   constrainName: 'skip-if-image-tag-already-published-constrain',
-  constrain: async ({ currentArtifact, stepConfigurations, immutableCache, repoPath, log }) => {
+  constrain: async ({
+    stepConfigurations,
+    immutableCache,
+    repoPath,
+    log,
+    constrainConfigurations: { currentArtifact },
+  }) => {
     const dockerVersionResult = await immutableCache.get(
       getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
       r => {
@@ -25,8 +38,8 @@ export const skipIfImageTagAlreadyPublishedConstrain = createArtifactStepConstra
 
     if (!dockerVersionResult) {
       return {
-        constrainResult: ConstrainResult.ignoreThisConstrain,
-        artifactStepResult: { errors: [], notes: [] },
+        constrainResultType: ConstrainResultType.ignoreThisConstrain,
+        result: { errors: [], notes: [] },
       }
     }
 
@@ -42,8 +55,8 @@ export const skipIfImageTagAlreadyPublishedConstrain = createArtifactStepConstra
       })
     ) {
       return {
-        constrainResult: ConstrainResult.shouldSkip,
-        artifactStepResult: {
+        constrainResultType: ConstrainResultType.shouldSkip,
+        result: {
           errors: [],
           notes: [
             `this package was already published in flow: "${dockerVersionResult.flowId}" with the same content as version: ${dockerVersionResult.value}`,
@@ -55,8 +68,8 @@ export const skipIfImageTagAlreadyPublishedConstrain = createArtifactStepConstra
     }
 
     return {
-      constrainResult: ConstrainResult.ignoreThisConstrain,
-      artifactStepResult: { errors: [], notes: [] },
+      constrainResultType: ConstrainResultType.ignoreThisConstrain,
+      result: { errors: [], notes: [] },
     }
   },
 })

@@ -1,23 +1,23 @@
-import _ from 'lodash'
-import { serializeError } from 'serialize-error'
-import {
-  CombinedArtifactInStepConstrainResult,
-  runCanRunStepOnArtifactPredicates,
-} from '../create-artifact-step-constrain'
-import { runConstrains } from '../create-step-constrain'
-import { TaskQueueBase } from '../create-task-queue'
 import {
   AbortResult,
   Artifact,
-  ConstrainResult,
+  calculateCombinedStatus,
   DoneResult,
   ExecutionStatus,
   Graph,
   RunningResult,
   ScheduledResult,
   Status,
-  calculateCombinedStatus,
 } from '@tahini/utils'
+import _ from 'lodash'
+import { serializeError } from 'serialize-error'
+import {
+  CombinedArtifactInStepConstrainResult,
+  runCanRunStepOnArtifactPredicates,
+} from '../create-artifact-step-constrain'
+import { ConstrainResultType } from '../create-constrain'
+import { runConstrains } from '../create-step-constrain'
+import { TaskQueueBase } from '../create-task-queue'
 import {
   CreateStepOptions,
   RunStepOnArtifact,
@@ -33,25 +33,8 @@ import {
 } from './types'
 import { validateUserStepResult } from './validations'
 
-export {
-  AbortStepResultOfArtifacts,
-  AbortStepsResultOfArtifact,
-  DoneStepResultOfArtifacts,
-  DoneStepsResultOfArtifact,
-  RunningStepResultOfArtifacts,
-  RunningStepsResultOfArtifact,
-  RunStrategy,
-  ScheduledStepResultOfArtifacts,
-  ScheduledStepsResultOfArtifact,
-  Step,
-  StepInfo,
-  StepResultOfArtifacts,
-  StepsResultOfArtifact,
-  StepsResultOfArtifactsByArtifact,
-  StepsResultOfArtifactsByStep,
-  UserRunStepOptions,
-  UserStepResult,
-} from './types'
+export * from './types'
+export * from './experimental'
 export { stepToString, toStepsResultOfArtifactsByArtifact } from './utils'
 
 async function runStepOnEveryArtifact<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
@@ -73,7 +56,7 @@ async function runStepOnEveryArtifact<TaskQueue extends TaskQueueBase<unknown>, 
   const artifactsResult: UserArtifactResult[] = []
   for (const [i, artifact] of userRunStepOptions.artifacts.entries()) {
     const canRunResult = canRunStepResultOnArtifacts[i]
-    if (canRunResult.constrainResult === ConstrainResult.shouldRun) {
+    if (canRunResult.constrainResultType === ConstrainResultType.shouldRun) {
       try {
         const stepResult = await runStepOnArtifact({
           ...userRunStepOptions,
@@ -230,7 +213,7 @@ async function getUserStepResult<
             `(${i})-${c.constrainName}`,
             {
               options: c.constrainOptions,
-              result: c.constrainResult,
+              result: c.constrainResultType,
             },
           ]),
         ),
@@ -247,7 +230,7 @@ async function getUserStepResult<
           `(${i})-${c.constrainName}`,
           {
             options: c.constrainOptions || {},
-            result: c.constrainResult,
+            result: c.constrainResultType,
           },
         ]),
       ),
@@ -255,8 +238,8 @@ async function getUserStepResult<
   }
 
   const shouldSkipStep =
-    canRunAllArtifacts.constrainResult === ConstrainResult.shouldSkip ||
-    canRunPerArtifact.every(x => x.constrainResult === ConstrainResult.shouldSkip)
+    canRunAllArtifacts.constrainResultType === ConstrainResultType.shouldSkip ||
+    canRunPerArtifact.every(x => x.constrainResultType === ConstrainResultType.shouldSkip)
 
   let userStepResult: UserStepResult
   if (shouldSkipStep) {
@@ -267,11 +250,11 @@ async function getUserStepResult<
       },
       artifactsResult: userRunStepOptions.artifacts.map((node, i) => {
         let status: Status.skippedAsFailed | Status.skippedAsPassed | Status.failed
-        if (canRunAllArtifacts.constrainResult === ConstrainResult.shouldSkip) {
+        if (canRunAllArtifacts.constrainResultType === ConstrainResultType.shouldSkip) {
           status = canRunAllArtifacts.stepResult.status
         } else {
           const canRun = canRunPerArtifact[i]
-          if (canRun.constrainResult !== ConstrainResult.shouldSkip) {
+          if (canRun.constrainResultType !== ConstrainResultType.shouldSkip) {
             throw new Error(`we can't be here`)
           }
           status = canRun.artifactStepResult.status
@@ -308,6 +291,9 @@ async function getUserStepResult<
           userRunStepOptions,
         })
         break
+      case RunStrategy.experimental: {
+        throw new Error(`123`)
+      }
     }
   }
   const copy = _.cloneDeep(userStepResult)

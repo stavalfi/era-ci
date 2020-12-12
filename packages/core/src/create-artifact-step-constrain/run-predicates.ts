@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import { ErrorObject, serializeError } from 'serialize-error'
 import { UserRunStepOptions } from '../create-step'
-import { Artifact, ConstrainResult, ExecutionStatus, Node, Status, calculateCombinedStatus } from '@tahini/utils'
+import { Artifact, ConstrainResultType, ExecutionStatus, Node, Status, calculateCombinedStatus } from '@tahini/utils'
 import { ArtifactInStepConstrain, ArtifactInStepConstrainResult, CombinedArtifactInStepConstrainResult } from './types'
 
 export async function runCanRunStepOnArtifactPredicates<StepConfiguration>({
@@ -18,7 +18,7 @@ export async function runCanRunStepOnArtifactPredicates<StepConfiguration>({
       const { invoke, constrainOptions } = await p.callConstrain({ userRunStepOptions, currentArtifact })
       return invoke().catch<ArtifactInStepConstrainResult>(error => ({
         constrainName: p.constrainName,
-        constrainResult: ConstrainResult.shouldSkip,
+        constrainResultType: ConstrainResultType.shouldSkip,
         artifactStepResult: {
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsFailed,
@@ -30,13 +30,13 @@ export async function runCanRunStepOnArtifactPredicates<StepConfiguration>({
     }),
   )
   const canRun = results.every(x =>
-    [ConstrainResult.shouldRun, ConstrainResult.ignoreThisConstrain].includes(x.constrainResult),
+    [ConstrainResultType.shouldRun, ConstrainResultType.ignoreThisConstrain].includes(x.constrainResultType),
   )
   const notes = _.uniq(_.flatMapDeep(results.map(r => r.artifactStepResult.notes)))
   const errors = _.flatMapDeep<ErrorObject>(results.map(r => r.artifactStepResult.errors))
   if (canRun) {
     return {
-      constrainResult: ConstrainResult.shouldRun,
+      constrainResultType: ConstrainResultType.shouldRun,
       artifactStepResult: {
         notes,
         errors,
@@ -46,11 +46,13 @@ export async function runCanRunStepOnArtifactPredicates<StepConfiguration>({
   } else {
     const artifactStepResultStatus = calculateCombinedStatus(
       _.flatMapDeep(
-        results.map(r => (r.constrainResult === ConstrainResult.shouldSkip ? [r.artifactStepResult.status] : [])),
+        results.map(r =>
+          r.constrainResultType === ConstrainResultType.shouldSkip ? [r.artifactStepResult.status] : [],
+        ),
       ),
     )
     return {
-      constrainResult: ConstrainResult.shouldSkip,
+      constrainResultType: ConstrainResultType.shouldSkip,
       artifactStepResult: {
         notes,
         executionStatus: ExecutionStatus.aborted,

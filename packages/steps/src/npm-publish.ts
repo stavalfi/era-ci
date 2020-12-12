@@ -1,10 +1,10 @@
-import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '@tahini/artifact-step-constrains'
-import { createArtifactStepConstrain, createStep, Log, RunStrategy } from '@tahini/core'
-import { skipIfStepIsDisabledConstrain } from '@tahini/step-constrains'
+import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from 'constrains/src'
+import { createConstrain, createStep, Log, RunStrategy } from '@tahini/core'
+import { skipIfStepIsDisabledConstrain } from '@tahini/constrains'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import {
   calculateNewVersion,
-  ConstrainResult,
+  ConstrainResultType,
   execaCommand,
   ExecutionStatus,
   getPackageTargetType,
@@ -165,7 +165,7 @@ export async function npmRegistryLogin({
   }
 }
 
-const customConstrain = createArtifactStepConstrain<void, void, NpmPublishConfiguration>({
+const customConstrain = createConstrain<void, void, NpmPublishConfiguration>({
   constrainName: 'custom-constrain',
   constrain: async ({ currentArtifact, stepConfigurations, immutableCache, repoPath, log }) => {
     const targetType = await getPackageTargetType(
@@ -175,7 +175,7 @@ const customConstrain = createArtifactStepConstrain<void, void, NpmPublishConfig
 
     if (targetType !== TargetType.npm) {
       return {
-        constrainResult: ConstrainResult.shouldSkip,
+        constrainResultType: ConstrainResultType.shouldSkip,
         artifactStepResult: {
           errors: [],
           notes: [],
@@ -203,7 +203,7 @@ const customConstrain = createArtifactStepConstrain<void, void, NpmPublishConfig
 
     if (!npmVersionResult) {
       return {
-        constrainResult: ConstrainResult.ignoreThisConstrain,
+        constrainResultType: ConstrainResultType.ignoreThisConstrain,
         artifactStepResult: { errors: [], notes: [] },
       }
     }
@@ -218,7 +218,7 @@ const customConstrain = createArtifactStepConstrain<void, void, NpmPublishConfig
       })
     ) {
       return {
-        constrainResult: ConstrainResult.shouldSkip,
+        constrainResultType: ConstrainResultType.shouldSkip,
         artifactStepResult: {
           errors: [],
           notes: [
@@ -231,7 +231,7 @@ const customConstrain = createArtifactStepConstrain<void, void, NpmPublishConfig
     }
 
     return {
-      constrainResult: ConstrainResult.ignoreThisConstrain,
+      constrainResultType: ConstrainResultType.ignoreThisConstrain,
       artifactStepResult: { errors: [], notes: [] },
     }
   },

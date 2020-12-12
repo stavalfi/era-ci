@@ -1,7 +1,7 @@
-import { createStepConstrain } from '@tahini/core'
-import { ConstrainResult, ExecutionStatus, Status, didPassOrSkippedAsPassed } from '@tahini/utils'
+import { ConstrainResultType, createConstrain } from '@tahini/core'
+import { ExecutionStatus, Status, didPassOrSkippedAsPassed } from '@tahini/utils'
 
-export const skipIfStepResultNotPassedConstrain = createStepConstrain<{
+export const skipIfStepResultNotPassedConstrain = createConstrain<{
   stepName: string
 }>({
   constrainName: 'skip-if-step-result-not-passed-constrain',
@@ -11,8 +11,8 @@ export const skipIfStepResultNotPassedConstrain = createStepConstrain<{
 
     if (!step) {
       return {
-        constrainResult: ConstrainResult.shouldSkip,
-        stepResult: {
+        constrainResultType: ConstrainResultType.shouldSkip,
+        result: {
           errors: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsFailed,
@@ -32,8 +32,8 @@ export const skipIfStepResultNotPassedConstrain = createStepConstrain<{
       didPassOrSkippedAsPassed(actualStepResult.status)
     ) {
       return {
-        constrainResult: ConstrainResult.ignoreThisConstrain,
-        stepResult: { errors: [], notes: [] },
+        constrainResultType: ConstrainResultType.ignoreThisConstrain,
+        result: { errors: [], notes: [] },
       }
     } else {
       let reason: string
@@ -50,8 +50,8 @@ export const skipIfStepResultNotPassedConstrain = createStepConstrain<{
           break
       }
       return {
-        constrainResult: ConstrainResult.shouldSkip,
-        stepResult: {
+        constrainResultType: ConstrainResultType.shouldSkip,
+        result: {
           errors: [],
           notes: [`step: "${step.data.stepInfo.displayName}" ${reason}`],
           executionStatus: ExecutionStatus.aborted,
