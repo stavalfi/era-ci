@@ -54,7 +54,3 @@ export type Constrain<StepConfiguration> = {
     invoke: () => Promise<ConstrainResult>
   }>
 }
-
-export type RunConstrains<StepConfiguration> = (
-  constrains: Array<Constrain<StepConfiguration>>,
-) => Promise<CombinedConstrainResult>

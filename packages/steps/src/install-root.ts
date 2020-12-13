@@ -14,7 +14,7 @@ export const installRoot = createStepExperimental({
         stepName: 'validate-packages',
       }),
     ],
-    step: async () => {
+    stepLogic: async () => {
       const isExists = fse.existsSync(path.join(repoPath, 'yarn.lock'))
 
       if (!isExists) {

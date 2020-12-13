@@ -517,7 +517,7 @@ export const cliTableReporter = createStepExperimental({
         stepName: jsonReporterStepName,
       }),
     ],
-    step: async () => {
+    stepLogic: async () => {
       const jsonReporterStepId = options.steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data
         .stepInfo.stepId
       if (!jsonReporterStepId) {

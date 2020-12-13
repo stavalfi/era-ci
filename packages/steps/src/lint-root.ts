@@ -12,7 +12,7 @@ export const lintRoot = createStepExperimental<LocalSequentalTaskQueue, { script
         scriptName: stepConfigurations.scriptName,
       }),
     ],
-    step: async () => {
+    stepLogic: async () => {
       await execaCommand(`yarn run ${stepConfigurations.scriptName}`, {
         cwd: repoPath,
         stdio: 'inherit',

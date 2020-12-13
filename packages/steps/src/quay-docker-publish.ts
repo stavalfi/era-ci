@@ -107,34 +107,32 @@ export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, Qua
   taskQueueClass: QuayBuildsTaskQueue,
   run: async options => ({
     stepConstrains: [skipIfStepIsDisabledConstrain()],
-    step: async () => ({
-      artifactConstrains: [
-        artifact =>
-          skipIfArtifactTargetTypeNotSupportedConstrain({
-            currentArtifact: artifact,
-            supportedTargetType: TargetType.docker,
-          }),
-        artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-            currentArtifact: artifact,
-            stepNameToSearchInCache: 'build',
-            skipAsFailedIfStepNotFoundInCache: true,
-            skipAsPassedIfStepNotExists: true,
-          }),
-        artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-            currentArtifact: artifact,
-            stepNameToSearchInCache: 'test',
-            skipAsFailedIfStepNotFoundInCache: true,
-            skipAsPassedIfStepNotExists: true,
-          }),
-        artifact => skipIfImageTagAlreadyPublishedConstrain({ currentArtifact: artifact }),
-      ],
-      onArtifact: async ({ artifact }) =>
-        publishPackage({
-          ...options,
+    artifactConstrains: [
+      artifact =>
+        skipIfArtifactTargetTypeNotSupportedConstrain({
           currentArtifact: artifact,
+          supportedTargetType: TargetType.docker,
         }),
-    }),
+      artifact =>
+        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          currentArtifact: artifact,
+          stepNameToSearchInCache: 'build',
+          skipAsFailedIfStepNotFoundInCache: true,
+          skipAsPassedIfStepNotExists: true,
+        }),
+      artifact =>
+        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          currentArtifact: artifact,
+          stepNameToSearchInCache: 'test',
+          skipAsFailedIfStepNotFoundInCache: true,
+          skipAsPassedIfStepNotExists: true,
+        }),
+      artifact => skipIfImageTagAlreadyPublishedConstrain({ currentArtifact: artifact }),
+    ],
+    onArtifact: async ({ artifact }) =>
+      publishPackage({
+        ...options,
+        currentArtifact: artifact,
+      }),
   }),
 })
