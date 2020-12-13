@@ -161,44 +161,42 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
   taskQueueClass: LocalSequentalTaskQueue,
   run: async options => ({
     stepConstrains: [skipIfStepIsDisabledConstrain()],
-    step: async () => ({
-      artifactConstrains: [
-        artifact => skipIfImageTagAlreadyPublishedConstrain({ currentArtifact: artifact }),
-        artifact =>
-          skipIfArtifactTargetTypeNotSupportedConstrain({
-            currentArtifact: artifact,
-            supportedTargetType: TargetType.docker,
-          }),
-        artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-            currentArtifact: artifact,
-            stepNameToSearchInCache: 'build-root',
-            skipAsFailedIfStepNotFoundInCache: true,
-            skipAsPassedIfStepNotExists: true,
-          }),
-        artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-            currentArtifact: artifact,
-            stepNameToSearchInCache: 'test-root',
-            skipAsFailedIfStepNotFoundInCache: true,
-            skipAsPassedIfStepNotExists: true,
-          }),
-      ],
-      onBeforeArtifacts: async () =>
-        dockerRegistryLogin({
-          dockerRegistry: options.stepConfigurations.registry,
-          registryAuth: options.stepConfigurations.registryAuth,
-          repoPath: options.repoPath,
-          log: options.log,
+    artifactConstrains: [
+      artifact => skipIfImageTagAlreadyPublishedConstrain({ currentArtifact: artifact }),
+      artifact =>
+        skipIfArtifactTargetTypeNotSupportedConstrain({
+          currentArtifact: artifact,
+          supportedTargetType: TargetType.docker,
         }),
-      onArtifact: async ({ artifact }) => {
-        const fullImageNameNewVersion = await publishPackage({ ...options, currentArtifact: artifact })
-        return {
-          executionStatus: ExecutionStatus.done,
-          status: Status.passed,
-          notes: [`published: "${fullImageNameNewVersion}"`],
-        }
-      },
-    }),
+      artifact =>
+        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          currentArtifact: artifact,
+          stepNameToSearchInCache: 'build-root',
+          skipAsFailedIfStepNotFoundInCache: true,
+          skipAsPassedIfStepNotExists: true,
+        }),
+      artifact =>
+        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          currentArtifact: artifact,
+          stepNameToSearchInCache: 'test-root',
+          skipAsFailedIfStepNotFoundInCache: true,
+          skipAsPassedIfStepNotExists: true,
+        }),
+    ],
+    onBeforeArtifacts: async () =>
+      dockerRegistryLogin({
+        dockerRegistry: options.stepConfigurations.registry,
+        registryAuth: options.stepConfigurations.registryAuth,
+        repoPath: options.repoPath,
+        log: options.log,
+      }),
+    onArtifact: async ({ artifact }) => {
+      const fullImageNameNewVersion = await publishPackage({ ...options, currentArtifact: artifact })
+      return {
+        executionStatus: ExecutionStatus.done,
+        status: Status.passed,
+        notes: [`published: "${fullImageNameNewVersion}"`],
+      }
+    },
   }),
 })

@@ -1,9 +1,3 @@
 export { createConstrain } from './create-constrain'
-export {
-  ConstrainResult,
-  CombinedConstrainResult,
-  ConstrainResultBase,
-  ConstrainResultType,
-  Constrain,
-  RunConstrains,
-} from './types'
+export { runConstrains, getCombinedResult } from './run-contrains'
+export { CombinedConstrainResult, Constrain, ConstrainResult, ConstrainResultBase, ConstrainResultType } from './types'

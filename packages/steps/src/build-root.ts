@@ -43,7 +43,7 @@ export const buildRoot = createStepExperimental<LocalSequentalTaskQueue, { scrip
         scriptName: stepConfigurations.scriptName,
       }),
     ],
-    step: async () => {
+    stepLogic: async () => {
       await execaCommand(`yarn run ${stepConfigurations.scriptName}`, {
         log,
         cwd: repoPath,

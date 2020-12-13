@@ -271,7 +271,7 @@ export const jsonReporter = createStepExperimental({
     stepsResultOfArtifactsByStep,
     currentStepInfo,
   }) => ({
-    step: async () => {
+    stepLogic: async () => {
       const withoutThisStep = {
         steps: removeNodeFromGraph({ graph: steps, nodeIndexToRemove: currentStepInfo.index }),
         stepsResultOfArtifactsByStep: removeNodeFromGraph({

@@ -1,10 +1,10 @@
-import { Artifact, calculateCombinedStatus, ExecutionStatus, Node, Status } from '@tahini/utils'
+import { calculateCombinedStatus, ExecutionStatus, Status } from '@tahini/utils'
 import _ from 'lodash'
 import { ErrorObject, serializeError } from 'serialize-error'
 import { UserRunStepOptions } from '../create-step'
-import { CombinedConstrainResult, Constrain, ConstrainResult, ConstrainResultType, RunConstrains } from './types'
+import { CombinedConstrainResult, Constrain, ConstrainResult, ConstrainResultType } from './types'
 
-function getCombinedResult(individualConstrainsResults: ConstrainResult[]): CombinedConstrainResult {
+export function getCombinedResult(individualConstrainsResults: ConstrainResult[]): CombinedConstrainResult {
   const canRun = individualConstrainsResults.every(x =>
     [ConstrainResultType.shouldRun, ConstrainResultType.ignoreThisConstrain].includes(x.resultType),
   )
@@ -39,11 +39,13 @@ function getCombinedResult(individualConstrainsResults: ConstrainResult[]): Comb
       }
 }
 
-export const prepareRunConstrains = <StepConfiguration>(
-  options: Omit<UserRunStepOptions<never, StepConfiguration>, 'taskQueue'>,
-): RunConstrains<StepConfiguration> => async (constrains): Promise<CombinedConstrainResult> => {
+export const runConstrains = async <StepConfiguration>(
+  options: Omit<UserRunStepOptions<never, StepConfiguration>, 'taskQueue'> & {
+    constrains: Array<Constrain<StepConfiguration>>
+  },
+): Promise<CombinedConstrainResult> => {
   const stepConstrainsResults = await Promise.all(
-    constrains.map(async c => {
+    options.constrains.map(async c => {
       const { invoke, constrainOptions } = await c.callConstrain({ userRunStepOptions: options })
       return invoke().catch<ConstrainResult>(error => ({
         constrainName: c.constrainName,

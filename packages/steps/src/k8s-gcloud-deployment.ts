@@ -49,80 +49,75 @@ const customConstrain = createConstrain<
 export const k8sGcloudDeployment = createStepExperimental<LocalSequentalTaskQueue, K8sGcloudDeploymentConfiguration>({
   stepName: 'k8s-gcloud-deployment',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async ({ stepConfigurations, repoPath, log, immutableCache, stepInputEvents$ }) => ({
+  run: async ({ stepConfigurations, repoPath, log, immutableCache }) => ({
     stepConstrains: [skipIfStepIsDisabledConstrain()],
-    step: async () => ({
-      artifactConstrains: [
-        artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-            currentArtifact: artifact,
-            stepNameToSearchInCache: 'docker-publish',
-            skipAsFailedIfStepNotFoundInCache: true,
-            skipAsPassedIfStepNotExists: false,
-          }),
-        artifact => customConstrain({ currentArtifact: artifact }),
-      ],
-      onBeforeArtifacts: async () => {
-        const { stdout: keyContent } = await execaCommand(
-          `echo ${stepConfigurations.k8sClusterTokenBase64} | base64 -d`,
-          {
-            stdio: 'pipe',
-            shell: true,
-            cwd: repoPath,
-            log,
-          },
-        )
-        const k8sKeyPath = await createFile(keyContent)
-        await execaCommand(
-          `gcloud auth activate-service-account --key-file=${k8sKeyPath} --project ${stepConfigurations.gcloudProjectId}`,
-          {
-            stdio: 'pipe',
-            shell: true,
-            cwd: repoPath,
-            log,
-          },
-        )
-        await execaCommand(
-          `gcloud container clusters get-credentials ${stepConfigurations.k8sClusterName} --zone ${stepConfigurations.k8sClusterZoneName} --project ${stepConfigurations.gcloudProjectId}`,
-          {
-            stdio: 'pipe',
-            shell: true,
-            cwd: repoPath,
-            log,
-          },
-        )
-      },
-      onArtifact: async ({ artifact }) => {
-        const artifactName = artifact.data.artifact.packageJson.name
-        const deploymentName = stepConfigurations.artifactNameToDeploymentName({ artifactName })
-        const containerName = stepConfigurations.artifactNameToContainerName({ artifactName })
+    artifactConstrains: [
+      artifact =>
+        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          currentArtifact: artifact,
+          stepNameToSearchInCache: 'docker-publish',
+          skipAsFailedIfStepNotFoundInCache: true,
+          skipAsPassedIfStepNotExists: false,
+        }),
+      artifact => customConstrain({ currentArtifact: artifact }),
+    ],
+    onBeforeArtifacts: async () => {
+      const { stdout: keyContent } = await execaCommand(
+        `echo ${stepConfigurations.k8sClusterTokenBase64} | base64 -d`,
+        {
+          stdio: 'pipe',
+          shell: true,
+          cwd: repoPath,
+          log,
+        },
+      )
+      const k8sKeyPath = await createFile(keyContent)
+      await execaCommand(
+        `gcloud auth activate-service-account --key-file=${k8sKeyPath} --project ${stepConfigurations.gcloudProjectId}`,
+        {
+          stdio: 'pipe',
+          shell: true,
+          cwd: repoPath,
+          log,
+        },
+      )
+      await execaCommand(
+        `gcloud container clusters get-credentials ${stepConfigurations.k8sClusterName} --zone ${stepConfigurations.k8sClusterZoneName} --project ${stepConfigurations.gcloudProjectId}`,
+        {
+          stdio: 'pipe',
+          shell: true,
+          cwd: repoPath,
+          log,
+        },
+      )
+    },
+    onArtifact: async ({ artifact }) => {
+      const artifactName = artifact.data.artifact.packageJson.name
+      const deploymentName = stepConfigurations.artifactNameToDeploymentName({ artifactName })
+      const containerName = stepConfigurations.artifactNameToContainerName({ artifactName })
 
-        const fullImageName = await immutableCache.get(
-          fullImageNameCacheKey({ packageHash: artifact.data.artifact.packageHash }),
-          r => {
-            if (typeof r === 'string') {
-              return r
-            } else {
-              throw new Error(
-                `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-              )
-            }
-          },
-        )
+      const fullImageName = await immutableCache.get(
+        fullImageNameCacheKey({ packageHash: artifact.data.artifact.packageHash }),
+        r => {
+          if (typeof r === 'string') {
+            return r
+          } else {
+            throw new Error(
+              `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+            )
+          }
+        },
+      )
 
-        if (!fullImageName) {
-          throw new Error(`can't find full-image-name with the new version in the cache. deployment is aborted`)
-        }
+      if (!fullImageName) {
+        throw new Error(`can't find full-image-name with the new version in the cache. deployment is aborted`)
+      }
 
-        await execaCommand(
-          `kubectl set image deployment/${deploymentName} ${containerName}=${fullImageName} --record`,
-          {
-            stdio: 'inherit',
-            cwd: repoPath,
-            log,
-          },
-        )
-      },
-    }),
+      await execaCommand(`kubectl set image deployment/${deploymentName} ${containerName}=${fullImageName} --record`, {
+        stdio: 'inherit',
+        cwd: repoPath,
+        log,
+      })
+    },
   }),
 })
