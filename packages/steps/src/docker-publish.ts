@@ -3,20 +3,11 @@ import {
   skipIfArtifactTargetTypeNotSupportedConstrain,
   skipIfStepIsDisabledConstrain,
 } from '@tahini/constrains'
-import {
-  ConstrainResultType,
-  createStepExperimental,
-  Log,
-  StepEventType,
-  StepInputEvents,
-  StepOutputEvents,
-  UserRunStepOptions,
-} from '@tahini/core'
+import { createStepExperimental, Log, UserRunStepOptions } from '@tahini/core'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import {
   Artifact,
   buildFullDockerImageName,
-  concatMapOnce,
   execaCommand,
   ExecutionStatus,
   Node,
@@ -24,8 +15,6 @@ import {
   Status,
   TargetType,
 } from '@tahini/utils'
-import { of } from 'rxjs'
-import { mergeMap } from 'rxjs/operators'
 import { skipIfImageTagAlreadyPublishedConstrain } from './constrains'
 import { LocalDockerPublishConfiguration } from './types'
 import { calculateNextVersion, fullImageNameCacheKey, getVersionCacheKey } from './utils'
@@ -170,72 +159,46 @@ async function publishPackage({
 export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, LocalDockerPublishConfiguration>({
   stepName: 'docker-publish',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async options => {
-    const constrainsResult = await options.runConstrains([skipIfStepIsDisabledConstrain()])
-
-    if (constrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-      return of({
-        type: StepEventType.step,
-        stepResult: constrainsResult.combinedResult,
-      })
-    }
-
-    return options.stepInputEvents$.pipe(
-      concatMapOnce(
-        e => e.type === StepEventType.artifactStep && e.artifactStepResult.executionStatus === ExecutionStatus.done,
-        () =>
-          dockerRegistryLogin({
-            dockerRegistry: options.stepConfigurations.registry,
-            registryAuth: options.stepConfigurations.registryAuth,
-            repoPath: options.repoPath,
-            log: options.log,
+  run: async options => ({
+    stepConstrains: [skipIfStepIsDisabledConstrain()],
+    step: async () => ({
+      artifactConstrains: [
+        artifact => skipIfImageTagAlreadyPublishedConstrain({ currentArtifact: artifact }),
+        artifact =>
+          skipIfArtifactTargetTypeNotSupportedConstrain({
+            currentArtifact: artifact,
+            supportedTargetType: TargetType.docker,
           }),
-      ),
-      mergeMap<StepInputEvents[StepEventType], Promise<StepOutputEvents[StepEventType]>>(async e => {
-        if (e.type === StepEventType.artifactStep && e.artifactStepResult.executionStatus === ExecutionStatus.done) {
-          const constrainsResult = await options.runConstrains([
-            skipIfImageTagAlreadyPublishedConstrain({ currentArtifact: e.artifact }),
-            skipIfArtifactTargetTypeNotSupportedConstrain({
-              currentArtifact: e.artifact,
-              supportedTargetType: TargetType.docker,
-            }),
-            skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-              currentArtifact: e.artifact,
-              stepNameToSearchInCache: 'build',
-              skipAsFailedIfStepNotFoundInCache: true,
-              skipAsPassedIfStepNotExists: true,
-            }),
-            skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-              currentArtifact: e.artifact,
-              stepNameToSearchInCache: 'test',
-              skipAsFailedIfStepNotFoundInCache: true,
-              skipAsPassedIfStepNotExists: true,
-            }),
-          ])
-
-          if (constrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-            return {
-              type: StepEventType.artifactStep,
-              artifactName: e.artifact.data.artifact.packageJson.name,
-              artifactStepResult: constrainsResult.combinedResult,
-            }
-          }
-
-          const fullImageNameNewVersion = await publishPackage({ ...options, currentArtifact: e.artifact })
-
-          return {
-            type: StepEventType.artifactStep,
-            artifactName: e.artifact.data.artifact.packageJson.name,
-            artifactStepResult: {
-              executionStatus: ExecutionStatus.done,
-              status: Status.passed,
-              notes: [`published: "${fullImageNameNewVersion}"`],
-            },
-          }
-        } else {
-          return e
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'build-root',
+            skipAsFailedIfStepNotFoundInCache: true,
+            skipAsPassedIfStepNotExists: true,
+          }),
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'test-root',
+            skipAsFailedIfStepNotFoundInCache: true,
+            skipAsPassedIfStepNotExists: true,
+          }),
+      ],
+      onBeforeArtifacts: async () =>
+        dockerRegistryLogin({
+          dockerRegistry: options.stepConfigurations.registry,
+          registryAuth: options.stepConfigurations.registryAuth,
+          repoPath: options.repoPath,
+          log: options.log,
+        }),
+      onArtifact: async ({ artifact }) => {
+        const fullImageNameNewVersion = await publishPackage({ ...options, currentArtifact: artifact })
+        return {
+          executionStatus: ExecutionStatus.done,
+          status: Status.passed,
+          notes: [`published: "${fullImageNameNewVersion}"`],
         }
-      }),
-    )
-  },
+      },
+    }),
+  }),
 })

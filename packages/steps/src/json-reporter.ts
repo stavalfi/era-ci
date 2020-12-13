@@ -6,7 +6,6 @@ import {
   DoneStepsResultOfArtifact,
   ScheduledStepResultOfArtifacts,
   ScheduledStepsResultOfArtifact,
-  StepEventType,
   StepInfo,
   StepResultOfArtifacts,
   StepsResultOfArtifact,
@@ -271,41 +270,35 @@ export const jsonReporter = createStepExperimental({
     artifacts,
     stepsResultOfArtifactsByStep,
     currentStepInfo,
-  }) => {
-    const withoutThisStep = {
-      steps: removeNodeFromGraph({ graph: steps, nodeIndexToRemove: currentStepInfo.index }),
-      stepsResultOfArtifactsByStep: removeNodeFromGraph({
-        graph: stepsResultOfArtifactsByStep,
-        nodeIndexToRemove: currentStepInfo.index,
-      }),
-    }
-    const jsonReport = getJsonReport({
-      startFlowMs,
-      artifacts,
-      flowId,
-      repoHash,
-      steps: withoutThisStep.steps,
-      stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
-      stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
+  }) => ({
+    step: async () => {
+      const withoutThisStep = {
+        steps: removeNodeFromGraph({ graph: steps, nodeIndexToRemove: currentStepInfo.index }),
+        stepsResultOfArtifactsByStep: removeNodeFromGraph({
+          graph: stepsResultOfArtifactsByStep,
+          nodeIndexToRemove: currentStepInfo.index,
+        }),
+      }
+      const jsonReport = getJsonReport({
+        startFlowMs,
         artifacts,
+        flowId,
+        repoHash,
+        steps: withoutThisStep.steps,
         stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
-      }),
-    })
+        stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
+          artifacts,
+          stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
+        }),
+      })
 
-    const jsonReportTtl = immutableCache.ttls.ArtifactStepResult
+      const jsonReportTtl = immutableCache.ttls.ArtifactStepResult
 
-    await immutableCache.set({
-      key: jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
-      value: jsonReportToString({ jsonReport }),
-      ttl: jsonReportTtl,
-    })
-
-    return {
-      type: StepEventType.step,
-      stepResult: {
-        executionStatus: ExecutionStatus.done,
-        status: Status.passed,
-      },
-    }
-  },
+      await immutableCache.set({
+        key: jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
+        value: jsonReportToString({ jsonReport }),
+        ttl: jsonReportTtl,
+      })
+    },
+  }),
 })

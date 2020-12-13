@@ -1,14 +1,5 @@
 import { skipIfStepIsDisabledConstrain } from '@tahini/constrains'
-import {
-  ConstrainResultType,
-  createStepExperimental,
-  runConstrains,
-  StepEventType,
-  StepInputEvents,
-  StepOutputEvents,
-  toTaskEvent$,
-  UserRunStepOptions,
-} from '@tahini/core'
+import { createStepExperimental, toTaskEvent$, UserReturnValue, UserRunStepOptions } from '@tahini/core'
 import { QuayBuildsTaskQueue } from '@tahini/task-queues'
 import { Artifact, buildFullDockerImageName, ExecutionStatus, Node, Status, TargetType } from '@tahini/utils'
 import {
@@ -16,8 +7,7 @@ import {
   skipIfArtifactTargetTypeNotSupportedConstrain,
 } from 'constrains/src'
 import path from 'path'
-import { of } from 'rxjs'
-import { last, mergeMap } from 'rxjs/operators'
+import { last } from 'rxjs/operators'
 import { skipIfImageTagAlreadyPublishedConstrain } from './constrains'
 import { QuayDockerPublishConfiguration } from './types'
 import { calculateNextVersion, fullImageNameCacheKey, getVersionCacheKey } from './utils'
@@ -31,7 +21,7 @@ async function publishPackage({
   taskQueue,
 }: UserRunStepOptions<QuayBuildsTaskQueue, QuayDockerPublishConfiguration> & {
   currentArtifact: Node<{ artifact: Artifact }>
-}): Promise<StepOutputEvents[StepEventType.artifactStep]> {
+}): Promise<UserReturnValue> {
   const newVersion = await calculateNextVersion({
     dockerRegistry: stepConfigurations.registry,
     dockerOrganizationName: stepConfigurations.dockerOrganizationName,
@@ -70,14 +60,10 @@ async function publishPackage({
       throw new Error(`we can't be here`)
     case ExecutionStatus.aborted:
       return {
-        type: StepEventType.artifactStep,
-        artifactName: currentArtifact.data.artifact.packageJson.name,
-        artifactStepResult: {
-          executionStatus: ExecutionStatus.aborted,
-          errors: taskResult.taskResult.errors,
-          notes: taskResult.taskResult.notes,
-          status: taskResult.taskResult.status,
-        },
+        executionStatus: ExecutionStatus.aborted,
+        errors: taskResult.taskResult.errors,
+        notes: taskResult.taskResult.notes,
+        status: taskResult.taskResult.status,
       }
     case ExecutionStatus.done: {
       const fullImageNameNewVersion = buildFullDockerImageName({
@@ -107,14 +93,10 @@ async function publishPackage({
       }
 
       return {
-        type: StepEventType.artifactStep,
-        artifactName: currentArtifact.data.artifact.packageJson.name,
-        artifactStepResult: {
-          executionStatus: ExecutionStatus.done,
-          errors: taskResult.taskResult.errors,
-          notes,
-          status: taskResult.taskResult.status,
-        },
+        executionStatus: ExecutionStatus.done,
+        errors: taskResult.taskResult.errors,
+        notes,
+        status: taskResult.taskResult.status,
       }
     }
   }
@@ -123,55 +105,36 @@ async function publishPackage({
 export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, QuayDockerPublishConfiguration>({
   stepName: 'quay-docker-publish',
   taskQueueClass: QuayBuildsTaskQueue,
-  run: async options => {
-    const constrainsResult = await runConstrains([skipIfStepIsDisabledConstrain()])
-
-    if (constrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-      return of({
-        type: StepEventType.step,
-        stepResult: constrainsResult.combinedResult,
-      })
-    }
-
-    return options.stepInputEvents$.pipe(
-      mergeMap<StepInputEvents[StepEventType], Promise<StepOutputEvents[StepEventType]>>(async e => {
-        if (e.type === StepEventType.artifactStep && e.artifactStepResult.executionStatus === ExecutionStatus.done) {
-          const constrainsResult = await runConstrains([
-            skipIfArtifactTargetTypeNotSupportedConstrain({
-              currentArtifact: e.artifact,
-              supportedTargetType: TargetType.docker,
-            }),
-            skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-              currentArtifact: e.artifact,
-              stepNameToSearchInCache: 'build',
-              skipAsFailedIfStepNotFoundInCache: true,
-              skipAsPassedIfStepNotExists: true,
-            }),
-            skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-              currentArtifact: e.artifact,
-              stepNameToSearchInCache: 'test',
-              skipAsFailedIfStepNotFoundInCache: true,
-              skipAsPassedIfStepNotExists: true,
-            }),
-            skipIfImageTagAlreadyPublishedConstrain({ currentArtifact: e.artifact }),
-          ])
-
-          if (constrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-            return {
-              type: StepEventType.artifactStep,
-              artifactName: e.artifact.data.artifact.packageJson.name,
-              artifactStepResult: constrainsResult.combinedResult,
-            }
-          }
-
-          return publishPackage({
-            ...options,
-            currentArtifact: e.artifact,
-          })
-        } else {
-          return e
-        }
-      }),
-    )
-  },
+  run: async options => ({
+    stepConstrains: [skipIfStepIsDisabledConstrain()],
+    step: async () => ({
+      artifactConstrains: [
+        artifact =>
+          skipIfArtifactTargetTypeNotSupportedConstrain({
+            currentArtifact: artifact,
+            supportedTargetType: TargetType.docker,
+          }),
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'build',
+            skipAsFailedIfStepNotFoundInCache: true,
+            skipAsPassedIfStepNotExists: true,
+          }),
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'test',
+            skipAsFailedIfStepNotFoundInCache: true,
+            skipAsPassedIfStepNotExists: true,
+          }),
+        artifact => skipIfImageTagAlreadyPublishedConstrain({ currentArtifact: artifact }),
+      ],
+      onArtifact: async ({ artifact }) =>
+        publishPackage({
+          ...options,
+          currentArtifact: artifact,
+        }),
+    }),
+  }),
 })

@@ -1,23 +1,16 @@
-import { createStepExperimental, StepEventType, StepOutputEvents } from '@tahini/core'
+import { createStepExperimental } from '@tahini/core'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
-import { Artifact, ExecutionStatus, getPackageTargetType, Node, Status, TargetType } from '@tahini/utils'
+import { ExecutionStatus, getPackageTargetType, Status, TargetType } from '@tahini/utils'
 import _ from 'lodash'
 import { IDependencyMap } from 'package-json-type'
-import { from } from 'rxjs'
-import { mergeMap } from 'rxjs/operators'
 import semver from 'semver'
 
 export const validatePackages = createStepExperimental({
   stepName: 'validate-packages',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async ({ artifacts }) => {
-    return from(artifacts).pipe(
-      mergeMap<
-        Node<{
-          artifact: Artifact
-        }>,
-        Promise<StepOutputEvents[StepEventType]>
-      >(async artifact => {
+  run: async ({ artifacts }) => ({
+    step: async () => ({
+      onArtifact: async ({ artifact }) => {
         const problems: Array<string> = []
 
         if (!artifact.data.artifact.packageJson.name) {
@@ -79,15 +72,11 @@ export const validatePackages = createStepExperimental({
         problems.push(...depsProblems)
 
         return {
-          type: StepEventType.artifactStep,
-          artifactName: artifact.data.artifact.packageJson.name,
-          artifactStepResult: {
-            notes: problems,
-            executionStatus: ExecutionStatus.done,
-            status: problems.length === 0 ? Status.passed : Status.failed,
-          },
+          notes: problems,
+          executionStatus: ExecutionStatus.done,
+          status: problems.length === 0 ? Status.passed : Status.failed,
         }
-      }),
-    )
-  },
+      },
+    }),
+  }),
 })

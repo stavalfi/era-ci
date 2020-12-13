@@ -1,18 +1,9 @@
 import { skipIfStepIsDisabledConstrain } from '@tahini/constrains'
-import {
-  ConstrainResultType,
-  createConstrain,
-  createStepExperimental,
-  Log,
-  StepEventType,
-  StepInputEvents,
-  StepOutputEvents,
-} from '@tahini/core'
+import { ConstrainResultType, createConstrain, createStepExperimental, Log } from '@tahini/core'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import {
   Artifact,
   calculateNewVersion,
-  concatMapOnce,
   execaCommand,
   ExecutionStatus,
   getPackageTargetType,
@@ -28,8 +19,6 @@ import _ from 'lodash'
 import npmLogin from 'npm-login-noninteractive'
 import os from 'os'
 import path from 'path'
-import { of } from 'rxjs'
-import { mergeMap } from 'rxjs/operators'
 
 export enum NpmScopeAccess {
   public = 'public',
@@ -263,120 +252,95 @@ const customConstrain = createConstrain<
 export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPublishConfiguration>({
   stepName: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async ({ stepConfigurations, repoPath, log, immutableCache, stepInputEvents$, runConstrains }) => {
-    const constrainsResult = await runConstrains([skipIfStepIsDisabledConstrain()])
-
-    if (constrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-      return of({
-        type: StepEventType.step,
-        stepResult: constrainsResult.combinedResult,
-      })
-    }
-
-    return stepInputEvents$.pipe(
-      concatMapOnce(
-        e => e.type === StepEventType.artifactStep && e.artifactStepResult.executionStatus === ExecutionStatus.done,
-        () =>
-          npmRegistryLogin({
-            npmRegistry: stepConfigurations.registry,
-            npmRegistryEmail: stepConfigurations.publishAuth.email,
-            npmRegistryToken: stepConfigurations.publishAuth.token,
-            npmRegistryUsername: stepConfigurations.publishAuth.username,
-            repoPath,
-            log,
+  run: async ({ stepConfigurations, repoPath, log, immutableCache, stepInputEvents$, runConstrains }) => ({
+    stepConstrains: [skipIfStepIsDisabledConstrain()],
+    step: async () => ({
+      artifactConstrains: [
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'build',
+            skipAsFailedIfStepNotFoundInCache: true,
+            skipAsPassedIfStepNotExists: false,
           }),
-      ),
-      mergeMap<StepInputEvents[StepEventType], Promise<StepOutputEvents[StepEventType]>>(async e => {
-        if (e.type === StepEventType.artifactStep && e.artifactStepResult.executionStatus === ExecutionStatus.done) {
-          const constrainsResult = await runConstrains([
-            skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-              currentArtifact: e.artifact,
-              stepNameToSearchInCache: 'build',
-              skipAsFailedIfStepNotFoundInCache: true,
-              skipAsPassedIfStepNotExists: false,
-            }),
-            skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-              currentArtifact: e.artifact,
-              stepNameToSearchInCache: 'test',
-              skipAsFailedIfStepNotFoundInCache: true,
-              skipAsPassedIfStepNotExists: false,
-            }),
-            customConstrain({ currentArtifact: e.artifact }),
-          ])
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'test',
+            skipAsFailedIfStepNotFoundInCache: true,
+            skipAsPassedIfStepNotExists: false,
+          }),
+        artifact => customConstrain({ currentArtifact: artifact }),
+      ],
+      onBeforeArtifacts: async () =>
+        npmRegistryLogin({
+          npmRegistry: stepConfigurations.registry,
+          npmRegistryEmail: stepConfigurations.publishAuth.email,
+          npmRegistryToken: stepConfigurations.publishAuth.token,
+          npmRegistryUsername: stepConfigurations.publishAuth.username,
+          repoPath,
+          log,
+        }),
+      onArtifact: async ({ artifact }) => {
+        const newVersion = await calculateNextNewVersion({
+          npmRegistry: stepConfigurations.registry,
+          packageJson: artifact.data.artifact.packageJson,
+          packagePath: artifact.data.artifact.packagePath,
+          repoPath,
+          log,
+        })
 
-          if (constrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-            return {
-              type: StepEventType.step,
-              stepResult: constrainsResult.combinedResult,
-            }
-          }
+        await setPackageVersion({
+          artifact: artifact.data.artifact,
+          fromVersion: artifact.data.artifact.packageJson.version,
+          toVersion: newVersion,
+        })
 
-          const newVersion = await calculateNextNewVersion({
-            npmRegistry: stepConfigurations.registry,
-            packageJson: e.artifact.data.artifact.packageJson,
-            packagePath: e.artifact.data.artifact.packagePath,
-            repoPath,
+        await execaCommand(
+          `yarn publish --registry ${stepConfigurations.registry} --non-interactive ${
+            artifact.data.artifact.packageJson.name?.includes('@')
+              ? `--access ${stepConfigurations.npmScopeAccess}`
+              : ''
+          }`,
+          {
+            stdio: 'inherit',
+            cwd: artifact.data.artifact.packagePath,
+            env: {
+              // npm need this env-var for auth - this is needed only for production publishing.
+              // in tests it doesn't do anything and we login manually to npm in tests.
+              NPM_AUTH_TOKEN: stepConfigurations.publishAuth.token,
+              NPM_TOKEN: stepConfigurations.publishAuth.token,
+            },
             log,
-          })
-
-          await setPackageVersion({
-            artifact: e.artifact.data.artifact,
-            fromVersion: e.artifact.data.artifact.packageJson.version,
-            toVersion: newVersion,
-          })
-
-          await execaCommand(
-            `yarn publish --registry ${stepConfigurations.registry} --non-interactive ${
-              e.artifact.data.artifact.packageJson.name?.includes('@')
-                ? `--access ${stepConfigurations.npmScopeAccess}`
-                : ''
-            }`,
-            {
-              stdio: 'inherit',
-              cwd: e.artifact.data.artifact.packagePath,
-              env: {
-                // npm need this env-var for auth - this is needed only for production publishing.
-                // in tests it doesn't do anything and we login manually to npm in tests.
-                NPM_AUTH_TOKEN: stepConfigurations.publishAuth.token,
-                NPM_TOKEN: stepConfigurations.publishAuth.token,
-              },
-              log,
-            },
+          },
+        )
+          .then(() =>
+            immutableCache.set({
+              key: getVersionCacheKey({
+                artifactHash: artifact.data.artifact.packageHash,
+                artifactName: artifact.data.artifact.packageJson.name,
+              }),
+              value: newVersion,
+              ttl: immutableCache.ttls.ArtifactStepResult,
+            }),
           )
-            .then(() =>
-              immutableCache.set({
-                key: getVersionCacheKey({
-                  artifactHash: e.artifact.data.artifact.packageHash,
-                  artifactName: e.artifact.data.artifact.packageJson.name,
-                }),
-                value: newVersion,
-                ttl: immutableCache.ttls.ArtifactStepResult,
-              }),
-            )
-            .finally(async () =>
-              // revert version to what it was before we changed it
-              setPackageVersion({
-                artifact: e.artifact.data.artifact,
-                fromVersion: newVersion,
-                toVersion: e.artifact.data.artifact.packageJson.version,
-              }),
-            )
+          .finally(async () =>
+            // revert version to what it was before we changed it
+            setPackageVersion({
+              artifact: artifact.data.artifact,
+              fromVersion: newVersion,
+              toVersion: artifact.data.artifact.packageJson.version,
+            }),
+          )
 
-          log.info(`published npm target: "${e.artifact.data.artifact.packageJson.name}@${newVersion}"`)
+        log.info(`published npm target: "${artifact.data.artifact.packageJson.name}@${newVersion}"`)
 
-          return {
-            type: StepEventType.artifactStep,
-            artifactName: e.artifact.data.artifact.packageJson.name,
-            artifactStepResult: {
-              notes: [`published: "${e.artifact.data.artifact.packageJson.name}@${newVersion}"`],
-              executionStatus: ExecutionStatus.done,
-              status: Status.passed,
-            },
-          }
-        } else {
-          return e
+        return {
+          notes: [`published: "${artifact.data.artifact.packageJson.name}@${newVersion}"`],
+          executionStatus: ExecutionStatus.done,
+          status: Status.passed,
         }
-      }),
-    )
-  },
+      },
+    }),
+  }),
 })

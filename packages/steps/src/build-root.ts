@@ -1,37 +1,54 @@
 import { skipIfRootPackageJsonMissingScriptConstrain } from '@tahini/constrains'
-import { ConstrainResultType, createStepExperimental, StepEventType } from '@tahini/core'
+import { ConstrainResultType, createStepExperimental, StepEventType, StepInfo, StepInputEvents } from '@tahini/core'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
-import { execaCommand, ExecutionStatus, Status } from '@tahini/utils'
+import { Artifact, execaCommand, ExecutionStatus, Node, Status } from '@tahini/utils'
+import { merge, Observable } from 'rxjs'
+import { first } from 'rxjs/operators'
 
-export const buildRoot = createStepExperimental({
+async function waitParentSteps(options: {
+  stepInputEvents$: Observable<StepInputEvents[StepEventType]>
+  currentStepInfo: Node<{ stepInfo: StepInfo }>
+  currentArtifact?: Node<{ artifact: Artifact }>
+}) {
+  await merge(
+    ...options.currentStepInfo.parentsIndexes.map(i =>
+      options.stepInputEvents$.pipe(
+        first(e => {
+          if (options.currentArtifact) {
+            return (
+              e.type === StepEventType.artifactStep &&
+              e.artifactStepResult.executionStatus === ExecutionStatus.done &&
+              e.artifact.index === options.currentArtifact.index &&
+              e.step.index === i
+            )
+          } else {
+            return (
+              e.type === StepEventType.step &&
+              e.stepResult.executionStatus === ExecutionStatus.done &&
+              e.step.index === i
+            )
+          }
+        }),
+      ),
+    ),
+  ).toPromise()
+}
+
+export const buildRoot = createStepExperimental<LocalSequentalTaskQueue, { scriptName: string }>({
   stepName: 'build-root',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async options => {
-    const constrainsResult = await options.runConstrains([
+  run: async ({ stepConfigurations, log, repoPath }) => ({
+    stepConstrains: [
       skipIfRootPackageJsonMissingScriptConstrain({
-        scriptName: 'build',
+        scriptName: stepConfigurations.scriptName,
       }),
-    ])
-
-    if (constrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-      return {
-        type: StepEventType.step,
-        stepResult: constrainsResult.combinedResult,
-      }
-    }
-
-    await execaCommand('yarn build', {
-      log: options.log,
-      cwd: options.repoPath,
-      stdio: 'inherit',
-    })
-
-    return {
-      type: StepEventType.step,
-      stepResult: {
-        executionStatus: ExecutionStatus.done,
-        status: Status.passed,
-      },
-    }
-  },
+    ],
+    step: async () => {
+      await execaCommand(`yarn run ${stepConfigurations.scriptName}`, {
+        log,
+        cwd: repoPath,
+        stdio: 'inherit',
+      })
+    },
+  }),
 })
