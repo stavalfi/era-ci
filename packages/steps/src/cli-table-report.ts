@@ -511,61 +511,47 @@ function generateSummaryReport(jsonReport: JsonReport): string {
 export const cliTableReporter = createStepExperimental({
   stepName: 'cli-table-reporter',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async options => {
-    const constrainsResult = await options.runConstrains([
+  run: async options => ({
+    stepConstrains: [
       skipIfStepResultNotPassedConstrain({
         stepName: jsonReporterStepName,
       }),
-    ])
-
-    if (constrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-      return {
-        type: StepEventType.step,
-        stepResult: constrainsResult.combinedResult,
+    ],
+    step: async () => {
+      const jsonReporterStepId = options.steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data
+        .stepInfo.stepId
+      if (!jsonReporterStepId) {
+        throw new Error(`cli-table-reporter can't find json-reporter-step-id. is it part of the flow?`)
       }
-    }
+      const jsonReportResult = await options.immutableCache.get(
+        jsonReporterCacheKey({ flowId: options.flowId, stepId: jsonReporterStepId }),
+        r => {
+          if (typeof r === 'string') {
+            return stringToJsonReport({ jsonReportAsString: r })
+          } else {
+            throw new Error(
+              `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+            )
+          }
+        },
+      )
+      if (!jsonReportResult) {
+        throw new Error(`can't find json-report in the cache. printing the report is aborted`)
+      }
 
-    const jsonReporterStepId = options.steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data.stepInfo
-      .stepId
-    if (!jsonReporterStepId) {
-      throw new Error(`cli-table-reporter can't find json-reporter-step-id. is it part of the flow?`)
-    }
-    const jsonReportResult = await options.immutableCache.get(
-      jsonReporterCacheKey({ flowId: options.flowId, stepId: jsonReporterStepId }),
-      r => {
-        if (typeof r === 'string') {
-          return stringToJsonReport({ jsonReportAsString: r })
-        } else {
-          throw new Error(
-            `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-          )
-        }
-      },
-    )
-    if (!jsonReportResult) {
-      throw new Error(`can't find json-report in the cache. printing the report is aborted`)
-    }
+      const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value)
+      const packagesErrorsReport = generatePackagesErrorsReport(jsonReportResult.value)
+      const stepsErrorsReport = generateStepsErrorsReport(jsonReportResult.value)
+      const summaryReport = generateSummaryReport(jsonReportResult.value)
 
-    const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value)
-    const packagesErrorsReport = generatePackagesErrorsReport(jsonReportResult.value)
-    const stepsErrorsReport = generateStepsErrorsReport(jsonReportResult.value)
-    const summaryReport = generateSummaryReport(jsonReportResult.value)
-
-    options.log.noFormattingInfo(packagesStatusReport)
-    if (packagesErrorsReport) {
-      options.log.noFormattingInfo(packagesErrorsReport)
-    }
-    if (stepsErrorsReport) {
-      options.log.noFormattingInfo(stepsErrorsReport)
-    }
-    options.log.noFormattingInfo(summaryReport)
-
-    return {
-      type: StepEventType.step,
-      stepResult: {
-        executionStatus: ExecutionStatus.done,
-        status: Status.passed,
-      },
-    }
-  },
+      options.log.noFormattingInfo(packagesStatusReport)
+      if (packagesErrorsReport) {
+        options.log.noFormattingInfo(packagesErrorsReport)
+      }
+      if (stepsErrorsReport) {
+        options.log.noFormattingInfo(stepsErrorsReport)
+      }
+      options.log.noFormattingInfo(summaryReport)
+    },
+  }),
 })
