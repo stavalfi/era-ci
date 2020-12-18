@@ -68,7 +68,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
       areStepsDoneOnArtifact({
         artifactIndex: event.artifact.index,
         step: userRunStepOptions.currentStepInfo,
-        stepsResultOfArtifactsByArtifact: userRunStepOptions.stepsResultOfArtifactsByArtifact,
+        stepsResultOfArtifactsByArtifact: userRunStepOptions.getState().stepsResultOfArtifactsByArtifact,
       })
     ) {
       const artifactConstrainsResult = await runConstrains({
@@ -91,7 +91,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
         if (
           didAllStepsAborted({
             currentStepInfo: userRunStepOptions.currentStepInfo,
-            stepsResultOfArtifactsByStep: userRunStepOptions.stepsResultOfArtifactsByStep,
+            stepsResultOfArtifactsByStep: userRunStepOptions.getState().stepsResultOfArtifactsByStep,
           })
         ) {
           const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)

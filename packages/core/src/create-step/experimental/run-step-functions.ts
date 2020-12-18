@@ -23,7 +23,7 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<unknown>,
       first(() =>
         userRunStepOptions.currentStepInfo.parentsIndexes.every(parentIndex =>
           [ExecutionStatus.aborted, ExecutionStatus.done].includes(
-            userRunStepOptions.stepsResultOfArtifactsByStep[parentIndex].data.stepExecutionStatus,
+            userRunStepOptions.getState().stepsResultOfArtifactsByStep[parentIndex].data.stepExecutionStatus,
           ),
         ),
       ),
