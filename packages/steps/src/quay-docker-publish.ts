@@ -106,7 +106,7 @@ export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, Qua
   stepName: 'quay-docker-publish',
   taskQueueClass: QuayBuildsTaskQueue,
   run: options => ({
-    stepConstrains: [skipIfStepIsDisabledConstrain()],
+    globalConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact =>
         skipIfArtifactTargetTypeNotSupportedConstrain({
