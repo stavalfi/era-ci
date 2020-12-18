@@ -1,5 +1,5 @@
 import { ConnectableObservable, defer, from, identity, Observable } from 'rxjs'
-import { concatMap, finalize, publishReplay } from 'rxjs/operators'
+import { concatMap, publishReplay } from 'rxjs/operators'
 import { ConstrainResultType, runConstrains } from '../../create-constrain'
 import { TaskQueueBase } from '../../create-task-queue'
 import {
@@ -89,14 +89,12 @@ export function createStepExperimental<
           StepOutputEvents[StepOutputEventType]
         >
 
-        const subscription = allStepsEventsRecorded$.connect()
+        allStepsEventsRecorded$.connect()
 
         const log = runStepOptions.logger.createLog(runStepOptions.currentStepInfo.data.stepInfo.stepName)
 
         return defer(async () => {
           const startStepMs = Date.now()
-
-          log.debug(`starting to execute step: "${runStepOptions.currentStepInfo.data.stepInfo.displayName}"`)
 
           // @ts-ignore - we need to find a way to ensure that if NormalizedStepConfigurations is defined, also normalizeStepConfigurations is defined.
           const normalizedStepConfigurations: NormalizedStepConfigurations = createStepOptions.normalizeStepConfigurations
@@ -116,13 +114,7 @@ export function createStepExperimental<
             allStepsEventsRecorded$,
             userRunStepOptions,
           })
-        }).pipe(
-          concatMap(identity),
-          finalize(() => {
-            subscription.unsubscribe()
-            log.debug(`ended to execute step: "${runStepOptions.currentStepInfo.data.stepInfo.displayName}"`)
-          }),
-        )
+        }).pipe(concatMap(identity))
       },
     }
   }

@@ -37,7 +37,7 @@ test('packages with failed tests wont deploy', async () => {
         shouldDeploy: true,
         deploymentStrigifiedSection: `\
     {
-      initializeDeploymentClient: async () => Promise.resolve(),
+      initializeDeploymentClient: () => Promise.resolve(),
       deploy: async ({ artifactToDeploy }) => console.log("deploy-"+artifactToDeploy.packageJson?.name),
       destroyDeploymentClient: async ({ deploymentClient }) => Promise.resolve(),
     }`,
@@ -47,7 +47,7 @@ test('packages with failed tests wont deploy', async () => {
         shouldDeploy: true,
         deploymentStrigifiedSection: `\
     {
-      initializeDeploymentClient: async () => Promise.resolve(),
+      initializeDeploymentClient: () => Promise.resolve(),
       deploy: async ({ artifactToDeploy }) => console.log("deploy-"+artifactToDeploy.packageJson?.name),
       destroyDeploymentClient: async ({ deploymentClient }) => Promise.resolve(),
     }`,
@@ -83,7 +83,7 @@ test(`deployment succeed but there will be an addtional deployment in the next f
         shouldDeploy: true,
         deploymentStrigifiedSection: `\
                 {
-                    initializeDeploymentClient: async () => Promise.resolve(),
+                    initializeDeploymentClient: () => Promise.resolve(),
                     deploy: async ({ artifactToDeploy }) => {
                         if(artifactToDeploy.packageJson.name?.startsWith("a")){
                           require ('child_process').execSync('${aDeployment.stepScript}')
@@ -122,7 +122,7 @@ test(`deployment failed but there will be an addtional deployment in the next fl
         shouldDeploy: true,
         deploymentStrigifiedSection: `\
                 {
-                    initializeDeploymentClient: async () => Promise.resolve(),
+                    initializeDeploymentClient: () => Promise.resolve(),
                     deploy: async ({ artifactToDeploy }) => {
                         if(artifactToDeploy.packageJson.name?.startsWith("a")){
                           require('child_process').execSync('${aDeployment.stepScript}',{stdio:'inherit'})

@@ -55,7 +55,7 @@ test('make sure that errors from deploy function are shown', async () => {
         shouldDeploy: true,
         deploymentStrigifiedSection: `\
           {
-            initializeDeploymentClient: async () => Promise.resolve(),
+            initializeDeploymentClient: () => Promise.resolve(),
             deploy: async () => Promise.reject('${error}'),
             destroyDeploymentClient: async () => Promise.reject('we wont be here2'),
           }`,
@@ -86,8 +86,8 @@ test('make sure that errors from destroyDeploymentClient function are shown', as
         shouldDeploy: true,
         deploymentStrigifiedSection: `\
           {
-            initializeDeploymentClient: async () => Promise.resolve(),
-            deploy: async () => Promise.resolve(),
+            initializeDeploymentClient: () => Promise.resolve(),
+            deploy: () => Promise.resolve(),
             destroyDeploymentClient: async () => Promise.reject('${error}'),
           }`,
       },
