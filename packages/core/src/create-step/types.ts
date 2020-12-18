@@ -182,6 +182,7 @@ export type StepOutputEvents = {
   [StepOutputEventType.artifactStep]: {
     type: StepOutputEventType.artifactStep
     artifact: Node<{ artifact: Artifact }>
+    step: Node<{ stepInfo: StepInfo }>
     artifactStepResult:
       | ScheduledResult
       | RunningResult
@@ -190,6 +191,7 @@ export type StepOutputEvents = {
   }
   [StepOutputEventType.step]: {
     type: StepOutputEventType.step
+    step: Node<{ stepInfo: StepInfo }>
     stepResult:
       | ScheduledResult
       | RunningResult

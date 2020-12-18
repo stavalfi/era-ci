@@ -1,6 +1,18 @@
-import { calculateCombinedStatus, didPassOrSkippedAsPassed, ExecutionStatus, Status } from '@tahini/utils'
+import {
+  Artifact,
+  calculateCombinedStatus,
+  didPassOrSkippedAsPassed,
+  ExecutionStatus,
+  Graph,
+  Status,
+} from '@tahini/utils'
 import _ from 'lodash'
-import { StepsResultOfArtifactsByStep } from './create-step'
+import {
+  StepInfo,
+  StepsResultOfArtifactsByArtifact,
+  StepsResultOfArtifactsByStep,
+  toStepsResultOfArtifactsByArtifact,
+} from './create-step'
 
 export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep): number {
   const finalStepsStatus = calculateCombinedStatus(
@@ -23,5 +35,44 @@ export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifacts
     return 0
   } else {
     return 1
+  }
+}
+
+export function getStepsResultOfArtifactsByStepAndArtifact({
+  artifacts,
+  steps,
+}: {
+  artifacts: Graph<{ artifact: Artifact }>
+  steps: Graph<{ stepInfo: StepInfo }>
+}): {
+  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
+  stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact
+} {
+  const stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep = steps.map(s => ({
+    ...s,
+    data: {
+      stepExecutionStatus: ExecutionStatus.scheduled,
+      stepInfo: s.data.stepInfo,
+      stepResult: {
+        executionStatus: ExecutionStatus.scheduled,
+      },
+      artifactsResult: artifacts.map(a => ({
+        ...a,
+        data: {
+          artifact: a.data.artifact,
+          artifactStepResult: {
+            executionStatus: ExecutionStatus.scheduled,
+          },
+        },
+      })),
+    },
+  }))
+
+  return {
+    stepsResultOfArtifactsByStep,
+    stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
+      artifacts: artifacts,
+      stepsResultOfArtifactsByStep,
+    }),
   }
 }

@@ -53,6 +53,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
     artifact => ({
       type: StepOutputEventType.artifactStep,
       artifact,
+      step: userRunStepOptions.currentStepInfo,
       artifactStepResult: {
         executionStatus: ExecutionStatus.scheduled,
       },
@@ -66,7 +67,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
     if (
       areStepsDoneOnArtifact({
         artifactIndex: event.artifact.index,
-        currentStepInfo: userRunStepOptions.currentStepInfo,
+        step: userRunStepOptions.currentStepInfo,
         stepsResultOfArtifactsByArtifact: userRunStepOptions.stepsResultOfArtifactsByArtifact,
       })
     ) {
@@ -78,6 +79,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
         const e: StepOutputEvents[StepOutputEventType.artifactStep] = {
           type: StepOutputEventType.artifactStep,
           artifact: event.artifact,
+          step: userRunStepOptions.currentStepInfo,
           artifactStepResult: {
             durationMs: Date.now() - startStepMs,
             ...artifactConstrainsResult.combinedResult,
@@ -98,6 +100,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
           }
           stepEvents$.next({
             type: StepOutputEventType.step,
+            step: userRunStepOptions.currentStepInfo,
             stepResult: {
               durationMs: Date.now() - startStepMs,
               executionStatus: ExecutionStatus.aborted,
@@ -113,6 +116,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
       const eventRunning: StepOutputEvents[StepOutputEventType.artifactStep] = {
         type: StepOutputEventType.artifactStep,
         artifact: event.artifact,
+        step: userRunStepOptions.currentStepInfo,
         artifactStepResult: {
           executionStatus: ExecutionStatus.running,
         },
@@ -131,6 +135,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
             ? {
                 type: StepOutputEventType.artifactStep,
                 artifact: event.artifact,
+                step: userRunStepOptions.currentStepInfo,
                 artifactStepResult: {
                   durationMs: Date.now() - startStepMs,
                   errors: [],
@@ -141,10 +146,12 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
             : artifactsEventsDone({
                 artifacts: userRunStepOptions.artifacts,
                 startStepMs: userRunStepOptions.startStepMs,
+                step: userRunStepOptions.currentStepInfo,
               })[event.artifact.index],
         error => ({
           type: StepOutputEventType.artifactStep,
           artifact: event.artifact,
+          step: userRunStepOptions.currentStepInfo,
           artifactStepResult: {
             durationMs: Date.now() - startStepMs,
             executionStatus: ExecutionStatus.done,
@@ -169,6 +176,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
         }
         stepEvents$.next({
           type: StepOutputEventType.step,
+          step: userRunStepOptions.currentStepInfo,
           stepResult: {
             durationMs: Date.now() - startStepMs,
             executionStatus: ExecutionStatus.done,
