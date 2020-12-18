@@ -1,8 +1,8 @@
 import { Artifact, ExecutionStatus, Graph, PackageJson } from '@tahini/utils'
 import _ from 'lodash'
-import { merge, Observable, Subject, Subscription } from 'rxjs'
+import { merge, Observable, Subject } from 'rxjs'
 import { filter, tap } from 'rxjs/operators'
-import { Logger } from './create-logger'
+import { Log, Logger } from './create-logger'
 import {
   StepExperimental,
   StepInfo,
@@ -22,6 +22,7 @@ type State = {
 }
 
 type Options = {
+  log: Log
   rootPackageJson: PackageJson
   taskQueues: Array<TaskQueueBase<unknown>>
   repoPath: string
@@ -93,6 +94,7 @@ function runStep(
 }
 
 export function runAllSteps(options: Options) {
+  options.log.verbose(`starting to execute steps`)
   const state: State = {
     stepsResultOfArtifactsByArtifact: options.stepsResultOfArtifactsByArtifact,
     stepsResultOfArtifactsByStep: options.stepsResultOfArtifactsByStep,
@@ -100,10 +102,40 @@ export function runAllSteps(options: Options) {
 
   const allStepsEvents$ = new Subject<StepOutputEvents[StepOutputEventType]>()
 
-  const subscription: Subscription = merge(
-    ...options.steps.map(s => runStep({ stepIndex: s.index, allStepsEvents$, ...options, ...state })),
-  )
+  merge(...options.steps.map(s => runStep({ stepIndex: s.index, allStepsEvents$, ...options, ...state })))
     .pipe(
+      tap(e => {
+        switch (e.type) {
+          case StepOutputEventType.step: {
+            const base = `step: "${e.step.data.stepInfo.displayName}" - execution-status: "${e.stepResult.executionStatus}"`
+            switch (e.stepResult.executionStatus) {
+              case ExecutionStatus.scheduled:
+              case ExecutionStatus.running:
+                options.log.debug(base)
+                break
+              case ExecutionStatus.aborted:
+              case ExecutionStatus.done:
+                options.log.debug(`${base}, status: "${e.stepResult.status}"`)
+                break
+            }
+            break
+          }
+          case StepOutputEventType.artifactStep: {
+            const base = `step: "${e.step.data.stepInfo.displayName}", artifact: "${e.artifact.data.artifact.packageJson.name}" - execution-status: "${e.artifactStepResult.executionStatus}"`
+            switch (e.artifactStepResult.executionStatus) {
+              case ExecutionStatus.scheduled:
+              case ExecutionStatus.running:
+                options.log.debug(base)
+                break
+              case ExecutionStatus.aborted:
+              case ExecutionStatus.done:
+                options.log.debug(`${base}, status: "${e.artifactStepResult.status}"`)
+                break
+            }
+            break
+          }
+        }
+      }),
       tap(e => {
         const stepResultClone = _.cloneDeep(state.stepsResultOfArtifactsByStep[e.step.index].data)
         switch (e.type) {
@@ -112,6 +144,7 @@ export function runAllSteps(options: Options) {
             break
           case StepOutputEventType.artifactStep:
             stepResultClone.artifactsResult[e.artifact.index].data.artifactStepResult = e.artifactStepResult
+            break
         }
         updateState({
           state,
@@ -128,11 +161,13 @@ export function runAllSteps(options: Options) {
         )
         if (isFlowFinished) {
           allStepsEvents$.complete()
-          subscription.unsubscribe()
+          options.log.debug(`ended to execute steps`)
         }
       }),
     )
-    .subscribe()
+    .subscribe({
+      complete: () => options.log.verbose(`ended to execute steps`),
+    })
 
   for (const step of state.stepsResultOfArtifactsByStep) {
     allStepsEvents$.next({
@@ -152,6 +187,10 @@ export function runAllSteps(options: Options) {
         },
       })
     }
+  }
+
+  if (options.steps.length === 0) {
+    allStepsEvents$.complete()
   }
 
   return allStepsEvents$

@@ -5,7 +5,7 @@ import { Artifact, buildFullDockerImageName, ExecutionStatus, Node, Status, Targ
 import {
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
   skipIfArtifactTargetTypeNotSupportedConstrain,
-} from 'constrains/src'
+} from '@tahini/constrains'
 import path from 'path'
 import { last } from 'rxjs/operators'
 import { skipIfImageTagAlreadyPublishedConstrain } from './constrains'

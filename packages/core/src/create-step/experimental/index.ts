@@ -91,8 +91,12 @@ export function createStepExperimental<
 
         const subscription = allStepsEventsRecorded$.connect()
 
+        const log = runStepOptions.logger.createLog(runStepOptions.currentStepInfo.data.stepInfo.stepName)
+
         return defer(async () => {
           const startStepMs = Date.now()
+
+          log.debug(`starting to execute step: "${runStepOptions.currentStepInfo.data.stepInfo.displayName}"`)
 
           // @ts-ignore - we need to find a way to ensure that if NormalizedStepConfigurations is defined, also normalizeStepConfigurations is defined.
           const normalizedStepConfigurations: NormalizedStepConfigurations = createStepOptions.normalizeStepConfigurations
@@ -101,7 +105,7 @@ export function createStepExperimental<
 
           const userRunStepOptions: UserRunStepOptions<TaskQueue, NormalizedStepConfigurations> = {
             ...runStepOptions,
-            log: runStepOptions.logger.createLog(runStepOptions.currentStepInfo.data.stepInfo.stepName),
+            log,
             startStepMs,
             stepConfigurations: normalizedStepConfigurations,
           }
@@ -114,7 +118,10 @@ export function createStepExperimental<
           })
         }).pipe(
           concatMap(identity),
-          finalize(() => subscription.unsubscribe()),
+          finalize(() => {
+            subscription.unsubscribe()
+            log.debug(`ended to execute step: "${runStepOptions.currentStepInfo.data.stepInfo.displayName}"`)
+          }),
         )
       },
     }
