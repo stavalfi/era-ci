@@ -1,5 +1,5 @@
 import { createStepExperimental } from '@tahini/core'
-import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
+import { createTest, DeepPartial, isDeepSubset } from '@tahini/e2e-tests-infra'
 import { JsonReport } from '@tahini/steps'
 import { createLinearStepsGraph } from '@tahini/steps-graph'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
@@ -106,7 +106,7 @@ test('step should pass in json-report', async () => {
     ],
   }
 
-  expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
 test('flow should fail because step failed (without throwing error from the step)', async () => {
@@ -211,7 +211,7 @@ test('flow should fail because step failed (without throwing error from the step
     ],
   }
 
-  expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
 test('flow should fail because step failed (while throwing error from the step)', async () => {
@@ -325,5 +325,5 @@ test('flow should fail because step failed (while throwing error from the step)'
     ],
   }
 
-  expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })

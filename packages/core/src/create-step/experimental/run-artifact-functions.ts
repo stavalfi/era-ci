@@ -165,6 +165,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
                     artifacts: userRunStepOptions.artifacts,
                     startStepMs: userRunStepOptions.startStepMs,
                     step: userRunStepOptions.currentStepInfo,
+                    status: Status.passed,
                   })[event.artifact.index],
             error => ({
               type: StepOutputEventType.artifactStep,

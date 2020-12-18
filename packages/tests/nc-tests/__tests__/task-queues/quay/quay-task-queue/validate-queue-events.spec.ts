@@ -1,4 +1,4 @@
-import { isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
+import { isDeepSubset } from '@tahini/e2e-tests-infra'
 import { AbortedTask, DoneTask, RunningTask, ScheduledTask, toTaskEvent$ } from '@tahini/core'
 import { ExecutionStatus, Status } from '@tahini/utils'
 import { QuayBuildsTaskQueue } from '@tahini/task-queues'
@@ -176,7 +176,7 @@ test('events schema is valid', async () => {
     .toPromise()
 
   expect(
-    isDeepSubsetOfOrPrint(scheduled, {
+    isDeepSubset(scheduled, {
       taskExecutionStatus: ExecutionStatus.scheduled,
       taskResult: {
         executionStatus: ExecutionStatus.scheduled,
@@ -185,7 +185,7 @@ test('events schema is valid', async () => {
   ).toBeTruthy()
 
   expect(
-    isDeepSubsetOfOrPrint(running, {
+    isDeepSubset(running, {
       taskExecutionStatus: ExecutionStatus.running,
       taskResult: {
         executionStatus: ExecutionStatus.running,
@@ -194,7 +194,7 @@ test('events schema is valid', async () => {
   ).toBeTruthy()
 
   expect(
-    isDeepSubsetOfOrPrint(done, {
+    isDeepSubset(done, {
       taskExecutionStatus: ExecutionStatus.done,
       taskResult: {
         executionStatus: ExecutionStatus.done,
@@ -235,7 +235,7 @@ RUN exit 1
     .toPromise()
 
   expect(
-    isDeepSubsetOfOrPrint(done, {
+    isDeepSubset(done, {
       taskExecutionStatus: ExecutionStatus.done,
       taskResult: {
         executionStatus: ExecutionStatus.done,
@@ -360,7 +360,7 @@ RUN sleep 10000 # make sure that this task will not end
     .toPromise()
 
   expect(
-    isDeepSubsetOfOrPrint(abort, {
+    isDeepSubset(abort, {
       taskExecutionStatus: ExecutionStatus.aborted,
       taskResult: {
         executionStatus: ExecutionStatus.aborted,

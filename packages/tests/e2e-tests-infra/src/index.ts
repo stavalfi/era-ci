@@ -20,7 +20,7 @@ import { addReportToStepsAsLastNodes } from './utils'
 
 export { createGitRepo } from './create-git-repo'
 export { DeepPartial, TestResources } from './types'
-export { isDeepSubsetOf, isDeepSubsetOfOrPrint, sleep } from './utils'
+export { isDeepSubset, sleep } from './utils'
 
 const { getResoureces } = resourcesBeforeAfterAll()
 

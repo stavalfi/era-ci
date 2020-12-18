@@ -1,5 +1,5 @@
 import { createStepExperimental } from '@tahini/core'
-import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
+import { createTest, DeepPartial, isDeepSubset } from '@tahini/e2e-tests-infra'
 import { JsonReport } from '@tahini/steps'
 import { createLinearStepsGraph } from '@tahini/steps-graph'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
@@ -109,5 +109,5 @@ test('passed,passed => passed', async () => {
     ],
   }
 
-  expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })

@@ -5,7 +5,7 @@ import { serializeError } from 'serialize-error'
 import { ConstrainResultType, runConstrains } from '../../create-constrain'
 import { TaskQueueBase } from '../../create-task-queue'
 import { StepFunctions, StepOutputEvents, StepOutputEventType, UserRunStepOptions } from '../types'
-import { artifactsEventsDone, artifactsEventsRunning, stepEventDone, stepEventRunning } from './utils'
+import { artifactsEventsAbort, artifactsEventsDone, stepEventDone, stepEventRunning } from './utils'
 
 export async function runStepFunctions<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
   allStepsEventsRecorded$,
@@ -40,12 +40,11 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<unknown>,
       | StepOutputEvents[StepOutputEventType.artifactStep]
       | StepOutputEvents[StepOutputEventType.step]
     )[] = [
-      stepEventRunning({ step: userRunStepOptions.currentStepInfo }),
-      ...artifactsEventsRunning({ artifacts: userRunStepOptions.artifacts, step: userRunStepOptions.currentStepInfo }),
-      ...artifactsEventsDone({
+      ...artifactsEventsAbort({
         artifacts: userRunStepOptions.artifacts,
         startStepMs: userRunStepOptions.startStepMs,
         step: userRunStepOptions.currentStepInfo,
+        status: stepConstrainsResult.combinedResult.status,
       }),
       {
         type: StepOutputEventType.step,
@@ -95,6 +94,7 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<unknown>,
         step: userRunStepOptions.currentStepInfo,
         artifacts: userRunStepOptions.artifacts,
         startStepMs: userRunStepOptions.startStepMs,
+        status: Status.passed,
       }),
       event,
     ])
@@ -105,7 +105,7 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<unknown>,
         step: userRunStepOptions.currentStepInfo,
         artifacts: userRunStepOptions.artifacts,
         startStepMs: userRunStepOptions.startStepMs,
-        asFailed: true,
+        status: Status.failed,
       }),
       event,
     ])

@@ -23,12 +23,12 @@ export const artifactsEventsRunning = ({
   }))
 
 export const artifactsEventsDone = ({
-  asFailed,
+  status,
   artifacts,
   startStepMs,
   step,
 }: {
-  asFailed?: boolean
+  status: Status.failed | Status.passed
   artifacts: Graph<{
     artifact: Artifact
   }>
@@ -44,7 +44,35 @@ export const artifactsEventsDone = ({
     artifactStepResult: {
       durationMs: Date.now() - startStepMs,
       executionStatus: ExecutionStatus.done,
-      status: asFailed ? Status.failed : Status.passed,
+      status,
+      errors: [],
+      notes: [],
+    },
+  }))
+
+export const artifactsEventsAbort = ({
+  status,
+  artifacts,
+  startStepMs,
+  step,
+}: {
+  status: Status.skippedAsFailed | Status.skippedAsPassed | Status.failed
+  artifacts: Graph<{
+    artifact: Artifact
+  }>
+  step: Node<{
+    stepInfo: StepInfo
+  }>
+  startStepMs: number
+}): StepOutputEvents[StepOutputEventType.artifactStep][] =>
+  artifacts.map<StepOutputEvents[StepOutputEventType.artifactStep]>(artifact => ({
+    type: StepOutputEventType.artifactStep,
+    artifact,
+    step,
+    artifactStepResult: {
+      durationMs: Date.now() - startStepMs,
+      executionStatus: ExecutionStatus.aborted,
+      status,
       errors: [],
       notes: [],
     },

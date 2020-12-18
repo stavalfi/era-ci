@@ -8,7 +8,6 @@
   },
   "devDependencies": {
     "@tahini/constrains": "^1.0.0",
-    "@tahini/constrains": "^1.0.0",
     "@tahini/e2e-tests-infra": "^1.0.0",
     "@tahini/quay-helper-service": "^1.0.0",
     "@tahini/quay-mock-service": "^1.0.0",
