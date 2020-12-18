@@ -1,6 +1,7 @@
 import { ExecutionStatus, Status } from '@tahini/utils'
 import { queue } from 'async'
 import { Observable, Subject } from 'rxjs'
+import { first, mergeMap } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'
 import { ConstrainResultType, runConstrains } from '../../create-constrain'
 import { TaskQueueBase } from '../../create-task-queue'
@@ -31,7 +32,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
       didRunBeforeAll = true
       await onBeforeArtifacts()
     }
-    done(null)
+    done()
   }, 1)
 
   let didRunAfterAll = false
@@ -40,8 +41,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
       didRunAfterAll = true
       await onAfterArtifacts()
     }
-    done(null)
-    return didRunAfterAll // true = step over. false = step is not over yet
+    done()
   }, 1)
 
   const stepEvents$ = new Subject<StepOutputEvents[StepOutputEventType]>()
@@ -60,133 +60,152 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
     }),
   )
 
-  const subscription = allStepsEventsRecorded$.subscribe(async event => {
-    if (event.type !== StepOutputEventType.artifactStep) {
-      return
-    }
-    if (
-      areStepsDoneOnArtifact({
-        artifactIndex: event.artifact.index,
-        step: userRunStepOptions.currentStepInfo,
-        stepsResultOfArtifactsByArtifact: userRunStepOptions.getState().stepsResultOfArtifactsByArtifact,
-      })
-    ) {
-      const artifactConstrainsResult = await runConstrains({
-        ...userRunStepOptions,
-        constrains: artifactConstrains.map(c => c(event.artifact)),
-      })
-      if (artifactConstrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-        const e: StepOutputEvents[StepOutputEventType.artifactStep] = {
-          type: StepOutputEventType.artifactStep,
-          artifact: event.artifact,
-          step: userRunStepOptions.currentStepInfo,
-          artifactStepResult: {
-            durationMs: Date.now() - startStepMs,
-            ...artifactConstrainsResult.combinedResult,
-          },
-        }
-        artifactResultsOnCurrentStep[event.artifact.index] = e
-        stepEvents$.next(e)
+  const areAllArtifactsFinished = (): boolean =>
+    artifactResultsOnCurrentStep.every(a =>
+      [ExecutionStatus.aborted, ExecutionStatus.done].includes(a.artifactStepResult.executionStatus),
+    )
 
+  let didSendStepRunning = false
+
+  allStepsEventsRecorded$
+    .pipe(
+      mergeMap(async event => {
         if (
-          didAllStepsAborted({
-            currentStepInfo: userRunStepOptions.currentStepInfo,
-            stepsResultOfArtifactsByStep: userRunStepOptions.getState().stepsResultOfArtifactsByStep,
+          event.type === StepOutputEventType.artifactStep &&
+          areStepsDoneOnArtifact({
+            artifactIndex: event.artifact.index,
+            step: userRunStepOptions.currentStepInfo,
+            stepsResultOfArtifactsByArtifact: userRunStepOptions.getState().stepsResultOfArtifactsByArtifact,
           })
         ) {
-          const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
-          if (status === Status.passed) {
-            throw new Error(`we can't be here`)
-          }
-          stepEvents$.next({
-            type: StepOutputEventType.step,
-            step: userRunStepOptions.currentStepInfo,
-            stepResult: {
-              durationMs: Date.now() - startStepMs,
-              executionStatus: ExecutionStatus.aborted,
-              status,
-              errors: [],
-              notes: [],
-            },
+          const artifactConstrainsResult = await runConstrains({
+            ...userRunStepOptions,
+            constrains: artifactConstrains.map(c => c(event.artifact)),
           })
-        }
-        return
-      }
+          if (artifactConstrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
+            const e: StepOutputEvents[StepOutputEventType.artifactStep] = {
+              type: StepOutputEventType.artifactStep,
+              artifact: event.artifact,
+              step: userRunStepOptions.currentStepInfo,
+              artifactStepResult: {
+                durationMs: Date.now() - startStepMs,
+                ...artifactConstrainsResult.combinedResult,
+              },
+            }
+            artifactResultsOnCurrentStep[event.artifact.index] = e
+            stepEvents$.next(e)
 
-      const eventRunning: StepOutputEvents[StepOutputEventType.artifactStep] = {
-        type: StepOutputEventType.artifactStep,
-        artifact: event.artifact,
-        step: userRunStepOptions.currentStepInfo,
-        artifactStepResult: {
-          executionStatus: ExecutionStatus.running,
-        },
-      }
-      stepEvents$.next(eventRunning)
-      artifactResultsOnCurrentStep[event.artifact.index] = eventRunning
-
-      await beforeAllQueue.push()
-
-      const newEvent = await onArtifact({ artifact: event.artifact }).then<
-        StepOutputEvents[StepOutputEventType.artifactStep],
-        StepOutputEvents[StepOutputEventType.artifactStep]
-      >(
-        r =>
-          r
-            ? {
-                type: StepOutputEventType.artifactStep,
-                artifact: event.artifact,
+            if (
+              didAllStepsAborted({
+                currentStepInfo: userRunStepOptions.currentStepInfo,
+                stepsResultOfArtifactsByStep: userRunStepOptions.getState().stepsResultOfArtifactsByStep,
+              })
+            ) {
+              const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
+              if (status === Status.passed) {
+                throw new Error(`we can't be here`)
+              }
+              stepEvents$.next({
+                type: StepOutputEventType.step,
                 step: userRunStepOptions.currentStepInfo,
-                artifactStepResult: {
+                stepResult: {
                   durationMs: Date.now() - startStepMs,
+                  executionStatus: ExecutionStatus.aborted,
+                  status,
                   errors: [],
                   notes: [],
-                  ...r,
                 },
-              }
-            : artifactsEventsDone({
-                artifacts: userRunStepOptions.artifacts,
-                startStepMs: userRunStepOptions.startStepMs,
-                step: userRunStepOptions.currentStepInfo,
-              })[event.artifact.index],
-        error => ({
-          type: StepOutputEventType.artifactStep,
-          artifact: event.artifact,
-          step: userRunStepOptions.currentStepInfo,
-          artifactStepResult: {
-            durationMs: Date.now() - startStepMs,
-            executionStatus: ExecutionStatus.done,
-            status: Status.failed,
-            errors: [serializeError(error)],
-            notes: [],
-          },
-        }),
-      )
+              })
+            }
+            return areAllArtifactsFinished()
+          }
 
-      stepEvents$.next(newEvent)
-      artifactResultsOnCurrentStep[event.artifact.index] = newEvent
+          if (!didSendStepRunning) {
+            didSendStepRunning = true
+            stepEvents$.next({
+              type: StepOutputEventType.step,
+              step: userRunStepOptions.currentStepInfo,
+              stepResult: {
+                executionStatus: ExecutionStatus.running,
+              },
+            })
+          }
 
-      // @ts-ignore - queue.push returns the value from the function. the types are wrong.
-      const isStepFinished: boolean = await afterAllQueue.push()
+          const eventRunning: StepOutputEvents[StepOutputEventType.artifactStep] = {
+            type: StepOutputEventType.artifactStep,
+            artifact: event.artifact,
+            step: userRunStepOptions.currentStepInfo,
+            artifactStepResult: {
+              executionStatus: ExecutionStatus.running,
+            },
+          }
+          stepEvents$.next(eventRunning)
+          artifactResultsOnCurrentStep[event.artifact.index] = eventRunning
 
-      if (isStepFinished) {
-        subscription.unsubscribe()
-        const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
-        if (status !== Status.passed && status !== Status.failed) {
-          throw new Error(`we can't be here`)
+          await beforeAllQueue.push()
+
+          const newEvent = await onArtifact({ artifact: event.artifact }).then<
+            StepOutputEvents[StepOutputEventType.artifactStep],
+            StepOutputEvents[StepOutputEventType.artifactStep]
+          >(
+            r =>
+              r
+                ? {
+                    type: StepOutputEventType.artifactStep,
+                    artifact: event.artifact,
+                    step: userRunStepOptions.currentStepInfo,
+                    artifactStepResult: {
+                      durationMs: Date.now() - startStepMs,
+                      errors: [],
+                      notes: [],
+                      ...r,
+                    },
+                  }
+                : artifactsEventsDone({
+                    artifacts: userRunStepOptions.artifacts,
+                    startStepMs: userRunStepOptions.startStepMs,
+                    step: userRunStepOptions.currentStepInfo,
+                  })[event.artifact.index],
+            error => ({
+              type: StepOutputEventType.artifactStep,
+              artifact: event.artifact,
+              step: userRunStepOptions.currentStepInfo,
+              artifactStepResult: {
+                durationMs: Date.now() - startStepMs,
+                executionStatus: ExecutionStatus.done,
+                status: Status.failed,
+                errors: [serializeError(error)],
+                notes: [],
+              },
+            }),
+          )
+
+          stepEvents$.next(newEvent)
+          artifactResultsOnCurrentStep[event.artifact.index] = newEvent
+
+          if (areAllArtifactsFinished()) {
+            await afterAllQueue.push()
+            const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
+            if (status !== Status.passed && status !== Status.failed) {
+              throw new Error(`we can't be here`)
+            }
+            stepEvents$.next({
+              type: StepOutputEventType.step,
+              step: userRunStepOptions.currentStepInfo,
+              stepResult: {
+                durationMs: Date.now() - startStepMs,
+                executionStatus: ExecutionStatus.done,
+                status,
+                errors: [],
+                notes: [],
+              },
+            })
+          }
         }
-        stepEvents$.next({
-          type: StepOutputEventType.step,
-          step: userRunStepOptions.currentStepInfo,
-          stepResult: {
-            durationMs: Date.now() - startStepMs,
-            executionStatus: ExecutionStatus.done,
-            status,
-            errors: [],
-            notes: [],
-          },
-        })
-      }
-    }
-  })
+        return areAllArtifactsFinished()
+      }),
+      first(areAllArtifactsFinished => areAllArtifactsFinished),
+    )
+    .subscribe()
   return stepEvents$
 }

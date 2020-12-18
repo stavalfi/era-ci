@@ -23,7 +23,7 @@ test('step should pass in json-report', async () => {
           stepName: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
           run: () => ({
-            stepLogic: async () => Promise.resolve(),
+            stepLogic: () => Promise.resolve(),
           }),
         })(),
       ]),

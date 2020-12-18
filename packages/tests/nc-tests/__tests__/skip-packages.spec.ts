@@ -36,7 +36,7 @@ describe('define custom predicate to check if we need to run the step on a packa
                   }),
                 }),
               ],
-              onArtifact: async () => Promise.resolve(),
+              onArtifact: () => Promise.resolve(),
             }),
           })(),
         ]),
