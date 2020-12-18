@@ -1,7 +1,7 @@
 import { LocalSequentalTaskQueue, localSequentalTaskQueue } from '@tahini/task-queues'
 import { LogLevel } from '@tahini/core'
 import { winstonLogger } from '@tahini/loggers'
-import { isDeepSubsetOfOrPrint, sleep } from '@tahini/e2e-tests-infra'
+import { isDeepSubset, sleep } from '@tahini/e2e-tests-infra'
 import { ExecutionStatus, Status } from '@tahini/utils'
 import { createFolder } from 'create-folder-structure'
 
@@ -105,7 +105,7 @@ test('events schema is valid', async () => {
 
   taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, event => {
     expect(
-      isDeepSubsetOfOrPrint(event, {
+      isDeepSubset(event, {
         taskExecutionStatus: ExecutionStatus.scheduled,
         taskInfo: {
           taskName: 'task1',
@@ -119,7 +119,7 @@ test('events schema is valid', async () => {
 
   taskQueue.eventEmitter.addListener(ExecutionStatus.running, event => {
     expect(
-      isDeepSubsetOfOrPrint(event, {
+      isDeepSubset(event, {
         taskExecutionStatus: ExecutionStatus.running,
         taskInfo: {
           taskName: 'task1',
@@ -133,10 +133,10 @@ test('events schema is valid', async () => {
 
   taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.resolve() }])
 
-  await new Promise(res =>
+  await new Promise<void>(res =>
     taskQueue.eventEmitter.addListener(ExecutionStatus.done, event => {
       expect(
-        isDeepSubsetOfOrPrint(event, {
+        isDeepSubset(event, {
           taskExecutionStatus: ExecutionStatus.done,
           taskInfo: {
             taskName: 'task1',
@@ -155,14 +155,14 @@ test('events schema is valid', async () => {
 })
 
 test('done events schema is valid when task fail', async () => {
-  taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.reject('error1') }])
+  taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.reject(new Error('error1')) }])
 
   expect.hasAssertions()
 
-  await new Promise(res =>
+  await new Promise<void>(res =>
     taskQueue.eventEmitter.addListener(ExecutionStatus.done, event => {
       expect(
-        isDeepSubsetOfOrPrint(event, {
+        isDeepSubset(event, {
           taskExecutionStatus: ExecutionStatus.done,
           taskInfo: {
             taskName: 'task1',
@@ -171,7 +171,11 @@ test('done events schema is valid when task fail', async () => {
             executionStatus: ExecutionStatus.done,
             status: Status.failed,
             notes: [],
-            errors: ['error1'],
+            errors: [
+              {
+                message: 'error1',
+              },
+            ],
           },
         }),
       ).toBeTruthy()
@@ -236,7 +240,7 @@ test('abort events schema is valid', async () => {
 
   taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, event => {
     expect(
-      isDeepSubsetOfOrPrint(event, {
+      isDeepSubset(event, {
         taskExecutionStatus: ExecutionStatus.aborted,
         taskInfo: {
           taskName: 'task1',

@@ -1,6 +1,6 @@
 import { ExecutionStatus, Status } from '@tahini/utils'
 import { JsonReport } from '@tahini/steps'
-import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
+import { createTest, DeepPartial, isDeepSubset } from '@tahini/e2e-tests-infra'
 
 const { createRepo } = createTest()
 
@@ -81,7 +81,7 @@ test('flow should be skippedAsPassed because there are no steps', async () => {
     },
   }
 
-  expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
 test('verify artifact in json-report', async () => {
@@ -111,5 +111,5 @@ test('verify artifact in json-report', async () => {
     ],
   }
 
-  expect(isDeepSubsetOfOrPrint(jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })

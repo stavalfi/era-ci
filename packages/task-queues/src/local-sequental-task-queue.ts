@@ -3,6 +3,7 @@ import chance from 'chance'
 import { EventEmitter } from 'events'
 import { createTaskQueue, TaskInfo, TaskQueueBase, TaskQueueEventEmitter, TaskQueueOptions } from '@tahini/core'
 import { ExecutionStatus, Status } from '@tahini/utils'
+import { serializeError } from 'serialize-error'
 
 type ProccessedTask = { taskInfo: TaskInfo; func: () => Promise<void>; startMs: number }
 
@@ -106,7 +107,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
           taskResult: {
             executionStatus: ExecutionStatus.done,
             durationMs: Date.now() - startTimeMs,
-            errors: [error],
+            errors: [serializeError(error)],
             notes: [],
             status: Status.failed,
           },

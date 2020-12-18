@@ -2,8 +2,9 @@ import { Config, TaskQueueBase } from '@tahini/core'
 import { createLinearStepsGraph } from '@tahini/steps-graph'
 import { cliTableReporter, jsonReporter } from '@tahini/steps'
 import _ from 'lodash'
+import { DeepPartial } from './types'
 
-export function isDeepSubsetOf({
+function isDeepSubsetOf({
   subset,
   fullObj,
   path,
@@ -107,7 +108,7 @@ export function isDeepSubsetOf({
   }
 }
 
-export function isDeepSubsetOfOrPrint(fullObj: unknown, subset: unknown): boolean {
+export function isDeepSubset<T>(fullObj: T, subset: DeepPartial<T>): boolean {
   const result = isDeepSubsetOf({ fullObj, subset, path: [] })
 
   if (result.result) {

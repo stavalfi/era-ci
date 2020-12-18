@@ -12,7 +12,7 @@ import {
 } from '../types'
 import { runArtifactFunctions } from './run-artifact-functions'
 import { runStepFunctions } from './run-step-functions'
-import { artifactsEventsDone, artifactsEventsRunning, stepEventRunning } from './utils'
+import { artifactsEventsAbort, stepEventRunning } from './utils'
 
 async function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
   allStepsEventsRecorded$,
@@ -40,11 +40,11 @@ async function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurati
       | StepOutputEvents[StepOutputEventType.step]
     )[] = [
       stepEventRunning({ step: userRunStepOptions.currentStepInfo }),
-      ...artifactsEventsRunning({ step: userRunStepOptions.currentStepInfo, artifacts: userRunStepOptions.artifacts }),
-      ...artifactsEventsDone({
+      ...artifactsEventsAbort({
         step: userRunStepOptions.currentStepInfo,
         artifacts: userRunStepOptions.artifacts,
         startStepMs: userRunStepOptions.startStepMs,
+        status: globalConstrainsResult.combinedResult.status,
       }),
       {
         type: StepOutputEventType.step,
