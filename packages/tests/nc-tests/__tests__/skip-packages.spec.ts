@@ -1,9 +1,9 @@
-import { createConstrain, createStep, RunStrategy } from '@tahini/core'
-import { ExecutionStatus, Status, ConstrainResultType } from '@tahini/utils'
-import { JsonReport } from '@tahini/steps'
+import { ConstrainResultType, createConstrain, createStepExperimental } from '@tahini/core'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
-import { LocalSequentalTaskQueue } from '@tahini/task-queues'
+import { JsonReport } from '@tahini/steps'
 import { createLinearStepsGraph } from '@tahini/steps-graph'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
+import { ExecutionStatus, Status } from '@tahini/utils'
 
 const { createRepo } = createTest()
 
@@ -20,29 +20,24 @@ describe('define custom predicate to check if we need to run the step on a packa
       },
       configurations: {
         steps: createLinearStepsGraph([
-          createStep({
+          createStepExperimental({
             stepName: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
-            constrains: {
-              onArtifact: [
+            run: () => ({
+              artifactConstrains: [
                 createConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
                     resultType: ConstrainResultType.ignoreThisConstrain,
-                    artifactStepResult: {
+                    result: {
                       errors: [],
                       notes: [],
                     },
                   }),
-                })(),
+                }),
               ],
-            },
-            run: {
-              runStrategy: RunStrategy.perArtifact,
-              runStepOnArtifact: async () => {
-                return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
-              },
-            },
+              onArtifact: async () => Promise.resolve(),
+            }),
           })(),
         ]),
       },
@@ -105,32 +100,26 @@ describe('define custom predicate to check if we need to run the step on a packa
       },
       configurations: {
         steps: createLinearStepsGraph([
-          createStep({
+          createStepExperimental({
             stepName: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
-            constrains: {
-              onArtifact: [
+            run: () => ({
+              artifactConstrains: [
                 createConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
                     resultType: ConstrainResultType.shouldSkip,
-                    artifactStepResult: {
+                    result: {
                       errors: [],
                       notes: [],
                       executionStatus: ExecutionStatus.aborted,
                       status: Status.skippedAsPassed,
                     },
                   }),
-                })(),
+                }),
               ],
-            },
-            run: {
-              runStrategy: RunStrategy.perArtifact,
-              runStepOnArtifact: async () => {
-                // we will never be here
-                return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
-              },
-            },
+              onArtifact: async () => ({ executionStatus: ExecutionStatus.done, status: Status.failed }),
+            }),
           })(),
         ]),
       },
@@ -193,32 +182,26 @@ describe('define custom predicate to check if we need to run the step on a packa
       },
       configurations: {
         steps: createLinearStepsGraph([
-          createStep({
+          createStepExperimental({
             stepName: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
-            constrains: {
-              onArtifact: [
+            run: () => ({
+              artifactConstrains: [
                 createConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
                     resultType: ConstrainResultType.shouldSkip,
-                    artifactStepResult: {
+                    result: {
                       errors: [],
                       notes: ['note1', 'note2'],
                       executionStatus: ExecutionStatus.aborted,
                       status: Status.skippedAsPassed,
                     },
                   }),
-                })(),
+                }),
               ],
-            },
-            run: {
-              runStrategy: RunStrategy.perArtifact,
-              runStepOnArtifact: async () => {
-                // we will never be here
-                return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
-              },
-            },
+              onArtifact: async () => ({ executionStatus: ExecutionStatus.done, status: Status.failed }),
+            }),
           })(),
         ]),
       },
@@ -281,32 +264,26 @@ describe('define custom predicate to check if we need to run the step on a packa
       },
       configurations: {
         steps: createLinearStepsGraph([
-          createStep({
+          createStepExperimental({
             stepName: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
-            constrains: {
-              onArtifact: [
+            run: () => ({
+              artifactConstrains: [
                 createConstrain({
                   constrainName: 'test-constrain',
                   constrain: async () => ({
                     resultType: ConstrainResultType.shouldSkip,
-                    artifactStepResult: {
+                    result: {
                       errors: [],
                       notes: ['note1', 'note2', 'note1', 'note2'],
                       executionStatus: ExecutionStatus.aborted,
                       status: Status.skippedAsPassed,
                     },
                   }),
-                })(),
+                }),
               ],
-            },
-            run: {
-              runStrategy: RunStrategy.perArtifact,
-              runStepOnArtifact: async () => {
-                // we will never be here
-                return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
-              },
-            },
+              onArtifact: async () => ({ executionStatus: ExecutionStatus.done, status: Status.failed }),
+            }),
           })(),
         ]),
       },

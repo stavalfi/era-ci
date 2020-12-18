@@ -3,8 +3,10 @@ import _ from 'lodash'
 import path from 'path'
 import { Logger } from './create-logger'
 import {
-  Step,
+  StepExperimental,
   StepInfo,
+  StepOutputEvents,
+  StepOutputEventType,
   StepResultOfArtifacts,
   StepsResultOfArtifactsByArtifact,
   StepsResultOfArtifactsByStep,
@@ -13,12 +15,14 @@ import {
 import { TaskQueueBase, TaskQueueOptions } from './create-task-queue'
 import { ImmutableCache } from './immutable-cache'
 import { Artifact, ExecutionStatus, Graph, PackageJson } from '@tahini/utils'
+import { Observable, Subject } from 'rxjs'
 
 type State = {
   stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
   stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function updateState({
   stepIndex,
   state,
@@ -59,7 +63,7 @@ export async function runAllSteps({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     taskQueueClass: { new (options: TaskQueueOptions<any>): any }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    runStep: Step<any>['runStep']
+    runStep: StepExperimental<any>['runStep']
   }>
   flowId: string
   repoHash: string
@@ -68,6 +72,7 @@ export async function runAllSteps({
   logger: Logger
   artifacts: Graph<{ artifact: Artifact }>
 }): Promise<State> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const rootPackageJson: PackageJson = await fse.readJson(path.join(repoPath, 'package.json'))
 
   const stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep = steps.map(s => ({
@@ -95,60 +100,66 @@ export async function runAllSteps({
     stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({ artifacts, stepsResultOfArtifactsByStep }),
   }
 
-  async function runStep(stepIndex: number): Promise<void> {
-    switch (stepsResultOfArtifactsByStep[stepIndex].data.stepResult.executionStatus) {
-      case ExecutionStatus.done:
-        throw new Error(`circual steps graph is not supported (yet?)`)
-      case ExecutionStatus.running:
-        throw new Error(`circual steps graph is not supported (yet?)`)
-      case ExecutionStatus.aborted:
-        return
-      case ExecutionStatus.scheduled: {
-        const onStep = state.stepsResultOfArtifactsByStep[stepIndex].parentsIndexes.every(pIndex =>
-          [ExecutionStatus.done, ExecutionStatus.aborted].includes(
-            state.stepsResultOfArtifactsByStep[pIndex].data.stepResult.executionStatus,
-          ),
-        )
-        if (onStep) {
-          const taskQueue = taskQueues.find(t => t instanceof stepsToRun[stepIndex].data.taskQueueClass)
-          if (!taskQueue) {
-            throw new Error(
-              `can't find task-queue: "${stepsToRun[stepIndex].data.taskQueueClass.name}" for step: "${stepsToRun[stepIndex].data.stepInfo.displayName}" needs. did you forgot to declare the task-queue in the configuration file?`,
-            )
-          }
-          const stepResultOfArtifacts = await stepsToRun[stepIndex].data.runStep({
-            taskQueue,
-            artifacts,
-            steps,
-            immutableCache,
-            currentStepInfo: steps[stepIndex],
-            flowId,
-            logger,
-            repoPath,
-            repoHash,
-            rootPackageJson,
-            startFlowMs,
-            stepsResultOfArtifactsByArtifact: state.stepsResultOfArtifactsByArtifact,
-            stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep,
-          })
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const stepsEvents$: Observable<StepOutputEvents[StepOutputEventType]> = new Subject()
 
-          updateState({ stepIndex, stepResultOfArtifacts, artifacts, state })
+  // async function runStep(stepIndex: number): Promise<void> {
+  //   switch (stepsResultOfArtifactsByStep[stepIndex].data.stepResult.executionStatus) {
+  //     case ExecutionStatus.done:
+  //       throw new Error(`circual steps graph is not supported (yet?)`)
+  //     case ExecutionStatus.running:
+  //       throw new Error(`circual steps graph is not supported (yet?)`)
+  //     case ExecutionStatus.aborted:
+  //       return
+  //     case ExecutionStatus.scheduled: {
+  //       const onStep = state.stepsResultOfArtifactsByStep[stepIndex].parentsIndexes.every(pIndex =>
+  //         [ExecutionStatus.done, ExecutionStatus.aborted].includes(
+  //           state.stepsResultOfArtifactsByStep[pIndex].data.stepResult.executionStatus,
+  //         ),
+  //       )
+  //       if (onStep) {
+  //         const taskQueue = taskQueues.find(t => t instanceof stepsToRun[stepIndex].data.taskQueueClass)
+  //         if (!taskQueue) {
+  //           throw new Error(
+  //             `can't find task-queue: "${stepsToRun[stepIndex].data.taskQueueClass.name}" for step: "${stepsToRun[stepIndex].data.stepInfo.displayName}" needs. did you forgot to declare the task-queue in the configuration file?`,
+  //           )
+  //         }
+  //         const stepResultOfArtifacts = await stepsToRun[stepIndex].data.runStep(
+  //           {
+  //             taskQueue,
+  //             artifacts,
+  //             steps,
+  //             immutableCache,
+  //             currentStepInfo: steps[stepIndex],
+  //             flowId,
+  //             logger,
+  //             repoPath,
+  //             repoHash,
+  //             rootPackageJson,
+  //             startFlowMs,
+  //             stepsResultOfArtifactsByArtifact: state.stepsResultOfArtifactsByArtifact,
+  //             stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep,
+  //           },
+  //           stepsEvents$,
+  //         )
 
-          await Promise.all(steps[stepIndex].childrenIndexes.map(runStep))
-        } else {
-          // when the last parent-step will be done, we will run this step
-          return
-        }
-      }
-    }
-  }
+  //         updateState({ stepIndex, stepResultOfArtifacts, artifacts, state })
 
-  await Promise.all(
-    steps
-      .filter(s => s.parentsIndexes.length === 0)
-      .map(s => s.index)
-      .map(runStep),
-  )
+  //         await Promise.all(steps[stepIndex].childrenIndexes.map(runStep))
+  //       } else {
+  //         // when the last parent-step will be done, we will run this step
+  //         return
+  //       }
+  //     }
+  //   }
+  // }
+
+  // await Promise.all(
+  //   steps
+  //     .filter(s => s.parentsIndexes.length === 0)
+  //     .map(s => s.index)
+  //     .map(runStep),
+  // )
 
   return state
 }

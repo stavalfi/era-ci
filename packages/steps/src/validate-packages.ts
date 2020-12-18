@@ -8,7 +8,7 @@ import semver from 'semver'
 export const validatePackages = createStepExperimental({
   stepName: 'validate-packages',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async ({ artifacts }) => ({
+  run: ({ artifacts }) => ({
     onArtifact: async ({ artifact }) => {
       const problems: Array<string> = []
 

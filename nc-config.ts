@@ -5,13 +5,13 @@ import { createLinearStepsGraph } from './packages/steps-graph'
 import { localSequentalTaskQueue } from './packages/task-queues/dist/src/index.js'
 import { winstonLogger } from './packages/loggers/dist/src/index.js'
 import {
-  build,
+  buildRoot,
   cliTableReporter,
   dockerPublish,
-  install,
+  installRoot,
   jsonReporter,
   k8sGcloudDeployment,
-  lint,
+  lintRoot,
   npmPublish,
   NpmScopeAccess,
   test,
@@ -51,11 +51,11 @@ export default config({
   }),
   steps: createLinearStepsGraph([
     validatePackages(),
-    install(),
-    lint({ lintScriptName: 'lint:code' }),
-    build(),
+    installRoot(),
+    lintRoot({ scriptName: 'lint:code' }),
+    buildRoot({ scriptName: 'build' }),
     test({
-      testScriptName: 'test',
+      scriptName: 'test',
       beforeAll: ({ log, repoPath }) =>
         execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
     }),

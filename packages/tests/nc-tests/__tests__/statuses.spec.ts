@@ -1,9 +1,9 @@
-import { createStep, RunStrategy } from '@tahini/core'
+import { createStepExperimental } from '@tahini/core'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
 import { JsonReport } from '@tahini/steps'
-import { ExecutionStatus, Status } from '@tahini/utils'
-import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import { createLinearStepsGraph } from '@tahini/steps-graph'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
+import { ExecutionStatus, Status } from '@tahini/utils'
 
 const { createRepo } = createTest()
 
@@ -19,25 +19,19 @@ test('passed,passed => passed', async () => {
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStep({
+        createStepExperimental({
           stepName: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: {
-            runStrategy: RunStrategy.perArtifact,
-            runStepOnArtifact: async () => {
-              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
-            },
-          },
+          run: () => ({
+            onArtifact: async () => ({ executionStatus: ExecutionStatus.done, status: Status.passed }),
+          }),
         })(),
-        createStep({
+        createStepExperimental({
           stepName: 'step2',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: {
-            runStrategy: RunStrategy.perArtifact,
-            runStepOnArtifact: async () => {
-              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
-            },
-          },
+          run: () => ({
+            onArtifact: async () => ({ executionStatus: ExecutionStatus.done, status: Status.passed }),
+          }),
         })(),
       ]),
     },

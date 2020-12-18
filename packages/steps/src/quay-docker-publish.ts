@@ -105,7 +105,7 @@ async function publishPackage({
 export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, QuayDockerPublishConfiguration>({
   stepName: 'quay-docker-publish',
   taskQueueClass: QuayBuildsTaskQueue,
-  run: async options => ({
+  run: options => ({
     stepConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact =>
