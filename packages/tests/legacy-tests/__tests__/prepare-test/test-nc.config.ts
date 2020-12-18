@@ -4,10 +4,10 @@ import { redisConnection } from '@tahini/key-value-stores'
 import { localSequentalTaskQueue } from '@tahini/task-queues'
 import { winstonLogger } from '@tahini/loggers'
 import {
-  build,
+  buildRoot,
   cliTableReporter,
   dockerPublish,
-  install,
+  installRoot,
   jsonReporter,
   npmPublish,
   NpmScopeAccess,
@@ -43,10 +43,10 @@ const keyValueStore = redisConnection({
 
 const steps = createLinearStepsGraph([
   validatePackages(),
-  install(),
-  build(),
+  installRoot(),
+  buildRoot({ scriptName: 'build' }),
   test({
-    testScriptName: TEST_SCRIPT_NAME!,
+    scriptName: TEST_SCRIPT_NAME!,
   }),
   npmPublish({
     isStepEnabled: Boolean(SHOULD_PUBLISH_NPM),

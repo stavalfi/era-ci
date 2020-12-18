@@ -12,10 +12,8 @@ import {
 } from '@tahini/utils'
 import { Observable } from 'rxjs'
 import { ErrorObject } from 'serialize-error'
-import { ArtifactInStepConstrain } from '../create-artifact-step-constrain'
 import { Constrain } from '../create-constrain'
 import { Log, Logger } from '../create-logger'
-import { StepConstrain } from '../create-step-constrain'
 import { TaskQueueBase, TaskQueueOptions } from '../create-task-queue'
 import { ImmutableCache } from '../immutable-cache'
 
@@ -245,33 +243,26 @@ export type RunStepOnRoot<TaskQueue extends TaskQueueBase<unknown>, StepConfigur
   | Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>, 'durationMs'>
 >
 
+export type StepFunctions<StepConfigurations> = {
+  stepConstrains?: Array<Constrain<StepConfigurations>>
+  stepLogic?: () => Promise<UserReturnValue | undefined | void>
+}
+
+export type ArtifactFunctions<StepConfigurations> = {
+  artifactConstrains?: Array<(artifact: Node<{ artifact: Artifact }>) => Constrain<StepConfigurations>>
+  onBeforeArtifacts?: () => Promise<void>
+  onArtifact?: (options: { artifact: Node<{ artifact: Artifact }> }) => Promise<UserReturnValue | undefined | void>
+  onAfterArtifacts?: () => Promise<void>
+}
+
 export type RunStepExperimental<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations>,
-) => Promise<
+) =>
   | ({
-      stepConstrains?: Array<Constrain<StepConfigurations>>
-    } & (
-      | {
-          stepLogic?: () => Promise<UserReturnValue | undefined | void>
-        }
-      | {
-          artifactConstrains?: Array<(artifact: Node<{ artifact: Artifact }>) => Constrain<StepConfigurations>>
-          onBeforeArtifacts?: () => Promise<void>
-          onArtifact?: (options: {
-            artifact: Node<{ artifact: Artifact }>
-          }) => Promise<UserReturnValue | undefined | void>
-          onAfterArtifacts?: () => Promise<void>
-        }
-    ))
+      globalConstrains?: Array<Constrain<StepConfigurations>>
+    } & (StepFunctions<StepConfigurations> | ArtifactFunctions<StepConfigurations>))
   | undefined
   | void
->
-
-export type Step<TaskQueue extends TaskQueueBase<unknown>> = {
-  stepName: string
-  taskQueueClass: { new (options: TaskQueueOptions<unknown>): TaskQueue }
-  runStep: (runStepOptions: RunStepOptions<TaskQueue>) => Promise<StepResultOfArtifacts>
-}
 
 export type StepExperimental<TaskQueue extends TaskQueueBase<unknown>> = {
   stepName: string
@@ -279,7 +270,7 @@ export type StepExperimental<TaskQueue extends TaskQueueBase<unknown>> = {
   runStep: (
     runStepOptions: RunStepOptions<TaskQueue>,
     stepsEvents$: Observable<StepOutputEvents[StepOutputEventType]>,
-  ) => Promise<Observable<StepOutputEvents[StepOutputEventType]>>
+  ) => Observable<StepOutputEvents[StepOutputEventType]>
 }
 
 export enum RunStrategy {
@@ -311,23 +302,6 @@ export type Run<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = 
       runStepOnRoot: RunStepOnRoot<TaskQueue, StepConfigurations>
     }
 )
-
-export type CreateStepOptions<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  TaskQueue extends TaskQueueBase<any>,
-  StepConfigurations = void,
-  NormalizedStepConfigurations = StepConfigurations
-> = {
-  stepName: string
-  normalizeStepConfigurations?: (stepConfigurations: StepConfigurations) => Promise<NormalizedStepConfigurations>
-  constrains?: {
-    onStep?: Array<StepConstrain<NormalizedStepConfigurations>>
-    onArtifact?: Array<ArtifactInStepConstrain<NormalizedStepConfigurations>>
-  }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  taskQueueClass: { new (options: TaskQueueOptions<any>, ...params: any[]): TaskQueue }
-  run: Run<TaskQueue, NormalizedStepConfigurations>
-}
 
 export type CreateStepOptionsExperimental<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -10,19 +10,19 @@ import { execaCommand } from '@tahini/utils'
 import _ from 'lodash'
 
 export type TestConfigurations = {
-  testScriptName: string
+  scriptName: string
   beforeAll?: (
     options: Omit<UserRunStepOptions<LocalSequentalTaskQueue, TestConfigurations>, 'stepConfigurations'>,
-  ) => Promise<void>
+  ) => Promise<unknown>
   afterAll?: (
     options: Omit<UserRunStepOptions<LocalSequentalTaskQueue, TestConfigurations>, 'stepConfigurations'>,
-  ) => Promise<void>
+  ) => Promise<unknown>
 }
 
 export const test = createStepExperimental<LocalSequentalTaskQueue, TestConfigurations>({
   stepName: 'test',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async options => ({
+  run: options => ({
     stepConstrains: [
       skipIfStepResultNotPassedConstrain({
         stepName: 'install-root',
@@ -51,7 +51,7 @@ export const test = createStepExperimental<LocalSequentalTaskQueue, TestConfigur
       }
     },
     onArtifact: async ({ artifact }) => {
-      await execaCommand(`yarn run ${options.stepConfigurations.testScriptName}`, {
+      await execaCommand(`yarn run ${options.stepConfigurations.scriptName}`, {
         cwd: artifact.data.artifact.packagePath,
         stdio: 'inherit',
         log: options.log,

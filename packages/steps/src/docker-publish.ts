@@ -159,7 +159,7 @@ async function publishPackage({
 export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, LocalDockerPublishConfiguration>({
   stepName: 'docker-publish',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async options => ({
+  run: options => ({
     stepConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact => skipIfImageTagAlreadyPublishedConstrain({ currentArtifact: artifact }),

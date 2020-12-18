@@ -1,4 +1,4 @@
-import { createStep, RunStrategy, TaskQueueBase } from '@tahini/core'
+import { createStepExperimental, TaskQueueBase } from '@tahini/core'
 import { createTest } from '@tahini/e2e-tests-infra'
 import { createLinearStepsGraph } from '@tahini/steps-graph'
 import { ExecutionStatus, Status } from '@tahini/utils'
@@ -48,15 +48,12 @@ test('should throw error if user forgot to declare a task-queue which one of the
     configurations: {
       taskQueues: [], // we "forgot" to declare LocalSequentalTaskQueue so we expect an error.
       steps: createLinearStepsGraph([
-        createStep({
+        createStepExperimental({
           stepName: 'step1',
           taskQueueClass: MissingTaskQueue,
-          run: {
-            runStrategy: RunStrategy.perArtifact,
-            runStepOnArtifact: async () => {
-              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
-            },
-          },
+          run: () => ({
+            onArtifact: async () => ({ executionStatus: ExecutionStatus.done, status: Status.passed }),
+          }),
         })(),
       ]),
     },

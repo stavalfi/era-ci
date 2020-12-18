@@ -1,7 +1,7 @@
-export { build } from './build-root'
+export { buildRoot } from './build-root'
 export { cliTableReporter } from './cli-table-report'
 export { dockerPublish } from './docker-publish'
-export { install } from './install-root'
+export { installRoot } from './install-root'
 export {
   JsonReport,
   jsonReporter,
@@ -11,7 +11,7 @@ export {
   jsonReportToString,
 } from './json-reporter'
 export { k8sGcloudDeployment } from './k8s-gcloud-deployment'
-export { lint } from './lint-root'
+export { lintRoot } from './lint-root'
 export { npmPublish, npmRegistryLogin, NpmScopeAccess } from './npm-publish'
 export { test } from './test'
 export { validatePackages } from './validate-packages'

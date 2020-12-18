@@ -25,6 +25,7 @@
     "@swc/core": "^1.2.9",
     "@tahini/utils": "^1.0.0",
     "async": "^3.2.0",
+    "async-lock": "^1.2.6",
     "chalk": "^4.1.0",
     "chance": "^1.1.5",
     "ci-info": "https://github.com/watson/ci-info.git",

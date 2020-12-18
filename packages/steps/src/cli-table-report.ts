@@ -1,5 +1,5 @@
 import { skipIfStepResultNotPassedConstrain } from '@tahini/constrains'
-import { ConstrainResultType, createStepExperimental, StepEventType, stepToString } from '@tahini/core'
+import { createStepExperimental, stepToString } from '@tahini/core'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import { ExecutionStatus, Status } from '@tahini/utils'
 import Table, { CellOptions } from 'cli-table3'
@@ -511,7 +511,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
 export const cliTableReporter = createStepExperimental({
   stepName: 'cli-table-reporter',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async options => ({
+  run: options => ({
     stepConstrains: [
       skipIfStepResultNotPassedConstrain({
         stepName: jsonReporterStepName,

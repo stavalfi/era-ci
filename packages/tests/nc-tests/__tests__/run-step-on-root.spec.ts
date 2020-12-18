@@ -1,9 +1,9 @@
-import { createStep, RunStrategy } from '@tahini/core'
-import { ExecutionStatus, Status } from '@tahini/utils'
-import { JsonReport } from '@tahini/steps'
+import { createStepExperimental } from '@tahini/core'
 import { createTest, DeepPartial, isDeepSubsetOfOrPrint } from '@tahini/e2e-tests-infra'
-import { LocalSequentalTaskQueue } from '@tahini/task-queues'
+import { JsonReport } from '@tahini/steps'
 import { createLinearStepsGraph } from '@tahini/steps-graph'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
+import { ExecutionStatus, Status } from '@tahini/utils'
 
 const { createRepo } = createTest()
 
@@ -19,15 +19,10 @@ test('flow should pass because step pass', async () => {
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStep({
+        createStepExperimental({
           stepName: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: {
-            runStrategy: RunStrategy.root,
-            runStepOnRoot: async () => {
-              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
-            },
-          },
+          run: () => ({ stepLogic: () => Promise.resolve() }),
         })(),
       ]),
     },
@@ -62,15 +57,10 @@ test('step should pass in json-report', async () => {
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStep({
+        createStepExperimental({
           stepName: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: {
-            runStrategy: RunStrategy.root,
-            runStepOnRoot: async () => {
-              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.passed }
-            },
-          },
+          run: () => ({ stepLogic: () => Promise.resolve() }),
         })(),
       ]),
     },
@@ -133,15 +123,15 @@ test('flow should fail because step failed (without throwing error from the step
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStep({
+        createStepExperimental({
           stepName: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: {
-            runStrategy: RunStrategy.root,
-            runStepOnRoot: async () => {
-              return { errors: [], notes: [], executionStatus: ExecutionStatus.done, status: Status.failed }
-            },
-          },
+          run: () => ({
+            stepLogic: async () => ({
+              executionStatus: ExecutionStatus.done,
+              status: Status.failed,
+            }),
+          }),
         })(),
       ]),
     },
@@ -206,15 +196,14 @@ test('flow should fail because step failed (while throwing error from the step)'
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStep({
+        createStepExperimental({
           stepName: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: {
-            runStrategy: RunStrategy.root,
-            runStepOnRoot: async () => {
+          run: () => ({
+            stepLogic: async () => {
               throw new Error('error123')
             },
-          },
+          }),
         })(),
       ]),
     },

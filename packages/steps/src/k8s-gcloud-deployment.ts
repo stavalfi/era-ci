@@ -49,7 +49,7 @@ const customConstrain = createConstrain<
 export const k8sGcloudDeployment = createStepExperimental<LocalSequentalTaskQueue, K8sGcloudDeploymentConfiguration>({
   stepName: 'k8s-gcloud-deployment',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async ({ stepConfigurations, repoPath, log, immutableCache }) => ({
+  run: ({ stepConfigurations, repoPath, log, immutableCache }) => ({
     stepConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact =>

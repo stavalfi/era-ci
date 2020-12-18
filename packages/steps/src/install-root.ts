@@ -8,7 +8,7 @@ import { createStepExperimental } from '../../core/src/create-step/experimental'
 export const installRoot = createStepExperimental({
   stepName: 'install-root',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async ({ repoPath, log, runConstrains }) => ({
+  run: ({ repoPath, log }) => ({
     stepConstrains: [
       skipIfStepResultNotPassedConstrain({
         stepName: 'validate-packages',

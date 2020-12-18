@@ -252,7 +252,7 @@ const customConstrain = createConstrain<
 export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPublishConfiguration>({
   stepName: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async ({ stepConfigurations, repoPath, log, immutableCache }) => ({
+  run: ({ stepConfigurations, repoPath, log, immutableCache }) => ({
     stepConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact =>
