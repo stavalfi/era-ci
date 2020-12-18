@@ -1,6 +1,7 @@
-import fse from 'fs-extra'
+import { Artifact, ExecutionStatus, Graph, PackageJson } from '@tahini/utils'
 import _ from 'lodash'
-import path from 'path'
+import { merge, Observable, Subject, Subscription } from 'rxjs'
+import { filter, tap } from 'rxjs/operators'
 import { Logger } from './create-logger'
 import {
   StepExperimental,
@@ -14,15 +15,32 @@ import {
 } from './create-step'
 import { TaskQueueBase, TaskQueueOptions } from './create-task-queue'
 import { ImmutableCache } from './immutable-cache'
-import { Artifact, ExecutionStatus, Graph, PackageJson } from '@tahini/utils'
-import { Observable, Subject } from 'rxjs'
 
 type State = {
   stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
   stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type Options = {
+  rootPackageJson: PackageJson
+  taskQueues: Array<TaskQueueBase<unknown>>
+  repoPath: string
+  steps: Graph<{ stepInfo: StepInfo }>
+  stepsToRun: Graph<{
+    stepInfo: StepInfo
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    taskQueueClass: { new (options: TaskQueueOptions<any>): any }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runStep: StepExperimental<any>['runStep']
+  }>
+  flowId: string
+  repoHash: string
+  startFlowMs: number
+  immutableCache: ImmutableCache
+  logger: Logger
+  artifacts: Graph<{ artifact: Artifact }>
+} & State
+
 function updateState({
   stepIndex,
   state,
@@ -43,123 +61,98 @@ function updateState({
   })
 }
 
-export async function runAllSteps({
-  repoPath,
-  stepsToRun,
-  startFlowMs,
-  flowId,
-  immutableCache,
-  logger,
-  artifacts,
-  steps,
-  repoHash,
-  taskQueues,
-}: {
-  taskQueues: Array<TaskQueueBase<unknown>>
-  repoPath: string
-  steps: Graph<{ stepInfo: StepInfo }>
-  stepsToRun: Graph<{
-    stepInfo: StepInfo
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    taskQueueClass: { new (options: TaskQueueOptions<any>): any }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    runStep: StepExperimental<any>['runStep']
-  }>
-  flowId: string
-  repoHash: string
-  startFlowMs: number
-  immutableCache: ImmutableCache
-  logger: Logger
-  artifacts: Graph<{ artifact: Artifact }>
-}): Promise<State> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const rootPackageJson: PackageJson = await fse.readJson(path.join(repoPath, 'package.json'))
+function runStep(
+  options: {
+    stepIndex: number
+    allStepsEvents$: Observable<StepOutputEvents[StepOutputEventType]>
+  } & Options &
+    State,
+): Observable<StepOutputEvents[StepOutputEventType]> {
+  const taskQueue = options.taskQueues.find(t => t instanceof options.stepsToRun[options.stepIndex].data.taskQueueClass)
+  if (!taskQueue) {
+    throw new Error(
+      `can't find task-queue: "${options.stepsToRun[options.stepIndex].data.taskQueueClass.name}" for step: "${
+        options.stepsToRun[options.stepIndex].data.stepInfo.displayName
+      }" needs. did you forgot to declare the task-queue in the configuration file?`,
+    )
+  }
+  return options.stepsToRun[options.stepIndex].data.runStep(
+    { ...options, taskQueue, currentStepInfo: options.steps[options.stepIndex] },
+    options.allStepsEvents$.pipe(
+      filter(
+        e =>
+          // only allow events from parent-steps or scheduled-events from current step.
+          options.steps[options.stepIndex].parentsIndexes.includes(e.step.index) ||
+          (e.step.index === options.stepIndex &&
+            (e.type === StepOutputEventType.step
+              ? e.stepResult.executionStatus === ExecutionStatus.scheduled
+              : e.artifactStepResult.executionStatus === ExecutionStatus.scheduled)),
+      ),
+    ),
+  )
+}
 
-  const stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep = steps.map(s => ({
-    ...s,
-    data: {
-      stepExecutionStatus: ExecutionStatus.scheduled,
-      stepInfo: s.data.stepInfo,
+export function runAllSteps(options: Options) {
+  const state: State = {
+    stepsResultOfArtifactsByArtifact: options.stepsResultOfArtifactsByArtifact,
+    stepsResultOfArtifactsByStep: options.stepsResultOfArtifactsByStep,
+  }
+
+  const allStepsEvents$ = new Subject<StepOutputEvents[StepOutputEventType]>()
+
+  const subscription: Subscription = merge(
+    ...options.steps.map(s => runStep({ stepIndex: s.index, allStepsEvents$, ...options, ...state })),
+  )
+    .pipe(
+      tap(e => {
+        const stepResultClone = _.cloneDeep(state.stepsResultOfArtifactsByStep[e.step.index].data)
+        switch (e.type) {
+          case StepOutputEventType.step:
+            stepResultClone.stepResult = e.stepResult
+            break
+          case StepOutputEventType.artifactStep:
+            stepResultClone.artifactsResult[e.artifact.index].data.artifactStepResult = e.artifactStepResult
+        }
+        updateState({
+          state,
+          artifacts: options.artifacts,
+          stepIndex: e.step.index,
+          stepResultOfArtifacts: stepResultClone,
+        })
+      }),
+      tap(e => allStepsEvents$.next(e)),
+      tap(() => {
+        // after all steps are done, close all streams
+        const isFlowFinished = state.stepsResultOfArtifactsByStep.every(step =>
+          [ExecutionStatus.aborted, ExecutionStatus.done].includes(step.data.stepExecutionStatus),
+        )
+        if (isFlowFinished) {
+          allStepsEvents$.complete()
+          subscription.unsubscribe()
+        }
+      }),
+    )
+    .subscribe()
+
+  for (const step of state.stepsResultOfArtifactsByStep) {
+    allStepsEvents$.next({
+      type: StepOutputEventType.step,
+      step: options.steps[step.index],
       stepResult: {
         executionStatus: ExecutionStatus.scheduled,
       },
-      artifactsResult: artifacts.map(a => ({
-        ...a,
-        data: {
-          artifact: a.data.artifact,
-          artifactStepResult: {
-            executionStatus: ExecutionStatus.scheduled,
-          },
+    })
+    for (const artifact of step.data.artifactsResult) {
+      allStepsEvents$.next({
+        type: StepOutputEventType.artifactStep,
+        step: options.steps[step.index],
+        artifact: options.artifacts[artifact.index],
+        artifactStepResult: {
+          executionStatus: ExecutionStatus.scheduled,
         },
-      })),
-    },
-  }))
-
-  const state: State = {
-    stepsResultOfArtifactsByStep,
-    stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({ artifacts, stepsResultOfArtifactsByStep }),
+      })
+    }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const stepsEvents$: Observable<StepOutputEvents[StepOutputEventType]> = new Subject()
-
-  // async function runStep(stepIndex: number): Promise<void> {
-  //   switch (stepsResultOfArtifactsByStep[stepIndex].data.stepResult.executionStatus) {
-  //     case ExecutionStatus.done:
-  //       throw new Error(`circual steps graph is not supported (yet?)`)
-  //     case ExecutionStatus.running:
-  //       throw new Error(`circual steps graph is not supported (yet?)`)
-  //     case ExecutionStatus.aborted:
-  //       return
-  //     case ExecutionStatus.scheduled: {
-  //       const onStep = state.stepsResultOfArtifactsByStep[stepIndex].parentsIndexes.every(pIndex =>
-  //         [ExecutionStatus.done, ExecutionStatus.aborted].includes(
-  //           state.stepsResultOfArtifactsByStep[pIndex].data.stepResult.executionStatus,
-  //         ),
-  //       )
-  //       if (onStep) {
-  //         const taskQueue = taskQueues.find(t => t instanceof stepsToRun[stepIndex].data.taskQueueClass)
-  //         if (!taskQueue) {
-  //           throw new Error(
-  //             `can't find task-queue: "${stepsToRun[stepIndex].data.taskQueueClass.name}" for step: "${stepsToRun[stepIndex].data.stepInfo.displayName}" needs. did you forgot to declare the task-queue in the configuration file?`,
-  //           )
-  //         }
-  //         const stepResultOfArtifacts = await stepsToRun[stepIndex].data.runStep(
-  //           {
-  //             taskQueue,
-  //             artifacts,
-  //             steps,
-  //             immutableCache,
-  //             currentStepInfo: steps[stepIndex],
-  //             flowId,
-  //             logger,
-  //             repoPath,
-  //             repoHash,
-  //             rootPackageJson,
-  //             startFlowMs,
-  //             stepsResultOfArtifactsByArtifact: state.stepsResultOfArtifactsByArtifact,
-  //             stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep,
-  //           },
-  //           stepsEvents$,
-  //         )
-
-  //         updateState({ stepIndex, stepResultOfArtifacts, artifacts, state })
-
-  //         await Promise.all(steps[stepIndex].childrenIndexes.map(runStep))
-  //       } else {
-  //         // when the last parent-step will be done, we will run this step
-  //         return
-  //       }
-  //     }
-  //   }
-  // }
-
-  // await Promise.all(
-  //   steps
-  //     .filter(s => s.parentsIndexes.length === 0)
-  //     .map(s => s.index)
-  //     .map(runStep),
-  // )
-
-  return state
+  return allStepsEvents$
 }

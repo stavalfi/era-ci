@@ -2,14 +2,21 @@ import { Artifact, calculateCombinedStatus, ExecutionStatus, Graph, Node, Status
 import _ from 'lodash'
 import { StepInfo, StepOutputEvents, StepOutputEventType, StepResultOfArtifacts, StepsResultOfArtifact } from '../types'
 
-export const artifactsEventsRunning = (
+export const artifactsEventsRunning = ({
+  artifacts,
+  step,
+}: {
   artifacts: Graph<{
     artifact: Artifact
-  }>,
-): StepOutputEvents[StepOutputEventType.artifactStep][] =>
+  }>
+  step: Node<{
+    stepInfo: StepInfo
+  }>
+}): StepOutputEvents[StepOutputEventType.artifactStep][] =>
   artifacts.map<StepOutputEvents[StepOutputEventType.artifactStep]>(artifact => ({
     type: StepOutputEventType.artifactStep,
     artifact,
+    step,
     artifactStepResult: {
       executionStatus: ExecutionStatus.running,
     },
@@ -19,16 +26,21 @@ export const artifactsEventsDone = ({
   asFailed,
   artifacts,
   startStepMs,
+  step,
 }: {
   asFailed?: boolean
   artifacts: Graph<{
     artifact: Artifact
+  }>
+  step: Node<{
+    stepInfo: StepInfo
   }>
   startStepMs: number
 }): StepOutputEvents[StepOutputEventType.artifactStep][] =>
   artifacts.map<StepOutputEvents[StepOutputEventType.artifactStep]>(artifact => ({
     type: StepOutputEventType.artifactStep,
     artifact,
+    step,
     artifactStepResult: {
       durationMs: Date.now() - startStepMs,
       executionStatus: ExecutionStatus.done,
@@ -38,15 +50,31 @@ export const artifactsEventsDone = ({
     },
   }))
 
-export const stepEventRunning = (): StepOutputEvents[StepOutputEventType.step] => ({
+export const stepEventRunning = ({
+  step,
+}: {
+  step: Node<{
+    stepInfo: StepInfo
+  }>
+}): StepOutputEvents[StepOutputEventType.step] => ({
   type: StepOutputEventType.step,
+  step,
   stepResult: {
     executionStatus: ExecutionStatus.running,
   },
 })
 
-export const stepEventDone = (startStepMs: number): StepOutputEvents[StepOutputEventType.step] => ({
+export const stepEventDone = ({
+  step,
+  startStepMs,
+}: {
+  startStepMs: number
+  step: Node<{
+    stepInfo: StepInfo
+  }>
+}): StepOutputEvents[StepOutputEventType.step] => ({
   type: StepOutputEventType.step,
+  step,
   stepResult: {
     durationMs: Date.now() - startStepMs,
     executionStatus: ExecutionStatus.done,
@@ -74,16 +102,16 @@ export function calculateCombinedStatusOfCurrentStep(
 export const areStepsDoneOnArtifact = ({
   stepsResultOfArtifactsByArtifact,
   artifactIndex,
-  currentStepInfo,
+  step,
 }: {
   stepsResultOfArtifactsByArtifact: Graph<StepsResultOfArtifact>
   artifactIndex: number
-  currentStepInfo: Node<{
+  step: Node<{
     stepInfo: StepInfo
   }>
 }): boolean => {
   const stepsOfArtifact = stepsResultOfArtifactsByArtifact[artifactIndex].data.stepsResult
-  const parentSteps = currentStepInfo.parentsIndexes
+  const parentSteps = step.parentsIndexes
   return parentSteps.every(
     p =>
       stepsOfArtifact[p].data.artifactStepResult.executionStatus === ExecutionStatus.aborted ||

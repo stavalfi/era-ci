@@ -39,11 +39,16 @@ async function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurati
       | StepOutputEvents[StepOutputEventType.artifactStep]
       | StepOutputEvents[StepOutputEventType.step]
     )[] = [
-      stepEventRunning(),
-      ...artifactsEventsRunning(userRunStepOptions.artifacts),
-      ...artifactsEventsDone({ artifacts: userRunStepOptions.artifacts, startStepMs: userRunStepOptions.startStepMs }),
+      stepEventRunning({ step: userRunStepOptions.currentStepInfo }),
+      ...artifactsEventsRunning({ step: userRunStepOptions.currentStepInfo, artifacts: userRunStepOptions.artifacts }),
+      ...artifactsEventsDone({
+        step: userRunStepOptions.currentStepInfo,
+        artifacts: userRunStepOptions.artifacts,
+        startStepMs: userRunStepOptions.startStepMs,
+      }),
       {
         type: StepOutputEventType.step,
+        step: userRunStepOptions.currentStepInfo,
         stepResult: {
           durationMs: Date.now() - startStepMs,
           ...globalConstrainsResult.combinedResult,

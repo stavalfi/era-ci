@@ -1,13 +1,14 @@
+import { Cleanup, getGitRepoInfo, getPackages, Graph, PackageJson, toFlowLogsContentKey } from '@tahini/utils'
 import chance from 'chance'
 import fse from 'fs-extra'
+import path from 'path'
 import { calculateArtifactsHash } from './artifacts-hash'
 import { Config } from './configuration'
 import { Log, Logger } from './create-logger'
 import { StepInfo } from './create-step'
 import { createImmutableCache, ImmutableCache } from './immutable-cache'
 import { runAllSteps } from './steps-execution'
-import { Cleanup, Graph, getGitRepoInfo, getPackages, toFlowLogsContentKey } from '@tahini/utils'
-import { getExitCode } from './utils'
+import { getExitCode, getStepsResultOfArtifactsByStepAndArtifact } from './utils'
 
 export async function ci<TaskQueue>(options: {
   repoPath: string
@@ -85,7 +86,15 @@ export async function ci<TaskQueue>(options: {
 
     steps = options.config.steps.map(s => ({ ...s, data: { stepInfo: s.data.stepInfo } }))
 
-    const { stepsResultOfArtifactsByStep } = await runAllSteps({
+    const rootPackageJson: PackageJson = await fse.readJson(path.join(options.repoPath, 'package.json'))
+
+    const {
+      stepsResultOfArtifactsByArtifact,
+      stepsResultOfArtifactsByStep,
+    } = getStepsResultOfArtifactsByStepAndArtifact({ artifacts, steps })
+
+    const allStepsEvents$ = await runAllSteps({
+      rootPackageJson,
       stepsToRun: options.config.steps,
       immutableCache,
       logger,
@@ -96,7 +105,11 @@ export async function ci<TaskQueue>(options: {
       artifacts,
       steps,
       taskQueues,
+      stepsResultOfArtifactsByArtifact,
+      stepsResultOfArtifactsByStep,
     })
+
+    await allStepsEvents$.toPromise()
 
     process.exitCode = getExitCode(stepsResultOfArtifactsByStep)
     fatalError = false
