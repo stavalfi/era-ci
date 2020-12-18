@@ -253,21 +253,21 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
   stepName: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,
   run: ({ stepConfigurations, repoPath, log, immutableCache }) => ({
-    stepConstrains: [skipIfStepIsDisabledConstrain()],
+    globalConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact =>
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
           currentArtifact: artifact,
-          stepNameToSearchInCache: 'build',
+          stepNameToSearchInCache: 'build-root',
           skipAsFailedIfStepNotFoundInCache: true,
-          skipAsPassedIfStepNotExists: false,
+          skipAsPassedIfStepNotExists: true,
         }),
       artifact =>
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'test',
           skipAsFailedIfStepNotFoundInCache: true,
-          skipAsPassedIfStepNotExists: false,
+          skipAsPassedIfStepNotExists: true,
         }),
       artifact => customConstrain({ currentArtifact: artifact }),
     ],

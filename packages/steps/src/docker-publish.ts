@@ -160,7 +160,7 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
   stepName: 'docker-publish',
   taskQueueClass: LocalSequentalTaskQueue,
   run: options => ({
-    stepConstrains: [skipIfStepIsDisabledConstrain()],
+    globalConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact => skipIfImageTagAlreadyPublishedConstrain({ currentArtifact: artifact }),
       artifact =>

@@ -1,9 +1,9 @@
 import { skipIfStepResultNotPassedConstrain } from '@tahini/constrains'
+import { createStepExperimental } from '@tahini/core'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import { execaCommand } from '@tahini/utils'
 import fse from 'fs-extra'
 import path from 'path'
-import { createStepExperimental } from '../../core/src/create-step/experimental'
 
 export const installRoot = createStepExperimental({
   stepName: 'install-root',

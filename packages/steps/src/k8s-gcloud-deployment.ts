@@ -50,7 +50,7 @@ export const k8sGcloudDeployment = createStepExperimental<LocalSequentalTaskQueu
   stepName: 'k8s-gcloud-deployment',
   taskQueueClass: LocalSequentalTaskQueue,
   run: ({ stepConfigurations, repoPath, log, immutableCache }) => ({
-    stepConstrains: [skipIfStepIsDisabledConstrain()],
+    globalConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact =>
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
