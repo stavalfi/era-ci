@@ -261,21 +261,12 @@ export const jsonReporterStepName = 'json-reporter'
 export const jsonReporter = createStepExperimental({
   stepName: jsonReporterStepName,
   taskQueueClass: LocalSequentalTaskQueue,
-  run: ({
-    immutableCache,
-    flowId,
-    repoHash,
-    startFlowMs,
-    steps,
-    artifacts,
-    stepsResultOfArtifactsByStep,
-    currentStepInfo,
-  }) => ({
+  run: ({ immutableCache, flowId, repoHash, startFlowMs, steps, artifacts, getState, currentStepInfo }) => ({
     stepLogic: async () => {
       const withoutThisStep = {
         steps: removeNodeFromGraph({ graph: steps, nodeIndexToRemove: currentStepInfo.index }),
         stepsResultOfArtifactsByStep: removeNodeFromGraph({
-          graph: stepsResultOfArtifactsByStep,
+          graph: getState().stepsResultOfArtifactsByStep,
           nodeIndexToRemove: currentStepInfo.index,
         }),
       }

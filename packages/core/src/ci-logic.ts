@@ -92,31 +92,29 @@ export async function ci<TaskQueue>(options: {
 
     const rootPackageJson: PackageJson = await fse.readJson(path.join(options.repoPath, 'package.json'))
 
-    const {
-      stepsResultOfArtifactsByArtifact,
-      stepsResultOfArtifactsByStep,
-    } = getStepsResultOfArtifactsByStepAndArtifact({ artifacts, steps })
+    const state = getStepsResultOfArtifactsByStepAndArtifact({ artifacts, steps })
 
-    const allStepsEvents$ = await runAllSteps({
-      log,
-      rootPackageJson,
-      stepsToRun: options.config.steps,
-      immutableCache,
-      logger,
-      flowId,
-      repoHash,
-      repoPath: options.repoPath,
-      startFlowMs,
-      artifacts,
-      steps,
-      taskQueues,
-      stepsResultOfArtifactsByArtifact,
-      stepsResultOfArtifactsByStep,
-    })
+    const allStepsEvents$ = await runAllSteps(
+      {
+        log,
+        rootPackageJson,
+        stepsToRun: options.config.steps,
+        immutableCache,
+        logger,
+        flowId,
+        repoHash,
+        repoPath: options.repoPath,
+        startFlowMs,
+        artifacts,
+        steps,
+        taskQueues,
+      },
+      state,
+    )
 
     await allStepsEvents$.toPromise()
 
-    process.exitCode = getExitCode(stepsResultOfArtifactsByStep)
+    process.exitCode = getExitCode(state.stepsResultOfArtifactsByStep)
     fatalError = false
   } catch (error: unknown) {
     fatalError = true

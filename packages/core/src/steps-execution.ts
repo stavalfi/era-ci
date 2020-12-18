@@ -9,17 +9,11 @@ import {
   StepOutputEvents,
   StepOutputEventType,
   StepResultOfArtifacts,
-  StepsResultOfArtifactsByArtifact,
-  StepsResultOfArtifactsByStep,
   toStepsResultOfArtifactsByArtifact,
 } from './create-step'
 import { TaskQueueBase, TaskQueueOptions } from './create-task-queue'
 import { ImmutableCache } from './immutable-cache'
-
-type State = {
-  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
-  stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact
-}
+import { GetState, State } from './types'
 
 type Options = {
   log: Log
@@ -40,7 +34,7 @@ type Options = {
   immutableCache: ImmutableCache
   logger: Logger
   artifacts: Graph<{ artifact: Artifact }>
-} & State
+}
 
 function updateState({
   stepIndex,
@@ -66,8 +60,7 @@ function runStep(
   options: {
     stepIndex: number
     allStepsEvents$: Observable<StepOutputEvents[StepOutputEventType]>
-  } & Options &
-    State,
+  } & Options & { getState: GetState },
 ): Observable<StepOutputEvents[StepOutputEventType]> {
   const taskQueue = options.taskQueues.find(t => t instanceof options.stepsToRun[options.stepIndex].data.taskQueueClass)
   if (!taskQueue) {
@@ -93,53 +86,51 @@ function runStep(
   )
 }
 
-export function runAllSteps(options: Options) {
+export function runAllSteps(options: Options, state: State) {
   options.log.verbose(`starting to execute steps`)
-  const state: State = {
-    stepsResultOfArtifactsByArtifact: options.stepsResultOfArtifactsByArtifact,
-    stepsResultOfArtifactsByStep: options.stepsResultOfArtifactsByStep,
-  }
 
   const allStepsEvents$ = new Subject<StepOutputEvents[StepOutputEventType]>()
 
-  merge(...options.steps.map(s => runStep({ stepIndex: s.index, allStepsEvents$, ...options, ...state })))
-    .pipe(
-      tap(e => {
-        switch (e.type) {
-          case StepOutputEventType.step: {
-            const base = `step: "${e.step.data.stepInfo.displayName}" - execution-status: "${e.stepResult.executionStatus}"`
-            switch (e.stepResult.executionStatus) {
-              case ExecutionStatus.scheduled:
-              case ExecutionStatus.running:
-                options.log.debug(base)
-                break
-              case ExecutionStatus.aborted:
-              case ExecutionStatus.done:
-                options.log.debug(`${base}, status: "${e.stepResult.status}"`)
-                break
-            }
+  allStepsEvents$.subscribe(e => {
+    switch (e.type) {
+      case StepOutputEventType.step: {
+        const base = `step: "${e.step.data.stepInfo.displayName}" - execution-status: "${e.stepResult.executionStatus}"`
+        switch (e.stepResult.executionStatus) {
+          case ExecutionStatus.scheduled:
+          case ExecutionStatus.running:
+            options.log.debug(base)
             break
-          }
-          case StepOutputEventType.artifactStep: {
-            const base = `step: "${e.step.data.stepInfo.displayName}", artifact: "${e.artifact.data.artifact.packageJson.name}" - execution-status: "${e.artifactStepResult.executionStatus}"`
-            switch (e.artifactStepResult.executionStatus) {
-              case ExecutionStatus.scheduled:
-              case ExecutionStatus.running:
-                options.log.debug(base)
-                break
-              case ExecutionStatus.aborted:
-              case ExecutionStatus.done:
-                options.log.debug(`${base}, status: "${e.artifactStepResult.status}"`)
-                break
-            }
+          case ExecutionStatus.aborted:
+          case ExecutionStatus.done:
+            options.log.debug(`${base}, status: "${e.stepResult.status}"`)
             break
-          }
         }
-      }),
+        break
+      }
+      case StepOutputEventType.artifactStep: {
+        const base = `step: "${e.step.data.stepInfo.displayName}", artifact: "${e.artifact.data.artifact.packageJson.name}" - execution-status: "${e.artifactStepResult.executionStatus}"`
+        switch (e.artifactStepResult.executionStatus) {
+          case ExecutionStatus.scheduled:
+          case ExecutionStatus.running:
+            options.log.debug(base)
+            break
+          case ExecutionStatus.aborted:
+          case ExecutionStatus.done:
+            options.log.debug(`${base}, status: "${e.artifactStepResult.status}"`)
+            break
+        }
+        break
+      }
+    }
+  })
+
+  merge(...options.steps.map(s => runStep({ stepIndex: s.index, allStepsEvents$, ...options, getState: () => state })))
+    .pipe(
       tap(e => {
         const stepResultClone = _.cloneDeep(state.stepsResultOfArtifactsByStep[e.step.index].data)
         switch (e.type) {
           case StepOutputEventType.step:
+            stepResultClone.stepExecutionStatus = e.stepResult.executionStatus
             stepResultClone.stepResult = e.stepResult
             break
           case StepOutputEventType.artifactStep:

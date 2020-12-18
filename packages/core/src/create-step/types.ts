@@ -16,6 +16,7 @@ import { Constrain } from '../create-constrain'
 import { Log, Logger } from '../create-logger'
 import { TaskQueueBase, TaskQueueOptions } from '../create-task-queue'
 import { ImmutableCache } from '../immutable-cache'
+import { GetState } from '../types'
 
 export type StepInfo = {
   stepName: string
@@ -139,8 +140,7 @@ export type RunStepOptions<TaskQueue extends TaskQueueBase<unknown>> = {
   artifacts: Graph<{ artifact: Artifact }>
   steps: Graph<{ stepInfo: StepInfo }>
   currentStepInfo: Node<{ stepInfo: StepInfo }>
-  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
-  stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact
+  getState: GetState
   immutableCache: ImmutableCache
   logger: Logger
   taskQueue: TaskQueue

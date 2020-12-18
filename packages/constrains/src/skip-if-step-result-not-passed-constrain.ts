@@ -5,7 +5,7 @@ export const skipIfStepResultNotPassedConstrain = createConstrain<{
   stepName: string
 }>({
   constrainName: 'skip-if-step-result-not-passed-constrain',
-  constrain: async ({ constrainConfigurations, steps, stepsResultOfArtifactsByStep }) => {
+  constrain: async ({ constrainConfigurations, steps, getState }) => {
     const stepName = constrainConfigurations.stepName
     const step = steps.find(step => step.data.stepInfo.stepName === stepName)
 
@@ -24,7 +24,7 @@ export const skipIfStepResultNotPassedConstrain = createConstrain<{
       }
     }
 
-    const actualStepResult = stepsResultOfArtifactsByStep[step.index].data.stepResult
+    const actualStepResult = getState().stepsResultOfArtifactsByStep[step.index].data.stepResult
 
     if (
       (actualStepResult.executionStatus === ExecutionStatus.done ||
