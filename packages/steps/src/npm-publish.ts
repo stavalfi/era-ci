@@ -13,7 +13,7 @@ import {
   Status,
   TargetType,
 } from '@tahini/utils'
-import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from 'constrains/src'
+import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '@tahini/constrains'
 import fse from 'fs-extra'
 import _ from 'lodash'
 import npmLogin from 'npm-login-noninteractive'

@@ -2,7 +2,7 @@ import { skipIfStepIsDisabledConstrain } from '@tahini/constrains'
 import { ConstrainResultType, createConstrain, createStepExperimental } from '@tahini/core'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import { Artifact, execaCommand, ExecutionStatus, getPackageTargetType, Node, Status, TargetType } from '@tahini/utils'
-import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from 'constrains/src'
+import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '@tahini/constrains'
 import { createFile } from 'create-folder-structure'
 import { fullImageNameCacheKey } from './utils'
 
