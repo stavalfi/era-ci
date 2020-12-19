@@ -7,7 +7,7 @@ import chance from 'chance'
 type Deployment = { address: string; cleanup: () => Promise<unknown> }
 
 export function resourcesBeforeAfterAll(): {
-  getResoureces: () => TestResources
+  getResources: () => TestResources
 } {
   let dockerRegistry: Deployment
   let npmRegistryDeployment: Deployment
@@ -75,7 +75,7 @@ export function resourcesBeforeAfterAll(): {
   })
 
   return {
-    getResoureces: (): TestResources => ({
+    getResources: (): TestResources => ({
       npmRegistry: {
         address: npmRegistryDeployment.address,
         auth: verdaccioCardentials,

@@ -172,14 +172,14 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'build-root',
-          skipAsFailedIfStepNotFoundInCache: true,
+          skipAsFailedIfStepResultNotFoundInCache: false,
           skipAsPassedIfStepNotExists: true,
         }),
       artifact =>
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
           currentArtifact: artifact,
-          stepNameToSearchInCache: 'test-root',
-          skipAsFailedIfStepNotFoundInCache: true,
+          stepNameToSearchInCache: 'test',
+          skipAsFailedIfStepResultNotFoundInCache: false,
           skipAsPassedIfStepNotExists: true,
         }),
     ],

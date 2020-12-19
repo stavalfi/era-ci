@@ -1,6 +1,6 @@
 import { Config, TaskQueueBase } from '@tahini/core'
-import { createLinearStepsGraph } from '@tahini/steps-graph'
 import { cliTableReporter, jsonReporter } from '@tahini/steps'
+import { createLinearStepsGraph } from '@tahini/steps-graph'
 import _ from 'lodash'
 import { DeepPartial } from './types'
 

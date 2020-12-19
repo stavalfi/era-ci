@@ -1,6 +1,7 @@
 import { calculateCombinedStatus, ExecutionStatus, Status } from '@tahini/utils'
 import _ from 'lodash'
 import { ErrorObject, serializeError } from 'serialize-error'
+import { LogLevel } from '../create-logger'
 import { UserRunStepOptions } from '../create-step'
 import { CombinedConstrainResult, Constrain, ConstrainResult, ConstrainResultType } from './types'
 
@@ -42,6 +43,7 @@ export function getCombinedResult(individualConstrainsResults: ConstrainResult[]
 export const runConstrains = async <StepConfiguration>(
   options: Omit<UserRunStepOptions<never, StepConfiguration>, 'taskQueue'> & {
     constrains: Array<Constrain<StepConfiguration>>
+    artifactName?: string
   },
 ): Promise<CombinedConstrainResult> => {
   const stepConstrainsResults = await Promise.all(
@@ -61,5 +63,28 @@ export const runConstrains = async <StepConfiguration>(
     }),
   )
 
-  return getCombinedResult(stepConstrainsResults)
+  const combinedResult = getCombinedResult(stepConstrainsResults)
+
+  let base = `step: "${options.currentStepInfo.data.stepInfo.displayName}"`
+  if (options.artifactName) {
+    base += `, artifact: "${options.artifactName}"`
+  }
+  options.log.trace(`${base} - global-constrains result: "${combinedResult.combinedResultType}"`, {
+    ...(combinedResult.combinedResult.notes.length > 0 && { notes: combinedResult.combinedResult.notes }),
+    ...(combinedResult.individualResults.length > 0 && {
+      individualResults: combinedResult.individualResults.map(individualResult => {
+        const base = `${individualResult.constrainName} - ${individualResult.resultType}`
+        return individualResult.result.notes.length > 0
+          ? `${base} - notes: [${individualResult.result.notes.join(', ')}]`
+          : base
+      }),
+    }),
+  })
+  if (options.log.logLevel === LogLevel.trace) {
+    combinedResult.combinedResult.errors.forEach(error =>
+      options.log.error(`${base} - global-constrains error:`, error),
+    )
+  }
+
+  return combinedResult
 }

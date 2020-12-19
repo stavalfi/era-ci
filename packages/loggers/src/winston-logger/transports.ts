@@ -24,7 +24,7 @@ export const defaultFormat = winston.format.combine(
         final = `${base}: ${log.message}`
       }
     }
-    if (log.json) {
+    if (log.json && Object.keys(log.json).length > 0) {
       final += '\n'
       final += '[' + logLevel + '] '
       final += JSON.stringify(log.json, null, 2).replace(/\n/g, `\n[${logLevel}]\t`)

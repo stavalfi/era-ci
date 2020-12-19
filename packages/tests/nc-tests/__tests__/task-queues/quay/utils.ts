@@ -30,12 +30,12 @@ export function beforeAfterEach(options?: {
     }
   }
 }) {
-  const { getResoureces, createRepo } = createTest()
+  const { getResources, createRepo } = createTest()
 
   let testDependencies: TestDependencies
 
   beforeEach(async () => {
-    testDependencies = await createTestDependencies(getResoureces, createRepo, options)
+    testDependencies = await createTestDependencies(getResources, createRepo, options)
   })
 
   afterEach(async () => {
@@ -50,7 +50,7 @@ export function beforeAfterEach(options?: {
     getDockerImageLabelsAndTags({
       dockerOrganizationName: testDependencies.quayNamespace,
       imageName: testDependencies.toActualPackageName(packageName),
-      dockerRegistry: getResoureces().dockerRegistry,
+      dockerRegistry: getResources().dockerRegistry,
       repoPath: testDependencies.repoPath,
       log: testDependencies.logger.createLog('test'),
       silent: true,
@@ -58,7 +58,7 @@ export function beforeAfterEach(options?: {
 
   return {
     getImageTags,
-    getResoureces: () => {
+    getResources: () => {
       const packages = Object.fromEntries(
         _.range(0, 15).map(i => [
           `package${i}`,
@@ -85,7 +85,7 @@ export function beforeAfterEach(options?: {
 }
 
 async function createTestDependencies(
-  getResoureces: () => TestResources,
+  getResources: () => TestResources,
   createRepo: CreateRepo,
   options?: {
     quayMockService?: {
@@ -99,14 +99,14 @@ async function createTestDependencies(
   const redisTopic = `redis-topic-${chance().hash().slice(0, 8)}`
   const quayServiceHelper = await startQuayHelperService({
     PORT: '0',
-    REDIS_ADDRESS: getResoureces().redisServerUri,
+    REDIS_ADDRESS: getResources().redisServerUri,
     QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: redisTopic,
     NC_TEST_MODE: 'true',
   })
   const quayNamespace = `namespace-${chance().hash().slice(0, 8)}`
   const quayToken = `token-${chance().hash().slice(0, 8)}`
   const quayMockService = await startQuayMockService({
-    dockerRegistryAddress: getResoureces().dockerRegistry,
+    dockerRegistryAddress: getResources().dockerRegistry,
     namespace: quayNamespace,
     token: quayToken,
     rateLimit: options?.quayMockService?.rateLimit || { max: 1000, timeWindowMs: 1000 * 1000 },
@@ -143,7 +143,7 @@ async function createTestDependencies(
     quayNamespace,
     quayServiceHelperAddress: quayServiceHelper.address,
     quayToken,
-    redisAddress: getResoureces().redisServerUri,
+    redisAddress: getResources().redisServerUri,
   }).createFunc({
     log: logger.createLog('quayBuildsTaskQueue'),
     gitRepoInfo: await getGitRepoInfo(repoPath, logger.createLog('--')),

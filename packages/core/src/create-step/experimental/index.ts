@@ -31,6 +31,7 @@ function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
     const globalConstrainsResult = await runConstrains({
       ...userRunStepOptions,
       constrains: globalConstrains,
+      log: userRunStepOptions.log,
     })
 
     return {

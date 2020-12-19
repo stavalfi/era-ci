@@ -15,14 +15,15 @@ import fse from 'fs-extra'
 import path from 'path'
 import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterAll } from './prepare-test-resources'
-import { Cleanup, Repo, TestResources } from './types'
+import { Cleanup, Repo, ResultingArtifact, TestResources } from './types'
 import { addReportToStepsAsLastNodes } from './utils'
+import { getPublishResult } from './seach-targets'
 
 export { createGitRepo } from './create-git-repo'
 export { DeepPartial, TestResources } from './types'
 export { isDeepSubset, sleep } from './utils'
 
-const { getResoureces } = resourcesBeforeAfterAll()
+const { getResources } = resourcesBeforeAfterAll()
 
 const getJsonReport = async ({
   flowId,
@@ -41,7 +42,7 @@ const getJsonReport = async ({
     logFilePath: './nc.log',
   }).callInitializeLogger({ repoPath })
   const keyValueStoreConnection = await redisConnection({
-    redisServerUri: getResoureces().redisServerUri,
+    redisServerUri: getResources().redisServerUri,
   }).callInitializeKeyValueStoreConnection()
   const immutableCache = await createImmutableCache({
     artifacts: [],
@@ -81,6 +82,7 @@ type RunCi = () => Promise<{
   passed: boolean
   logFilePath: string
   flowLogs: string
+  published: Map<string, ResultingArtifact>
 }>
 
 const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
@@ -88,11 +90,15 @@ const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
   configurations,
   logFilePath,
   stepsDontContainReport,
+  toOriginalName,
+  getResources,
 }: {
   repoPath: string
   configurations: Config<TaskQueue>
   logFilePath: string
   stepsDontContainReport: boolean
+  toOriginalName: (artifactName: string) => string
+  getResources: () => TestResources
 }): RunCi => async () => {
   const { flowId, repoHash, steps, passed, fatalError } = await ci({
     repoPath,
@@ -122,11 +128,18 @@ const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
         jsonReportStepId || `we will never be here. this default value is here only because of typescript.`,
     }))
 
+  const published = await getPublishResult({
+    getResources,
+    toOriginalName,
+    repoPath,
+  })
+
   return {
     flowId,
     logFilePath,
     flowLogs: await fse.readFile(logFilePath, 'utf-8'),
     steps,
+    published,
     jsonReport: jsonReport || {
       artifacts: [],
       flow: { flowId: '', repoHash: '', startFlowMs: 0 },
@@ -162,8 +175,9 @@ const createRepo: CreateRepo = async ({ repo, configurations = {}, dontAddReport
 
   const toActualName = (name: string): string =>
     name.endsWith(`-${resourcesNamesPostfix}`) ? name : `${name}-${resourcesNamesPostfix}`
+  const toOriginalName = (name: string) => toActualName(name).replace(`-${resourcesNamesPostfix}`, '')
 
-  const { gitServer } = getResoureces()
+  const { gitServer } = getResources()
 
   const { repoPath } = await createGitRepo({
     repo,
@@ -180,9 +194,9 @@ const createRepo: CreateRepo = async ({ repo, configurations = {}, dontAddReport
 
   const getImageTags = async (packageName: string): Promise<string[]> => {
     const result = await getDockerImageLabelsAndTags({
-      dockerOrganizationName: getResoureces().quayNamespace,
+      dockerOrganizationName: getResources().quayNamespace,
       imageName: toActualName(packageName),
-      dockerRegistry: getResoureces().dockerRegistry,
+      dockerRegistry: getResources().dockerRegistry,
       repoPath,
       log: logger.createLog('test'),
       silent: true,
@@ -203,7 +217,7 @@ const createRepo: CreateRepo = async ({ repo, configurations = {}, dontAddReport
     keyValueStore:
       configurations.keyValueStore ||
       redisConnection({
-        redisServerUri: getResoureces().redisServerUri,
+        redisServerUri: getResources().redisServerUri,
       }),
     taskQueues: [
       localSequentalTaskQueue(),
@@ -218,6 +232,8 @@ const createRepo: CreateRepo = async ({ repo, configurations = {}, dontAddReport
     getImageTags,
     runCi: runCi({
       repoPath,
+      toOriginalName,
+      getResources,
       configurations: finalConfigurations,
       logFilePath,
       stepsDontContainReport: Boolean(dontAddReportSteps),
@@ -247,10 +263,10 @@ const sleep = (cleanups: Cleanup[]) => (ms: number): Promise<void> => {
 }
 
 export function createTest(): {
-  getResoureces: () => TestResources
+  getResources: () => TestResources
   createRepo: CreateRepo
   sleep: (ms: number) => Promise<void>
 } {
   const cleanups = beforeAfterCleanups()
-  return { getResoureces, createRepo, sleep: sleep(cleanups) }
+  return { getResources, createRepo, sleep: sleep(cleanups) }
 }

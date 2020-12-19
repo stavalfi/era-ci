@@ -49,6 +49,7 @@ function createPackageJson({
     name: toActualName(artifact.name),
     version: artifact.version,
     private: artifact.targetType !== TargetType.npm,
+    license: 'UNLICENSED',
     ...(artifact['index.js'] && { main: 'index.js' }),
     ...(artifact.scripts && { scripts: artifact.scripts }),
     ...(artifact.dependencies && {

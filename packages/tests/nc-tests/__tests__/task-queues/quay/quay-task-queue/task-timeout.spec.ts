@@ -6,7 +6,7 @@ import fs from 'fs'
 import { first, map } from 'rxjs/operators'
 import { beforeAfterEach } from '../utils'
 
-const { getResoureces } = beforeAfterEach({
+const { getResources } = beforeAfterEach({
   quayMockService: {
     rateLimit: {
       max: 1,
@@ -18,18 +18,18 @@ const { getResoureces } = beforeAfterEach({
 let taskQueue: QuayBuildsTaskQueue
 
 beforeEach(() => {
-  taskQueue = getResoureces().queue
+  taskQueue = getResources().queue
 })
 
 test('ensure task is aborted when it reaches timeout (while the retry mechanism is running)', async () => {
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
-      packageName: getResoureces().packages.package1.name,
-      repoName: getResoureces().packages.package1.name,
+      packageName: getResources().packages.package1.name,
+      repoName: getResources().packages.package1.name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 1500,
     },
   ])
@@ -46,7 +46,7 @@ test('ensure task is aborted when it reaches timeout (while the retry mechanism 
 
 test('ensure task is aborted when it reaches timeout (while the docker-build is running)', async () => {
   await fs.promises.writeFile(
-    path.join(getResoureces().repoPath, getResoureces().packages.package1.relativeDockerFilePath),
+    path.join(getResources().repoPath, getResources().packages.package1.relativeDockerFilePath),
     `
 FROM alpine
 RUN sleep 10000 # make sure that this task will not end
@@ -55,12 +55,12 @@ RUN sleep 10000 # make sure that this task will not end
 
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
-      packageName: getResoureces().packages.package1.name,
-      repoName: getResoureces().packages.package1.name,
+      packageName: getResources().packages.package1.name,
+      repoName: getResources().packages.package1.name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 3000,
     },
   ])

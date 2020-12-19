@@ -1,11 +1,38 @@
 import { createStepExperimental } from '@tahini/core'
 import { createTest, DeepPartial, isDeepSubset } from '@tahini/e2e-tests-infra'
-import { JsonReport, npmPublish, NpmScopeAccess } from '@tahini/steps'
+import { buildRoot, installRoot, JsonReport, npmPublish, NpmScopeAccess, validatePackages, test } from '@tahini/steps'
 import { createLinearStepsGraph } from '@tahini/steps-graph'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { ExecutionStatus, Status, TargetType } from '@tahini/utils'
 
-const { createRepo } = createTest()
+const { createRepo, getResources } = createTest()
+
+it(`happy-flow - should pass`, async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.npm,
+        },
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        npmPublish({
+          isStepEnabled: true,
+          npmScopeAccess: NpmScopeAccess.public,
+          registry: getResources().npmRegistry.address,
+          publishAuth: getResources().npmRegistry.auth,
+        }),
+      ]),
+    },
+  })
+  const { published } = await runCi()
+
+  expect(published.get('a')?.npm.versions).toEqual(['1.0.0'])
+})
 
 it('reproduce bug - wrong step statuses', async () => {
   const { runCi, toActualName } = await createRepo({
@@ -102,6 +129,44 @@ it('reproduce bug - wrong step statuses', async () => {
         },
       },
     ],
+  }
+
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
+})
+
+it('reproduce bug - step is invoked multiple times', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.npm,
+        },
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        validatePackages(),
+        installRoot(),
+        buildRoot({ scriptName: 'build' }),
+        test({ scriptName: 'test' }),
+        npmPublish({
+          isStepEnabled: true,
+          npmScopeAccess: NpmScopeAccess.public,
+          registry: getResources().npmRegistry.address,
+          publishAuth: getResources().npmRegistry.auth,
+        }),
+      ]),
+    },
+  })
+  const { jsonReport } = await runCi()
+
+  const expectedJsonReport: DeepPartial<JsonReport> = {
+    flowResult: {
+      executionStatus: ExecutionStatus.done,
+      status: Status.passed,
+    },
   }
 
   expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()

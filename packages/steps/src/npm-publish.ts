@@ -140,16 +140,12 @@ export async function npmRegistryLogin({
   npmRegistryEmail,
   npmRegistryToken,
   npmRegistryUsername,
-  silent,
-  repoPath,
   log,
 }: {
-  silent?: boolean
   npmRegistry: string
   npmRegistryUsername: string
   npmRegistryToken: string
   npmRegistryEmail: string
-  repoPath: string
   log: Log
 }): Promise<void> {
   // only login in tests. publishing in non-interactive mode is very buggy and tricky.
@@ -158,12 +154,10 @@ export async function npmRegistryLogin({
   // it doesn't use env-var (that the user can use by mistake) or addtional ci-parameter.
   if (npmRegistryEmail === 'root@root.root') {
     npmLogin(npmRegistryUsername, npmRegistryToken, npmRegistryEmail, npmRegistry)
-    if (!silent) {
-      log.verbose(`logged in to npm-registry: "${npmRegistry}"`)
-    }
   } else {
     await fse.writeFile(path.join(os.homedir(), '.npmrc'), `//${npmRegistry}/:_authToken=${npmRegistryToken}`)
   }
+  log.verbose(`logged in to npm-registry: "${npmRegistry}"`)
 }
 
 const customConstrain = createConstrain<
@@ -259,14 +253,14 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'build-root',
-          skipAsFailedIfStepNotFoundInCache: true,
+          skipAsFailedIfStepResultNotFoundInCache: false,
           skipAsPassedIfStepNotExists: true,
         }),
       artifact =>
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'test',
-          skipAsFailedIfStepNotFoundInCache: true,
+          skipAsFailedIfStepResultNotFoundInCache: false,
           skipAsPassedIfStepNotExists: true,
         }),
       artifact => customConstrain({ currentArtifact: artifact }),
@@ -277,7 +271,6 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
         npmRegistryEmail: stepConfigurations.publishAuth.email,
         npmRegistryToken: stepConfigurations.publishAuth.token,
         npmRegistryUsername: stepConfigurations.publishAuth.username,
-        repoPath,
         log,
       }),
     onArtifact: async ({ artifact }) => {

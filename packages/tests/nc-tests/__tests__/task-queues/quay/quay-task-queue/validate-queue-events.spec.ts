@@ -8,12 +8,12 @@ import { first, map, toArray } from 'rxjs/operators'
 import { beforeAfterEach } from '../utils'
 import { merge } from 'rxjs'
 
-const { getResoureces, getImageTags } = beforeAfterEach()
+const { getResources, getImageTags } = beforeAfterEach()
 
 let taskQueue: QuayBuildsTaskQueue
 
 beforeEach(() => {
-  taskQueue = getResoureces().queue
+  taskQueue = getResources().queue
 })
 
 test('cleanup dont throw when queue is empty', async () => {
@@ -41,19 +41,19 @@ test('cleanup can be called multiple times concurrenctly', async () => {
 test('task is executed and we expect the docker-image to be presentin the registry', async () => {
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
-      packageName: getResoureces().packages.package1.name,
-      repoName: getResoureces().packages.package1.name,
+      packageName: getResources().packages.package1.name,
+      repoName: getResources().packages.package1.name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
 
   await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: true }).toPromise()
 
-  await expect(getImageTags(getResoureces().packages.package1.name)).resolves.toEqual(['1.0.0'])
+  await expect(getImageTags(getResources().packages.package1.name)).resolves.toEqual(['1.0.0'])
 })
 
 test('scheduled and running events are fired', async () => {
@@ -65,12 +65,12 @@ test('scheduled and running events are fired', async () => {
 
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
-      packageName: getResoureces().packages.package1.name,
-      repoName: getResoureces().packages.package1.name,
+      packageName: getResources().packages.package1.name,
+      repoName: getResources().packages.package1.name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
@@ -85,12 +85,12 @@ test('illegal parameter - relativeContextPath', async () => {
   expect(() =>
     taskQueue.addTasksToQueue([
       {
-        packageName: getResoureces().packages.package1.name,
-        repoName: getResoureces().packages.package1.name,
+        packageName: getResources().packages.package1.name,
+        repoName: getResources().packages.package1.name,
         visibility: 'public',
         imageTags: ['1.0.0'],
         relativeContextPath: '/invalid-path-to-context',
-        relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+        relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
         taskTimeoutMs: 10000,
       },
     ]),
@@ -101,8 +101,8 @@ test('illegal parameter - relativeDockerfilePath', async () => {
   expect(() =>
     taskQueue.addTasksToQueue([
       {
-        packageName: getResoureces().packages.package1.name,
-        repoName: getResoureces().packages.package1.name,
+        packageName: getResources().packages.package1.name,
+        repoName: getResources().packages.package1.name,
         visibility: 'public',
         imageTags: ['1.0.0'],
         relativeContextPath: '/',
@@ -121,7 +121,7 @@ test('events are fired even when task failed', async () => {
   taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
 
   await fs.promises.writeFile(
-    path.join(getResoureces().repoPath, getResoureces().packages.package1.relativeDockerFilePath),
+    path.join(getResources().repoPath, getResources().packages.package1.relativeDockerFilePath),
     `
 FROM alpine
 RUN exit 1
@@ -130,12 +130,12 @@ RUN exit 1
 
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
-      packageName: getResoureces().packages.package1.name,
-      repoName: getResoureces().packages.package1.name,
+      packageName: getResources().packages.package1.name,
+      repoName: getResources().packages.package1.name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
@@ -155,12 +155,12 @@ RUN exit 1
 test('events schema is valid', async () => {
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
-      packageName: getResoureces().packages.package1.name,
-      repoName: getResoureces().packages.package1.name,
+      packageName: getResources().packages.package1.name,
+      repoName: getResources().packages.package1.name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
@@ -208,7 +208,7 @@ test('events schema is valid', async () => {
 
 test('done events schema is valid when task fail', async () => {
   await fs.promises.writeFile(
-    path.join(getResoureces().repoPath, getResoureces().packages.package1.relativeDockerFilePath),
+    path.join(getResources().repoPath, getResources().packages.package1.relativeDockerFilePath),
     `
 FROM alpine
 RUN exit 1
@@ -217,12 +217,12 @@ RUN exit 1
 
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
-      packageName: getResoureces().packages.package1.name,
-      repoName: getResoureces().packages.package1.name,
+      packageName: getResources().packages.package1.name,
+      repoName: getResources().packages.package1.name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
@@ -258,21 +258,21 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
 
   taskQueue.addTasksToQueue([
     {
-      packageName: getResoureces().packages.package1.name,
-      repoName: getResoureces().packages.package1.name,
+      packageName: getResources().packages.package1.name,
+      repoName: getResources().packages.package1.name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
     {
-      packageName: getResoureces().packages.package2.name,
-      repoName: getResoureces().packages.package2.name,
+      packageName: getResources().packages.package2.name,
+      repoName: getResources().packages.package2.name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResoureces().packages.package2.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package2.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
@@ -283,8 +283,8 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
   expect(running).toHaveBeenCalledTimes(0)
   expect(aborted).toHaveBeenCalledTimes(2)
 
-  await expect(getImageTags(getResoureces().packages.package1.name)).resolves.toEqual([])
-  await expect(getImageTags(getResoureces().packages.package2.name)).resolves.toEqual([])
+  await expect(getImageTags(getResources().packages.package1.name)).resolves.toEqual([])
+  await expect(getImageTags(getResources().packages.package2.name)).resolves.toEqual([])
 })
 
 test('abort event is fired for running tasks - while dockerfile is built', async () => {
@@ -293,7 +293,7 @@ test('abort event is fired for running tasks - while dockerfile is built', async
   taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
 
   await fs.promises.writeFile(
-    path.join(getResoureces().repoPath, getResoureces().packages.package1.relativeDockerFilePath),
+    path.join(getResources().repoPath, getResources().packages.package1.relativeDockerFilePath),
     `
 FROM alpine
 RUN sleep 10000 # make sure that this task will not end
@@ -302,12 +302,12 @@ RUN sleep 10000 # make sure that this task will not end
 
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
-      packageName: getResoureces().packages.package1.name,
-      repoName: getResoureces().packages.package1.name,
+      packageName: getResources().packages.package1.name,
+      repoName: getResources().packages.package1.name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
@@ -326,7 +326,7 @@ RUN sleep 10000 # make sure that this task will not end
 
 test('abort events schema is valid', async () => {
   await fs.promises.writeFile(
-    path.join(getResoureces().repoPath, getResoureces().packages.package1.relativeDockerFilePath),
+    path.join(getResources().repoPath, getResources().packages.package1.relativeDockerFilePath),
     `
 FROM alpine
 RUN sleep 10000 # make sure that this task will not end
@@ -335,12 +335,12 @@ RUN sleep 10000 # make sure that this task will not end
 
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
-      packageName: getResoureces().packages.package1.name,
-      repoName: getResoureces().packages.package1.name,
+      packageName: getResources().packages.package1.name,
+      repoName: getResources().packages.package1.name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResoureces().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
@@ -374,7 +374,7 @@ RUN sleep 10000 # make sure that this task will not end
 
 test('multiple tasks', async () => {
   const tasks = taskQueue.addTasksToQueue(
-    Object.values(getResoureces().packages).map((packageInfo, i) => ({
+    Object.values(getResources().packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,
       repoName: packageInfo.name,
       visibility: 'public',
@@ -391,7 +391,7 @@ test('multiple tasks', async () => {
     ),
   ).toPromise()
 
-  for (const [i, packageInfo] of Object.values(getResoureces().packages).entries()) {
+  for (const [i, packageInfo] of Object.values(getResources().packages).entries()) {
     await expect(getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])
   }
 })
