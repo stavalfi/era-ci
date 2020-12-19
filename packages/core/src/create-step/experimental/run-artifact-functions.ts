@@ -3,7 +3,7 @@ import { queue } from 'async'
 import { Observable, Subject } from 'rxjs'
 import { first, mergeMap } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'
-import { ConstrainResultType, runConstrains } from '../../create-constrain'
+import { ConstrainResultType, runConstrains, CombinedConstrainResult } from '../../create-constrain'
 import { TaskQueueBase } from '../../create-task-queue'
 import { ArtifactFunctions, StepOutputEvents, StepOutputEventType, UserRunStepOptions } from '../types'
 import {
@@ -80,8 +80,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
             stepsResultOfArtifactsByArtifact: userRunStepOptions.getState().stepsResultOfArtifactsByArtifact,
           })
         ) {
-          // TODO: write test that this function is called at most only once
-          const artifactConstrainsResult = await runConstrains({
+          const artifactConstrainsResult: CombinedConstrainResult = await runConstrains({
             ...userRunStepOptions,
             constrains: artifactConstrains.map(c => c(event.artifact)),
           })

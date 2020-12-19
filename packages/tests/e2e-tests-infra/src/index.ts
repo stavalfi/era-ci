@@ -15,7 +15,7 @@ import fse from 'fs-extra'
 import path from 'path'
 import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterAll } from './prepare-test-resources'
-import { Repo, TestResources } from './types'
+import { Cleanup, Repo, TestResources } from './types'
 import { addReportToStepsAsLastNodes } from './utils'
 
 export { createGitRepo } from './create-git-repo'
@@ -225,9 +225,32 @@ const createRepo: CreateRepo = async ({ repo, configurations = {}, dontAddReport
   }
 }
 
+function beforeAfterCleanups() {
+  const cleanups: Cleanup[] = []
+  beforeEach(async () => {
+    cleanups.splice(0, cleanups.length)
+  })
+  afterEach(async () => {
+    await Promise.allSettled(cleanups.map(f => f()))
+  })
+  return cleanups
+}
+
+const sleep = (cleanups: Cleanup[]) => (ms: number): Promise<void> => {
+  return new Promise(res => {
+    const id = setTimeout(res, ms)
+    cleanups.push(async () => {
+      clearTimeout(id)
+      res()
+    })
+  })
+}
+
 export function createTest(): {
   getResoureces: () => TestResources
   createRepo: CreateRepo
+  sleep: (ms: number) => Promise<void>
 } {
-  return { getResoureces, createRepo }
+  const cleanups = beforeAfterCleanups()
+  return { getResoureces, createRepo, sleep: sleep(cleanups) }
 }

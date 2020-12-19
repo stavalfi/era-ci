@@ -5,6 +5,8 @@ import { GitServer } from './git-server-testkit'
 
 export { TargetType, PackageJson }
 
+export type Cleanup = () => Promise<unknown>
+
 export type Package = {
   name: string
   version: string
