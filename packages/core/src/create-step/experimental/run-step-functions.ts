@@ -64,49 +64,65 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<unknown>,
     return from(events)
   }
 
-  const event: StepOutputEvents[StepOutputEventType.step] = await (stepLogic ? stepLogic() : Promise.resolve()).then(
-    r =>
-      r
-        ? {
-            type: StepOutputEventType.step,
-            step: userRunStepOptions.currentStepInfo,
-            stepResult: {
-              durationMs: Date.now() - startStepMs,
-              errors: [],
-              notes: [],
-              ...r,
-            },
-          }
-        : stepEventDone({ step: userRunStepOptions.currentStepInfo, startStepMs: userRunStepOptions.startStepMs }),
-    error => ({
-      type: StepOutputEventType.step,
-      step: userRunStepOptions.currentStepInfo,
-      stepResult: {
-        durationMs: Date.now() - startStepMs,
-        executionStatus: ExecutionStatus.done,
-        status: Status.failed,
-        errors: [serializeError(error)],
-        notes: [],
-      },
-    }),
-  )
-
-  if (event.stepResult.executionStatus !== ExecutionStatus.done) {
-    throw new Error(`we can't be here11`)
-  }
-
-  return from([
-    stepEventRunning({ step: userRunStepOptions.currentStepInfo }),
-    ...artifactsEventsRunning({
+  return new Observable(observer => {
+    observer.next(stepEventRunning({ step: userRunStepOptions.currentStepInfo }))
+    artifactsEventsRunning({
       step: userRunStepOptions.currentStepInfo,
       artifacts: userRunStepOptions.artifacts,
-    }),
-    ...artifactsEventsDone({
-      step: userRunStepOptions.currentStepInfo,
-      artifacts: userRunStepOptions.artifacts,
-      startStepMs: userRunStepOptions.startStepMs,
-      status: event.stepResult.status,
-    }),
-    event,
-  ])
+    }).forEach(e => observer.next(e))
+
+    const logic = stepLogic ? stepLogic() : Promise.resolve()
+    logic
+      .then<StepOutputEvents[StepOutputEventType.step], StepOutputEvents[StepOutputEventType.step]>(
+        r =>
+          r
+            ? {
+                type: StepOutputEventType.step,
+                step: userRunStepOptions.currentStepInfo,
+                stepResult: {
+                  durationMs: Date.now() - startStepMs,
+                  errors: [],
+                  notes: [],
+                  ...r,
+                },
+              }
+            : stepEventDone({ step: userRunStepOptions.currentStepInfo, startStepMs: userRunStepOptions.startStepMs }),
+        error => ({
+          type: StepOutputEventType.step,
+          step: userRunStepOptions.currentStepInfo,
+          stepResult: {
+            durationMs: Date.now() - startStepMs,
+            executionStatus: ExecutionStatus.done,
+            status: Status.failed,
+            errors: [serializeError(error)],
+            notes: [],
+          },
+        }),
+      )
+      .then(event => {
+        switch (event.stepResult.executionStatus) {
+          case ExecutionStatus.done:
+            artifactsEventsDone({
+              step: userRunStepOptions.currentStepInfo,
+              artifacts: userRunStepOptions.artifacts,
+              startStepMs: userRunStepOptions.startStepMs,
+              status: event.stepResult.status,
+            }).forEach(e => observer.next(e))
+            observer.next(event)
+            break
+          case ExecutionStatus.aborted:
+            artifactsEventsAbort({
+              step: userRunStepOptions.currentStepInfo,
+              artifacts: userRunStepOptions.artifacts,
+              startStepMs: userRunStepOptions.startStepMs,
+              status: event.stepResult.status,
+            }).forEach(e => observer.next(e))
+            observer.next(event)
+            break
+          default:
+            throw new Error(`we can't be here11`)
+        }
+        observer.complete()
+      })
+  })
 }
