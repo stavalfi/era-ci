@@ -1,13 +1,13 @@
 import { StepExperimental } from '@tahini/core'
 import { Steps } from './types'
 
-export function createLinearStepsGraph<TaskQueueConfigurations>(
+export function createTreeStepsGraph<TaskQueueConfigurations>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  steps: Array<StepExperimental<any>>,
+  steps: Array<{ step: StepExperimental<any>; children: number[] }>,
 ): Steps<TaskQueueConfigurations> {
-  return steps.map((step, i, array) => {
+  return steps.map(({ step, children }, i, array) => {
     const stepId = `${step.stepName}-${i}`
-    const isExistsOnce = array.filter(s => s.stepName === step.stepName).length === 1
+    const isExistsOnce = array.filter(s => s.step.stepName === step.stepName).length === 1
     return {
       index: i,
       data: {
@@ -19,8 +19,8 @@ export function createLinearStepsGraph<TaskQueueConfigurations>(
         taskQueueClass: step.taskQueueClass,
         runStep: step.runStep,
       },
-      parentsIndexes: i === 0 ? [] : [i - 1],
-      childrenIndexes: i === array.length - 1 ? [] : [i + 1],
+      parentsIndexes: array.filter(s => s.children.includes(i)).map((_, parentIndex) => parentIndex),
+      childrenIndexes: children,
     }
   })
 }
