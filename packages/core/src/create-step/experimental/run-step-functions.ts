@@ -5,7 +5,14 @@ import { serializeError } from 'serialize-error'
 import { ConstrainResultType, runConstrains } from '../../create-constrain'
 import { TaskQueueBase } from '../../create-task-queue'
 import { StepFunctions, StepOutputEvents, StepOutputEventType, UserRunStepOptions } from '../types'
-import { artifactsEventsAbort, artifactsEventsDone, stepEventDone, stepEventRunning } from './utils'
+import {
+  areRecursiveParentStepsFinished,
+  artifactsEventsAbort,
+  artifactsEventsDone,
+  artifactsEventsRunning,
+  stepEventDone,
+  stepEventRunning,
+} from './utils'
 
 export async function runStepFunctions<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
   allStepsEventsRecorded$,
@@ -21,11 +28,10 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<unknown>,
   await allStepsEventsRecorded$
     .pipe(
       first(() =>
-        userRunStepOptions.currentStepInfo.parentsIndexes.every(parentIndex =>
-          [ExecutionStatus.aborted, ExecutionStatus.done].includes(
-            userRunStepOptions.getState().stepsResultOfArtifactsByStep[parentIndex].data.stepExecutionStatus,
-          ),
-        ),
+        areRecursiveParentStepsFinished({
+          stepsResultOfArtifactsByStep: userRunStepOptions.getState().stepsResultOfArtifactsByStep,
+          stepIndex: userRunStepOptions.currentStepInfo.index,
+        }),
       ),
     )
     .toPromise()
@@ -84,30 +90,23 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<unknown>,
       },
     }),
   )
+
   if (event.stepResult.executionStatus !== ExecutionStatus.done) {
-    throw new Error(`we can't be here`)
+    throw new Error(`we can't be here11`)
   }
-  if (event.stepResult.status === Status.passed) {
-    return from([
-      stepEventRunning({ step: userRunStepOptions.currentStepInfo }),
-      ...artifactsEventsDone({
-        step: userRunStepOptions.currentStepInfo,
-        artifacts: userRunStepOptions.artifacts,
-        startStepMs: userRunStepOptions.startStepMs,
-        status: Status.passed,
-      }),
-      event,
-    ])
-  } else {
-    return from([
-      stepEventRunning({ step: userRunStepOptions.currentStepInfo }),
-      ...artifactsEventsDone({
-        step: userRunStepOptions.currentStepInfo,
-        artifacts: userRunStepOptions.artifacts,
-        startStepMs: userRunStepOptions.startStepMs,
-        status: Status.failed,
-      }),
-      event,
-    ])
-  }
+
+  return from([
+    stepEventRunning({ step: userRunStepOptions.currentStepInfo }),
+    ...artifactsEventsRunning({
+      step: userRunStepOptions.currentStepInfo,
+      artifacts: userRunStepOptions.artifacts,
+    }),
+    ...artifactsEventsDone({
+      step: userRunStepOptions.currentStepInfo,
+      artifacts: userRunStepOptions.artifacts,
+      startStepMs: userRunStepOptions.startStepMs,
+      status: event.stepResult.status,
+    }),
+    event,
+  ])
 }

@@ -7,10 +7,9 @@ import { ConstrainResultType, runConstrains } from '../../create-constrain'
 import { TaskQueueBase } from '../../create-task-queue'
 import { ArtifactFunctions, StepOutputEvents, StepOutputEventType, UserRunStepOptions } from '../types'
 import {
-  areStepsDoneOnArtifact,
+  areRecursiveParentStepsFinishedOnArtifact,
   artifactsEventsDone,
   calculateCombinedStatusOfCurrentStep,
-  didAllStepsAborted,
 } from './utils'
 
 export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
@@ -72,16 +71,21 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
       mergeMap(async event => {
         if (
           event.type === StepOutputEventType.artifactStep &&
-          areStepsDoneOnArtifact({
+          artifactResultsOnCurrentStep[event.artifact.index].artifactStepResult.executionStatus ===
+            ExecutionStatus.scheduled &&
+          areRecursiveParentStepsFinishedOnArtifact({
             artifactIndex: event.artifact.index,
-            step: userRunStepOptions.currentStepInfo,
+            steps: userRunStepOptions.steps,
+            stepIndex: userRunStepOptions.currentStepInfo.index,
             stepsResultOfArtifactsByArtifact: userRunStepOptions.getState().stepsResultOfArtifactsByArtifact,
           })
         ) {
+          // TODO: write test that this function is called at most only once
           const artifactConstrainsResult = await runConstrains({
             ...userRunStepOptions,
             constrains: artifactConstrains.map(c => c(event.artifact)),
           })
+
           if (artifactConstrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
             const e: StepOutputEvents[StepOutputEventType.artifactStep] = {
               type: StepOutputEventType.artifactStep,
@@ -95,15 +99,13 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
             artifactResultsOnCurrentStep[event.artifact.index] = e
             stepEvents$.next(e)
 
-            if (
-              didAllStepsAborted({
-                currentStepInfo: userRunStepOptions.currentStepInfo,
-                stepsResultOfArtifactsByStep: userRunStepOptions.getState().stepsResultOfArtifactsByStep,
-              })
-            ) {
+            const didAllArtifactsInCurrentStepAborted = artifactResultsOnCurrentStep.every(
+              a => a.artifactStepResult.executionStatus === ExecutionStatus.aborted,
+            )
+            if (didAllArtifactsInCurrentStepAborted) {
               const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
               if (status === Status.passed) {
-                throw new Error(`we can't be here`)
+                throw new Error(`we can't be here8`)
               }
               stepEvents$.next({
                 type: StepOutputEventType.step,
@@ -186,21 +188,44 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
 
           if (areAllArtifactsFinished()) {
             await afterAllQueue.push()
-            const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
-            if (status !== Status.passed && status !== Status.failed) {
-              throw new Error(`we can't be here`)
+
+            const didAllArtifactsInCurrentStepAborted = artifactResultsOnCurrentStep.every(
+              a => a.artifactStepResult.executionStatus === ExecutionStatus.aborted,
+            )
+            if (didAllArtifactsInCurrentStepAborted) {
+              const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
+              if (status === Status.passed) {
+                throw new Error(`we can't be here9`)
+              }
+              stepEvents$.next({
+                type: StepOutputEventType.step,
+                step: userRunStepOptions.currentStepInfo,
+                stepResult: {
+                  durationMs: Date.now() - startStepMs,
+                  executionStatus: ExecutionStatus.aborted,
+                  status,
+                  errors: [],
+                  notes: [],
+                },
+              })
+              return true
+            } else {
+              const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
+              if (status === Status.skippedAsFailed || status === Status.skippedAsPassed) {
+                throw new Error(`we can't be here10`)
+              }
+              stepEvents$.next({
+                type: StepOutputEventType.step,
+                step: userRunStepOptions.currentStepInfo,
+                stepResult: {
+                  durationMs: Date.now() - startStepMs,
+                  executionStatus: ExecutionStatus.done,
+                  status,
+                  errors: [],
+                  notes: [],
+                },
+              })
             }
-            stepEvents$.next({
-              type: StepOutputEventType.step,
-              step: userRunStepOptions.currentStepInfo,
-              stepResult: {
-                durationMs: Date.now() - startStepMs,
-                executionStatus: ExecutionStatus.done,
-                status,
-                errors: [],
-                notes: [],
-              },
-            })
           }
         }
         return areAllArtifactsFinished()
@@ -208,5 +233,6 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
       first(areAllArtifactsFinished => areAllArtifactsFinished),
     )
     .subscribe()
+
   return stepEvents$
 }

@@ -12,67 +12,75 @@ import {
 } from '../types'
 import { runArtifactFunctions } from './run-artifact-functions'
 import { runStepFunctions } from './run-step-functions'
-import { artifactsEventsAbort, stepEventRunning } from './utils'
+import { artifactsEventsAbort } from './utils'
 
-async function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
+function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
   allStepsEventsRecorded$,
-  startStepMs,
   userRunStepOptions,
   run,
 }: {
   allStepsEventsRecorded$: Observable<StepOutputEvents[StepOutputEventType]>
-  startStepMs: number
   run: RunStepExperimental<TaskQueue, StepConfigurations>
   userRunStepOptions: UserRunStepOptions<TaskQueue, StepConfigurations>
-}): Promise<Observable<StepOutputEvents[StepOutputEventType]>> {
-  const prepareResult = run(userRunStepOptions) || { stepLogic: () => Promise.resolve() }
+}): Observable<StepOutputEvents[StepOutputEventType]> {
+  return defer(async () => {
+    const prepareResult = run(userRunStepOptions) || { stepLogic: () => Promise.resolve() }
 
-  const { globalConstrains = [], ...prepareResultOptions } = prepareResult
+    const { globalConstrains = [] } = prepareResult
 
-  const globalConstrainsResult = await runConstrains({
-    ...userRunStepOptions,
-    constrains: globalConstrains,
-  })
-
-  if (globalConstrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-    const events: (
-      | StepOutputEvents[StepOutputEventType.artifactStep]
-      | StepOutputEvents[StepOutputEventType.step]
-    )[] = [
-      stepEventRunning({ step: userRunStepOptions.currentStepInfo }),
-      ...artifactsEventsAbort({
-        step: userRunStepOptions.currentStepInfo,
-        artifacts: userRunStepOptions.artifacts,
-        startStepMs: userRunStepOptions.startStepMs,
-        status: globalConstrainsResult.combinedResult.status,
-      }),
-      {
-        type: StepOutputEventType.step,
-        step: userRunStepOptions.currentStepInfo,
-        stepResult: {
-          durationMs: Date.now() - startStepMs,
-          ...globalConstrainsResult.combinedResult,
-        },
-      },
-    ]
-    return from(events)
-  }
-
-  if ('stepLogic' in prepareResultOptions) {
-    return runStepFunctions({
-      allStepsEventsRecorded$,
-      startStepMs: userRunStepOptions.startStepMs,
-      userRunStepOptions,
-      ...prepareResultOptions,
+    const globalConstrainsResult = await runConstrains({
+      ...userRunStepOptions,
+      constrains: globalConstrains,
     })
-  } else {
-    return runArtifactFunctions({
-      allStepsEventsRecorded$,
-      startStepMs: userRunStepOptions.startStepMs,
-      userRunStepOptions,
-      ...prepareResultOptions,
-    })
-  }
+
+    return {
+      prepareResult,
+      globalConstrainsResult,
+    }
+  }).pipe(
+    concatMap(({ globalConstrainsResult, prepareResult }) => {
+      if (globalConstrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
+        const events: (
+          | StepOutputEvents[StepOutputEventType.artifactStep]
+          | StepOutputEvents[StepOutputEventType.step]
+        )[] = [
+          ...artifactsEventsAbort({
+            step: userRunStepOptions.currentStepInfo,
+            artifacts: userRunStepOptions.artifacts,
+            startStepMs: userRunStepOptions.startStepMs,
+            status: globalConstrainsResult.combinedResult.status,
+          }),
+          {
+            type: StepOutputEventType.step,
+            step: userRunStepOptions.currentStepInfo,
+            stepResult: {
+              durationMs: Date.now() - userRunStepOptions.startStepMs,
+              ...globalConstrainsResult.combinedResult,
+            },
+          },
+        ]
+        return from(events)
+      }
+
+      if ('stepLogic' in prepareResult) {
+        return from(
+          runStepFunctions({
+            allStepsEventsRecorded$,
+            startStepMs: userRunStepOptions.startStepMs,
+            userRunStepOptions,
+            ...prepareResult,
+          }),
+        ).pipe(concatMap(identity))
+      } else {
+        return runArtifactFunctions({
+          allStepsEventsRecorded$,
+          startStepMs: userRunStepOptions.startStepMs,
+          userRunStepOptions,
+          ...prepareResult,
+        })
+      }
+    }),
+  )
 }
 
 export function createStepExperimental<
@@ -107,14 +115,16 @@ export function createStepExperimental<
             startStepMs,
             stepConfigurations: normalizedStepConfigurations,
           }
-
-          return runStep({
-            run: createStepOptions.run,
-            startStepMs,
-            allStepsEventsRecorded$,
-            userRunStepOptions,
-          })
-        }).pipe(concatMap(identity))
+          return userRunStepOptions
+        }).pipe(
+          concatMap(userRunStepOptions =>
+            runStep({
+              run: createStepOptions.run,
+              allStepsEventsRecorded$,
+              userRunStepOptions,
+            }),
+          ),
+        )
       },
     }
   }

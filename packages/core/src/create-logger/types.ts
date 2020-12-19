@@ -7,6 +7,7 @@ export enum LogLevel {
 }
 
 export type Log = {
+  logLevel: LogLevel
   [LogLevel.error]: (message: string, error?: unknown, json?: Record<string, unknown>) => void
   [LogLevel.info]: (message: string, json?: Record<string, unknown>) => void
   [LogLevel.verbose]: (message: string, json?: Record<string, unknown>) => void

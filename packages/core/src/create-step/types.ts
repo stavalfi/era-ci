@@ -32,7 +32,7 @@ export type DoneStepResultOfArtifacts = {
   stepResult: DoneResult
   artifactsResult: Graph<{
     artifact: Artifact
-    artifactStepResult: DoneResult
+    artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
   }>
 }
 
@@ -42,7 +42,7 @@ export type AbortStepResultOfArtifacts = {
   stepResult: AbortResult<Status>
   artifactsResult: Graph<{
     artifact: Artifact
-    artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
+    artifactStepResult: AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
   }>
 }
 
@@ -83,7 +83,7 @@ export type DoneStepsResultOfArtifact = {
   artifactResult: DoneResult
   stepsResult: Graph<{
     stepInfo: StepInfo
-    artifactStepResult: DoneResult
+    artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
   }>
 }
 
@@ -93,7 +93,7 @@ export type AbortStepsResultOfArtifact = {
   artifactResult: AbortResult<Status>
   stepsResult: Graph<{
     stepInfo: StepInfo
-    artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
+    artifactStepResult: AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
   }>
 }
 

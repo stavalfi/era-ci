@@ -7,6 +7,7 @@ import {
   ExecutionStatus,
   Graph,
   Node,
+  Status,
 } from '@tahini/utils'
 import { StepsResultOfArtifact, StepsResultOfArtifactsByArtifact, StepsResultOfArtifactsByStep } from './types'
 
@@ -36,19 +37,22 @@ function getStepsResultOfArtifact({
             stepsResultOfArtifactsByStep
               .map(s => s.data.artifactsResult[artifact.index].data.artifactStepResult)
               .map(artifactStepResult => {
-                if (artifactStepResult.executionStatus !== ExecutionStatus.done) {
-                  throw new Error(`we can't be here`)
+                if (
+                  artifactStepResult.executionStatus !== ExecutionStatus.done &&
+                  artifactStepResult.executionStatus !== ExecutionStatus.aborted
+                ) {
+                  throw new Error(`we can't be here1`)
                 }
                 return artifactStepResult.status
               }),
-          ),
+          ) as Status.failed | Status.passed,
           notes: [], // we don't support (yet) notes about a artifact
           errors: [], // we don't support (yet) errors about a artifact
           durationMs: _.sum(
             stepsResultOfArtifactsByStep.map(s => {
               const a = s.data.artifactsResult[artifact.index].data.artifactStepResult
-              if (a.executionStatus !== ExecutionStatus.done) {
-                throw new Error(`we can't be here`)
+              if (a.executionStatus !== ExecutionStatus.done && a.executionStatus !== ExecutionStatus.aborted) {
+                throw new Error(`we can't be here2`)
               }
               return a.durationMs
             }),
@@ -56,8 +60,11 @@ function getStepsResultOfArtifact({
         },
         stepsResult: stepsResultOfArtifactsByStep.map(s => {
           const artifactStepResult = s.data.artifactsResult[artifact.index].data.artifactStepResult
-          if (artifactStepResult.executionStatus !== ExecutionStatus.done) {
-            throw new Error(`we can't be here`)
+          if (
+            artifactStepResult.executionStatus !== ExecutionStatus.done &&
+            artifactStepResult.executionStatus !== ExecutionStatus.aborted
+          ) {
+            throw new Error(`we can't be here3`)
           }
           return {
             ...s,
@@ -77,8 +84,8 @@ function getStepsResultOfArtifact({
           status: calculateCombinedStatus(
             stepsResultOfArtifactsByStep.map(s => {
               const a = s.data.artifactsResult[artifact.index].data.artifactStepResult
-              if (a.executionStatus !== ExecutionStatus.done && a.executionStatus !== ExecutionStatus.aborted) {
-                throw new Error(`we can't be here`)
+              if (a.executionStatus !== ExecutionStatus.aborted) {
+                throw new Error(`we can't be here4`)
               }
               return a.status
             }),
@@ -86,8 +93,8 @@ function getStepsResultOfArtifact({
           durationMs: _.sum(
             stepsResultOfArtifactsByStep.map(s => {
               const a = s.data.artifactsResult[artifact.index].data.artifactStepResult
-              if (a.executionStatus !== ExecutionStatus.done && a.executionStatus !== ExecutionStatus.aborted) {
-                throw new Error(`we can't be here`)
+              if (a.executionStatus !== ExecutionStatus.aborted) {
+                throw new Error(`we can't be here5`)
               }
               return a.durationMs ?? 0
             }),
@@ -97,8 +104,8 @@ function getStepsResultOfArtifact({
         },
         stepsResult: stepsResultOfArtifactsByStep.map(s => {
           const a = s.data.artifactsResult[artifact.index].data.artifactStepResult
-          if (a.executionStatus !== ExecutionStatus.done && a.executionStatus !== ExecutionStatus.aborted) {
-            throw new Error(`we can't be here`)
+          if (a.executionStatus !== ExecutionStatus.aborted) {
+            throw new Error(`we can't be here6`)
           }
           return {
             ...s,
@@ -137,7 +144,7 @@ function getStepsResultOfArtifact({
         stepsResult: stepsResultOfArtifactsByStep.map(s => {
           const a = s.data.artifactsResult[artifact.index].data.artifactStepResult
           if (a.executionStatus !== ExecutionStatus.scheduled) {
-            throw new Error(`we can't be here`)
+            throw new Error(`we can't be here7`)
           }
           return {
             ...s,

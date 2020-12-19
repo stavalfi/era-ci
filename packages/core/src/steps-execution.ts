@@ -2,7 +2,7 @@ import { Artifact, ExecutionStatus, Graph, PackageJson } from '@tahini/utils'
 import _ from 'lodash'
 import { merge, Observable, Subject } from 'rxjs'
 import { filter, tap } from 'rxjs/operators'
-import { Log, Logger } from './create-logger'
+import { Log, Logger, LogLevel } from './create-logger'
 import {
   StepExperimental,
   StepInfo,
@@ -14,6 +14,7 @@ import {
 import { TaskQueueBase, TaskQueueOptions } from './create-task-queue'
 import { ImmutableCache } from './immutable-cache'
 import { GetState, State } from './types'
+import { deserializeError } from 'serialize-error'
 
 type Options = {
   log: Log
@@ -70,13 +71,20 @@ function runStep(
       }" needs. did you forgot to declare the task-queue in the configuration file?`,
     )
   }
+  function isRecursiveParent(stepIndex: number, possibleParentIndex: number): boolean {
+    return (
+      options.steps[stepIndex].parentsIndexes.includes(possibleParentIndex) ||
+      options.steps[stepIndex].parentsIndexes.some(p => isRecursiveParent(p, possibleParentIndex))
+    )
+  }
+
   return options.stepsToRun[options.stepIndex].data.runStep(
     { ...options, taskQueue, currentStepInfo: options.steps[options.stepIndex] },
     options.allStepsEvents$.pipe(
       filter(
         e =>
-          // only allow events from parent-steps or scheduled-events from current step.
-          options.steps[options.stepIndex].parentsIndexes.includes(e.step.index) ||
+          // only allow events from recuresive-parent-steps or scheduled-events from current step.
+          isRecursiveParent(options.stepIndex, e.step.index) ||
           (e.step.index === options.stepIndex &&
             (e.type === StepOutputEventType.step
               ? e.stepResult.executionStatus === ExecutionStatus.scheduled
@@ -101,9 +109,18 @@ export function runAllSteps(options: Options, state: State) {
             options.log.debug(base)
             break
           case ExecutionStatus.aborted:
-          case ExecutionStatus.done:
-            options.log.debug(`${base}, status: "${e.stepResult.status}"`)
+          case ExecutionStatus.done: {
+            const s = `${base}, status: "${e.stepResult.status}"`
+            if (e.stepResult.errors.length > 0) {
+              options.log.debug(s)
+              if (options.log.logLevel === LogLevel.debug || options.log.logLevel === LogLevel.trace) {
+                e.stepResult.errors.map(deserializeError).forEach(error => options.log.error('', error))
+              }
+            } else {
+              options.log.debug(s)
+            }
             break
+          }
         }
         break
       }
@@ -115,9 +132,18 @@ export function runAllSteps(options: Options, state: State) {
             options.log.debug(base)
             break
           case ExecutionStatus.aborted:
-          case ExecutionStatus.done:
-            options.log.debug(`${base}, status: "${e.artifactStepResult.status}"`)
+          case ExecutionStatus.done: {
+            const s = `${base}, status: "${e.artifactStepResult.status}"`
+            if (e.artifactStepResult.errors.length > 0) {
+              options.log.debug(s)
+              if (options.log.logLevel === LogLevel.debug || options.log.logLevel === LogLevel.trace) {
+                e.artifactStepResult.errors.map(deserializeError).forEach(error => options.log.error('', error))
+              }
+            } else {
+              options.log.debug(s)
+            }
             break
+          }
         }
         break
       }
