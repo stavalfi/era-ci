@@ -38,14 +38,14 @@ export type JsonReport = {
   | {
       flowExecutionStatus: ExecutionStatus.done // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
       flowResult: DoneResult
-      stepsResultOfArtifactsByStep: Graph<DoneStepResultOfArtifacts>
-      stepsResultOfArtifactsByArtifact: Graph<DoneStepsResultOfArtifact>
+      stepsResultOfArtifactsByStep: Graph<DoneStepResultOfArtifacts | AbortStepResultOfArtifacts>
+      stepsResultOfArtifactsByArtifact: Graph<DoneStepsResultOfArtifact | AbortStepsResultOfArtifact>
     }
   | {
       flowExecutionStatus: ExecutionStatus.aborted // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
       flowResult: AbortResult<Status>
-      stepsResultOfArtifactsByStep: Graph<DoneStepResultOfArtifacts | AbortStepResultOfArtifacts>
-      stepsResultOfArtifactsByArtifact: Graph<DoneStepsResultOfArtifact | AbortStepsResultOfArtifact>
+      stepsResultOfArtifactsByStep: Graph<AbortStepResultOfArtifacts>
+      stepsResultOfArtifactsByArtifact: Graph<AbortStepsResultOfArtifact>
     }
   | {
       flowExecutionStatus: ExecutionStatus.running // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
@@ -158,8 +158,11 @@ function getJsonReport({
           executionStatus: ExecutionStatus.done,
           notes: _.flatMapDeep(
             stepsResultOfArtifactsByStep.map(s => {
-              if (s.data.stepResult.executionStatus !== ExecutionStatus.done) {
-                throw new Error(`we can't be here`)
+              if (
+                s.data.stepResult.executionStatus !== ExecutionStatus.done &&
+                s.data.stepResult.executionStatus !== ExecutionStatus.aborted
+              ) {
+                throw new Error(`we can't be here12`)
               }
               return s.data.stepResult.notes.map(n => `${s.data.stepInfo.displayName} - ${n}`)
             }),
@@ -167,15 +170,22 @@ function getJsonReport({
           durationMs: Date.now() - startFlowMs,
           status: calculateCombinedStatus(
             stepsResultOfArtifactsByStep.map(s => {
-              if (s.data.stepResult.executionStatus !== ExecutionStatus.done) {
-                throw new Error(`we can't be here`)
+              if (
+                s.data.stepResult.executionStatus !== ExecutionStatus.done &&
+                s.data.stepResult.executionStatus !== ExecutionStatus.aborted
+              ) {
+                throw new Error(`we can't be here13`)
               }
               return s.data.stepResult.status
             }),
-          ),
+          ) as Status.passed | Status.failed,
         },
-        stepsResultOfArtifactsByStep: stepsResultOfArtifactsByStep as Graph<DoneStepResultOfArtifacts>,
-        stepsResultOfArtifactsByArtifact: stepsResultOfArtifactsByArtifact as Graph<DoneStepsResultOfArtifact>,
+        stepsResultOfArtifactsByStep: stepsResultOfArtifactsByStep as Graph<
+          DoneStepResultOfArtifacts | AbortStepResultOfArtifacts
+        >,
+        stepsResultOfArtifactsByArtifact: stepsResultOfArtifactsByArtifact as Graph<
+          DoneStepsResultOfArtifact | AbortStepsResultOfArtifact
+        >,
       }
     case ExecutionStatus.aborted:
       return {
@@ -192,11 +202,8 @@ function getJsonReport({
           executionStatus: ExecutionStatus.aborted,
           notes: _.flatMapDeep(
             stepsResultOfArtifactsByStep.map(s => {
-              if (
-                s.data.stepResult.executionStatus !== ExecutionStatus.done &&
-                s.data.stepResult.executionStatus !== ExecutionStatus.aborted
-              ) {
-                throw new Error(`we can't be here`)
+              if (s.data.stepResult.executionStatus !== ExecutionStatus.aborted) {
+                throw new Error(`we can't be here14`)
               }
               return s.data.stepResult.notes.map(n => `${s.data.stepInfo.displayName} - ${n}`)
             }),
@@ -204,22 +211,15 @@ function getJsonReport({
           durationMs: Date.now() - startFlowMs,
           status: calculateCombinedStatus(
             stepsResultOfArtifactsByStep.map(s => {
-              if (
-                s.data.stepResult.executionStatus !== ExecutionStatus.done &&
-                s.data.stepResult.executionStatus !== ExecutionStatus.aborted
-              ) {
-                throw new Error(`we can't be here`)
+              if (s.data.stepResult.executionStatus !== ExecutionStatus.aborted) {
+                throw new Error(`we can't be here15`)
               }
               return s.data.stepResult.status
             }),
-          ),
+          ) as Status.skippedAsPassed | Status.skippedAsFailed | Status.failed,
         },
-        stepsResultOfArtifactsByStep: stepsResultOfArtifactsByStep as Graph<
-          DoneStepResultOfArtifacts | AbortStepResultOfArtifacts
-        >,
-        stepsResultOfArtifactsByArtifact: stepsResultOfArtifactsByArtifact as Graph<
-          DoneStepsResultOfArtifact | AbortStepsResultOfArtifact
-        >,
+        stepsResultOfArtifactsByStep: stepsResultOfArtifactsByStep as Graph<AbortStepResultOfArtifacts>,
+        stepsResultOfArtifactsByArtifact: stepsResultOfArtifactsByArtifact as Graph<AbortStepsResultOfArtifact>,
       }
     case ExecutionStatus.running:
       return {

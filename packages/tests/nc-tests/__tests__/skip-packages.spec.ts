@@ -333,3 +333,99 @@ describe('define custom predicate to check if we need to run the step on a packa
     expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
   })
 })
+
+it('reproduce bug - flow hangs when constrain allow package to run but artifact eventually aborted as passed', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+        },
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        createStepExperimental({
+          stepName: 'step1',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: () => ({
+            globalConstrains: [
+              createConstrain({
+                constrainName: 'test-constrain',
+                constrain: async () => ({
+                  resultType: ConstrainResultType.ignoreThisConstrain,
+                  result: {
+                    errors: [],
+                    notes: [],
+                  },
+                }),
+              })(),
+            ],
+            onArtifact: async () => {
+              return { executionStatus: ExecutionStatus.aborted, status: Status.skippedAsPassed }
+            },
+          }),
+        })(),
+      ]),
+    },
+  })
+  const { jsonReport } = await runCi()
+
+  const expectedJsonReport: DeepPartial<JsonReport> = {
+    flowResult: {
+      executionStatus: ExecutionStatus.aborted,
+      status: Status.skippedAsPassed,
+    },
+  }
+
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
+})
+
+it('constrain allow package to run but artifact eventually aborted as failed', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+        },
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        createStepExperimental({
+          stepName: 'step1',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: () => ({
+            globalConstrains: [
+              createConstrain({
+                constrainName: 'test-constrain',
+                constrain: async () => ({
+                  resultType: ConstrainResultType.ignoreThisConstrain,
+                  result: {
+                    errors: [],
+                    notes: [],
+                  },
+                }),
+              })(),
+            ],
+            onArtifact: async () => {
+              return { executionStatus: ExecutionStatus.aborted, status: Status.skippedAsFailed }
+            },
+          }),
+        })(),
+      ]),
+    },
+  })
+  const { jsonReport } = await runCi()
+
+  const expectedJsonReport: DeepPartial<JsonReport> = {
+    flowResult: {
+      executionStatus: ExecutionStatus.aborted,
+      status: Status.skippedAsFailed,
+    },
+  }
+
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
+})

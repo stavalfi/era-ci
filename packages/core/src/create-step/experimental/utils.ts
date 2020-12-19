@@ -1,6 +1,12 @@
 import { Artifact, calculateCombinedStatus, ExecutionStatus, Graph, Node, Status } from '@tahini/utils'
 import _ from 'lodash'
-import { StepInfo, StepOutputEvents, StepOutputEventType, StepResultOfArtifacts, StepsResultOfArtifact } from '../types'
+import {
+  StepInfo,
+  StepOutputEvents,
+  StepOutputEventType,
+  StepsResultOfArtifact,
+  StepsResultOfArtifactsByStep,
+} from '../types'
 
 export const artifactsEventsRunning = ({
   artifacts,
@@ -127,35 +133,50 @@ export function calculateCombinedStatusOfCurrentStep(
   )
 }
 
-export const areStepsDoneOnArtifact = ({
-  stepsResultOfArtifactsByArtifact,
-  artifactIndex,
-  step,
+export const areRecursiveParentStepsFinished = ({
+  stepsResultOfArtifactsByStep,
+  stepIndex,
 }: {
-  stepsResultOfArtifactsByArtifact: Graph<StepsResultOfArtifact>
-  artifactIndex: number
-  step: Node<{
-    stepInfo: StepInfo
-  }>
+  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
+  stepIndex: number
 }): boolean => {
-  const stepsOfArtifact = stepsResultOfArtifactsByArtifact[artifactIndex].data.stepsResult
-  const parentSteps = step.parentsIndexes
+  const stepResult = stepsResultOfArtifactsByStep[stepIndex]
+  const parentSteps = stepResult.parentsIndexes
   return parentSteps.every(
     p =>
-      stepsOfArtifact[p].data.artifactStepResult.executionStatus === ExecutionStatus.aborted ||
-      stepsOfArtifact[p].data.artifactStepResult.executionStatus === ExecutionStatus.done,
+      (stepsResultOfArtifactsByStep[p].data.stepResult.executionStatus === ExecutionStatus.aborted ||
+        stepsResultOfArtifactsByStep[p].data.stepResult.executionStatus === ExecutionStatus.done) &&
+      areRecursiveParentStepsFinished({
+        stepsResultOfArtifactsByStep,
+        stepIndex: p,
+      }),
   )
 }
 
-export const didAllStepsAborted = ({
-  stepsResultOfArtifactsByStep,
-  currentStepInfo,
+export const areRecursiveParentStepsFinishedOnArtifact = ({
+  stepsResultOfArtifactsByArtifact,
+  artifactIndex,
+  steps,
+  stepIndex,
 }: {
-  stepsResultOfArtifactsByStep: Graph<StepResultOfArtifacts>
-  currentStepInfo: Node<{
+  stepsResultOfArtifactsByArtifact: Graph<StepsResultOfArtifact>
+  artifactIndex: number
+  steps: Graph<{
     stepInfo: StepInfo
   }>
-}): boolean =>
-  stepsResultOfArtifactsByStep[currentStepInfo.index].data.artifactsResult.every(
-    a => a.data.artifactStepResult.executionStatus === ExecutionStatus.aborted,
+  stepIndex: number
+}): boolean => {
+  const stepsOfArtifact = stepsResultOfArtifactsByArtifact[artifactIndex].data.stepsResult
+  const parentSteps = steps[stepIndex].parentsIndexes
+  return parentSteps.every(
+    p =>
+      (stepsOfArtifact[p].data.artifactStepResult.executionStatus === ExecutionStatus.aborted ||
+        stepsOfArtifact[p].data.artifactStepResult.executionStatus === ExecutionStatus.done) &&
+      areRecursiveParentStepsFinishedOnArtifact({
+        artifactIndex,
+        stepsResultOfArtifactsByArtifact,
+        steps,
+        stepIndex: p,
+      }),
   )
+}

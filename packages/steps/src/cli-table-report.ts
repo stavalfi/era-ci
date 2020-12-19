@@ -69,11 +69,23 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
             notes: [
               ...node.data.artifactResult.notes,
               ..._.flatMapDeep(
-                node.data.stepsResult.map(s => {
-                  return s.data.artifactStepResult.notes.map(
-                    n => `${stepToString({ stepInfo: s.data.stepInfo, steps: jsonReport.steps })} - ${n}`,
-                  )
-                }),
+                (() => {
+                  // both of the cases are identical but needed beacuse of https://github.com/microsoft/TypeScript/issues/7294
+                  switch (node.data.artifactExecutionStatus) {
+                    case ExecutionStatus.done:
+                      return node.data.stepsResult.map(s => {
+                        return s.data.artifactStepResult.notes.map(
+                          n => `${stepToString({ stepInfo: s.data.stepInfo, steps: jsonReport.steps })} - ${n}`,
+                        )
+                      })
+                    case ExecutionStatus.aborted:
+                      return node.data.stepsResult.map(s => {
+                        return s.data.artifactStepResult.notes.map(
+                          n => `${stepToString({ stepInfo: s.data.stepInfo, steps: jsonReport.steps })} - ${n}`,
+                        )
+                      })
+                  }
+                })(),
               ),
             ],
           }
@@ -93,12 +105,6 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
                 (() => {
                   // both of the cases are identical but needed beacuse of https://github.com/microsoft/TypeScript/issues/7294
                   switch (node.data.artifactExecutionStatus) {
-                    case ExecutionStatus.done:
-                      return node.data.stepsResult.map(s => {
-                        return s.data.artifactStepResult.notes.map(
-                          n => `${stepToString({ stepInfo: s.data.stepInfo, steps: jsonReport.steps })} - ${n}`,
-                        )
-                      })
                     case ExecutionStatus.aborted:
                       return node.data.stepsResult.map(s => {
                         return s.data.artifactStepResult.notes.map(
@@ -251,7 +257,14 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
             packageName: node.data.artifact.packageJson.name,
             errors: _.flatMapDeep([
               ...formatErrors(node.data.artifactResult.errors),
-              ...node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors)),
+              ...(() => {
+                switch (node.data.artifactExecutionStatus) {
+                  case ExecutionStatus.done:
+                    return node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors))
+                  case ExecutionStatus.aborted:
+                    return node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors))
+                }
+              })(),
             ]),
           }
         })
@@ -263,8 +276,6 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
               ...formatErrors(node.data.artifactResult.errors),
               ...(() => {
                 switch (node.data.artifactExecutionStatus) {
-                  case ExecutionStatus.done:
-                    return node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors))
                   case ExecutionStatus.aborted:
                     return node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors))
                 }
@@ -370,19 +381,9 @@ function generateStepsErrorsReport(jsonReport: JsonReport): string {
         })
       case ExecutionStatus.aborted:
         return jsonReport.stepsResultOfArtifactsByStep.map(node => {
-          if (
-            node.data.stepResult.executionStatus === ExecutionStatus.done ||
-            node.data.stepResult.executionStatus === ExecutionStatus.aborted
-          ) {
-            return {
-              stepName: stepToString({ stepInfo: node.data.stepInfo, steps: jsonReport.steps }),
-              errors: formatErrors(node.data.stepResult.errors),
-            }
-          } else {
-            return {
-              stepName: node.data.stepInfo.stepName,
-              errors: [],
-            }
+          return {
+            stepName: stepToString({ stepInfo: node.data.stepInfo, steps: jsonReport.steps }),
+            errors: formatErrors(node.data.stepResult.errors),
           }
         })
       case ExecutionStatus.running:

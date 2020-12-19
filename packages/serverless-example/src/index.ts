@@ -34,7 +34,6 @@ export const hello = async (): Promise<{
 }
 
 export const toBeInvoked: Handler<unknown> = async (event, context) => {
-  // console.log('stav1', { event, context })
   return {
     clientContext: context.clientContext,
     event,

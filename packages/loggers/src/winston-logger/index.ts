@@ -68,6 +68,7 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
     const createLog = (module: string, options?: { disable?: boolean }): Log => {
       const log = mainLogger.child({ module })
       const base: Omit<Log, 'infoFromStream' | 'errorFromStream'> = {
+        logLevel: loggerConfigurations.customLogLevel,
         error: (message, error, json) => {
           if (!options?.disable) {
             if (error === null || undefined) {
