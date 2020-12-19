@@ -545,7 +545,9 @@ export const cliTableReporter = createStepExperimental({
       const stepsErrorsReport = generateStepsErrorsReport(jsonReportResult.value)
       const summaryReport = generateSummaryReport(jsonReportResult.value)
 
-      options.log.noFormattingInfo(packagesStatusReport)
+      if (jsonReportResult.value.artifacts.length > 0 && jsonReportResult.value.steps.length > 0) {
+        options.log.noFormattingInfo(packagesStatusReport)
+      }
       if (packagesErrorsReport) {
         options.log.noFormattingInfo(packagesErrorsReport)
       }

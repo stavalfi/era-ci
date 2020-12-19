@@ -1,6 +1,6 @@
 import { ExecutionStatus, Status } from '@tahini/utils'
 import { queue } from 'async'
-import { Observable, Subject } from 'rxjs'
+import { Observable, of, Subject } from 'rxjs'
 import { first, mergeMap } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'
 import { ConstrainResultType, runConstrains, CombinedConstrainResult } from '../../create-constrain'
@@ -25,20 +25,40 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
   startStepMs: number
   userRunStepOptions: UserRunStepOptions<TaskQueue, StepConfigurations>
 } & ArtifactFunctions<StepConfigurations>): Observable<StepOutputEvents[StepOutputEventType]> {
+  if (userRunStepOptions.artifacts.length === 0) {
+    return of({
+      type: StepOutputEventType.step,
+      step: userRunStepOptions.currentStepInfo,
+      stepResult: {
+        durationMs: Date.now() - startStepMs,
+        executionStatus: ExecutionStatus.aborted,
+        status: Status.skippedAsPassed,
+        errors: [],
+        notes: [],
+      },
+    })
+  }
+
   let didRunBeforeAll = false
   const beforeAllQueue = queue<void>(async (_, done) => {
-    if (didRunBeforeAll) {
+    if (!didRunBeforeAll) {
       didRunBeforeAll = true
       await onBeforeArtifacts()
+      userRunStepOptions.log.trace(
+        `step: "${userRunStepOptions.currentStepInfo.data.stepInfo.displayName}" - finished onBeforeArtifacts function`,
+      )
     }
     done()
   }, 1)
 
   let didRunAfterAll = false
   const afterAllQueue = queue<void>(async (_, done) => {
-    if (didRunAfterAll) {
+    if (!didRunAfterAll) {
       didRunAfterAll = true
       await onAfterArtifacts()
+      userRunStepOptions.log.trace(
+        `step: "${userRunStepOptions.currentStepInfo.data.stepInfo.displayName}" - finished onAfterArtifacts function`,
+      )
     }
     done()
   }, 1)
@@ -57,6 +77,8 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
     }),
   )
 
+  const didArtifactRunConstain = userRunStepOptions.artifacts.map(() => false)
+
   const areAllArtifactsFinished = (): boolean =>
     artifactResultsOnCurrentStep.every(a =>
       [ExecutionStatus.aborted, ExecutionStatus.done].includes(a.artifactStepResult.executionStatus),
@@ -73,6 +95,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
           event.type === StepOutputEventType.artifactStep &&
           artifactResultsOnCurrentStep[event.artifact.index].artifactStepResult.executionStatus ===
             ExecutionStatus.scheduled &&
+          !didArtifactRunConstain[event.artifact.index] && // prevent duplicate concurrent entries to this function (for the same artifact)
           areRecursiveParentStepsFinishedOnArtifact({
             artifactIndex: event.artifact.index,
             steps: userRunStepOptions.steps,
@@ -80,9 +103,11 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
             stepsResultOfArtifactsByArtifact: userRunStepOptions.getState().stepsResultOfArtifactsByArtifact,
           })
         ) {
+          didArtifactRunConstain[event.artifact.index] = true
           const artifactConstrainsResult: CombinedConstrainResult = await runConstrains({
             ...userRunStepOptions,
             constrains: artifactConstrains.map(c => c(event.artifact)),
+            artifactName: event.artifact.data.artifact.packageJson.name,
           })
 
           if (artifactConstrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {

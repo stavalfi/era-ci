@@ -1,7 +1,7 @@
 import { Artifact, ExecutionStatus, Graph, PackageJson } from '@tahini/utils'
 import _ from 'lodash'
 import { merge, Observable, Subject } from 'rxjs'
-import { filter, tap } from 'rxjs/operators'
+import { filter, mergeMap, tap } from 'rxjs/operators'
 import { Log, Logger, LogLevel } from './create-logger'
 import {
   StepExperimental,
@@ -169,6 +169,19 @@ export function runAllSteps(options: Options, state: State) {
           stepIndex: e.step.index,
           stepResultOfArtifacts: stepResultClone,
         })
+      }),
+      mergeMap(async e => {
+        if (
+          e.type === StepOutputEventType.artifactStep &&
+          e.artifactStepResult.executionStatus === ExecutionStatus.done
+        ) {
+          await options.immutableCache.step.setArtifactStepResult({
+            stepId: e.step.data.stepInfo.stepId,
+            artifactHash: e.artifact.data.artifact.packageHash,
+            artifactStepResult: e.artifactStepResult,
+          })
+        }
+        return e
       }),
       tap(e => allStepsEvents$.next(e)),
       tap(() => {

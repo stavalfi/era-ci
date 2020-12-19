@@ -78,8 +78,6 @@ export async function publishNpmPackageWithoutCi({
     npmRegistryEmail: npmRegistry.auth.email,
     npmRegistryToken: npmRegistry.auth.token,
     npmRegistryUsername: npmRegistry.auth.username,
-    silent: true,
-    repoPath,
     log,
   })
   await execa.command(`npm publish --registry ${npmRegistry.address}`, {
@@ -152,8 +150,6 @@ export async function unpublishNpmPackage({
     npmRegistryEmail: npmRegistry.auth.email,
     npmRegistryToken: npmRegistry.auth.token,
     npmRegistryUsername: npmRegistry.auth.username,
-    silent: true,
-    repoPath,
     log,
   })
   await execa.command(

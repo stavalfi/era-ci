@@ -49,3 +49,13 @@ export type ToActualName = (name: string) => string
 export type DeepPartial<T> = {
   [P in keyof T]?: DeepPartial<T[P]>
 }
+
+export type ResultingArtifact = {
+  npm: {
+    versions: Array<string>
+    highestVersion?: string
+  }
+  docker: {
+    tags: Array<string>
+  }
+}

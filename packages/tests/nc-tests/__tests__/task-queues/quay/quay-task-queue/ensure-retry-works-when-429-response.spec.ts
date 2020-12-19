@@ -3,7 +3,7 @@ import { QuayBuildsTaskQueue } from '@tahini/task-queues'
 import { merge } from 'rxjs'
 import { beforeAfterEach } from '../utils'
 
-const { getResoureces, getImageTags } = beforeAfterEach({
+const { getResources, getImageTags } = beforeAfterEach({
   quayMockService: {
     rateLimit: {
       max: 14,
@@ -15,12 +15,12 @@ const { getResoureces, getImageTags } = beforeAfterEach({
 let taskQueue: QuayBuildsTaskQueue
 
 beforeEach(() => {
-  taskQueue = getResoureces().queue
+  taskQueue = getResources().queue
 })
 
 test('multiple tasks', async () => {
   const tasks = taskQueue.addTasksToQueue(
-    Object.values(getResoureces().packages).map((packageInfo, i) => ({
+    Object.values(getResources().packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,
       repoName: packageInfo.name,
       visibility: 'public',
@@ -37,7 +37,7 @@ test('multiple tasks', async () => {
     ),
   ).toPromise()
 
-  for (const [i, packageInfo] of Object.values(getResoureces().packages).entries()) {
+  for (const [i, packageInfo] of Object.values(getResources().packages).entries()) {
     await expect(getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])
   }
 })

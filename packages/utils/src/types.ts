@@ -6,6 +6,7 @@ export type Cleanup = () => Promise<unknown>
 export type PackageJson = {
   name: string
   version: string
+  license?: string
   private?: boolean
   scripts?: Partial<IScriptsMap> & { build?: string; lint?: string } & Record<string, string | undefined>
   dependencies?: IDependencyMap

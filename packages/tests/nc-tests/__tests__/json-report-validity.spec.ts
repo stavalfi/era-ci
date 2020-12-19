@@ -1,8 +1,57 @@
-import { ExecutionStatus, Status } from '@tahini/utils'
-import { JsonReport } from '@tahini/steps'
+import { createStepExperimental } from '@tahini/core'
 import { createTest, DeepPartial, isDeepSubset } from '@tahini/e2e-tests-infra'
+import { JsonReport } from '@tahini/steps'
+import { createLinearStepsGraph } from '@tahini/steps-graph'
+import { LocalSequentalTaskQueue } from '@tahini/task-queues'
+import { ExecutionStatus, Status } from '@tahini/utils'
 
 const { createRepo } = createTest()
+
+test('ensure ci dont fail when there are no steps and no artifacts', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [],
+    },
+    configurations: {
+      steps: [],
+    },
+    dontAddReportSteps: true,
+  })
+  const { passed } = await runCi()
+  expect(passed).toBeTruthy()
+})
+
+test('ensure ci dont fail when there are no artifacts', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        createStepExperimental({
+          stepName: 'step1',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: () => ({ stepLogic: () => Promise.resolve() }),
+        })(),
+      ]),
+    },
+  })
+  const { passed } = await runCi()
+  expect(passed).toBeTruthy()
+})
+
+test('ensure ci dont fail when there is a single-step but no artifacts', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [],
+    },
+    configurations: {
+      steps: [],
+    },
+  })
+  const { passed } = await runCi()
+  expect(passed).toBeTruthy()
+})
 
 test('ensure ci dont fail when there are no steps', async () => {
   const { runCi } = await createRepo({
@@ -109,6 +158,33 @@ test('verify artifact in json-report', async () => {
         },
       },
     ],
+  }
+
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
+})
+
+it('reproduce bug - no packages hangs the flow', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        createStepExperimental({
+          stepName: 'step1',
+          taskQueueClass: LocalSequentalTaskQueue,
+          run: () => ({ onArtifact: () => Promise.resolve() }),
+        })(),
+      ]),
+    },
+  })
+  const { jsonReport } = await runCi()
+
+  const expectedJsonReport: DeepPartial<JsonReport> = {
+    flowResult: {
+      executionStatus: ExecutionStatus.aborted,
+      status: Status.skippedAsPassed,
+    },
   }
 
   expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()

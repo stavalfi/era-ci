@@ -3,8 +3,8 @@ import { Artifact, didPassOrSkippedAsPassed, ExecutionStatus, Node, Status } fro
 
 export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createConstrain<{
   stepNameToSearchInCache: string
-  skipAsFailedIfStepNotFoundInCache: boolean
-  skipAsPassedIfStepNotExists: boolean
+  skipAsFailedIfStepResultNotFoundInCache: boolean
+  skipAsPassedIfStepNotExists?: boolean
   currentArtifact: Node<{ artifact: Artifact }>
 }>({
   constrainName: 'skip-if-artifact-step-result-missing-or-passed-in-cache-constrain',
@@ -15,8 +15,8 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createCon
     flowId,
     constrainConfigurations: {
       currentArtifact,
-      skipAsFailedIfStepNotFoundInCache,
-      skipAsPassedIfStepNotExists,
+      skipAsFailedIfStepResultNotFoundInCache,
+      skipAsPassedIfStepNotExists = true,
       stepNameToSearchInCache,
     },
   }) => {
@@ -53,7 +53,7 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createCon
     })
 
     if (!actualStepResult) {
-      if (skipAsFailedIfStepNotFoundInCache) {
+      if (skipAsFailedIfStepResultNotFoundInCache) {
         return {
           resultType: ConstrainResultType.shouldSkip,
           result: {

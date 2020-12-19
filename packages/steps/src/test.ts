@@ -34,15 +34,13 @@ export const test = createStepExperimental<LocalSequentalTaskQueue, TestConfigur
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'test',
-          skipAsFailedIfStepNotFoundInCache: false,
-          skipAsPassedIfStepNotExists: true, // this setting doesn't make sense here but we must specify it
+          skipAsFailedIfStepResultNotFoundInCache: false,
         }),
       artifact =>
         skipIfArtifactStepResultMissingOrPassedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'test',
-          skipAsFailedIfStepNotFoundInCache: false,
-          skipAsPassedIfStepNotExists: true, // this setting doesn't make sense here but we must specify it
+          skipAsFailedIfStepResultNotFoundInCache: false,
         }),
     ],
     onBeforeArtifacts: async () => {
