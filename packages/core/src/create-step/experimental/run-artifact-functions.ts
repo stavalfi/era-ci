@@ -43,8 +43,6 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
     done()
   }, 1)
 
-  const stepEvents$ = new Subject<StepOutputEvents[StepOutputEventType]>()
-
   // each step needs to have an internal state because I can't count on
   // `userRunStepOptions.stepsResultOfArtifactsByStep[userRunStepOptions.curentStep.index]`
   // to be updated at all
@@ -65,6 +63,8 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
     )
 
   let didSendStepRunning = false
+
+  const stepEvents$ = new Subject<StepOutputEvents[StepOutputEventType]>()
 
   allStepsEventsRecorded$
     .pipe(

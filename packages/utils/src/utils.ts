@@ -37,7 +37,6 @@ export function calculateExecutionStatus<ExecutionStatusArray extends ExecutionS
 
   if (
     executionStatuses.includes(ExecutionStatus.done) &&
-    executionStatuses.includes(ExecutionStatus.aborted) &&
     executionStatuses.every(e => e === ExecutionStatus.done || e === ExecutionStatus.aborted)
   ) {
     return ExecutionStatus.done

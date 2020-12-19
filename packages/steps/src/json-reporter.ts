@@ -270,6 +270,7 @@ export const jsonReporter = createStepExperimental({
           nodeIndexToRemove: currentStepInfo.index,
         }),
       }
+
       const jsonReport = getJsonReport({
         startFlowMs,
         artifacts,
