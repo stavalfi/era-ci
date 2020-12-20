@@ -30,7 +30,6 @@ export async function ci<TaskQueue>(options: {
   let steps: Graph<{ stepInfo: StepInfo }> | undefined
   try {
     const startFlowMs = Date.now()
-
     logger = await options.config.logger.callInitializeLogger({ repoPath: options.repoPath })
 
     log = logger.createLog('ci-logic')

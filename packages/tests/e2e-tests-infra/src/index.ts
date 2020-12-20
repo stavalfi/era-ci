@@ -1,4 +1,4 @@
-import { ci, config, Config, createImmutableCache, LogLevel, StepInfo, TaskQueueBase } from '@tahini/core'
+import { ci, config, Config, createImmutableCache, Logger, LogLevel, StepInfo, TaskQueueBase } from '@tahini/core'
 import { localSequentalTaskQueue } from '@tahini/task-queues'
 import { redisConnection } from '@tahini/key-value-stores'
 import { winstonLogger } from '@tahini/loggers'
@@ -28,19 +28,14 @@ const { getResources } = resourcesBeforeAfterAll()
 const getJsonReport = async ({
   flowId,
   repoHash,
-  repoPath,
   jsonReportStepId,
+  testLogger,
 }: {
   flowId: string
   repoHash: string
-  repoPath: string
   jsonReportStepId: string
+  testLogger: Logger
 }): Promise<JsonReport> => {
-  const logger = await winstonLogger({
-    customLogLevel: LogLevel.trace,
-    disabled: false,
-    logFilePath: './nc.log',
-  }).callInitializeLogger({ repoPath })
   const keyValueStoreConnection = await redisConnection({
     redisServerUri: getResources().redisServerUri,
   }).callInitializeKeyValueStoreConnection()
@@ -48,7 +43,7 @@ const getJsonReport = async ({
     artifacts: [],
     flowId,
     repoHash,
-    log: logger.createLog('cache'),
+    log: testLogger.createLog('cache'),
     keyValueStoreConnection,
     ttls: {
       ArtifactStepResult: 1000 * 60 * 60 * 24 * 7,
@@ -92,6 +87,7 @@ const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
   stepsDontContainReport,
   toOriginalName,
   getResources,
+  testLogger,
 }: {
   repoPath: string
   configurations: Config<TaskQueue>
@@ -99,6 +95,7 @@ const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
   stepsDontContainReport: boolean
   toOriginalName: (artifactName: string) => string
   getResources: () => TestResources
+  testLogger: Logger
 }): RunCi => async () => {
   const { flowId, repoHash, steps, passed, fatalError } = await ci({
     repoPath,
@@ -121,7 +118,7 @@ const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
     !fatalError &&
     !stepsDontContainReport &&
     (await getJsonReport({
-      repoPath,
+      testLogger,
       flowId,
       repoHash,
       jsonReportStepId:
@@ -129,6 +126,7 @@ const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
     }))
 
   const published = await getPublishResult({
+    testLogger,
     getResources,
     toOriginalName,
     repoPath,
@@ -186,10 +184,10 @@ const createRepo: CreateRepo = async ({ repo, configurations = {}, dontAddReport
     gitIgnoreFiles: ['nc.log'],
   })
 
-  const logger = await winstonLogger({
+  const testLogger = await winstonLogger({
     customLogLevel: LogLevel.trace,
     disabled: false,
-    logFilePath: './nc.log',
+    logFilePath: path.join(repoPath, 'nc-test.log'),
   }).callInitializeLogger({ repoPath })
 
   const getImageTags = async (packageName: string): Promise<string[]> => {
@@ -198,7 +196,7 @@ const createRepo: CreateRepo = async ({ repo, configurations = {}, dontAddReport
       imageName: toActualName(packageName),
       dockerRegistry: getResources().dockerRegistry,
       repoPath,
-      log: logger.createLog('test'),
+      log: testLogger.createLog('test'),
       silent: true,
     })
     return result?.allValidTagsSorted || []
@@ -231,6 +229,7 @@ const createRepo: CreateRepo = async ({ repo, configurations = {}, dontAddReport
     toActualName,
     getImageTags,
     runCi: runCi({
+      testLogger,
       repoPath,
       toOriginalName,
       getResources,

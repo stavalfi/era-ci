@@ -52,7 +52,6 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
       ],
       silent: loggerConfigurations.disabled,
     })
-
     const noFormattingLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [createConsoleTransport(noFormat), createFileTransport(loggerConfigurations.logFilePath, noFormat)],

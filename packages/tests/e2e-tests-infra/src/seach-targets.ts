@@ -1,6 +1,5 @@
-import { Log, LogLevel } from '@tahini/core'
+import { Log, Logger } from '@tahini/core'
 import { getDockerImageLabelsAndTags } from '@tahini/steps'
-import { winstonLogger } from '@tahini/loggers'
 import { getPackages } from '@tahini/utils'
 import execa from 'execa'
 import path from 'path'
@@ -84,17 +83,14 @@ export const getPublishResult = async ({
   toOriginalName,
   repoPath,
   getResources,
+  testLogger,
 }: {
   toOriginalName: (artifactName: string) => string
   repoPath: string
   getResources: () => TestResources
+  testLogger: Logger
 }): Promise<Map<string, ResultingArtifact>> => {
-  const logger = await winstonLogger({
-    customLogLevel: LogLevel.trace,
-    disabled: true,
-    logFilePath: './nc.log',
-  }).callInitializeLogger({ repoPath })
-  const log = logger.createLog('test')
+  const log = testLogger.createLog('test')
   const packagesPaths = await getPackages({ repoPath, log })
   const packages = await Promise.all(
     packagesPaths // todo: need to search in runtime which packages I have NOW
