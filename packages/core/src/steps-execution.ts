@@ -2,6 +2,7 @@ import { Artifact, ExecutionStatus, Graph, PackageJson } from '@tahini/utils'
 import _ from 'lodash'
 import { merge, Observable, Subject } from 'rxjs'
 import { filter, mergeMap, tap } from 'rxjs/operators'
+import { deserializeError } from 'serialize-error'
 import { Log, Logger, LogLevel } from './create-logger'
 import {
   StepExperimental,
@@ -14,7 +15,6 @@ import {
 import { TaskQueueBase, TaskQueueOptions } from './create-task-queue'
 import { ImmutableCache } from './immutable-cache'
 import { GetState, State } from './types'
-import { deserializeError } from 'serialize-error'
 
 type Options = {
   log: Log
@@ -99,7 +99,7 @@ export function runAllSteps(options: Options, state: State) {
 
   const allStepsEvents$ = new Subject<StepOutputEvents[StepOutputEventType]>()
 
-  allStepsEvents$.subscribe(e => {
+  const logEvent = (e: StepOutputEvents[StepOutputEventType]) => {
     switch (e.type) {
       case StepOutputEventType.step: {
         const base = `step: "${e.step.data.stepInfo.displayName}" - execution-status: "${e.stepResult.executionStatus}"`
@@ -148,10 +148,11 @@ export function runAllSteps(options: Options, state: State) {
         break
       }
     }
-  })
+  }
 
   merge(...options.steps.map(s => runStep({ stepIndex: s.index, allStepsEvents$, ...options, getState: () => state })))
     .pipe(
+      tap(logEvent),
       tap(e => {
         const stepResultClone = _.cloneDeep(state.stepsResultOfArtifactsByStep[e.step.index].data)
         switch (e.type) {
@@ -191,7 +192,6 @@ export function runAllSteps(options: Options, state: State) {
         )
         if (isFlowFinished) {
           allStepsEvents$.complete()
-          options.log.debug(`ended to execute steps`)
         }
       }),
     )

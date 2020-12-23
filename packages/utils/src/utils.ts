@@ -13,19 +13,27 @@ export const didPassOrSkippedAsPassed = (status: Status): boolean =>
 export function calculateCombinedStatus<StatusesArray extends Status[]>(
   statuses: StatusesArray,
 ): UnionArrayValues<Status, StatusesArray> {
+  if (statuses.length === 0) {
+    return Status.skippedAsPassed
+  }
+
   if (statuses.includes(Status.failed)) {
     return Status.failed
   }
 
-  if (statuses.includes(Status.skippedAsFailed)) {
-    return Status.skippedAsFailed
-  }
-
   if (statuses.includes(Status.passed)) {
-    return Status.passed
+    if (statuses.includes(Status.skippedAsFailed)) {
+      return Status.failed
+    } else {
+      return Status.passed
+    }
+  } else {
+    if (statuses.includes(Status.skippedAsFailed)) {
+      return Status.skippedAsFailed
+    } else {
+      return Status.skippedAsPassed
+    }
   }
-
-  return Status.skippedAsPassed
 }
 
 export function calculateExecutionStatus<ExecutionStatusArray extends ExecutionStatus[]>(
@@ -57,7 +65,7 @@ export const INVALIDATE_CACHE_HASH = '1'
 type SupportedExecaCommandOptions = Omit<execa.Options, 'stderr' | 'stdout' | 'all' | 'stdin'> &
   Required<Pick<execa.Options, 'stdio'>> & {
     log: {
-      verbose: (message: string, json?: Record<string, unknown>) => void
+      trace: (message: string, json?: Record<string, unknown>) => void
       infoFromStream: (stream: NodeJS.ReadableStream) => void
       errorFromStream: (stream: NodeJS.ReadableStream) => void
     }
@@ -71,7 +79,7 @@ export async function execaCommand<Options extends SupportedExecaCommandOptions>
     ..._.omit(options, ['logLevel', 'log']),
     stdio: options.stdio === 'inherit' ? 'pipe' : options.stdio,
   }
-  options.log.verbose(
+  options.log.trace(
     `running command: ${JSON.stringify(command, null, 2)} with options: ${JSON.stringify(execaOptions, null, 2)}`,
   )
   const subprocess = Array.isArray(command)
@@ -100,7 +108,7 @@ export async function getPackages({
 }: {
   repoPath: string
   log: {
-    verbose: (message: string, json?: Record<string, unknown>) => void
+    trace: (message: string, json?: Record<string, unknown>) => void
     infoFromStream: (stream: NodeJS.ReadableStream) => void
     errorFromStream: (stream: NodeJS.ReadableStream) => void
   }
@@ -140,7 +148,7 @@ export const buildFullDockerImageName = ({
 export async function getGitRepoInfo(
   repoPath: string,
   log: {
-    verbose: (message: string, json?: Record<string, unknown>) => void
+    trace: (message: string, json?: Record<string, unknown>) => void
     infoFromStream: (stream: NodeJS.ReadableStream) => void
     errorFromStream: (stream: NodeJS.ReadableStream) => void
   },

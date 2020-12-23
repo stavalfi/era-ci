@@ -32,6 +32,7 @@ function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
       ...userRunStepOptions,
       constrains: globalConstrains,
       log: userRunStepOptions.log,
+      logPrefix: `global-constrain`,
     })
 
     return {
