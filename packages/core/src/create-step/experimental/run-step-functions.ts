@@ -39,6 +39,7 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<unknown>,
   const stepConstrainsResult = await runConstrains({
     ...userRunStepOptions,
     constrains: stepConstrains,
+    logPrefix: `step-constrain`,
   })
 
   if (stepConstrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {

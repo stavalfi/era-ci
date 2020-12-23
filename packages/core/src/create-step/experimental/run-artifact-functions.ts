@@ -44,9 +44,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
     if (!didRunBeforeAll) {
       didRunBeforeAll = true
       await onBeforeArtifacts()
-      userRunStepOptions.log.trace(
-        `step: "${userRunStepOptions.currentStepInfo.data.stepInfo.displayName}" - finished onBeforeArtifacts function`,
-      )
+      userRunStepOptions.log.trace(`finished onBeforeArtifacts function`)
     }
     done()
   }, 1)
@@ -56,9 +54,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
     if (!didRunAfterAll) {
       didRunAfterAll = true
       await onAfterArtifacts()
-      userRunStepOptions.log.trace(
-        `step: "${userRunStepOptions.currentStepInfo.data.stepInfo.displayName}" - finished onAfterArtifacts function`,
-      )
+      userRunStepOptions.log.trace(`finished onAfterArtifacts function`)
     }
     done()
   }, 1)
@@ -108,6 +104,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
             ...userRunStepOptions,
             constrains: artifactConstrains.map(c => c(event.artifact)),
             artifactName: event.artifact.data.artifact.packageJson.name,
+            logPrefix: `artifact-constrain`,
           })
 
           if (artifactConstrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
@@ -123,12 +120,12 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
             artifactResultsOnCurrentStep[event.artifact.index] = e
             stepEvents$.next(e)
 
-            const didAllArtifactsInCurrentStepAborted = artifactResultsOnCurrentStep.every(
+            const isStepAborted = artifactResultsOnCurrentStep.every(
               a => a.artifactStepResult.executionStatus === ExecutionStatus.aborted,
             )
-            if (didAllArtifactsInCurrentStepAborted) {
+            if (isStepAborted) {
               const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
-              if (status === Status.passed) {
+              if (status === Status.failed || status === Status.passed) {
                 throw new Error(`we can't be here8`)
               }
               stepEvents$.next({
@@ -142,6 +139,29 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
                   notes: [],
                 },
               })
+            } else {
+              const didStepDone = artifactResultsOnCurrentStep.every(
+                a =>
+                  a.artifactStepResult.executionStatus === ExecutionStatus.aborted ||
+                  a.artifactStepResult.executionStatus === ExecutionStatus.done,
+              )
+              if (didStepDone) {
+                const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
+                if (status === Status.skippedAsFailed || status === Status.skippedAsPassed) {
+                  throw new Error(`we can't be here8`)
+                }
+                stepEvents$.next({
+                  type: StepOutputEventType.step,
+                  step: userRunStepOptions.currentStepInfo,
+                  stepResult: {
+                    durationMs: Date.now() - startStepMs,
+                    executionStatus: ExecutionStatus.done,
+                    status,
+                    errors: [],
+                    notes: [],
+                  },
+                })
+              }
             }
             return areAllArtifactsFinished()
           }
@@ -213,10 +233,10 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
           if (areAllArtifactsFinished()) {
             await afterAllQueue.push()
 
-            const didAllArtifactsInCurrentStepAborted = artifactResultsOnCurrentStep.every(
+            const isStepAborted = artifactResultsOnCurrentStep.every(
               a => a.artifactStepResult.executionStatus === ExecutionStatus.aborted,
             )
-            if (didAllArtifactsInCurrentStepAborted) {
+            if (isStepAborted) {
               const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
               if (status === Status.passed) {
                 throw new Error(`we can't be here9`)

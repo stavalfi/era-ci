@@ -32,7 +32,7 @@ const {
 } = process.env
 
 const logger = winstonLogger({
-  customLogLevel: LogLevel.trace,
+  customLogLevel: LogLevel.debug,
   disabled: false,
   logFilePath: './nc.log',
 })

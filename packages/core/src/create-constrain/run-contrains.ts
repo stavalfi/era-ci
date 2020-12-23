@@ -44,6 +44,7 @@ export const runConstrains = async <StepConfiguration>(
   options: Omit<UserRunStepOptions<never, StepConfiguration>, 'taskQueue'> & {
     constrains: Array<Constrain<StepConfiguration>>
     artifactName?: string
+    logPrefix: string
   },
 ): Promise<CombinedConstrainResult> => {
   const stepConstrainsResults = await Promise.all(
@@ -65,11 +66,11 @@ export const runConstrains = async <StepConfiguration>(
 
   const combinedResult = getCombinedResult(stepConstrainsResults)
 
-  let base = `step: "${options.currentStepInfo.data.stepInfo.displayName}"`
+  let base = `[${options.logPrefix}]`
   if (options.artifactName) {
-    base += `, artifact: "${options.artifactName}"`
+    base += ` artifact: "${options.artifactName}"`
   }
-  options.log.trace(`${base} - global-constrains result: "${combinedResult.combinedResultType}"`, {
+  options.log.trace(`${base} - result: "${combinedResult.combinedResultType}"`, {
     ...(combinedResult.combinedResult.notes.length > 0 && { notes: combinedResult.combinedResult.notes }),
     ...(combinedResult.individualResults.length > 0 && {
       individualResults: combinedResult.individualResults.map(individualResult => {
@@ -81,9 +82,7 @@ export const runConstrains = async <StepConfiguration>(
     }),
   })
   if (options.log.logLevel === LogLevel.trace) {
-    combinedResult.combinedResult.errors.forEach(error =>
-      options.log.error(`${base} - global-constrains error:`, error),
-    )
+    combinedResult.combinedResult.errors.forEach(error => options.log.error(`${base} - error:`, error))
   }
 
   return combinedResult
