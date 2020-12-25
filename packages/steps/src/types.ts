@@ -7,6 +7,7 @@ export type DockerPublishConfiguration = {
   }
   dockerOrganizationName: string
   imageInstallArtifactsFromNpmRegistry?: boolean
+  buildAndPushOnlyTempVersion: boolean
 }
 
 export type QuayDockerPublishConfiguration = DockerPublishConfiguration & {

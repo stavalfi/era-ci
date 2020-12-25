@@ -19,6 +19,7 @@ import { ImmutableCache } from '../immutable-cache'
 import { GetState } from '../types'
 
 export type StepInfo = {
+  stepGroup: string
   stepName: string
   stepId: string
   displayName: string
@@ -176,6 +177,7 @@ export type UserReturnValue =
       status: Status.passed | Status.failed
       notes?: Array<string>
       errors?: Array<ErrorObject>
+      returnValue?: string
     }
 
 export type StepOutputEvents = {
@@ -197,23 +199,6 @@ export type StepOutputEvents = {
       | RunningResult
       | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
       | DoneResult
-  }
-}
-
-export enum StepInputEventType {
-  artifactStep = 'input-artifact-step',
-  step = 'input-step',
-}
-
-export type StepInputEvents = {
-  [StepInputEventType.artifactStep]: Omit<StepOutputEvents[StepOutputEventType.artifactStep], 'type'> & {
-    type: StepInputEventType.artifactStep
-    step: Node<{ stepInfo: StepInfo }>
-    artifact: Node<{ artifact: Artifact }>
-  }
-  [StepInputEventType.step]: Omit<StepOutputEvents[StepOutputEventType.step], 'type'> & {
-    type: StepInputEventType.step
-    step: Node<{ stepInfo: StepInfo }>
   }
 }
 
@@ -269,6 +254,7 @@ export type RunStepExperimental<TaskQueue extends TaskQueueBase<unknown>, StepCo
 
 export type StepExperimental<TaskQueue extends TaskQueueBase<unknown>> = {
   stepName: string
+  stepGroup: string
   taskQueueClass: { new (options: TaskQueueOptions<unknown>): TaskQueue }
   runStep: (
     runStepOptions: RunStepOptions<TaskQueue>,
@@ -312,6 +298,7 @@ export type CreateStepOptionsExperimental<
   StepConfigurations = void,
   NormalizedStepConfigurations = StepConfigurations
 > = {
+  stepGroup: string
   stepName: string
   normalizeStepConfigurations?: (stepConfigurations: StepConfigurations) => Promise<NormalizedStepConfigurations>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

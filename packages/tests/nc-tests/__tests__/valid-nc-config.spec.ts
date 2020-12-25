@@ -50,6 +50,7 @@ test('should throw error if user forgot to declare a task-queue which one of the
       steps: createLinearStepsGraph([
         createStepExperimental({
           stepName: 'step1',
+          stepGroup: 'step1',
           taskQueueClass: MissingTaskQueue,
           run: () => ({
             onArtifact: async () => ({ executionStatus: ExecutionStatus.done, status: Status.passed }),

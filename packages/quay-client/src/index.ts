@@ -5,6 +5,8 @@ import HttpStatusCodes from 'http-status-codes'
 import path from 'path'
 import { AbortEventHandler } from './types'
 
+export { AbortEventHandler } from './types'
+
 export enum QuayBuildStatus {
   waiting = 'waiting',
   started = 'started', // this is not confirmed. can't find in the docs what it is

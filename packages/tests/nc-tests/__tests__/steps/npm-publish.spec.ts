@@ -48,6 +48,7 @@ it('reproduce bug - wrong step statuses', async () => {
       steps: createLinearStepsGraph([
         createStepExperimental({
           stepName: 'step1',
+          stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
           run: () => ({
             onArtifact: async () => {

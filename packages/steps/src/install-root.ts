@@ -7,6 +7,7 @@ import path from 'path'
 
 export const installRoot = createStepExperimental({
   stepName: 'install-root',
+  stepGroup: 'install',
   taskQueueClass: LocalSequentalTaskQueue,
   run: ({ repoPath, log }) => ({
     stepConstrains: [

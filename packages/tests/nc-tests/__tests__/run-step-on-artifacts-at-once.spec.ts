@@ -21,6 +21,7 @@ test('step should pass in json-report', async () => {
       steps: createLinearStepsGraph([
         createStepExperimental({
           stepName: 'step1',
+          stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
           run: () => ({
             stepLogic: () => Promise.resolve(),
@@ -89,6 +90,7 @@ test('flow should fail because step failed (without throwing error from the step
       steps: createLinearStepsGraph([
         createStepExperimental({
           stepName: 'step1',
+          stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
           run: () => ({
             onArtifact: async () => {
@@ -164,6 +166,7 @@ test('flow should fail because step failed (while throwing error from the step)'
       steps: createLinearStepsGraph([
         createStepExperimental({
           stepName: 'step1',
+          stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
           run: () => ({
             stepLogic: async () => {

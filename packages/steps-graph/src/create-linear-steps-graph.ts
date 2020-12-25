@@ -12,6 +12,7 @@ export function createLinearStepsGraph<TaskQueueConfigurations>(
       index: i,
       data: {
         stepInfo: {
+          stepGroup: step.stepGroup,
           stepName: step.stepName,
           stepId: `${step.stepName}-${i}`,
           displayName: isExistsOnce ? step.stepName : stepId,

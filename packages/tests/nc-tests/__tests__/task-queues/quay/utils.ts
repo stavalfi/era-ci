@@ -1,9 +1,9 @@
 import { Logger, LogLevel } from '@tahini/core'
+import { listTags } from '@tahini/docker-registry-client'
 import { CreateRepo, createTest, TestResources } from '@tahini/e2e-tests-infra'
 import { winstonLogger } from '@tahini/loggers'
 import { startQuayHelperService } from '@tahini/quay-helper-service'
 import { startQuayMockService } from '@tahini/quay-mock-service'
-import { getDockerImageLabelsAndTags } from '@tahini/steps'
 import { QuayBuildsTaskQueue, quayBuildsTaskQueue } from '@tahini/task-queues'
 import { getGitRepoInfo } from '@tahini/utils'
 import chance from 'chance'
@@ -47,14 +47,11 @@ export function beforeAfterEach(options?: {
   })
 
   const getImageTags = (packageName: string) =>
-    getDockerImageLabelsAndTags({
-      dockerOrganizationName: testDependencies.quayNamespace,
-      imageName: testDependencies.toActualPackageName(packageName),
-      dockerRegistry: getResources().dockerRegistry,
-      repoPath: testDependencies.repoPath,
-      log: testDependencies.logger.createLog('test'),
-      silent: true,
-    }).then(r => r?.allValidTagsSorted || [])
+    listTags({
+      registry: getResources().dockerRegistry,
+      dockerOrg: testDependencies.quayNamespace,
+      repo: testDependencies.toActualPackageName(packageName),
+    })
 
   return {
     getImageTags,

@@ -24,7 +24,6 @@ yarn add --dev -W @tahini/core
 
 #### Required Executables
 
-1. [`skopeo`](https://github.com/containers/skopeo) - (Mac) `brew install skopeo`, (Linux) look at the installation guide.
 2. `yarn` - NC currently only support monorepos that uses yarn. Lock file is highly recommended for installation times and deterministic NC-builds.
 
 ### How To Use

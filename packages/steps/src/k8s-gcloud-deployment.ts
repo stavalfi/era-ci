@@ -1,10 +1,12 @@
-import { skipIfStepIsDisabledConstrain } from '@tahini/constrains'
+import {
+  skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
+  skipIfStepIsDisabledConstrain,
+} from '@tahini/constrains'
 import { ConstrainResultType, createConstrain, createStepExperimental } from '@tahini/core'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import { Artifact, execaCommand, ExecutionStatus, getPackageTargetType, Node, Status, TargetType } from '@tahini/utils'
-import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '@tahini/constrains'
 import { createFile } from 'create-folder-structure'
-import { fullImageNameCacheKey } from './utils'
+import _ from 'lodash'
 
 export type K8sGcloudDeploymentConfiguration = {
   isStepEnabled: boolean
@@ -48,8 +50,9 @@ const customConstrain = createConstrain<
 
 export const k8sGcloudDeployment = createStepExperimental<LocalSequentalTaskQueue, K8sGcloudDeploymentConfiguration>({
   stepName: 'k8s-gcloud-deployment',
+  stepGroup: 'k8s-gcloud-deployment',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: ({ stepConfigurations, repoPath, log, immutableCache }) => ({
+  run: ({ stepConfigurations, repoPath, log, getState, steps }) => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact =>
@@ -96,22 +99,13 @@ export const k8sGcloudDeployment = createStepExperimental<LocalSequentalTaskQueu
       const deploymentName = stepConfigurations.artifactNameToDeploymentName({ artifactName })
       const containerName = stepConfigurations.artifactNameToContainerName({ artifactName })
 
-      const fullImageName = await immutableCache.get(
-        fullImageNameCacheKey({ packageHash: artifact.data.artifact.packageHash }),
-        r => {
-          if (typeof r === 'string') {
-            return r
-          } else {
-            throw new Error(
-              `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-            )
-          }
-        },
-      )
+      const fullImageName = getState().getReturnValue({
+        artifactName: artifact.data.artifact.packageJson.name,
+        stepGroup: 'docker-publish',
+        mapper: _.identity,
+      })
 
-      if (!fullImageName) {
-        throw new Error(`can't find full-image-name with the new version in the cache. deployment is aborted`)
-      }
+      log.verbose(`trying deploy docker-image: "${fullImageName}". the same `)
 
       await execaCommand(`kubectl set image deployment/${deploymentName} ${containerName}=${fullImageName} --record`, {
         stdio: 'inherit',

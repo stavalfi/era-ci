@@ -22,6 +22,7 @@ describe('define custom predicate to check if we need to run the step on a packa
         steps: createLinearStepsGraph([
           createStepExperimental({
             stepName: 'step1',
+            stepGroup: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
             run: () => ({
               artifactConstrains: [
@@ -102,6 +103,7 @@ describe('define custom predicate to check if we need to run the step on a packa
         steps: createLinearStepsGraph([
           createStepExperimental({
             stepName: 'step1',
+            stepGroup: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
             run: () => ({
               artifactConstrains: [
@@ -184,6 +186,7 @@ describe('define custom predicate to check if we need to run the step on a packa
         steps: createLinearStepsGraph([
           createStepExperimental({
             stepName: 'step1',
+            stepGroup: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
             run: () => ({
               artifactConstrains: [
@@ -266,6 +269,7 @@ describe('define custom predicate to check if we need to run the step on a packa
         steps: createLinearStepsGraph([
           createStepExperimental({
             stepName: 'step1',
+            stepGroup: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
             run: () => ({
               artifactConstrains: [
@@ -348,6 +352,7 @@ it('reproduce bug - flow hangs when constrain allow package to run but artifact 
       steps: createLinearStepsGraph([
         createStepExperimental({
           stepName: 'step1',
+          stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
           run: () => ({
             globalConstrains: [
@@ -396,6 +401,7 @@ it('constrain allow package to run but artifact eventually aborted as failed', a
       steps: createLinearStepsGraph([
         createStepExperimental({
           stepName: 'step1',
+          stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
           run: () => ({
             globalConstrains: [

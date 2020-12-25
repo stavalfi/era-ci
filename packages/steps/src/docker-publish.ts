@@ -4,10 +4,12 @@ import {
   skipIfStepIsDisabledConstrain,
 } from '@tahini/constrains'
 import { createStepExperimental, Log, UserRunStepOptions } from '@tahini/core'
+import { addTagToRemoteImage, listTags } from '@tahini/docker-registry-client'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import {
   Artifact,
   buildFullDockerImageName,
+  calculateNewVersion,
   execaCommand,
   ExecutionStatus,
   Node,
@@ -15,9 +17,7 @@ import {
   Status,
   TargetType,
 } from '@tahini/utils'
-import { skipIfImageTagAlreadyPublishedConstrain } from './constrains'
 import { LocalDockerPublishConfiguration } from './types'
-import { calculateNextVersion, fullImageNameCacheKey, getVersionCacheKey } from './utils'
 
 async function dockerRegistryLogin({
   repoPath,
@@ -53,19 +53,23 @@ async function publishPackage({
   stepConfigurations,
   repoPath,
   log,
-  immutableCache,
   currentArtifact,
+  tag,
 }: UserRunStepOptions<LocalSequentalTaskQueue, LocalDockerPublishConfiguration> & {
   currentArtifact: Node<{ artifact: Artifact }>
+  tag: string
 }): Promise<string> {
-  const newVersion = await calculateNextVersion({
-    dockerRegistry: stepConfigurations.registry,
-    dockerOrganizationName: stepConfigurations.dockerOrganizationName,
-    packageJson: currentArtifact.data.artifact.packageJson,
+  const tags = await listTags({
+    registry: stepConfigurations.registry,
+    auth: stepConfigurations.registryAuth,
+    dockerOrg: stepConfigurations.dockerOrganizationName,
+    repo: currentArtifact.data.artifact.packageJson.name,
+  })
+
+  const newVersion = calculateNewVersion({
     packagePath: currentArtifact.data.artifact.packagePath,
-    repoPath,
-    log,
-    imageName: currentArtifact.data.artifact.packageJson.name,
+    packageJsonVersion: currentArtifact.data.artifact.packageJson.version,
+    allVersions: tags,
   })
 
   const fullImageNameNewVersion = buildFullDockerImageName({
@@ -73,14 +77,6 @@ async function publishPackage({
     dockerRegistry: stepConfigurations.registry,
     imageName: currentArtifact.data.artifact.packageJson.name,
     imageTag: newVersion,
-  })
-
-  const fullImageNameCacheTtl = immutableCache.ttls.ArtifactStepResult
-
-  await immutableCache.set({
-    key: fullImageNameCacheKey({ packageHash: currentArtifact.data.artifact.packageHash }),
-    value: fullImageNameNewVersion,
-    ttl: fullImageNameCacheTtl,
   })
 
   log.info(
@@ -93,18 +89,14 @@ async function publishPackage({
     toVersion: newVersion,
   })
 
-  await execaCommand(
-    `docker build --label latest-hash=${currentArtifact.data.artifact.packageHash} --label latest-tag=${newVersion} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
-    {
-      cwd: currentArtifact.data.artifact.packagePath,
-      stdio: 'inherit',
-      env: {
-        // eslint-disable-next-line no-process-env
-        ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
-      },
-      log,
+  await execaCommand(`docker build -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`, {
+    cwd: currentArtifact.data.artifact.packagePath,
+    stdio: 'inherit',
+    env: {
+      ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
     },
-  )
+    log,
+  })
 
   // revert version to what it was before we changed it
   await setPackageVersion({
@@ -128,12 +120,6 @@ async function publishPackage({
     log,
   })
 
-  await immutableCache.set({
-    key: getVersionCacheKey({ artifactHash: currentArtifact.data.artifact.packageHash }),
-    value: newVersion,
-    ttl: immutableCache.ttls.ArtifactStepResult,
-  })
-
   log.info(
     `published docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,
   )
@@ -141,7 +127,6 @@ async function publishPackage({
   await execaCommand(`docker rmi ${fullImageNameNewVersion}`, {
     stdio: 'pipe',
     env: {
-      // eslint-disable-next-line no-process-env
       ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
     },
     cwd: repoPath,
@@ -158,12 +143,12 @@ async function publishPackage({
 
 export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, LocalDockerPublishConfiguration>({
   stepName: 'docker-publish',
+  stepGroup: 'docker-publish',
   taskQueueClass: LocalSequentalTaskQueue,
   run: options => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     waitUntilArtifactParentsFinishedParentSteps: options.stepConfigurations.imageInstallArtifactsFromNpmRegistry,
     artifactConstrains: [
-      artifact => skipIfImageTagAlreadyPublishedConstrain({ currentArtifact: artifact }),
       artifact =>
         skipIfArtifactTargetTypeNotSupportedConstrain({
           currentArtifact: artifact,
@@ -192,11 +177,86 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
         log: options.log,
       }),
     onArtifact: async ({ artifact }) => {
-      const fullImageNameNewVersion = await publishPackage({ ...options, currentArtifact: artifact })
-      return {
-        executionStatus: ExecutionStatus.done,
-        status: Status.passed,
-        notes: [`published: "${fullImageNameNewVersion}"`],
+      const tags = await listTags({
+        registry: options.stepConfigurations.registry,
+        auth: options.stepConfigurations.registryAuth,
+        dockerOrg: options.stepConfigurations.dockerOrganizationName,
+        repo: artifact.data.artifact.packageJson.name,
+      })
+
+      const didHashPublished = tags.some(tag => tag === artifact.data.artifact.packageHash)
+      const fullImageNameWithHashTag = (tag: string): string =>
+        buildFullDockerImageName({
+          dockerOrganizationName: options.stepConfigurations.dockerOrganizationName,
+          dockerRegistry: options.stepConfigurations.registry,
+          imageName: artifact.data.artifact.packageJson.name,
+          imageTag: tag,
+        })
+      if (options.stepConfigurations.buildAndPushOnlyTempVersion) {
+        if (didHashPublished) {
+          return {
+            executionStatus: ExecutionStatus.aborted,
+            status: Status.skippedAsPassed,
+            errors: [],
+            notes: [`artifact already published: "${fullImageNameWithHashTag(artifact.data.artifact.packageHash)}"`],
+          }
+        } else {
+          const fullImageNameNewVersion = await publishPackage({
+            ...options,
+            currentArtifact: artifact,
+            tag: artifact.data.artifact.packageHash,
+          })
+          return {
+            executionStatus: ExecutionStatus.done,
+            status: Status.passed,
+            notes: [`published: "${fullImageNameNewVersion}"`],
+            returnValue: fullImageNameNewVersion,
+          }
+        }
+      } else {
+        const newTag = calculateNewVersion({
+          packagePath: artifact.data.artifact.packagePath,
+          packageJsonVersion: artifact.data.artifact.packageJson.version,
+          allVersions: tags,
+        })
+        if (didHashPublished) {
+          await addTagToRemoteImage({
+            registry: options.stepConfigurations.registry,
+            auth: options.stepConfigurations.registryAuth,
+            dockerOrg: options.stepConfigurations.dockerOrganizationName,
+            repo: artifact.data.artifact.packageJson.name,
+            fromTag: artifact.data.artifact.packageHash,
+            toTag: newTag,
+          })
+          return {
+            executionStatus: ExecutionStatus.done,
+            status: Status.passed,
+            errors: [],
+            notes: [`artifact already published: "${fullImageNameWithHashTag(newTag)}"`],
+            returnValue: fullImageNameWithHashTag(newTag),
+          }
+        } else {
+          const fullImageNameNewVersion = await publishPackage({
+            ...options,
+            currentArtifact: artifact,
+            tag: newTag,
+          })
+          await addTagToRemoteImage({
+            registry: options.stepConfigurations.registry,
+            auth: options.stepConfigurations.registryAuth,
+            dockerOrg: options.stepConfigurations.dockerOrganizationName,
+            repo: artifact.data.artifact.packageJson.name,
+            fromTag: newTag,
+            toTag: artifact.data.artifact.packageHash,
+          })
+          return {
+            executionStatus: ExecutionStatus.done,
+            status: Status.passed,
+            errors: [],
+            notes: [`artifact already published: "${fullImageNameNewVersion}"`],
+            returnValue: fullImageNameNewVersion,
+          }
+        }
       }
     },
   }),

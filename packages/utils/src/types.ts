@@ -57,6 +57,7 @@ export type DoneResult = {
   durationMs: number
   notes: Array<string>
   errors: Array<ErrorObject>
+  returnValue?: string
 }
 
 export type AbortResult<StatusType extends Status> = {

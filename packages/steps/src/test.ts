@@ -21,6 +21,7 @@ export type TestConfigurations = {
 
 export const test = createStepExperimental<LocalSequentalTaskQueue, TestConfigurations>({
   stepName: 'test',
+  stepGroup: 'test',
   taskQueueClass: LocalSequentalTaskQueue,
   run: options => ({
     stepConstrains: [

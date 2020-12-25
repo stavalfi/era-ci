@@ -5,6 +5,7 @@ import { execaCommand } from '@tahini/utils'
 
 export const buildRoot = createStepExperimental<LocalSequentalTaskQueue, { scriptName: string }>({
   stepName: 'build-root',
+  stepGroup: 'build',
   taskQueueClass: LocalSequentalTaskQueue,
   run: ({ stepConfigurations, log, repoPath }) => ({
     stepConstrains: [

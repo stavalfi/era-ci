@@ -29,6 +29,7 @@ test('ensure constrain is called at most once', async () => {
       steps: createLinearStepsGraph([
         createStepExperimental({
           stepName: 'step1',
+          stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
           run: () => ({
             artifactConstrains: [
@@ -81,6 +82,7 @@ test('reproduce bug: ensure constrain is called at most once', async () => {
         {
           step: createStepExperimental({
             stepName: 'step1',
+            stepGroup: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
             run: () => ({
               onArtifact: () => sleep(sleepMs / 2),
@@ -91,6 +93,7 @@ test('reproduce bug: ensure constrain is called at most once', async () => {
         {
           step: createStepExperimental({
             stepName: 'step2',
+            stepGroup: 'step2',
             taskQueueClass: LocalSequentalTaskQueue,
             run: () => ({
               onArtifact: () => Promise.resolve(),
@@ -101,6 +104,7 @@ test('reproduce bug: ensure constrain is called at most once', async () => {
         {
           step: createStepExperimental({
             stepName: 'step3',
+            stepGroup: 'step3',
             taskQueueClass: LocalSequentalTaskQueue,
             run: () => ({
               artifactConstrains: [

@@ -30,6 +30,7 @@ test('ensure ci dont fail when there are no artifacts', async () => {
       steps: createLinearStepsGraph([
         createStepExperimental({
           stepName: 'step1',
+          stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
           run: () => ({ stepLogic: () => Promise.resolve() }),
         })(),
@@ -172,6 +173,7 @@ it('reproduce bug - no packages hangs the flow', async () => {
       steps: createLinearStepsGraph([
         createStepExperimental({
           stepName: 'step1',
+          stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
           run: () => ({ onArtifact: () => Promise.resolve() }),
         })(),
