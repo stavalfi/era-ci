@@ -134,13 +134,13 @@ export function calculateCombinedStatusOfCurrentStep(
   )
 }
 
-export const areRecursiveParentStepsFinished = ({
+export function areRecursiveParentStepsFinished({
   stepsResultOfArtifactsByStep,
   stepIndex,
 }: {
   stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
   stepIndex: number
-}): boolean => {
+}): boolean {
   const stepResult = stepsResultOfArtifactsByStep[stepIndex]
   const parentSteps = stepResult.parentsIndexes
   return parentSteps.every(
@@ -154,7 +154,7 @@ export const areRecursiveParentStepsFinished = ({
   )
 }
 
-export const areRecursiveParentStepsFinishedOnArtifact = ({
+export function areRecursiveParentStepsFinishedOnArtifact({
   stepsResultOfArtifactsByArtifact,
   artifactIndex,
   steps,
@@ -166,13 +166,13 @@ export const areRecursiveParentStepsFinishedOnArtifact = ({
     stepInfo: StepInfo
   }>
   stepIndex: number
-}): boolean => {
+}): boolean {
   const { stepsResult } = stepsResultOfArtifactsByArtifact[artifactIndex].data
   const parentSteps = steps[stepIndex].parentsIndexes
   return parentSteps.every(
     p =>
-      stepsResult[p].data.artifactStepResult.executionStatus === ExecutionStatus.aborted ||
-      stepsResult[p].data.artifactStepResult.executionStatus === ExecutionStatus.done ||
+      (stepsResult[p].data.artifactStepResult.executionStatus === ExecutionStatus.aborted ||
+        stepsResult[p].data.artifactStepResult.executionStatus === ExecutionStatus.done) &&
       areRecursiveParentStepsFinishedOnArtifact({
         artifactIndex,
         stepsResultOfArtifactsByArtifact,

@@ -161,6 +161,7 @@ type CreateRepoOptions<TaskQueue extends TaskQueueBase<unknown>> = {
   repo: Repo
   configurations?: Partial<Config<TaskQueue>>
   dontAddReportSteps?: boolean
+  logLevel?: LogLevel
 }
 
 export type CreateRepo = <TaskQueue extends TaskQueueBase<unknown>>(
@@ -179,7 +180,7 @@ const createRepo: CreateRepo = async options => {
     name.endsWith(`-${resourcesNamesPostfix}`) ? name : `${name}-${resourcesNamesPostfix}`
   const toOriginalName = (name: string) => toActualName(name).replace(`-${resourcesNamesPostfix}`, '')
 
-  const { repo, configurations = {}, dontAddReportSteps } =
+  const { repo, configurations = {}, dontAddReportSteps, logLevel = LogLevel.trace } =
     typeof options === 'function' ? options(toActualName) : options
 
   const { gitServer } = getResources()
@@ -192,7 +193,7 @@ const createRepo: CreateRepo = async options => {
   })
 
   const testLogger = await winstonLogger({
-    customLogLevel: LogLevel.trace,
+    customLogLevel: logLevel,
     disabled: false,
     logFilePath: path.join(repoPath, 'nc-test.log'),
   }).callInitializeLogger({ repoPath })
@@ -215,7 +216,7 @@ const createRepo: CreateRepo = async options => {
     logger:
       configurations.logger ||
       winstonLogger({
-        customLogLevel: LogLevel.trace,
+        customLogLevel: logLevel,
         disabled: false,
         logFilePath,
       }),
