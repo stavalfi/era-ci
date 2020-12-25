@@ -3,10 +3,11 @@ import { queue } from 'async'
 import { Observable, of, Subject } from 'rxjs'
 import { first, mergeMap } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'
-import { ConstrainResultType, runConstrains, CombinedConstrainResult } from '../../create-constrain'
+import { CombinedConstrainResult, ConstrainResultType, runConstrains } from '../../create-constrain'
 import { TaskQueueBase } from '../../create-task-queue'
 import { ArtifactFunctions, StepOutputEvents, StepOutputEventType, UserRunStepOptions } from '../types'
 import {
+  areArtifactParentsFinishedParentSteps,
   areRecursiveParentStepsFinishedOnArtifact,
   artifactsEventsDone,
   calculateCombinedStatusOfCurrentStep,
@@ -20,6 +21,7 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
   onBeforeArtifacts = () => Promise.resolve(),
   onArtifact = () => Promise.resolve(),
   onAfterArtifacts = () => Promise.resolve(),
+  waitUntilArtifactParentsFinishedParentSteps,
 }: {
   allStepsEventsRecorded$: Observable<StepOutputEvents[StepOutputEventType]>
   startStepMs: number
@@ -86,18 +88,73 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
 
   allStepsEventsRecorded$
     .pipe(
-      mergeMap(async event => {
-        if (
-          event.type === StepOutputEventType.artifactStep &&
-          artifactResultsOnCurrentStep[event.artifact.index].artifactStepResult.executionStatus ===
-            ExecutionStatus.scheduled &&
-          !didArtifactRunConstain[event.artifact.index] && // prevent duplicate concurrent entries to this function (for the same artifact)
-          areRecursiveParentStepsFinishedOnArtifact({
+      mergeMap(event => {
+        return new Observable<StepOutputEvents[StepOutputEventType.artifactStep]>(observer => {
+          if (event.type !== StepOutputEventType.artifactStep) {
+            observer.complete()
+            return
+          }
+
+          if (!waitUntilArtifactParentsFinishedParentSteps) {
+            observer.next(event)
+            observer.complete()
+            return
+          }
+
+          const artifactParentsFinishedParentStep = areArtifactParentsFinishedParentSteps({
             artifactIndex: event.artifact.index,
-            steps: userRunStepOptions.steps,
+            artifacts: userRunStepOptions.artifacts,
             stepIndex: userRunStepOptions.currentStepInfo.index,
-            stepsResultOfArtifactsByArtifact: userRunStepOptions.getState().stepsResultOfArtifactsByArtifact,
+            stepsResultOfArtifactsByStep: userRunStepOptions.getState().stepsResultOfArtifactsByStep,
           })
+
+          if (artifactParentsFinishedParentStep) {
+            observer.next(event)
+          }
+
+          for (const childIndex of event.artifact.childrenIndexes) {
+            const artifactParentsFinishedParentStep = areArtifactParentsFinishedParentSteps({
+              artifactIndex: childIndex,
+              artifacts: userRunStepOptions.artifacts,
+              stepIndex: userRunStepOptions.currentStepInfo.index,
+              stepsResultOfArtifactsByStep: userRunStepOptions.getState().stepsResultOfArtifactsByStep,
+            })
+            const childResult = userRunStepOptions.getState().stepsResultOfArtifactsByStep[
+              userRunStepOptions.currentStepInfo.index
+            ].data.artifactsResult[childIndex].data.artifactStepResult
+            if (artifactParentsFinishedParentStep && childResult.executionStatus === ExecutionStatus.scheduled) {
+              observer.next({
+                type: StepOutputEventType.artifactStep,
+                step: userRunStepOptions.currentStepInfo,
+                artifact: userRunStepOptions.artifacts[childIndex],
+                artifactStepResult: childResult,
+              })
+            }
+          }
+          observer.complete()
+        })
+      }),
+      mergeMap(async event => {
+        const artifactExecutionStatus =
+          artifactResultsOnCurrentStep[event.artifact.index].artifactStepResult.executionStatus
+        const artifactRunConstain = didArtifactRunConstain[event.artifact.index]
+        const recursiveParentStepsFinishedOnArtifact = areRecursiveParentStepsFinishedOnArtifact({
+          artifactIndex: event.artifact.index,
+          steps: userRunStepOptions.steps,
+          stepIndex: userRunStepOptions.currentStepInfo.index,
+          stepsResultOfArtifactsByArtifact: userRunStepOptions.getState().stepsResultOfArtifactsByArtifact,
+        })
+        const artifactParentsFinishedParentStep = areArtifactParentsFinishedParentSteps({
+          artifactIndex: event.artifact.index,
+          artifacts: userRunStepOptions.artifacts,
+          stepIndex: userRunStepOptions.currentStepInfo.index,
+          stepsResultOfArtifactsByStep: userRunStepOptions.getState().stepsResultOfArtifactsByStep,
+        })
+        if (
+          artifactExecutionStatus === ExecutionStatus.scheduled &&
+          !artifactRunConstain && // prevent duplicate concurrent entries to this function (for the same artifact)
+          recursiveParentStepsFinishedOnArtifact &&
+          (!waitUntilArtifactParentsFinishedParentSteps || artifactParentsFinishedParentStep)
         ) {
           didArtifactRunConstain[event.artifact.index] = true
           const artifactConstrainsResult: CombinedConstrainResult = await runConstrains({

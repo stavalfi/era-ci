@@ -9,12 +9,20 @@ module.exports = {
   testRunner: 'jest-circus/runner',
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: path.join(__dirname, 'packages/') }),
   setupFilesAfterEnv: [path.join(__dirname, 'jest.setup.js')],
-  transform: {
-    '^.+\\.(t|j)sx?$': ['@swc/jest'],
-  },
   testMatch: [
     path.join(__dirname, 'packages/*/__tests__/**/*.spec.ts'),
     path.join(__dirname, 'packages/tests/*/__tests__/**/*.spec.ts'),
   ],
   globalSetup: path.join(__dirname, 'jest-global-setup.js'),
+
+  // uncomment and remove ts-node when swc has source-maps support
+  transform: {
+    '^.+\\.(t|j)sx?$': ['@swc/jest'],
+  },
+  // preset: 'ts-jest',
+  // globals: {
+  //   'ts-jest': {
+  //     tsconfig: path.join(__dirname, 'tsconfig.json'),
+  //   },
+  // },
 }

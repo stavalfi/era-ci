@@ -4,6 +4,7 @@ import {
   StepInfo,
   StepOutputEvents,
   StepOutputEventType,
+  StepResultOfArtifacts,
   StepsResultOfArtifact,
   StepsResultOfArtifactsByStep,
 } from '../types'
@@ -166,12 +167,12 @@ export const areRecursiveParentStepsFinishedOnArtifact = ({
   }>
   stepIndex: number
 }): boolean => {
-  const stepsOfArtifact = stepsResultOfArtifactsByArtifact[artifactIndex].data.stepsResult
+  const { stepsResult } = stepsResultOfArtifactsByArtifact[artifactIndex].data
   const parentSteps = steps[stepIndex].parentsIndexes
   return parentSteps.every(
     p =>
-      (stepsOfArtifact[p].data.artifactStepResult.executionStatus === ExecutionStatus.aborted ||
-        stepsOfArtifact[p].data.artifactStepResult.executionStatus === ExecutionStatus.done) &&
+      stepsResult[p].data.artifactStepResult.executionStatus === ExecutionStatus.aborted ||
+      stepsResult[p].data.artifactStepResult.executionStatus === ExecutionStatus.done ||
       areRecursiveParentStepsFinishedOnArtifact({
         artifactIndex,
         stepsResultOfArtifactsByArtifact,
@@ -180,3 +181,25 @@ export const areRecursiveParentStepsFinishedOnArtifact = ({
       }),
   )
 }
+
+export const areArtifactParentsFinishedParentSteps = ({
+  stepsResultOfArtifactsByStep,
+  artifactIndex,
+  artifacts,
+  stepIndex,
+}: {
+  stepsResultOfArtifactsByStep: Graph<StepResultOfArtifacts>
+  artifactIndex: number
+  artifacts: Graph<{
+    artifact: Artifact
+  }>
+  stepIndex: number
+}): boolean =>
+  stepsResultOfArtifactsByStep[stepIndex].parentsIndexes.every(parentStepIndex =>
+    artifacts[artifactIndex].parentsIndexes.every(parentArtifactIndex => {
+      return [ExecutionStatus.aborted, ExecutionStatus.done].includes(
+        stepsResultOfArtifactsByStep[parentStepIndex].data.artifactsResult[parentArtifactIndex].data.artifactStepResult
+          .executionStatus,
+      )
+    }),
+  )
