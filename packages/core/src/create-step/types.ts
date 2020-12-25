@@ -251,6 +251,7 @@ export type StepFunctions<StepConfigurations> = {
 }
 
 export type ArtifactFunctions<StepConfigurations> = {
+  waitUntilArtifactParentsFinishedParentSteps?: boolean
   artifactConstrains?: Array<(artifact: Node<{ artifact: Artifact }>) => Constrain<StepConfigurations>>
   onBeforeArtifacts?: () => Promise<void>
   onArtifact?: (options: { artifact: Node<{ artifact: Artifact }> }) => Promise<UserReturnValue | undefined | void>

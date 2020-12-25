@@ -1,8 +1,6 @@
 import { ci, config, Config, createImmutableCache, Logger, LogLevel, StepInfo, TaskQueueBase } from '@tahini/core'
-import { localSequentalTaskQueue } from '@tahini/task-queues'
 import { redisConnection } from '@tahini/key-value-stores'
 import { winstonLogger } from '@tahini/loggers'
-import { ExecutionStatus, Graph, Status } from '@tahini/utils'
 import {
   getDockerImageLabelsAndTags,
   JsonReport,
@@ -10,14 +8,16 @@ import {
   jsonReporterCacheKey,
   stringToJsonReport,
 } from '@tahini/steps'
+import { localSequentalTaskQueue } from '@tahini/task-queues'
+import { ExecutionStatus, Graph, Status } from '@tahini/utils'
 import chance from 'chance'
 import fse from 'fs-extra'
 import path from 'path'
 import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterAll } from './prepare-test-resources'
-import { Cleanup, Repo, ResultingArtifact, TestResources } from './types'
-import { addReportToStepsAsLastNodes } from './utils'
 import { getPublishResult } from './seach-targets'
+import { Cleanup, Repo, ResultingArtifact, TestResources, ToActualName } from './types'
+import { addReportToStepsAsLastNodes } from './utils'
 
 export { createGitRepo } from './create-git-repo'
 export { DeepPartial, TestResources } from './types'
@@ -157,23 +157,30 @@ const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
   }
 }
 
-export type CreateRepo = <TaskQueue extends TaskQueueBase<unknown>>(options: {
+type CreateRepoOptions<TaskQueue extends TaskQueueBase<unknown>> = {
   repo: Repo
   configurations?: Partial<Config<TaskQueue>>
   dontAddReportSteps?: boolean
-}) => Promise<{
+}
+
+export type CreateRepo = <TaskQueue extends TaskQueueBase<unknown>>(
+  options: CreateRepoOptions<TaskQueue> | ((toActualName: ToActualName) => CreateRepoOptions<TaskQueue>),
+) => Promise<{
   repoPath: string
   getImageTags: (packageName: string) => Promise<string[]>
   runCi: RunCi
-  toActualName: (packageName: string) => string
+  toActualName: ToActualName
 }>
 
-const createRepo: CreateRepo = async ({ repo, configurations = {}, dontAddReportSteps }) => {
+const createRepo: CreateRepo = async options => {
   const resourcesNamesPostfix = chance().hash().slice(0, 8)
 
   const toActualName = (name: string): string =>
     name.endsWith(`-${resourcesNamesPostfix}`) ? name : `${name}-${resourcesNamesPostfix}`
   const toOriginalName = (name: string) => toActualName(name).replace(`-${resourcesNamesPostfix}`, '')
+
+  const { repo, configurations = {}, dontAddReportSteps } =
+    typeof options === 'function' ? options(toActualName) : options
 
   const { gitServer } = getResources()
 

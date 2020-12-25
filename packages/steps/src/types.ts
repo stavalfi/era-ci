@@ -6,6 +6,7 @@ export type DockerPublishConfiguration = {
     token: string
   }
   dockerOrganizationName: string
+  doesImageContainsNpmArtifacts?: boolean
 }
 
 export type QuayDockerPublishConfiguration = DockerPublishConfiguration & {

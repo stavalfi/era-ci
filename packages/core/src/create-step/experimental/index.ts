@@ -64,7 +64,14 @@ function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
         return from(events)
       }
 
-      if ('stepLogic' in prepareResult) {
+      if ('onArtifact' in prepareResult) {
+        return runArtifactFunctions({
+          allStepsEventsRecorded$,
+          startStepMs: userRunStepOptions.startStepMs,
+          userRunStepOptions,
+          ...prepareResult,
+        })
+      } else {
         return from(
           runStepFunctions({
             allStepsEventsRecorded$,
@@ -73,13 +80,6 @@ function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
             ...prepareResult,
           }),
         ).pipe(concatMap(identity))
-      } else {
-        return runArtifactFunctions({
-          allStepsEventsRecorded$,
-          startStepMs: userRunStepOptions.startStepMs,
-          userRunStepOptions,
-          ...prepareResult,
-        })
       }
     }),
   )

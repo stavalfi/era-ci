@@ -107,6 +107,7 @@ export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, Qua
   taskQueueClass: QuayBuildsTaskQueue,
   run: options => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
+    waitUntilArtifactParentsFinishedParentSteps: options.stepConfigurations.doesImageContainsNpmArtifacts,
     artifactConstrains: [
       artifact =>
         skipIfArtifactTargetTypeNotSupportedConstrain({

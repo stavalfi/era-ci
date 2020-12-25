@@ -1,5 +1,4 @@
 import { Artifact, ExecutionStatus, Graph, PackageJson } from '@tahini/utils'
-import _ from 'lodash'
 import { merge, Observable, Subject } from 'rxjs'
 import { filter, mergeMap, tap } from 'rxjs/operators'
 import { deserializeError } from 'serialize-error'
@@ -9,7 +8,6 @@ import {
   StepInfo,
   StepOutputEvents,
   StepOutputEventType,
-  StepResultOfArtifacts,
   toStepsResultOfArtifactsByArtifact,
 } from './create-step'
 import { TaskQueueBase, TaskQueueOptions } from './create-task-queue'
@@ -35,26 +33,6 @@ type Options = {
   immutableCache: ImmutableCache
   logger: Logger
   artifacts: Graph<{ artifact: Artifact }>
-}
-
-function updateState({
-  stepIndex,
-  state,
-  stepResultOfArtifacts,
-  artifacts,
-}: {
-  state: State
-  stepIndex: number
-  stepResultOfArtifacts: StepResultOfArtifacts
-  artifacts: Graph<{ artifact: Artifact }>
-}) {
-  const clone = _.cloneDeep(state.stepsResultOfArtifactsByStep)
-  clone[stepIndex].data = stepResultOfArtifacts
-  state.stepsResultOfArtifactsByStep = clone
-  state.stepsResultOfArtifactsByArtifact = toStepsResultOfArtifactsByArtifact({
-    artifacts,
-    stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep,
-  })
 }
 
 function runStep(
@@ -94,8 +72,25 @@ function runStep(
   )
 }
 
-export function runAllSteps(options: Options, state: State) {
+export function runAllSteps(options: Options, state: Omit<State, 'getResult'>) {
   options.log.verbose(`starting to execute steps`)
+
+  const fullState: State = {
+    ...state,
+    getResult: ({ artifactName, stepId }) => {
+      const artifactIndex = options.artifacts.findIndex(a => a.data.artifact.packageJson.name === artifactName)
+      if (artifactIndex < 0) {
+        throw new Error(`artifactName: "${artifactName}" not found`)
+      }
+
+      const stepIndex = options.steps.findIndex(a => a.data.stepInfo.stepId === stepId)
+      if (stepIndex < 0) {
+        throw new Error(`stepId: "${stepId}" not found`)
+      }
+
+      return state.stepsResultOfArtifactsByStep[stepIndex].data.artifactsResult[artifactIndex].data.artifactStepResult
+    },
+  }
 
   const allStepsEvents$ = new Subject<StepOutputEvents[StepOutputEventType]>()
 
@@ -150,25 +145,25 @@ export function runAllSteps(options: Options, state: State) {
     }
   }
 
-  merge(...options.steps.map(s => runStep({ stepIndex: s.index, allStepsEvents$, ...options, getState: () => state })))
+  merge(
+    ...options.steps.map(s => runStep({ stepIndex: s.index, allStepsEvents$, ...options, getState: () => fullState })),
+  )
     .pipe(
       tap(logEvent),
       tap(e => {
-        const stepResultClone = _.cloneDeep(state.stepsResultOfArtifactsByStep[e.step.index].data)
+        const stepResult = fullState.stepsResultOfArtifactsByStep[e.step.index].data
         switch (e.type) {
           case StepOutputEventType.step:
-            stepResultClone.stepExecutionStatus = e.stepResult.executionStatus
-            stepResultClone.stepResult = e.stepResult
+            stepResult.stepExecutionStatus = e.stepResult.executionStatus
+            stepResult.stepResult = e.stepResult
             break
           case StepOutputEventType.artifactStep:
-            stepResultClone.artifactsResult[e.artifact.index].data.artifactStepResult = e.artifactStepResult
+            stepResult.artifactsResult[e.artifact.index].data.artifactStepResult = e.artifactStepResult
             break
         }
-        updateState({
-          state,
+        fullState.stepsResultOfArtifactsByArtifact = toStepsResultOfArtifactsByArtifact({
           artifacts: options.artifacts,
-          stepIndex: e.step.index,
-          stepResultOfArtifacts: stepResultClone,
+          stepsResultOfArtifactsByStep: fullState.stepsResultOfArtifactsByStep,
         })
       }),
       mergeMap(async e => {
@@ -187,7 +182,7 @@ export function runAllSteps(options: Options, state: State) {
       tap(e => allStepsEvents$.next(e)),
       tap(() => {
         // after all steps are done, close all streams
-        const isFlowFinished = state.stepsResultOfArtifactsByStep.every(step =>
+        const isFlowFinished = fullState.stepsResultOfArtifactsByStep.every(step =>
           [ExecutionStatus.aborted, ExecutionStatus.done].includes(step.data.stepExecutionStatus),
         )
         if (isFlowFinished) {
@@ -199,7 +194,7 @@ export function runAllSteps(options: Options, state: State) {
       complete: () => options.log.verbose(`ended to execute steps`),
     })
 
-  for (const step of state.stepsResultOfArtifactsByStep) {
+  for (const step of fullState.stepsResultOfArtifactsByStep) {
     allStepsEvents$.next({
       type: StepOutputEventType.step,
       step: options.steps[step.index],

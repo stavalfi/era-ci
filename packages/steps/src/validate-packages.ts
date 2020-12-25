@@ -9,6 +9,7 @@ export const validatePackages = createStepExperimental({
   stepName: 'validate-packages',
   taskQueueClass: LocalSequentalTaskQueue,
   run: ({ artifacts }) => ({
+    waitUntilArtifactParentsFinishedParentSteps: false,
     onArtifact: async ({ artifact }) => {
       const problems: Array<string> = []
 

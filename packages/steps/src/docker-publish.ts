@@ -161,6 +161,7 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
   taskQueueClass: LocalSequentalTaskQueue,
   run: options => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
+    waitUntilArtifactParentsFinishedParentSteps: options.stepConfigurations.doesImageContainsNpmArtifacts,
     artifactConstrains: [
       artifact => skipIfImageTagAlreadyPublishedConstrain({ currentArtifact: artifact }),
       artifact =>

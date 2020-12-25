@@ -1,7 +1,8 @@
+import { Artifact, execaCommand, Graph, INVALIDATE_CACHE_HASH, PackageJson } from '@tahini/utils'
 import crypto from 'crypto'
-import fs from 'fs-extra'
+import fse from 'fs-extra'
+import _ from 'lodash'
 import path from 'path'
-import { Artifact, PackageJson, Graph, execaCommand, INVALIDATE_CACHE_HASH } from '@tahini/utils'
 import { Log } from './create-logger'
 
 const isInParent = (parent: string, child: string) => {
@@ -14,8 +15,8 @@ export type PackageHashInfo = {
   packagePath: string
   packageHash: string
   packageJson: PackageJson
-  parents: PackageHashInfo[] // who depends on me
-  children: Array<string> // who I depend on
+  parents: PackageHashInfo[] // who I depend on
+  children: Array<string> // who depends on me
 }
 
 function combineHashes(hashes: Array<string>): string {
@@ -26,99 +27,39 @@ function combineHashes(hashes: Array<string>): string {
   return Buffer.from(hasher.digest()).toString('hex')
 }
 
-function fillParentsInGraph(packageHashInfoByPath: Map<string, PackageHashInfo>) {
-  const visited = new Map<string, boolean>()
-  function visit(packagePath: string) {
-    if (!visited.has(packagePath)) {
-      visited.set(packagePath, true)
-      const parent = packageHashInfoByPath.get(packagePath) as PackageHashInfo
-      parent.children.forEach(dependencyPath => {
-        const child = packageHashInfoByPath.get(dependencyPath) as PackageHashInfo
-        if (!child.parents.includes(parent)) {
-          child.parents.push(parent)
-        }
-      })
-      parent.children.forEach(visit)
-    }
-  }
-
-  for (const packagePath of packageHashInfoByPath.keys()) {
-    visit(packagePath)
-  }
-}
-
 // this method must be implemented in BFS (DFS will cause a bug) because dfs dont cover
 // the following scenraio: c depends on a, c depends on b.
 // why: we need to calculate the hash of a and b before we caluclate the hash of c
 function calculateConbinedHashes(
   rootFilesHash: string,
-  packageDirectHashInfoByPath: Map<string, PackageHashInfo>,
-): void {
-  const heads = [...packageDirectHashInfoByPath.entries()].filter(
-    ([_packagePath, packageInfo]) => packageInfo.children.length === 0,
-  )
+  artifacts: Graph<{ artifact: Artifact }>,
+): Graph<{ artifact: Artifact }> {
+  const artifactsClone = _.cloneDeep(artifacts)
+  const heads = artifactsClone.filter(a => a.parentsIndexes.length === 0)
   const queue = heads
 
-  const seen = new Set<string>()
+  const seen = new Set<number>()
 
   while (queue.length > 0) {
-    const [packagePath, packageHashInfo] = queue[0]
+    const artifact = queue[0]
     queue.shift()
-    seen.add(packagePath)
+    seen.add(artifact.index)
 
-    const oldPackageHash = packageHashInfo.packageHash
+    const oldPackageHash = artifact.data.artifact.packageHash
     const combinedHash = combineHashes([
       rootFilesHash,
       oldPackageHash,
-      ...packageHashInfo.children.map(parentPath => packageDirectHashInfoByPath.get(parentPath)?.packageHash!),
+      ...artifact.parentsIndexes.map(parentIndex => artifactsClone[parentIndex].data.artifact.packageHash),
     ])
-    packageHashInfo.packageHash = combinedHash
-    packageHashInfo.parents.forEach(packageInfo => {
-      if (!seen.has(packageInfo.packagePath)) {
-        queue.push([packageInfo.packagePath, packageInfo])
+    artifact.data.artifact.packageHash = combinedHash
+    artifact.childrenIndexes.forEach(childIndex => {
+      if (!seen.has(childIndex)) {
+        queue.push(artifactsClone[childIndex])
       }
     })
   }
-}
 
-function createOrderGraph(
-  packageHashInfoByPath: Map<string, PackageHashInfo>,
-): Graph<{
-  artifact: Artifact
-}> {
-  const heads = [...packageHashInfoByPath.values()].filter(packageHashInfo => packageHashInfo.children.length === 0)
-  const orderedGraph: PackageHashInfo[] = []
-  const visited = new Map<PackageHashInfo, boolean>()
-  function visit(node: PackageHashInfo) {
-    if (!visited.has(node)) {
-      visited.set(node, true)
-      orderedGraph.push(node)
-      node.parents.map(packagePath => packageHashInfoByPath.get(packagePath.packagePath)!).forEach(visit)
-    }
-  }
-  heads.forEach(visit)
-  return orderedGraph
-    .map((node, index) => {
-      // @ts-ignore
-      node.index = index
-      return node
-    })
-    .map(node => ({
-      // @ts-ignore
-      index: node.index,
-      data: {
-        artifact: {
-          relativePackagePath: node.relativePackagePath,
-          packageHash: node.packageHash,
-          packageJson: node.packageJson,
-          packagePath: node.packagePath,
-        },
-      },
-      // @ts-ignore
-      childrenIndexes: node.children.map(packagePath => packageHashInfoByPath.get(packagePath)?.index!),
-      // @ts-ignore
-      parentsIndexes: node.parents.map(parent => parent.index),
-    }))
+  return artifactsClone
 }
 
 async function calculateHashOfFiles(packagePath: string, filesPath: Array<string>): Promise<string> {
@@ -126,7 +67,7 @@ async function calculateHashOfFiles(packagePath: string, filesPath: Array<string
     await Promise.all(
       filesPath.map(async filePath => ({
         filePath,
-        fileContent: await fs.readFile(filePath, 'utf-8'),
+        fileContent: await fse.readFile(filePath, 'utf-8'),
       })),
     )
   ).reduce((hasher, { filePath, fileContent }) => {
@@ -165,67 +106,62 @@ export async function calculateArtifactsHash({
     .split('\n')
     .map(relativeFilePath => path.join(repoPath, relativeFilePath))
 
-  const packagesWithPackageJson = await Promise.all(
-    packagesPath.map<Promise<{ packagePath: string; packageJson: PackageJson }>>(async packagePath => ({
-      packagePath,
-      packageJson: await fs.readJson(path.join(packagePath, 'package.json')),
-    })),
+  const packageJsons: PackageJson[] = await Promise.all(
+    packagesPath.map(async packagePath => fse.readJson(path.join(packagePath, 'package.json'))),
   )
 
-  const getDepsPaths = (deps?: { [key: string]: string }): Array<string> =>
-    Object.keys(deps || {})
-      .map(dependencyName => packagesWithPackageJson.find(({ packageJson }) => packageJson.name === dependencyName))
-      .filter(Boolean)
-      .map(p => p?.packagePath as string)
+  const isolatedPackageHash = await Promise.all(
+    packagesPath.map(packagePath => {
+      const packageFiles = repoFilesPath.filter(filePath => isInParent(packagePath, filePath))
+      return calculateHashOfFiles(packagePath, packageFiles)
+    }),
+  )
 
-  type TempArtifact = {
-    relativePackagePath: string
-    packagePath: string
-    packageJson: PackageJson
-    packageHash: string
-    children: Array<string>
-    parents: []
-  }
-
-  const packageHashInfoByPath: Map<string, PackageHashInfo> = new Map(
-    await Promise.all(
-      packagesWithPackageJson.map<Promise<[string, TempArtifact]>>(async ({ packagePath, packageJson }) => {
-        const packageFiles = repoFilesPath.filter(filePath => isInParent(packagePath, filePath))
-        const packageHash = await calculateHashOfFiles(packagePath, packageFiles)
-        return [
+  const artifactsWithoutChildren: Graph<{ artifact: Artifact }> = packagesPath.map((packagePath, index) => {
+    const parentsIndexes = Array.from(
+      new Set([
+        ...Object.keys(packageJsons[index].dependencies || {}),
+        ...Object.keys(packageJsons[index].devDependencies || {}),
+        ...Object.keys(packageJsons[index].peerDependencies || {}),
+      ]),
+    ).map(parentArtifactName => packageJsons.findIndex(packageJson => packageJson.name === parentArtifactName))
+    return {
+      parentsIndexes,
+      childrenIndexes: [],
+      index,
+      data: {
+        artifact: {
+          packageJson: packageJsons[index],
           packagePath,
-          {
-            relativePackagePath: path.relative(repoPath, packagePath),
-            packagePath,
-            packageJson,
-            packageHash,
-            children: [...getDepsPaths(packageJson?.dependencies), ...getDepsPaths(packageJson?.devDependencies)],
-            parents: [], // I will fill this soon (its not a todo. the next secion will fill it)
-          },
-        ]
-      }),
-    ),
-  )
+          relativePackagePath: path.relative(repoPath, packagePath),
+          packageHash: isolatedPackageHash[index],
+        },
+      },
+    }
+  })
 
-  fillParentsInGraph(packageHashInfoByPath)
+  const artifactsWithChildren = artifactsWithoutChildren.map(artifact => ({
+    ...artifact,
+    childrenIndexes: artifactsWithoutChildren
+      .filter(possibleChild => possibleChild.parentsIndexes.includes(artifact.index))
+      .map(child => child.index),
+  }))
 
   const rootFilesInfo = repoFilesPath.filter(filePath => isRootFile(repoPath, filePath))
   const rootFilesHash = await calculateHashOfFiles(repoPath, rootFilesInfo)
 
-  calculateConbinedHashes(rootFilesHash, packageHashInfoByPath)
+  const artifactsWithCombinedHash = calculateConbinedHashes(rootFilesHash, artifactsWithChildren)
 
-  const artifacts = createOrderGraph(packageHashInfoByPath)
-
-  const repoHash = combineHashes([rootFilesHash, ...artifacts.map(p => p.data.artifact.packageHash)])
+  const repoHash = combineHashes([rootFilesHash, ...artifactsWithCombinedHash.map(p => p.data.artifact.packageHash)])
 
   log.verbose('calculated hashes to every package in the monorepo:')
   log.verbose(`root-files -> ${rootFilesHash}`)
-  log.verbose(`${artifacts.length} packages:`)
-  artifacts.forEach(node =>
+  log.verbose(`${artifactsWithCombinedHash.length} packages:`)
+  artifactsWithCombinedHash.forEach(node =>
     log.verbose(
       `${node.data.artifact.relativePackagePath} (${node.data.artifact.packageJson.name}) -> ${node.data.artifact.packageHash}`,
     ),
   )
   log.verbose('---------------------------------------------------')
-  return { repoHash, artifacts }
+  return { repoHash, artifacts: artifactsWithCombinedHash }
 }
