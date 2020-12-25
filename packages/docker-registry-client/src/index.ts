@@ -74,20 +74,3 @@ export const addTagToRemoteImage = async (
       ),
   )
 }
-
-export const isTagExistsRemotly = async (
-  options: { dockerOrg: string; repo: string; tag: string } & Options,
-): Promise<void> => {
-  const client = getClient(options)
-  await runTask(
-    () =>
-      new Promise<string>((res, rej) =>
-        client.getManifest({ ref: options.tag }, (err, _manifest, _response, manifestStr) =>
-          err ? rej(err) : res(manifestStr),
-        ),
-      ),
-  ).then(
-    () => true,
-    () => false,
-  )
-}
