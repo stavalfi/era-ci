@@ -21,6 +21,7 @@ test('ensure onArtifact is called at most once', async () => {
       steps: createLinearStepsGraph([
         createStepExperimental({
           stepName: 'step1',
+          stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
           run: () => ({
             onArtifact,

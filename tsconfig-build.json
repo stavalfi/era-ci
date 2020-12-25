@@ -7,6 +7,12 @@
       "path": "packages/utils/tsconfig-build.json"
     },
     {
+      "path": "packages/quay-client/tsconfig-build.json"
+    },
+    {
+      "path": "packages/docker-registry-client/tsconfig-build.json"
+    },
+    {
       "path": "packages/serverless-example/tsconfig-build.json"
     },
     {

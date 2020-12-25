@@ -6,6 +6,32 @@ declare module 'redis-url-parse' {
   export default function (redisUrl: string): { host: string; port: number; database: string; password: string }
 }
 
+declare module 'docker-registry-client' {
+  export function createClientV2(options: {
+    name: string
+    log: bunyan
+    insecure: boolean
+    username?: string
+    password?: string
+    maxSchemaVersion: 1 | 2
+  }): {
+    listTags: (callback: (err: unknown, tags: string[]) => void) => void
+    getManifest: (
+      options: { ref: string },
+      callback: (
+        err: unknown,
+        manifest: Record<string, unknown>, // it's a valid-json
+        res: unknown,
+        manifestStr: string,
+      ) => void,
+    ) => void
+    putManifest: (
+      options: { ref: string; manifest: string },
+      callback: (err: unknown, res: unknown, digest: unknown, location: unknown) => void,
+    ) => void
+  }
+}
+
 declare module 'ci-env' {
   export const branch: string | boolean | undefined
   export const pull_request_number: string | boolean | undefined

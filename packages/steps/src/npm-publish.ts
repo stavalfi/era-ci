@@ -245,6 +245,7 @@ const customConstrain = createConstrain<
 // TODO: each step also supported to work without other steps -> we need to verify this in tests
 export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPublishConfiguration>({
   stepName: 'npm-publish',
+  stepGroup: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,
   run: ({ stepConfigurations, repoPath, log, immutableCache }) => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],

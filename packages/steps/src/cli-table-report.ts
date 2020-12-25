@@ -521,6 +521,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
 
 export const cliTableReporter = createStepExperimental({
   stepName: 'cli-table-reporter',
+  stepGroup: 'cli-table-reporter',
   taskQueueClass: LocalSequentalTaskQueue,
   run: options => ({
     stepConstrains: [

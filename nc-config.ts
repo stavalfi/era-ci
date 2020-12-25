@@ -77,6 +77,7 @@ export default config({
         username: DOCKER_HUB_USERNAME!,
         token: DOCKER_HUB_TOKEN!,
       },
+      buildAndPushOnlyTempVersion: !isMasterBuild,
     }),
     k8sGcloudDeployment({
       isStepEnabled: false,

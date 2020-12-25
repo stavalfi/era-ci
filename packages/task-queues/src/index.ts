@@ -7,4 +7,4 @@ export {
   QuayBuildsTaskQueueConfigurations,
   QuayNotificationEvents,
   quayBuildsTaskQueue,
-} from './quay'
+} from './quay-builds-task-queue'

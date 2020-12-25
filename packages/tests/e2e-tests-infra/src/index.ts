@@ -1,13 +1,8 @@
 import { ci, config, Config, createImmutableCache, Logger, LogLevel, StepInfo, TaskQueueBase } from '@tahini/core'
+import { listTags } from '@tahini/docker-registry-client'
 import { redisConnection } from '@tahini/key-value-stores'
 import { winstonLogger } from '@tahini/loggers'
-import {
-  getDockerImageLabelsAndTags,
-  JsonReport,
-  jsonReporter,
-  jsonReporterCacheKey,
-  stringToJsonReport,
-} from '@tahini/steps'
+import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@tahini/steps'
 import { localSequentalTaskQueue } from '@tahini/task-queues'
 import { ExecutionStatus, Graph, Status } from '@tahini/utils'
 import chance from 'chance'
@@ -199,15 +194,11 @@ const createRepo: CreateRepo = async options => {
   }).callInitializeLogger({ repoPath })
 
   const getImageTags = async (packageName: string): Promise<string[]> => {
-    const result = await getDockerImageLabelsAndTags({
-      dockerOrganizationName: getResources().quayNamespace,
-      imageName: toActualName(packageName),
-      dockerRegistry: getResources().dockerRegistry,
-      repoPath,
-      log: testLogger.createLog('test'),
-      silent: true,
+    return listTags({
+      registry: getResources().dockerRegistry,
+      dockerOrg: getResources().quayNamespace,
+      repo: toActualName(packageName),
     })
-    return result?.allValidTagsSorted || []
   }
 
   const logFilePath = path.join(repoPath, 'nc.log')

@@ -1,5 +1,5 @@
 import { Log, Logger } from '@tahini/core'
-import { getDockerImageLabelsAndTags } from '@tahini/steps'
+import { listTags } from '@tahini/docker-registry-client'
 import { getPackages } from '@tahini/utils'
 import execa from 'execa'
 import path from 'path'
@@ -59,15 +59,12 @@ async function publishedDockerImageTags({
   log: Log
 }): Promise<Array<string>> {
   try {
-    const result = await getDockerImageLabelsAndTags({
-      dockerOrganizationName,
-      imageName,
-      dockerRegistry,
-      silent: true,
-      repoPath,
-      log,
+    const allTags = await listTags({
+      dockerOrg: dockerOrganizationName,
+      repo: imageName,
+      registry: dockerRegistry,
     })
-    const tags = result?.allTags.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
+    const tags = allTags.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
     const sorted = semver.sort(tags.filter(tag => tag !== 'latest')).concat(tags.includes('latest') ? ['latest'] : [])
     return sorted
   } catch (e) {

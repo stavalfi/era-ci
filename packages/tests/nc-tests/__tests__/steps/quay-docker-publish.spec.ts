@@ -7,7 +7,7 @@ import { ExecutionStatus, Status } from '@tahini/utils'
 const { createRepo, getResources } = createTest()
 
 test('single package - no problems - step should pass', async () => {
-  const { runCi, repoPath, getImageTags } = await createRepo({
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -43,18 +43,19 @@ test('single package - no problems - step should pass', async () => {
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
+          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
   })
 
-  const { passed } = await runCi()
+  const { passed, published } = await runCi()
   expect(passed).toBeTruthy()
-  await expect(getImageTags('a')).resolves.toEqual(['1.0.0'])
+  expect(published.get('a')?.docker.tags).toEqual(['1.0.0'])
 })
 
 test('multiple packages - no problems - step should pass', async () => {
-  const { runCi, repoPath, getImageTags } = await createRepo({
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -100,16 +101,17 @@ test('multiple packages - no problems - step should pass', async () => {
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
+          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
   })
 
-  const { passed } = await runCi()
+  const { passed, published } = await runCi()
 
   expect(passed).toBeTruthy()
-  await expect(getImageTags('a')).resolves.toEqual(['1.0.0'])
-  await expect(getImageTags('b')).resolves.toEqual(['1.0.1'])
+  expect(published.get('a')?.docker.tags).toEqual(['1.0.0'])
+  expect(published.get('b')?.docker.tags).toEqual(['1.0.1'])
 })
 
 test('expect the step to be failed if the dockerfile has an error', async () => {
@@ -149,6 +151,7 @@ test('expect the step to be failed if the dockerfile has an error', async () => 
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
+          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
@@ -200,6 +203,7 @@ test('run step again on failure', async () => {
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
+          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
@@ -253,6 +257,7 @@ test('do not run step again if step succeed (image built and pushed to registry)
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
+          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },

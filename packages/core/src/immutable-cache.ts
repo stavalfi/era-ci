@@ -128,6 +128,7 @@ export async function createImmutableCache({
             executionStatus: enums([ExecutionStatus.done, ExecutionStatus.aborted]),
             status: enums(Object.values(Status)),
             durationMs: optional(number()),
+            returnValue: optional(string()),
             notes: array(string()),
             errors: array(
               type({

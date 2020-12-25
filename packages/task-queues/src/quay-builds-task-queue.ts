@@ -15,10 +15,15 @@ import { CancelError } from 'got'
 import Redis from 'ioredis'
 import path from 'path'
 import { ErrorObject, serializeError } from 'serialize-error'
-import { BuildTriggerResult, QuayBuildStatus, QuayClient, QuayNotificationEvents } from './quay-client'
-import { AbortEventHandler } from './types'
+import {
+  AbortEventHandler,
+  BuildTriggerResult,
+  QuayBuildStatus,
+  QuayClient,
+  QuayNotificationEvents,
+} from '@tahini/quay-client'
 
-export { QuayBuildStatus, QuayNotificationEvents } from './quay-client'
+export { QuayBuildStatus, QuayNotificationEvents } from '@tahini/quay-client'
 
 export type QuayBuildsTaskQueueConfigurations = {
   redisAddress: string

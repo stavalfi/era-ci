@@ -48,6 +48,7 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
           dockerOrganizationName: getResources().quayNamespace,
           registry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
+          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },

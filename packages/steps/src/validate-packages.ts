@@ -7,6 +7,7 @@ import semver from 'semver'
 
 export const validatePackages = createStepExperimental({
   stepName: 'validate-packages',
+  stepGroup: 'validate-packages',
   taskQueueClass: LocalSequentalTaskQueue,
   run: ({ artifacts }) => ({
     waitUntilArtifactParentsFinishedParentSteps: false,

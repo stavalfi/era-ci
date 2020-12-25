@@ -260,6 +260,7 @@ export const jsonReporterStepName = 'json-reporter'
 
 export const jsonReporter = createStepExperimental({
   stepName: jsonReporterStepName,
+  stepGroup: 'json-reporter',
   taskQueueClass: LocalSequentalTaskQueue,
   run: ({ immutableCache, flowId, repoHash, startFlowMs, steps, artifacts, getState, currentStepInfo }) => ({
     stepLogic: async () => {

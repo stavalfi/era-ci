@@ -72,24 +72,49 @@ function runStep(
   )
 }
 
-export function runAllSteps(options: Options, state: Omit<State, 'getResult'>) {
+export function runAllSteps(options: Options, state: Omit<State, 'getResult' | 'getReturnValue'>) {
   options.log.verbose(`starting to execute steps`)
+
+  const getResult: State['getResult'] = opt => {
+    const artifactIndex = options.artifacts.findIndex(a => a.data.artifact.packageJson.name === opt.artifactName)
+    if (artifactIndex < 0) {
+      throw new Error(`artifactName: "${opt.artifactName}" not found`)
+    }
+
+    const stepIndex = options.steps.findIndex(a =>
+      'stepId' in opt ? a.data.stepInfo.stepId === opt.stepId : a.data.stepInfo.stepGroup === opt.stepGroup,
+    )
+    if (stepIndex < 0) {
+      if ('stepId' in opt) {
+        throw new Error(`'step-id': "${opt.stepId}" not found`)
+      } else {
+        throw new Error(`'step-group': "${opt.stepGroup}" not found`)
+      }
+    }
+
+    return state.stepsResultOfArtifactsByStep[stepIndex].data.artifactsResult[artifactIndex].data.artifactStepResult
+  }
+
+  const getReturnValue: State['getReturnValue'] = opt => {
+    const artifactStepResult = getResult(opt)
+    if (artifactStepResult.executionStatus !== ExecutionStatus.done) {
+      if ('stepId' in opt) {
+        throw new Error(`'step-id': "${opt.stepId}" not done yet so we can't get it's return value`)
+      } else {
+        throw new Error(`'step-group': "${opt.stepGroup}" not done yet so we can't get it's return value`)
+      }
+    }
+    const result = opt.mapper(artifactStepResult.returnValue)
+    if (result === undefined) {
+      throw new Error(`invalid return-value from step: "undefined"`)
+    }
+    return result
+  }
 
   const fullState: State = {
     ...state,
-    getResult: ({ artifactName, stepId }) => {
-      const artifactIndex = options.artifacts.findIndex(a => a.data.artifact.packageJson.name === artifactName)
-      if (artifactIndex < 0) {
-        throw new Error(`artifactName: "${artifactName}" not found`)
-      }
-
-      const stepIndex = options.steps.findIndex(a => a.data.stepInfo.stepId === stepId)
-      if (stepIndex < 0) {
-        throw new Error(`stepId: "${stepId}" not found`)
-      }
-
-      return state.stepsResultOfArtifactsByStep[stepIndex].data.artifactsResult[artifactIndex].data.artifactStepResult
-    },
+    getResult,
+    getReturnValue,
   }
 
   const allStepsEvents$ = new Subject<StepOutputEvents[StepOutputEventType]>()

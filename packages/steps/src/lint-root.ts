@@ -5,6 +5,7 @@ import { execaCommand } from '@tahini/utils'
 
 export const lintRoot = createStepExperimental<LocalSequentalTaskQueue, { scriptName: string }>({
   stepName: 'lint-root',
+  stepGroup: 'lint',
   taskQueueClass: LocalSequentalTaskQueue,
   run: ({ repoPath, log, stepConfigurations }) => ({
     stepConstrains: [

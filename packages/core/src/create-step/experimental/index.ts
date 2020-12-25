@@ -93,6 +93,7 @@ export function createStepExperimental<
   return (stepConfigurations: StepConfigurations): StepExperimental<TaskQueue> => {
     return {
       stepName: createStepOptions.stepName,
+      stepGroup: createStepOptions.stepGroup,
       taskQueueClass: createStepOptions.taskQueueClass,
       runStep: (runStepOptions, stepsEvents$) => {
         const allStepsEventsRecorded$ = stepsEvents$.pipe(publishReplay()) as ConnectableObservable<
