@@ -144,17 +144,10 @@ export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, S
           stepIndex: userRunStepOptions.currentStepInfo.index,
           stepsResultOfArtifactsByArtifact: userRunStepOptions.getState().stepsResultOfArtifactsByArtifact,
         })
-        const artifactParentsFinishedParentStep = areArtifactParentsFinishedParentSteps({
-          artifactIndex: event.artifact.index,
-          artifacts: userRunStepOptions.artifacts,
-          stepIndex: userRunStepOptions.currentStepInfo.index,
-          stepsResultOfArtifactsByStep: userRunStepOptions.getState().stepsResultOfArtifactsByStep,
-        })
         if (
           artifactExecutionStatus === ExecutionStatus.scheduled &&
           !artifactRunConstain && // prevent duplicate concurrent entries to this function (for the same artifact)
-          recursiveParentStepsFinishedOnArtifact &&
-          (!waitUntilArtifactParentsFinishedParentSteps || artifactParentsFinishedParentStep)
+          recursiveParentStepsFinishedOnArtifact
         ) {
           didArtifactRunConstain[event.artifact.index] = true
           const artifactConstrainsResult: CombinedConstrainResult = await runConstrains({

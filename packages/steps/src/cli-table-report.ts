@@ -239,12 +239,12 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
   return packagesStatusTable.toString()
 }
 
-function formatErrors(errors: Array<ErrorObject>) {
+function formatErrors(errors: Array<ErrorObject>, stepDisplayName?: string) {
   return (
     errors
       ?.filter(Boolean)
       .map(deserializeError)
-      .map(e => `${e.stack || e}`) || []
+      .map(e => `step: "${stepDisplayName}" - ${e.stack || e}`) || []
   )
 }
 
@@ -260,9 +260,13 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
               ...(() => {
                 switch (node.data.artifactExecutionStatus) {
                   case ExecutionStatus.done:
-                    return node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors))
+                    return node.data.stepsResult.map(r =>
+                      formatErrors(r.data.artifactStepResult.errors, r.data.stepInfo.displayName),
+                    )
                   case ExecutionStatus.aborted:
-                    return node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors))
+                    return node.data.stepsResult.map(r =>
+                      formatErrors(r.data.artifactStepResult.errors, r.data.stepInfo.displayName),
+                    )
                 }
               })(),
             ]),
@@ -277,7 +281,9 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
               ...(() => {
                 switch (node.data.artifactExecutionStatus) {
                   case ExecutionStatus.aborted:
-                    return node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors))
+                    return node.data.stepsResult.map(r =>
+                      formatErrors(r.data.artifactStepResult.errors, r.data.stepInfo.displayName),
+                    )
                 }
               })(),
             ]),
@@ -291,7 +297,9 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
                 packageName: node.data.artifact.packageJson.name,
                 errors: _.flatMapDeep([
                   ...formatErrors(node.data.artifactResult.errors),
-                  ...node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors)),
+                  ...node.data.stepsResult.map(r =>
+                    formatErrors(r.data.artifactStepResult.errors, r.data.stepInfo.displayName),
+                  ),
                 ]),
               }
             case ExecutionStatus.aborted:
@@ -299,7 +307,9 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
                 packageName: node.data.artifact.packageJson.name,
                 errors: _.flatMapDeep([
                   ...formatErrors(node.data.artifactResult.errors),
-                  ...node.data.stepsResult.map(r => formatErrors(r.data.artifactStepResult.errors)),
+                  ...node.data.stepsResult.map(r =>
+                    formatErrors(r.data.artifactStepResult.errors, r.data.stepInfo.displayName),
+                  ),
                 ]),
               }
             case ExecutionStatus.running:
@@ -309,7 +319,7 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
                   ...node.data.stepsResult.map(r =>
                     r.data.artifactStepResult.executionStatus === ExecutionStatus.done ||
                     r.data.artifactStepResult.executionStatus === ExecutionStatus.aborted
-                      ? formatErrors(r.data.artifactStepResult.errors)
+                      ? formatErrors(r.data.artifactStepResult.errors, r.data.stepInfo.displayName)
                       : [],
                   ),
                 ]),
