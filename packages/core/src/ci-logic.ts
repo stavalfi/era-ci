@@ -97,6 +97,7 @@ export async function ci<TaskQueue>(options: {
     const allStepsEvents$ = await runAllSteps(
       {
         log,
+        gitRepoInfo,
         rootPackageJson,
         stepsToRun: options.config.steps,
         immutableCache,

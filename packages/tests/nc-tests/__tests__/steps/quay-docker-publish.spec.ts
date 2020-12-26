@@ -357,7 +357,9 @@ test('publish with hash-tag', async () => {
 
   const { published, jsonReport } = await runCi()
 
-  expect(published.get('a')?.docker.tags).toEqual([jsonReport.artifacts[0].data.artifact.packageHash])
+  expect(published.get('a')?.docker.tags).toEqual([
+    `artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`,
+  ])
 })
 
 test('publish with hash-tag and then with semver-tag', async () => {
@@ -406,7 +408,10 @@ test('publish with hash-tag and then with semver-tag', async () => {
     },
   })
 
-  expect(published.get('a')?.docker.tags).toEqual([jsonReport.artifacts[0].data.artifact.packageHash, '1.0.0'])
+  expect(published.get('a')?.docker.tags).toEqual([
+    `artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`,
+    '1.0.0',
+  ])
 })
 
 test('publish with hash-tag twice', async () => {
@@ -451,7 +456,9 @@ test('publish with hash-tag twice', async () => {
 
   const { published, jsonReport } = await runCi()
 
-  expect(published.get('a')?.docker.tags).toEqual([jsonReport.artifacts[0].data.artifact.packageHash])
+  expect(published.get('a')?.docker.tags).toEqual([
+    `artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`,
+  ])
 })
 
 test('publish with semver-tag twice', async () => {
