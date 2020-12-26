@@ -22,7 +22,6 @@ import { QuayDockerPublishConfiguration } from './types'
 async function buildAndPublishArtifact({
   stepConfigurations,
   repoPath,
-  immutableCache,
   currentArtifact,
   taskQueue,
   tag,
@@ -181,7 +180,8 @@ export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, Qua
           const newTag = calculateNewVersion({
             packagePath: artifact.data.artifact.packagePath,
             packageJsonVersion: artifact.data.artifact.packageJson.version,
-            allVersions: tags,
+            allPublishedVersions: tags,
+            log: options.log,
           })
           if (didHashPublished) {
             await addTagToRemoteImage({
@@ -206,11 +206,13 @@ export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, Qua
               tag: newTag,
             })
           }
-          await options.immutableCache.set({
-            key: `${artifact.data.artifact.packageHash}-next-semver-tag`,
-            value: newTag,
-            ttl: options.immutableCache.ttls.ArtifactStepResult,
-          })
+          if (artifactStepResult.status === Status.passed) {
+            await options.immutableCache.set({
+              key: `${artifact.data.artifact.packageHash}-next-semver-tag`,
+              value: newTag,
+              ttl: options.immutableCache.ttls.ArtifactStepResult,
+            })
+          }
           return artifactStepResult
         }
       },

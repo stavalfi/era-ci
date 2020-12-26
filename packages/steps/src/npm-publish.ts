@@ -104,8 +104,8 @@ async function calculateNextNewVersion({
   return calculateNewVersion({
     packagePath,
     packageJsonVersion: packageJson.version,
-    highestPublishedVersion: npmhighestVersionInfo?.highestVersion,
-    allVersions: npmhighestVersionInfo?.allVersions,
+    allPublishedVersions: npmhighestVersionInfo?.allVersions,
+    log,
   })
 }
 

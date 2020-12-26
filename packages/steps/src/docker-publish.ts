@@ -13,7 +13,6 @@ import {
   execaCommand,
   ExecutionStatus,
   Node,
-  setPackageVersion,
   Status,
   TargetType,
 } from '@tahini/utils'
@@ -59,57 +58,33 @@ async function publishPackage({
   currentArtifact: Node<{ artifact: Artifact }>
   tag: string
 }): Promise<string> {
-  const tags = await listTags({
-    registry: stepConfigurations.registry,
-    auth: stepConfigurations.registryAuth,
-    dockerOrg: stepConfigurations.dockerOrganizationName,
-    repo: currentArtifact.data.artifact.packageJson.name,
-  })
-
-  const newVersion = calculateNewVersion({
-    packagePath: currentArtifact.data.artifact.packagePath,
-    packageJsonVersion: currentArtifact.data.artifact.packageJson.version,
-    allVersions: tags,
-  })
-
   const fullImageNameNewVersion = buildFullDockerImageName({
     dockerOrganizationName: stepConfigurations.dockerOrganizationName,
     dockerRegistry: stepConfigurations.registry,
     imageName: currentArtifact.data.artifact.packageJson.name,
-    imageTag: newVersion,
+    imageTag: tag,
   })
 
   log.info(
     `building docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,
   )
 
-  await setPackageVersion({
-    artifact: currentArtifact.data.artifact,
-    fromVersion: currentArtifact.data.artifact.packageJson.version,
-    toVersion: newVersion,
-  })
-
-  await execaCommand(`docker build -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`, {
-    cwd: currentArtifact.data.artifact.packagePath,
-    stdio: 'inherit',
-    env: {
-      ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
+  await execaCommand(
+    `docker build --build-arg new_version=${tag} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`,
+    {
+      cwd: currentArtifact.data.artifact.packagePath,
+      stdio: 'inherit',
+      env: {
+        ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
+      },
+      log,
     },
-    log,
-  })
-
-  // revert version to what it was before we changed it
-  await setPackageVersion({
-    artifact: currentArtifact.data.artifact,
-    fromVersion: newVersion,
-    toVersion: currentArtifact.data.artifact.packageJson.version,
-  }).catch(e => {
-    log.error(`could not revert the package-version in package.json but the flow won't fail because of that`, e)
-  })
+  )
 
   log.info(
     `built docker image "${fullImageNameNewVersion}" in package: "${currentArtifact.data.artifact.packageJson.name}"`,
   )
+
   await execaCommand(`docker push ${fullImageNameNewVersion}`, {
     cwd: currentArtifact.data.artifact.packagePath,
     stdio: 'inherit',
@@ -183,7 +158,6 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
         dockerOrg: options.stepConfigurations.dockerOrganizationName,
         repo: artifact.data.artifact.packageJson.name,
       })
-
       const didHashPublished = tags.some(tag => tag === artifact.data.artifact.packageHash)
       const fullImageNameWithHashTag = (tag: string): string =>
         buildFullDockerImageName({
@@ -248,7 +222,8 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
         const newTag = calculateNewVersion({
           packagePath: artifact.data.artifact.packagePath,
           packageJsonVersion: artifact.data.artifact.packageJson.version,
-          allVersions: tags,
+          allPublishedVersions: tags,
+          log: options.log,
         })
         if (didHashPublished) {
           await addTagToRemoteImage({
@@ -280,11 +255,13 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
             returnValue: fullImageNameNewVersion,
           }
         }
-        await options.immutableCache.set({
-          key: `${artifact.data.artifact.packageHash}-next-semver-tag`,
-          value: newTag,
-          ttl: options.immutableCache.ttls.ArtifactStepResult,
-        })
+        if (artifactStepResult.status === Status.passed) {
+          await options.immutableCache.set({
+            key: `${artifact.data.artifact.packageHash}-next-semver-tag`,
+            value: newTag,
+            ttl: options.immutableCache.ttls.ArtifactStepResult,
+          })
+        }
         return artifactStepResult
       }
     },

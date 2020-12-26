@@ -196,22 +196,18 @@ export const setPackageVersion = async ({
 export function calculateNewVersion({
   packagePath,
   packageJsonVersion,
-  allVersions,
-  highestPublishedVersion,
+  allPublishedVersions = [],
+  log,
 }: {
   packagePath: string
   packageJsonVersion: string
-  highestPublishedVersion?: string
-  allVersions?: Array<string>
+  allPublishedVersions?: Array<string>
+  log: {
+    debug: (message: string, json?: Record<string, unknown>) => void
+  }
 }): string {
   if (!semver.valid(packageJsonVersion)) {
     throw new Error(`version packgeJson in ${packagePath} is invalid: ${packageJsonVersion}`)
-  }
-  const allValidVersions = allVersions?.filter(version => semver.valid(version))
-
-  if (!allValidVersions?.length) {
-    // this is immutable in each registry so if this is not defined or empty, it means that we never published before or there was unpublish of all the versions.
-    return packageJsonVersion
   }
 
   const incVersion = (version: string) => {
@@ -225,33 +221,32 @@ export function calculateNewVersion({
     return newVersion
   }
 
-  if (!highestPublishedVersion) {
-    // this is mutable in each registry so if we have versions but this is false, it means that:
-    // a. this is the first run of the ci on a target that was already pbulished.
-    // b. or, less likely, someone mutated one of the labels that this ci is modifying in every run :(
+  const allValidVersions = allPublishedVersions.filter(version => semver.valid(version))
+  const sorted = semver.sort(allValidVersions)
 
-    if (allValidVersions.includes(packageJsonVersion)) {
-      return incVersion(packageJsonVersion)
-    } else {
-      return packageJsonVersion
-    }
+  if (sorted.length === 0) {
+    return packageJsonVersion
+  }
+
+  const highestPublishedVersion = sorted[sorted.length - 1]
+
+  let nextVersion: string
+  if (sorted.includes(packageJsonVersion)) {
+    nextVersion = incVersion(highestPublishedVersion)
   } else {
-    if (allValidVersions.includes(highestPublishedVersion)) {
-      const maxVersion = semver.gt(packageJsonVersion, highestPublishedVersion)
-        ? packageJsonVersion
-        : highestPublishedVersion
-
-      if (allVersions?.includes(maxVersion)) {
-        return incVersion(maxVersion)
-      } else {
-        return maxVersion
-      }
+    if (semver.compare(packageJsonVersion, highestPublishedVersion) === 1) {
+      nextVersion = packageJsonVersion
     } else {
-      const sorted = semver.sort(allValidVersions)
-
-      return incVersion(sorted[sorted.length - 1])
+      nextVersion = incVersion(highestPublishedVersion)
     }
   }
+  log.debug(`calculated next-version: "${nextVersion}" - params:`, {
+    packagePath,
+    packageJsonVersion,
+    highestPublishedVersion,
+  })
+
+  return nextVersion
 }
 
 export async function getPackageTargetType(
