@@ -4,20 +4,12 @@ import {
   skipIfStepIsDisabledConstrain,
 } from '@tahini/constrains'
 import { createStepExperimental, toTaskEvent$, UserReturnValue, UserRunStepOptions } from '@tahini/core'
-import { addTagToRemoteImage, listTags } from '@tahini/image-registry-client'
 import { QuayBuildsTaskQueue } from '@tahini/task-queues'
-import {
-  Artifact,
-  buildFullDockerImageName,
-  calculateNewVersion,
-  ExecutionStatus,
-  Node,
-  Status,
-  TargetType,
-} from '@tahini/utils'
+import { Artifact, buildFullDockerImageName, ExecutionStatus, Node, Status, TargetType } from '@tahini/utils'
 import path from 'path'
 import { last } from 'rxjs/operators'
 import { QuayDockerPublishConfiguration } from './types'
+import { chooseTagAndPublish } from './utils'
 
 async function buildAndPublishArtifact({
   stepConfigurations,
@@ -81,7 +73,9 @@ async function buildAndPublishArtifact({
         errors: taskResult.taskResult.errors,
         notes,
         status: taskResult.taskResult.status,
-        returnValue: taskResult.taskResult.status === Status.passed ? fullImageNameNewVersion : undefined,
+        returnValue: [Status.passed, Status.skippedAsPassed].includes(taskResult.taskResult.status)
+          ? fullImageNameNewVersion
+          : undefined,
       }
     }
   }
@@ -122,107 +116,17 @@ export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, Qua
             skipAsPassedIfStepNotExists: true,
           }),
       ],
-      onArtifact: async ({ artifact }) => {
-        const tags = await listTags({
-          registry: options.stepConfigurations.registry,
-          auth: options.stepConfigurations.registryAuth,
-          dockerOrg: options.stepConfigurations.dockerOrganizationName,
-          repo: artifact.data.artifact.packageJson.name,
-        })
-
-        const didHashPublished = tags.some(tag => tag === artifact.data.artifact.packageHash)
-        const fullImageNameWithHashTag = (tag: string): string =>
-          buildFullDockerImageName({
-            dockerOrganizationName: options.stepConfigurations.dockerOrganizationName,
-            dockerRegistry: options.stepConfigurations.registry,
-            imageName: artifact.data.artifact.packageJson.name,
-            imageTag: tag,
-          })
-        if (options.stepConfigurations.buildAndPushOnlyTempVersion) {
-          if (didHashPublished) {
-            return {
-              executionStatus: ExecutionStatus.aborted,
-              status: Status.skippedAsPassed,
-              errors: [],
-              notes: [`artifact already published: "${fullImageNameWithHashTag(artifact.data.artifact.packageHash)}"`],
-            }
-          } else {
-            return buildAndPublishArtifact({
+      onArtifact: async ({ artifact }) =>
+        chooseTagAndPublish({
+          ...options,
+          artifact,
+          publish: tag =>
+            buildAndPublishArtifact({
               ...options,
               currentArtifact: artifact,
-              tag: artifact.data.artifact.packageHash,
-            })
-          }
-        } else {
-          const nextVersion = await options.immutableCache.get(
-            `${artifact.data.artifact.packageHash}-next-semver-tag`,
-            r => {
-              if (typeof r !== 'string') {
-                throw new Error(
-                  `bad value returned from redis-immutable-cache. expected image-tag, received: "${JSON.stringify(
-                    r,
-                    null,
-                    2,
-                  )}"`,
-                )
-              } else {
-                return r
-              }
-            },
-          )
-          if (nextVersion) {
-            return {
-              executionStatus: ExecutionStatus.aborted,
-              status: Status.skippedAsPassed,
-              errors: [],
-              notes: [
-                `artifact already published: "${fullImageNameWithHashTag(nextVersion.value)}" in flow: "${
-                  nextVersion.flowId
-                }"`,
-              ],
-              returnValue: fullImageNameWithHashTag(nextVersion.value),
-            }
-          }
-          let artifactStepResult: UserReturnValue
-          const newTag = calculateNewVersion({
-            packagePath: artifact.data.artifact.packagePath,
-            packageJsonVersion: artifact.data.artifact.packageJson.version,
-            allPublishedVersions: tags,
-            log: options.log,
-          })
-          if (didHashPublished) {
-            await addTagToRemoteImage({
-              registry: options.stepConfigurations.registry,
-              auth: options.stepConfigurations.registryAuth,
-              dockerOrg: options.stepConfigurations.dockerOrganizationName,
-              repo: artifact.data.artifact.packageJson.name,
-              fromTag: artifact.data.artifact.packageHash,
-              toTag: newTag,
-            })
-            artifactStepResult = {
-              executionStatus: ExecutionStatus.done,
-              status: Status.passed,
-              errors: [],
-              notes: [`artifact already published: "${fullImageNameWithHashTag(newTag)}"`],
-              returnValue: fullImageNameWithHashTag(newTag),
-            }
-          } else {
-            artifactStepResult = await buildAndPublishArtifact({
-              ...options,
-              currentArtifact: artifact,
-              tag: newTag,
-            })
-          }
-          if (artifactStepResult.status === Status.passed) {
-            await options.immutableCache.set({
-              key: `${artifact.data.artifact.packageHash}-next-semver-tag`,
-              value: newTag,
-              ttl: options.immutableCache.ttls.ArtifactStepResult,
-            })
-          }
-          return artifactStepResult
-        }
-      },
+              tag,
+            }),
+        }),
     }
   },
 })

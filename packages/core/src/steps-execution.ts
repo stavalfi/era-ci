@@ -1,4 +1,4 @@
-import { Artifact, ExecutionStatus, Graph, PackageJson } from '@tahini/utils'
+import { Artifact, ExecutionStatus, GitRepoInfo, Graph, PackageJson } from '@tahini/utils'
 import { merge, Observable, Subject } from 'rxjs'
 import { filter, mergeMap, tap } from 'rxjs/operators'
 import { deserializeError } from 'serialize-error'
@@ -16,6 +16,7 @@ import { GetState, State } from './types'
 
 type Options = {
   log: Log
+  gitRepoInfo: GitRepoInfo
   rootPackageJson: PackageJson
   taskQueues: Array<TaskQueueBase<unknown>>
   repoPath: string
@@ -98,7 +99,10 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
 
   const getReturnValue: State['getReturnValue'] = opt => {
     const artifactStepResult = getResult(opt)
-    if (artifactStepResult.executionStatus !== ExecutionStatus.done) {
+    if (
+      artifactStepResult.executionStatus !== ExecutionStatus.aborted &&
+      artifactStepResult.executionStatus !== ExecutionStatus.done
+    ) {
       if ('stepId' in opt) {
         throw new Error(`'step-id': "${opt.stepId}" not done yet so we can't get it's return value`)
       } else {

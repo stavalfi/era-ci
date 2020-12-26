@@ -20,7 +20,7 @@ export type ConstrainResultBase =
     }
   | {
       resultType: ConstrainResultType.shouldSkip
-      result: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
+      result: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs' | 'returnValue'>
     }
 
 export type ConstrainResult = {
@@ -40,7 +40,7 @@ export type CombinedConstrainResultShouldRun = {
 export type CombinedConstrainResultShouldSkip = {
   individualResults: Array<ConstrainResult>
   combinedResultType: ConstrainResultType.shouldSkip
-  combinedResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs'>
+  combinedResult: Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed>, 'durationMs' | 'returnValue'>
 }
 
 export type CombinedConstrainResult = CombinedConstrainResultShouldRun | CombinedConstrainResultShouldSkip

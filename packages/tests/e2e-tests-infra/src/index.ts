@@ -8,6 +8,7 @@ import { ExecutionStatus, Graph, Status } from '@tahini/utils'
 import chance from 'chance'
 import fse from 'fs-extra'
 import path from 'path'
+import execa from 'execa'
 import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterAll } from './prepare-test-resources'
 import { getPublishResult } from './seach-targets'
@@ -166,6 +167,7 @@ export type CreateRepo = <TaskQueue extends TaskQueueBase<unknown>>(
   options: CreateRepoOptions<TaskQueue> | ((toActualName: ToActualName) => CreateRepoOptions<TaskQueue>),
 ) => Promise<{
   repoPath: string
+  gitHeadCommit: () => Promise<string>
   getImageTags: (packageName: string) => Promise<string[]>
   runCi: (options?: { processEnv?: NodeJS.ProcessEnv }) => Promise<RunCiResult>
   toActualName: ToActualName
@@ -228,6 +230,7 @@ const createRepo: CreateRepo = async options => {
 
   return {
     repoPath,
+    gitHeadCommit: () => execa.command(`git rev-parse HEAD`, { stdio: 'pipe' }).then(r => r.stdout),
     toActualName,
     getImageTags,
     runCi: runCi({

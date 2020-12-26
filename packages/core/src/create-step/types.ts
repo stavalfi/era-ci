@@ -3,6 +3,7 @@ import {
   Artifact,
   DoneResult,
   ExecutionStatus,
+  GitRepoInfo,
   Graph,
   Node,
   PackageJson,
@@ -146,6 +147,7 @@ export type RunStepOptions<TaskQueue extends TaskQueueBase<unknown>> = {
   logger: Logger
   taskQueue: TaskQueue
   processEnv: NodeJS.ProcessEnv
+  gitRepoInfo: GitRepoInfo
 }
 
 export type UserRunStepOptions<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = RunStepOptions<
@@ -172,6 +174,7 @@ export type UserReturnValue =
       status: Status.skippedAsFailed | Status.skippedAsPassed | Status.failed
       notes?: Array<string>
       errors?: Array<ErrorObject>
+      returnValue?: string
     }
   | {
       executionStatus: ExecutionStatus.done
