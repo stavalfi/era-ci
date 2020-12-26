@@ -33,6 +33,7 @@ function getConfigValidationObject() {
           taskQueueClass: func(),
           stepInfo: object({
             stepId: string(),
+            stepGroup: string(),
             stepName: string(),
             displayName: string(),
           }),

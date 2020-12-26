@@ -166,7 +166,7 @@ test('expect the step to be failed if the dockerfile has an error', async () => 
   }
 })
 
-test('run step again on failure', async () => {
+test('run step again on failure and expect to abort-as-failed on second run', async () => {
   const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
