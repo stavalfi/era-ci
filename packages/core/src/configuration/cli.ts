@@ -5,7 +5,7 @@ import { readNcConfigurationFile } from './config-file'
 import { ci } from '../ci-logic'
 import { printFlowLogs } from '../print-flow-logs'
 
-export async function startCli(processArgv: Array<string>): Promise<void> {
+export async function startCli(processArgv: Array<string>, processEnv: NodeJS.ProcessEnv): Promise<void> {
   const app = command({
     name: 'scripts',
     args: {
@@ -42,6 +42,7 @@ export async function startCli(processArgv: Array<string>): Promise<void> {
         await ci({
           repoPath,
           config,
+          processEnv,
         })
       }
     },

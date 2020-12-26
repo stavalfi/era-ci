@@ -4,6 +4,7 @@ import { getPackages } from '@tahini/utils'
 import execa from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
+import semver from 'semver'
 import { ResultingArtifact, TestResources } from './types'
 
 async function latestNpmPackageDistTags(
@@ -69,7 +70,10 @@ export const getPublishResult = async ({
             dockerOrg: getResources().quayNamespace,
             repo: packageName,
             registry: getResources().dockerRegistry,
-          }),
+          }).then(tags => [
+            ...tags.filter(tag => !semver.valid(tag)),
+            ...semver.sort(tags.filter(tag => semver.valid(tag))),
+          ]),
         ])
         return [
           toOriginalName(packageName),

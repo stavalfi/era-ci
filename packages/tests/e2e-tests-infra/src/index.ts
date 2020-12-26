@@ -65,7 +65,7 @@ const getJsonReport = async ({
   }
 }
 
-type RunCi = () => Promise<{
+type RunCiResult = {
   flowId: string
   steps: Graph<{ stepInfo: StepInfo }>
   jsonReport: JsonReport
@@ -73,7 +73,7 @@ type RunCi = () => Promise<{
   logFilePath: string
   flowLogs: string
   published: Map<string, ResultingArtifact>
-}>
+}
 
 const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
   repoPath,
@@ -91,10 +91,13 @@ const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
   toOriginalName: (artifactName: string) => string
   getResources: () => TestResources
   testLogger: Logger
-}): RunCi => async () => {
+}) => async (options?: { processEnv?: NodeJS.ProcessEnv }): Promise<RunCiResult> => {
   const { flowId, repoHash, steps, passed, fatalError } = await ci({
     repoPath,
     config: configurations,
+    // DO NOT CHANGE THE DEFAULT VALUE! we don't want the tests to depend on the real "process.env"!!!
+    // if we will depend on it, we can't parallelize any test in AVA!!
+    processEnv: options?.processEnv ?? {},
   })
 
   if (!repoHash) {
@@ -164,7 +167,7 @@ export type CreateRepo = <TaskQueue extends TaskQueueBase<unknown>>(
 ) => Promise<{
   repoPath: string
   getImageTags: (packageName: string) => Promise<string[]>
-  runCi: RunCi
+  runCi: (options?: { processEnv?: NodeJS.ProcessEnv }) => Promise<RunCiResult>
   toActualName: ToActualName
 }>
 

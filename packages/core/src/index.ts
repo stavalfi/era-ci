@@ -19,7 +19,8 @@ export * from './immutable-cache'
 
 async function main() {
   try {
-    await startCli(process.argv)
+    // eslint-disable-next-line no-process-env
+    await startCli(process.argv, process.env)
   } finally {
     // eslint-disable-next-line no-process-env
     if (process.env.NC_TEST_MODE) {

@@ -33,6 +33,7 @@ type Options = {
   immutableCache: ImmutableCache
   logger: Logger
   artifacts: Graph<{ artifact: Artifact }>
+  processEnv: NodeJS.ProcessEnv
 }
 
 function runStep(

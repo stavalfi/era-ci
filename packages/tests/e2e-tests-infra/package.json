@@ -28,6 +28,7 @@
     "create-folder-structure": "^3.0.5",
     "execa": "^4.0.1",
     "fs-extra": "^9.0.0",
-    "node-git-server": "^0.6.1"
+    "node-git-server": "^0.6.1",
+    "semver": "^7.3.2"
   }
 }

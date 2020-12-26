@@ -145,6 +145,7 @@ export type RunStepOptions<TaskQueue extends TaskQueueBase<unknown>> = {
   immutableCache: ImmutableCache
   logger: Logger
   taskQueue: TaskQueue
+  processEnv: NodeJS.ProcessEnv
 }
 
 export type UserRunStepOptions<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = RunStepOptions<
@@ -300,7 +301,10 @@ export type CreateStepOptionsExperimental<
 > = {
   stepGroup: string
   stepName: string
-  normalizeStepConfigurations?: (stepConfigurations: StepConfigurations) => Promise<NormalizedStepConfigurations>
+  normalizeStepConfigurations?: (
+    stepConfigurations: StepConfigurations,
+    options: RunStepOptions<TaskQueue>,
+  ) => Promise<NormalizedStepConfigurations>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   taskQueueClass: { new (options: TaskQueueOptions<any>, ...params: any[]): TaskQueue }
   run: RunStepExperimental<TaskQueue, NormalizedStepConfigurations>
