@@ -59,3 +59,163 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
   expect(published.get('a')?.docker.tags).toEqual(['1.0.0'])
   expect(published.get('b')?.npm.versions).toEqual(['2.0.0'])
 })
+
+test('publish with semver-tag', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [localSequentalTaskQueue()],
+      steps: createLinearStepsGraph([
+        dockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          registry: getResources().dockerRegistry,
+          imageInstallArtifactsFromNpmRegistry: true,
+          buildAndPushOnlyTempVersion: false,
+        }),
+      ]),
+    },
+  })
+
+  const { published } = await runCi()
+
+  expect(published.get('a')?.docker.tags).toEqual(['1.0.0'])
+})
+
+test('publish with hash-tag', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [localSequentalTaskQueue()],
+      steps: createLinearStepsGraph([
+        dockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          registry: getResources().dockerRegistry,
+          imageInstallArtifactsFromNpmRegistry: true,
+          buildAndPushOnlyTempVersion: true,
+        }),
+      ]),
+    },
+  })
+
+  const { published, jsonReport } = await runCi()
+
+  expect(published.get('a')?.docker.tags).toEqual([jsonReport.artifacts[0].data.artifact.packageHash])
+})
+
+test('publish with hash-tag and then with semver-tag', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [localSequentalTaskQueue()],
+      steps: createLinearStepsGraph([
+        dockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          registry: getResources().dockerRegistry,
+          imageInstallArtifactsFromNpmRegistry: true,
+          buildAndPushOnlyTempVersion: true,
+        }),
+      ]),
+    },
+  })
+
+  await runCi()
+
+  const { published, jsonReport } = await runCi({
+    processEnv: {
+      BUILD_AND_PUSH_ONLY_TEMP_VERSION: '',
+    },
+  })
+
+  expect(published.get('a')?.docker.tags).toEqual([jsonReport.artifacts[0].data.artifact.packageHash, '1.0.0'])
+})
+
+test('publish with hash-tag twice', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [localSequentalTaskQueue()],
+      steps: createLinearStepsGraph([
+        dockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          registry: getResources().dockerRegistry,
+          imageInstallArtifactsFromNpmRegistry: true,
+          buildAndPushOnlyTempVersion: true,
+        }),
+      ]),
+    },
+  })
+
+  await runCi()
+
+  const { published, jsonReport } = await runCi()
+
+  expect(published.get('a')?.docker.tags).toEqual([jsonReport.artifacts[0].data.artifact.packageHash])
+})
+
+test('publish with semver-tag twice', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [localSequentalTaskQueue()],
+      steps: createLinearStepsGraph([
+        dockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          registry: getResources().dockerRegistry,
+          imageInstallArtifactsFromNpmRegistry: true,
+          buildAndPushOnlyTempVersion: false,
+        }),
+      ]),
+    },
+  })
+
+  await runCi()
+
+  const { published } = await runCi()
+
+  expect(published.get('a')?.docker.tags).toEqual(['1.0.0'])
+})

@@ -13,6 +13,7 @@ import { getExitCode, getStepsResultOfArtifactsByStepAndArtifact } from './utils
 export async function ci<TaskQueue>(options: {
   repoPath: string
   config: Config<TaskQueue>
+  processEnv: NodeJS.ProcessEnv
 }): Promise<{
   flowId: string
   repoHash?: string
@@ -107,6 +108,7 @@ export async function ci<TaskQueue>(options: {
         artifacts,
         steps,
         taskQueues,
+        processEnv: options.processEnv,
       },
       state,
     )

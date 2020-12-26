@@ -109,7 +109,7 @@ export function createStepExperimental<
 
           // @ts-ignore - we need to find a way to ensure that if NormalizedStepConfigurations is defined, also normalizeStepConfigurations is defined.
           const normalizedStepConfigurations: NormalizedStepConfigurations = createStepOptions.normalizeStepConfigurations
-            ? await createStepOptions.normalizeStepConfigurations(stepConfigurations)
+            ? await createStepOptions.normalizeStepConfigurations(stepConfigurations, runStepOptions)
             : stepConfigurations
 
           const userRunStepOptions: UserRunStepOptions<TaskQueue, NormalizedStepConfigurations> = {
