@@ -1,7 +1,7 @@
 import execa from 'execa'
 import semver from 'semver'
 import { Log } from '@tahini/core'
-import { listTags } from '@tahini/docker-registry-client'
+import { listTags } from '@tahini/image-registry-client'
 
 export async function latestNpmPackageDistTags(
   packageName: string,

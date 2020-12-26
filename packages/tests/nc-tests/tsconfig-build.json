@@ -9,7 +9,7 @@
       "path": "../../constrains/tsconfig-build.json"
     },
     {
-      "path": "../../docker-registry-client/tsconfig-build.json"
+      "path": "../../image-registry-client/tsconfig-build.json"
     },
     {
       "path": "../../constrains/tsconfig-build.json"

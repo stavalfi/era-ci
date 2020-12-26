@@ -16,7 +16,7 @@ export async function manageStepResult() {
 
   const writeToFile = (expectedContentInLog: string) => fse.writeFile(assertionFilePath, expectedContentInLog)
 
-  const content = `content-${chance().hash()}`
+  const content = `content-${chance().hash().slice(0, 8)}`
 
   return {
     stepScript: `node ${assertionFilePath}`,
@@ -174,7 +174,7 @@ export const addRandomFileToPackage = ({
   if (!packagePath) {
     throw new Error(`package "${packageName}" not found in [${packagesPath.join(', ')}]`)
   }
-  const filePath = path.join(packagePath, `random-file-${chance().hash()}`)
+  const filePath = path.join(packagePath, `random-file-${chance().hash().slice(0, 8)}`)
   await fse.writeFile(filePath, '')
 
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
@@ -227,7 +227,7 @@ export const addRandomFileToRoot = async ({
   repoPath: string
   gitRepoAddress: string
 }): Promise<string> => {
-  const filePath = path.join(repoPath, `random-file-${chance().hash()}`)
+  const filePath = path.join(repoPath, `random-file-${chance().hash().slice(0, 8)}`)
   await fse.writeFile(filePath, '')
 
   await commitAllAndPushChanges(repoPath, gitRepoAddress)

@@ -15,7 +15,7 @@ test('make sure that errors from initializeDeploymentClient function are shown',
     ],
   })
 
-  const error = `error-${chance().hash()}`
+  const error = `error-${chance().hash().slice(0, 8)}`
 
   const result = await runCi({
     targetsInfo: {
@@ -46,7 +46,7 @@ test('make sure that errors from deploy function are shown', async () => {
     ],
   })
 
-  const error = `error-${chance().hash()}`
+  const error = `error-${chance().hash().slice(0, 8)}`
 
   const result = await runCi({
     targetsInfo: {
@@ -77,7 +77,7 @@ test('make sure that errors from destroyDeploymentClient function are shown', as
     ],
   })
 
-  const error = `error-${chance().hash()}`
+  const error = `error-${chance().hash().slice(0, 8)}`
 
   const result = await runCi({
     targetsInfo: {

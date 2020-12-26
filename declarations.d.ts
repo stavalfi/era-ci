@@ -15,7 +15,7 @@ declare module 'docker-registry-client' {
     password?: string
     maxSchemaVersion: 1 | 2
   }): {
-    listTags: (callback: (err: unknown, tags: string[]) => void) => void
+    listTags: (callback: (err: unknown, response: { name: string; tags: string[] }) => void) => void
     getManifest: (
       options: { ref: string },
       callback: (

@@ -1,5 +1,5 @@
 import { ci, config, Config, createImmutableCache, Logger, LogLevel, StepInfo, TaskQueueBase } from '@tahini/core'
-import { listTags } from '@tahini/docker-registry-client'
+import { listTags } from '@tahini/image-registry-client'
 import { redisConnection } from '@tahini/key-value-stores'
 import { winstonLogger } from '@tahini/loggers'
 import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@tahini/steps'

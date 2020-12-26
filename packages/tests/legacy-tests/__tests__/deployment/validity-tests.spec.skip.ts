@@ -67,7 +67,7 @@ test('1 package - ensure deploymentClient is passed to other functions', async (
     ],
   })
 
-  const expectedDeploymentClient = chance().hash()
+  const expectedDeploymentClient = chance().hash().slice(0, 8)
 
   const result = await runCi({
     targetsInfo: {

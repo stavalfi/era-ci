@@ -110,7 +110,7 @@ test('multiple packages', async () => {
 })
 
 test('1 package - validate publish content', async () => {
-  const hash = chance().hash()
+  const hash = chance().hash().slice(0, 8)
   const { runCi, installAndRunNpmDependency } = await createRepo({
     packages: [
       {

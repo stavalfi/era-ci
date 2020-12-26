@@ -44,7 +44,7 @@ export class K8sJobTaskQueue implements TaskQueueBase<K8sJobTaskQueueConfigurati
 
     const tasks: TaskInfo[] = tasksOptions.map(taskOptions => ({
       taskName: taskOptions.taskName,
-      taskId: chance().hash(),
+      taskId: chance().hash().slice(0, 8),
     }))
 
     this.internalTaskQueue.push(async () => {

@@ -1,9 +1,9 @@
-import { Log, Logger } from '@tahini/core'
-import { listTags } from '@tahini/docker-registry-client'
+import { Logger } from '@tahini/core'
+import { listTags } from '@tahini/image-registry-client'
 import { getPackages } from '@tahini/utils'
 import execa from 'execa'
+import fse from 'fs-extra'
 import path from 'path'
-import semver from 'semver'
 import { ResultingArtifact, TestResources } from './types'
 
 async function latestNpmPackageDistTags(
@@ -45,37 +45,6 @@ async function publishedNpmPackageVersions(packageName: string, npmRegistry: str
   }
 }
 
-async function publishedDockerImageTags({
-  dockerOrganizationName,
-  log,
-  repoPath,
-  dockerRegistry,
-  imageName,
-}: {
-  imageName: string
-  dockerOrganizationName: string
-  dockerRegistry: string
-  repoPath: string
-  log: Log
-}): Promise<Array<string>> {
-  try {
-    const allTags = await listTags({
-      dockerOrg: dockerOrganizationName,
-      repo: imageName,
-      registry: dockerRegistry,
-    })
-    const tags = allTags.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
-    const sorted = semver.sort(tags.filter(tag => tag !== 'latest')).concat(tags.includes('latest') ? ['latest'] : [])
-    return sorted
-  } catch (e) {
-    if (e.stderr?.includes('manifest unknown')) {
-      return []
-    } else {
-      throw e
-    }
-  }
-}
-
 export const getPublishResult = async ({
   toOriginalName,
   repoPath,
@@ -90,19 +59,16 @@ export const getPublishResult = async ({
   const log = testLogger.createLog('test')
   const packagesPaths = await getPackages({ repoPath, log })
   const packages = await Promise.all(
-    packagesPaths // todo: need to search in runtime which packages I have NOW
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      .map(packagePath => require(path.join(packagePath, 'package.json')).name)
+    packagesPaths
+      .map(packagePath => fse.readJSONSync(path.join(packagePath, 'package.json')).name)
       .map<Promise<[string, ResultingArtifact]>>(async (packageName: string) => {
         const [versions, highestVersion, tags] = await Promise.all([
           publishedNpmPackageVersions(packageName, getResources().npmRegistry.address),
           latestNpmPackageVersion(packageName, getResources().npmRegistry.address),
-          publishedDockerImageTags({
-            imageName: packageName,
-            dockerOrganizationName: getResources().quayNamespace,
-            dockerRegistry: getResources().dockerRegistry,
-            repoPath,
-            log,
+          listTags({
+            dockerOrg: getResources().quayNamespace,
+            repo: packageName,
+            registry: getResources().dockerRegistry,
           }),
         ])
         return [
