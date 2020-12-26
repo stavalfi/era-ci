@@ -21,6 +21,7 @@ async function runTask(task, i, retry = 1) {
       await new Promise(res => setTimeout(res, t))
       return runTask(task, i, retry + 1)
     } else {
+      debugger
       throw error
     }
   }
@@ -29,11 +30,9 @@ async function runTask(task, i, retry = 1) {
 async function getTags(i) {
   await runTask(async () => {
     const client = drc.createClientV2({
-      name: `quay.io/stav1991/repo${i}`,
+      name: `localhost:35000/stav1991/repo${i}`,
       log,
-      insecure: false,
-      username: 'stavalfi',
-      password: 'stavalfi635383',
+      insecure: true,
       maxSchemaVersion: 2, // quay === 2, dockerhub === 1
     })
     const tags = await new Promise((res, rej) => client.listTags((err, tags) => (err ? rej(err) : res(tags))))
@@ -42,11 +41,7 @@ async function getTags(i) {
   }, i)
 }
 
-for (let i = 10; i < 24; i++) {
-  for (let j = 0; j < 10; j++) {
-    getTags(i)
-  }
-}
+getTags(1)
 
 async function getManifestDockerhub() {
   const client = drc.createClientV2({

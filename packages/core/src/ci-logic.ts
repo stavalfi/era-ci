@@ -21,7 +21,7 @@ export async function ci<TaskQueue>(options: {
   fatalError: boolean
 }> {
   const cleanups: Cleanup[] = []
-  const flowId = chance().hash()
+  const flowId = chance().hash().slice(0, 8)
   let fatalError: boolean
   let repoHash: string | undefined
   let immutableCache: ImmutableCache | undefined

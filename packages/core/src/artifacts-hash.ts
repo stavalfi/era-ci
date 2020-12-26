@@ -24,7 +24,7 @@ function combineHashes(hashes: Array<string>): string {
     hasher.update(hash)
     return hasher
   }, crypto.createHash('sha224'))
-  return Buffer.from(hasher.digest()).toString('hex')
+  return Buffer.from(hasher.digest()).toString('hex').slice(0, 8)
 }
 
 // this method must be implemented in BFS (DFS will cause a bug) because dfs dont cover
@@ -77,7 +77,7 @@ async function calculateHashOfFiles(packagePath: string, filesPath: Array<string
     return hasher
   }, crypto.createHash('sha224'))
   hasher.update(INVALIDATE_CACHE_HASH)
-  return Buffer.from(hasher.digest()).toString('hex')
+  return Buffer.from(hasher.digest()).toString('hex').slice(0, 8)
 }
 
 const isRootFile = (repoPath: string, filePath: string) => !filePath.includes(path.join(repoPath, 'packages'))

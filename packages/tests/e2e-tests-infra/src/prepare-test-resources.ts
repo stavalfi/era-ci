@@ -40,8 +40,8 @@ export function resourcesBeforeAfterAll(): {
       cleanup: () => Promise.resolve(),
       address: `http://localhost:35000`,
     }
-    quayNamespace = `quay-namespace-${chance().hash()}`
-    quayToken = `quay-token-${chance().hash()}`
+    quayNamespace = `org-${chance().hash().slice(0, 8)}`
+    quayToken = `quay-token-${chance().hash().slice(0, 8)}`
     quayMockService = await startQuayMockService({
       dockerRegistryAddress: dockerRegistry.address,
       namespace: quayNamespace,
@@ -51,7 +51,7 @@ export function resourcesBeforeAfterAll(): {
       },
       token: quayToken,
     })
-    quayBuildStatusChangedRedisTopic = `reids-topic-${chance().hash()}`
+    quayBuildStatusChangedRedisTopic = `redis-topic-${chance().hash().slice(0, 8)}`
     // eslint-disable-next-line no-process-env
     process.env.QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC = quayBuildStatusChangedRedisTopic
     quayHelperService = await startQuayHelperService({

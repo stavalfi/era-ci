@@ -118,9 +118,8 @@ export async function runCiUsingConfigFile({
     // the call of the ci so we need to find all the packages again
     const packagesPaths = await getPackages(repoPath)
     const packages = await Promise.all(
-      packagesPaths // todo: need to search in runtime which packages I have NOW
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        .map(packagePath => require(path.join(packagePath, 'package.json')).name)
+      packagesPaths
+        .map(packagePath => fse.readJSONSync(path.join(packagePath, 'package.json')).name)
         .map<Promise<[string, ResultingArtifact]>>(async (packageName: string) => {
           const [versions, highestVersion, tags] = await Promise.all([
             publishedNpmPackageVersions(packageName, npmRegistry.address),

@@ -29,7 +29,7 @@ test('1 package', async () => {
 })
 
 test('ensure the image is working', async () => {
-  const hash = chance().hash()
+  const hash = chance().hash().slice(0, 8)
   const { runCi, dockerOrganizationName, toActualName } = await createRepo({
     packages: [
       {
@@ -67,7 +67,7 @@ test('ensure the image is working', async () => {
 })
 
 test('ensure image is deleted after docker-push', async () => {
-  const hash = chance().hash()
+  const hash = chance().hash().slice(0, 8)
   const { runCi, getFullImageName } = await createRepo({
     packages: [
       {

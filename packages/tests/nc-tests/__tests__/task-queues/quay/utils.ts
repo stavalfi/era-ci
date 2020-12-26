@@ -1,5 +1,5 @@
 import { Logger, LogLevel } from '@tahini/core'
-import { listTags } from '@tahini/docker-registry-client'
+import { listTags } from '@tahini/image-registry-client'
 import { CreateRepo, createTest, TestResources } from '@tahini/e2e-tests-infra'
 import { winstonLogger } from '@tahini/loggers'
 import { startQuayHelperService } from '@tahini/quay-helper-service'

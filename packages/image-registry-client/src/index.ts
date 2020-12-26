@@ -1,4 +1,5 @@
-import '../../../declarations'
+/// <reference path="../../../declarations.d.ts" />
+
 import { createClientV2 } from 'docker-registry-client'
 import bunyan from 'bunyan'
 import { buildFullDockerImageName } from '@tahini/utils'
@@ -51,8 +52,17 @@ async function runTask<T>(task: () => Promise<T>, retry = 1): Promise<T> {
 
 export const listTags = (options: { dockerOrg: string; repo: string } & Options): Promise<string[]> => {
   return runTask(
-    () => new Promise<string[]>((res, rej) => getClient(options).listTags((err, tags) => (err ? rej(err) : res(tags)))),
-  )
+    () =>
+      new Promise<string[]>((res, rej) =>
+        getClient(options).listTags((err, tags) => (err ? rej(err) : res(tags.tags))),
+      ),
+  ).catch(error => {
+    if (error?.message?.includes('NAME_UNKNOWN')) {
+      return []
+    } else {
+      throw error
+    }
+  })
 }
 
 export const addTagToRemoteImage = async (

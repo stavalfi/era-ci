@@ -3,8 +3,8 @@ import {
   skipIfArtifactTargetTypeNotSupportedConstrain,
   skipIfStepIsDisabledConstrain,
 } from '@tahini/constrains'
-import { createStepExperimental, Log, UserRunStepOptions } from '@tahini/core'
-import { addTagToRemoteImage, listTags } from '@tahini/docker-registry-client'
+import { createStepExperimental, Log, UserReturnValue, UserRunStepOptions } from '@tahini/core'
+import { addTagToRemoteImage, listTags } from '@tahini/image-registry-client'
 import { LocalSequentalTaskQueue } from '@tahini/task-queues'
 import {
   Artifact,
@@ -214,6 +214,37 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
           }
         }
       } else {
+        const nextVersion = await options.immutableCache.get(
+          `${artifact.data.artifact.packageHash}-next-semver-tag`,
+          r => {
+            if (typeof r !== 'string') {
+              throw new Error(
+                `bad value returned from redis-immutable-cache. expected image-tag, received: "${JSON.stringify(
+                  r,
+                  null,
+                  2,
+                )}"`,
+              )
+            } else {
+              return r
+            }
+          },
+        )
+        if (nextVersion) {
+          return {
+            executionStatus: ExecutionStatus.aborted,
+            status: Status.skippedAsPassed,
+            errors: [],
+            notes: [
+              `artifact already published: "${fullImageNameWithHashTag(nextVersion.value)}" in flow: "${
+                nextVersion.flowId
+              }"`,
+            ],
+            returnValue: fullImageNameWithHashTag(nextVersion.value),
+          }
+        }
+
+        let artifactStepResult: UserReturnValue
         const newTag = calculateNewVersion({
           packagePath: artifact.data.artifact.packagePath,
           packageJsonVersion: artifact.data.artifact.packageJson.version,
@@ -228,7 +259,7 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
             fromTag: artifact.data.artifact.packageHash,
             toTag: newTag,
           })
-          return {
+          artifactStepResult = {
             executionStatus: ExecutionStatus.done,
             status: Status.passed,
             errors: [],
@@ -241,15 +272,7 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
             currentArtifact: artifact,
             tag: newTag,
           })
-          await addTagToRemoteImage({
-            registry: options.stepConfigurations.registry,
-            auth: options.stepConfigurations.registryAuth,
-            dockerOrg: options.stepConfigurations.dockerOrganizationName,
-            repo: artifact.data.artifact.packageJson.name,
-            fromTag: newTag,
-            toTag: artifact.data.artifact.packageHash,
-          })
-          return {
+          artifactStepResult = {
             executionStatus: ExecutionStatus.done,
             status: Status.passed,
             errors: [],
@@ -257,6 +280,12 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
             returnValue: fullImageNameNewVersion,
           }
         }
+        await options.immutableCache.set({
+          key: `${artifact.data.artifact.packageHash}-next-semver-tag`,
+          value: newTag,
+          ttl: options.immutableCache.ttls.ArtifactStepResult,
+        })
+        return artifactStepResult
       }
     },
   }),

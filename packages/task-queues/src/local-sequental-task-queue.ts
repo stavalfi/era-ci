@@ -49,7 +49,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
 
     const tasks: TaskInfo[] = taskOptionsNormalized.map(taskOptions => ({
       taskName: taskOptions.taskName,
-      taskId: chance().hash(),
+      taskId: chance().hash().slice(0, 8),
     }))
 
     this.internalTaskQueue.push(async () => {

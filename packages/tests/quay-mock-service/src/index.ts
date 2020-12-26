@@ -170,7 +170,7 @@ export async function startQuayMockService(
     for (const namespace of Object.values(db.namespaces)) {
       const repo = namespace.repos[req.params.repoName]
       if (repo) {
-        const notificationId = chance().hash()
+        const notificationId = chance().hash().slice(0, 8)
         repo.notifications[notificationId] = {
           event: req.body.event,
           method: req.body.method,
@@ -197,7 +197,7 @@ export async function startQuayMockService(
     if (!repo) {
       throw new Error(`repo not found`)
     }
-    const buildId = chance().hash()
+    const buildId = chance().hash().slice(0, 8)
     db.namespaces[req.params.namespace].repos[req.params.repoName].builds[buildId] = {
       buildId,
       status: QuayBuildStatus.waiting,
@@ -210,7 +210,7 @@ export async function startQuayMockService(
     await res.send({
       status: '',
       error: null,
-      display_name: chance().hash(),
+      display_name: chance().hash().slice(0, 8),
       repository: { namespace: req.params.namespace, name: req.params.repoName },
       subdirectory: '',
       started: new Date().toISOString(),
