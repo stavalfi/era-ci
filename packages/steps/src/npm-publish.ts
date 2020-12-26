@@ -305,6 +305,34 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
           log,
         },
       )
+        .then(async () => {
+          // wait (up to a 2 minutes) until the package is available
+          for (let i = 0; i < 24; i++) {
+            try {
+              await execaCommand(
+                `npm view ${artifact.data.artifact.packageJson.name}@${newVersion} --registry ${stepConfigurations.registry}`,
+                {
+                  stdio: 'inherit',
+                  cwd: artifact.data.artifact.packagePath,
+                  env: {
+                    // npm need this env-var for auth - this is needed only for production publishing.
+                    // in tests it doesn't do anything and we login manually to npm in tests.
+                    NPM_AUTH_TOKEN: stepConfigurations.publishAuth.token,
+                    NPM_TOKEN: stepConfigurations.publishAuth.token,
+                  },
+                  log,
+                },
+              )
+              break
+            } catch (error) {
+              if (error.stderr.includes('E404')) {
+                await new Promise(res => setTimeout(res, 5_000))
+              } else {
+                throw error
+              }
+            }
+          }
+        })
         .then(() =>
           immutableCache.set({
             key: getVersionCacheKey({
