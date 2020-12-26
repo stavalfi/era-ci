@@ -2,7 +2,7 @@ import { createTest } from '@tahini/e2e-tests-infra'
 import { quayDockerPublish } from '@tahini/steps'
 import { createLinearStepsGraph } from '@tahini/steps-graph'
 import { quayBuildsTaskQueue } from '@tahini/task-queues'
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { ExecutionStatus, Status, TargetType } from '@tahini/utils'
 
 const { createRepo, getResources } = createTest()
 
@@ -272,4 +272,229 @@ test('do not run step again if step succeed (image built and pushed to registry)
   if (artifactStepResult2.artifactStepResult.executionStatus === ExecutionStatus.aborted) {
     expect(artifactStepResult2.artifactStepResult.status).toEqual(Status.skippedAsPassed)
   }
+})
+
+test('publish with semver-tag', async () => {
+  const { runCi, repoPath } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        quayBuildsTaskQueue({
+          getCommitTarGzPublicAddress: (): string =>
+            `${
+              getResources().quayHelperService
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService,
+          quayToken: getResources().quayToken,
+          redisAddress: getResources().redisServerUri,
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        quayDockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          dockerfileBuildTimeoutMs: 100 * 1000,
+          registry: getResources().dockerRegistry,
+          imagesVisibility: 'public',
+          buildAndPushOnlyTempVersion: false,
+        }),
+      ]),
+    },
+  })
+
+  const { published } = await runCi()
+
+  expect(published.get('a')?.docker.tags).toEqual(['1.0.0'])
+})
+
+test('publish with hash-tag', async () => {
+  const { runCi, repoPath } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        quayBuildsTaskQueue({
+          getCommitTarGzPublicAddress: (): string =>
+            `${
+              getResources().quayHelperService
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService,
+          quayToken: getResources().quayToken,
+          redisAddress: getResources().redisServerUri,
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        quayDockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          dockerfileBuildTimeoutMs: 100 * 1000,
+          registry: getResources().dockerRegistry,
+          imagesVisibility: 'public',
+          buildAndPushOnlyTempVersion: true,
+        }),
+      ]),
+    },
+  })
+
+  const { published, jsonReport } = await runCi()
+
+  expect(published.get('a')?.docker.tags).toEqual([jsonReport.artifacts[0].data.artifact.packageHash])
+})
+
+test('publish with hash-tag and then with semver-tag', async () => {
+  const { runCi, repoPath } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        quayBuildsTaskQueue({
+          getCommitTarGzPublicAddress: (): string =>
+            `${
+              getResources().quayHelperService
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService,
+          quayToken: getResources().quayToken,
+          redisAddress: getResources().redisServerUri,
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        quayDockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          dockerfileBuildTimeoutMs: 100 * 1000,
+          registry: getResources().dockerRegistry,
+          imagesVisibility: 'public',
+          buildAndPushOnlyTempVersion: true,
+        }),
+      ]),
+    },
+  })
+
+  await runCi()
+
+  const { published, jsonReport } = await runCi({
+    processEnv: {
+      BUILD_AND_PUSH_ONLY_TEMP_VERSION: '',
+    },
+  })
+
+  expect(published.get('a')?.docker.tags).toEqual([jsonReport.artifacts[0].data.artifact.packageHash, '1.0.0'])
+})
+
+test('publish with hash-tag twice', async () => {
+  const { runCi, repoPath } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        quayBuildsTaskQueue({
+          getCommitTarGzPublicAddress: (): string =>
+            `${
+              getResources().quayHelperService
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService,
+          quayToken: getResources().quayToken,
+          redisAddress: getResources().redisServerUri,
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        quayDockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          dockerfileBuildTimeoutMs: 100 * 1000,
+          registry: getResources().dockerRegistry,
+          imagesVisibility: 'public',
+          buildAndPushOnlyTempVersion: true,
+        }),
+      ]),
+    },
+  })
+
+  await runCi()
+
+  const { published, jsonReport } = await runCi()
+
+  expect(published.get('a')?.docker.tags).toEqual([jsonReport.artifacts[0].data.artifact.packageHash])
+})
+
+test('publish with semver-tag twice', async () => {
+  const { runCi, repoPath } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        quayBuildsTaskQueue({
+          getCommitTarGzPublicAddress: (): string =>
+            `${
+              getResources().quayHelperService
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService,
+          quayToken: getResources().quayToken,
+          redisAddress: getResources().redisServerUri,
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        quayDockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          dockerfileBuildTimeoutMs: 100 * 1000,
+          registry: getResources().dockerRegistry,
+          imagesVisibility: 'public',
+          buildAndPushOnlyTempVersion: false,
+        }),
+      ]),
+    },
+  })
+
+  await runCi()
+
+  const { published } = await runCi()
+
+  expect(published.get('a')?.docker.tags).toEqual(['1.0.0'])
 })
