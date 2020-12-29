@@ -22,6 +22,7 @@ import {
 } from './test-helpers'
 import { CreateAndManageRepo, GetFlowLogs, MinimalNpmPackage, NewEnv, RunCi } from './types'
 import { getPackagePath, runCiUsingConfigFile, runNcExecutable } from './utils'
+import execa from 'execa'
 
 export const newEnv: NewEnv = () => {
   const testResources = prepareTestResources()
@@ -78,12 +79,12 @@ export const newEnv: NewEnv = () => {
         dockerRegistry,
         npmRegistry,
         toOriginalName,
-        log: testLog,
         redisServer,
       })
     }
 
     return {
+      gitHeadCommit: () => execa.command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath }).then(r => r.stdout),
       repoPath,
       toActualName,
       getPackagePath: getPackagePath(repoPath, toActualName),

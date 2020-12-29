@@ -108,6 +108,7 @@ export type AddRandomFileToPackage = (packageName: string) => Promise<string>
 export type AddRandomFileToRoot = () => Promise<string>
 
 export type ManageRepoResult = {
+  gitHeadCommit: () => Promise<string>
   repoPath: string
   toActualName: ToActualName
   dockerOrganizationName: string

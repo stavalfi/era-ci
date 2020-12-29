@@ -7,7 +7,7 @@ import { ExecutionStatus, Status, TargetType } from '@tahini/utils'
 const { createRepo, getResources } = createTest()
 
 test('single package - no problems - step should pass', async () => {
-  const { runCi, repoPath } = await createRepo({
+  const { runCi, gitHeadCommit, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -51,11 +51,11 @@ test('single package - no problems - step should pass', async () => {
 
   const { passed, published } = await runCi()
   expect(passed).toBeTruthy()
-  expect(published.get('a')?.docker.tags).toEqual(['1.0.0'])
+  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
 })
 
 test('multiple packages - no problems - step should pass', async () => {
-  const { runCi, repoPath } = await createRepo({
+  const { runCi, gitHeadCommit, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -110,8 +110,8 @@ test('multiple packages - no problems - step should pass', async () => {
   const { passed, published } = await runCi()
 
   expect(passed).toBeTruthy()
-  expect(published.get('a')?.docker.tags).toEqual(['1.0.0'])
-  expect(published.get('b')?.docker.tags).toEqual(['1.0.1'])
+  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
+  expect(published.get('b')?.docker.tags).toEqual([await gitHeadCommit()])
 })
 
 test('expect the step to be failed if the dockerfile has an error', async () => {
@@ -275,7 +275,7 @@ test('do not run step again if step succeed (image built and pushed to registry)
 })
 
 test('publish with semver-tag', async () => {
-  const { runCi, repoPath } = await createRepo({
+  const { runCi, gitHeadCommit, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -314,7 +314,7 @@ test('publish with semver-tag', async () => {
 
   const { published } = await runCi()
 
-  expect(published.get('a')?.docker.tags).toEqual(['1.0.0'])
+  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
 })
 
 test('publish with hash-tag', async () => {
@@ -363,7 +363,7 @@ test('publish with hash-tag', async () => {
 })
 
 test('publish with hash-tag and then with semver-tag', async () => {
-  const { runCi, repoPath } = await createRepo({
+  const { runCi, gitHeadCommit, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -408,10 +408,9 @@ test('publish with hash-tag and then with semver-tag', async () => {
     },
   })
 
-  expect(published.get('a')?.docker.tags).toEqual([
-    `artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`,
-    '1.0.0',
-  ])
+  expect(published.get('a')?.docker.tags.sort()).toEqual(
+    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
+  )
 })
 
 test('publish with hash-tag twice', async () => {
@@ -462,7 +461,7 @@ test('publish with hash-tag twice', async () => {
 })
 
 test('publish with semver-tag twice', async () => {
-  const { runCi, repoPath } = await createRepo({
+  const { runCi, gitHeadCommit, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -503,5 +502,5 @@ test('publish with semver-tag twice', async () => {
 
   const { published } = await runCi()
 
-  expect(published.get('a')?.docker.tags).toEqual(['1.0.0'])
+  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
 })

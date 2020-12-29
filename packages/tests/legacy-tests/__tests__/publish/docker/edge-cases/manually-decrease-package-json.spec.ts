@@ -3,9 +3,11 @@ import { TargetType } from '../../../prepare-test/types'
 
 const { createRepo } = newEnv()
 
+// NOTE: this tests are legacy and can be removed if needed
+
 describe('run ci -> decrease packageJson.version -> run ci', () => {
   test('decrease to unpublished version', async () => {
-    const { runCi, modifyPackageJson } = await createRepo({
+    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -24,6 +26,8 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
       },
     })
 
+    const head1 = await gitHeadCommit()
+
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.8' }))
 
     const master = await runCi({
@@ -35,11 +39,11 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
       },
     })
 
-    expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.10', '1.0.11'])
+    expect(master.published.get('a')?.docker?.tags?.sort()).toEqual([head1, await gitHeadCommit()].sort())
   })
 
   test('decrease to published version', async () => {
-    const { runCi, modifyPackageJson, addRandomFileToPackage } = await createRepo({
+    const { runCi, modifyPackageJson, addRandomFileToPackage, gitHeadCommit } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -58,16 +62,7 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
       },
     })
 
-    await addRandomFileToPackage('a')
-
-    await runCi({
-      targetsInfo: {
-        docker: {
-          shouldPublish: true,
-          shouldDeploy: false,
-        },
-      },
-    })
+    const head1 = await gitHeadCommit()
 
     await addRandomFileToPackage('a')
 
@@ -79,6 +74,21 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
         },
       },
     })
+
+    const head2 = await gitHeadCommit()
+
+    await addRandomFileToPackage('a')
+
+    await runCi({
+      targetsInfo: {
+        docker: {
+          shouldPublish: true,
+          shouldDeploy: false,
+        },
+      },
+    })
+
+    const head3 = await gitHeadCommit()
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.1' }))
 
@@ -91,6 +101,8 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
       },
     })
 
-    expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1', '1.0.2', '1.0.3'])
+    const head4 = await gitHeadCommit()
+
+    expect(master.published.get('a')?.docker?.tags?.sort()).toEqual([head1, head2, head3, head4].sort())
   })
 })

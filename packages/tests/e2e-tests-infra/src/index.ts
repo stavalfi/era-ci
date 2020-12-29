@@ -230,7 +230,7 @@ const createRepo: CreateRepo = async options => {
 
   return {
     repoPath,
-    gitHeadCommit: () => execa.command(`git rev-parse HEAD`, { stdio: 'pipe' }).then(r => r.stdout),
+    gitHeadCommit: () => execa.command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath }).then(r => r.stdout),
     toActualName,
     getImageTags,
     runCi: runCi({

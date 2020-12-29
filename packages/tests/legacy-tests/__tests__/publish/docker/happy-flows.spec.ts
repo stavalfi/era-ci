@@ -7,7 +7,7 @@ import execa from 'execa'
 const { createRepo, getTestResources } = newEnv()
 
 test('1 package', async () => {
-  const { runCi } = await createRepo({
+  const { runCi, gitHeadCommit } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -25,12 +25,12 @@ test('1 package', async () => {
       },
     },
   })
-  expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0'])
+  expect(master.published.get('a')?.docker?.tags).toEqual([await gitHeadCommit()])
 })
 
 test('ensure the image is working', async () => {
   const hash = chance().hash().slice(0, 8)
-  const { runCi, dockerOrganizationName, toActualName } = await createRepo({
+  const { runCi, dockerOrganizationName, toActualName, gitHeadCommit } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -57,7 +57,7 @@ test('ensure the image is working', async () => {
     runDockerImage(
       `${getTestResources().dockerRegistry.replace('http://', '')}/${dockerOrganizationName}/${toActualName(
         'a',
-      )}:1.0.0`,
+      )}:${await gitHeadCommit()}`,
     ),
   ).resolves.toEqual(
     expect.objectContaining({
@@ -68,7 +68,7 @@ test('ensure the image is working', async () => {
 
 test('ensure image is deleted after docker-push', async () => {
   const hash = chance().hash().slice(0, 8)
-  const { runCi, getFullImageName } = await createRepo({
+  const { runCi, getFullImageName, gitHeadCommit } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -93,10 +93,12 @@ test('ensure image is deleted after docker-push', async () => {
     },
   })
 
-  const isImageExistLocally = await execa.command(`docker inspect --type=image ${getFullImageName('a', '1.0.0')}`).then(
-    () => true,
-    () => false,
-  )
+  const isImageExistLocally = await execa
+    .command(`docker inspect --type=image ${getFullImageName('a', await gitHeadCommit())}`)
+    .then(
+      () => true,
+      () => false,
+    )
 
   expect(isImageExistLocally).toBeFalsy()
 })

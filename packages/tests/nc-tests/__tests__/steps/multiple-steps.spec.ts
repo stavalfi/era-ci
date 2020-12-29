@@ -7,7 +7,7 @@ import { TargetType } from '@tahini/utils'
 const { createRepo, getResources } = createTest()
 
 it(`reproduce bug - flow hangs when there is a npm + docker publishes`, async () => {
-  const { runCi } = await createRepo({
+  const { runCi, gitHeadCommit } = await createRepo({
     repo: {
       packages: [
         {
@@ -42,7 +42,7 @@ it(`reproduce bug - flow hangs when there is a npm + docker publishes`, async ()
   const { published } = await runCi()
 
   expect(published.get('a')?.npm.versions).toEqual(['1.0.0'])
-  expect(published.get('b')?.docker.tags).toEqual(['2.0.0'])
+  expect(published.get('b')?.docker.tags).toEqual([await gitHeadCommit()])
 })
 
 it(`reproduce bug - steps are triggered in the wrong time when using waitUntilArtifactParentsFinishedParentSteps=false in one of the steps`, async () => {
