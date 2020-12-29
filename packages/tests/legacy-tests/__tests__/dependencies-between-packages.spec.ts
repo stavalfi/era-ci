@@ -212,7 +212,7 @@ test('private npm-package can depends on private-npm-package', async () => {
 
 describe('docker-package depends on...', () => {
   test('b-docker-package depends on a-package, when a-package published, then b-package need to publish as well', async () => {
-    const { runCi, addRandomFileToPackage } = await createRepo({
+    const { runCi, addRandomFileToPackage, gitHeadCommit } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -242,9 +242,10 @@ describe('docker-package depends on...', () => {
         },
       },
     })
+    const head1 = await gitHeadCommit()
 
     expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
-    expect(master1.published.get('b')?.docker?.tags).toEqual(['2.0.0'])
+    expect(master1.published.get('b')?.docker?.tags).toEqual([head1])
 
     await addRandomFileToPackage('a')
 
@@ -260,10 +261,11 @@ describe('docker-package depends on...', () => {
         },
       },
     })
+    const head2 = await gitHeadCommit()
 
     expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
     expect(master2.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')
-    expect(master2.published.get('b')?.docker?.tags).toEqual(['2.0.0', '2.0.1'])
+    expect(master2.published.get('b')?.docker?.tags?.sort()).toEqual([head1, head2].sort())
   })
 
   test('docker-package cannot depends on docker-package', async () => {
@@ -307,7 +309,7 @@ describe('docker-package depends on...', () => {
   })
 
   test('docker-package can depend on private npm package', async () => {
-    const { runCi } = await createRepo({
+    const { runCi, gitHeadCommit } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -345,6 +347,6 @@ RUN yarn install --frozen-lockfile --production\
       },
     })
 
-    expect(master1.published.get('b')?.docker?.tags).toEqual(['2.0.0'])
+    expect(master1.published.get('b')?.docker?.tags).toEqual([await gitHeadCommit()])
   })
 })

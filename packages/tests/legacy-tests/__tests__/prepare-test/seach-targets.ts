@@ -1,7 +1,5 @@
-import execa from 'execa'
-import semver from 'semver'
-import { Log } from '@tahini/core'
 import { listTags } from '@tahini/image-registry-client'
+import execa from 'execa'
 
 export async function latestNpmPackageDistTags(
   packageName: string,
@@ -44,31 +42,16 @@ export async function publishedNpmPackageVersions(packageName: string, npmRegist
 
 export async function publishedDockerImageTags({
   dockerOrganizationName,
-  log,
-  repoPath,
   dockerRegistry,
   imageName,
 }: {
   imageName: string
   dockerOrganizationName: string
   dockerRegistry: string
-  repoPath: string
-  log: Log
 }): Promise<Array<string>> {
-  try {
-    const allTags = await listTags({
-      registry: dockerRegistry,
-      dockerOrg: dockerOrganizationName,
-      repo: imageName,
-    })
-    const tags = allTags.filter((tag: string) => semver.valid(tag) || tag === 'latest').filter(Boolean) || []
-    const sorted = semver.sort(tags.filter(tag => tag !== 'latest')).concat(tags.includes('latest') ? ['latest'] : [])
-    return sorted
-  } catch (e) {
-    if (e.stderr?.includes('manifest unknown')) {
-      return []
-    } else {
-      throw e
-    }
-  }
+  return listTags({
+    registry: dockerRegistry,
+    dockerOrg: dockerOrganizationName,
+    repo: imageName,
+  })
 }

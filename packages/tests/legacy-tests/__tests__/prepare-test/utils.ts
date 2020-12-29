@@ -1,4 +1,3 @@
-import { Log } from '@tahini/core'
 import ciInfo from 'ci-info'
 import execa, { StdioOption } from 'execa'
 import fse from 'fs-extra'
@@ -90,7 +89,6 @@ export async function runCiUsingConfigFile({
   npmRegistry,
   toOriginalName,
   redisServer,
-  log,
   printFlowId,
 }: {
   repoPath: string
@@ -100,7 +98,6 @@ export async function runCiUsingConfigFile({
   dockerOrganizationName: string
   toOriginalName: (packageName: string) => string
   redisServer: string
-  log: Log
   printFlowId?: string
 }): Promise<CiResults> {
   const ciProcessResult = await runNcExecutable({
@@ -128,8 +125,6 @@ export async function runCiUsingConfigFile({
               imageName: packageName,
               dockerOrganizationName,
               dockerRegistry,
-              repoPath,
-              log,
             }),
           ])
           return [

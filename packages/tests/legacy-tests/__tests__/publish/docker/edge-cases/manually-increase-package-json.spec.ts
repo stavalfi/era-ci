@@ -3,9 +3,11 @@ import { TargetType } from '../../../prepare-test/types'
 
 const { createRepo } = newEnv()
 
+// NOTE: this tests are legacy and can be removed if needed
+
 describe('run ci -> increase packageJson.version -> run ci', () => {
   test('run ci -> increase packageJson.version in major -> run ci', async () => {
-    const { runCi, modifyPackageJson } = await createRepo({
+    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -23,6 +25,8 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
         },
       },
     })
+
+    const head1 = await gitHeadCommit()
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '2.0.0' }))
 
@@ -35,11 +39,13 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       },
     })
 
-    expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '2.0.0'])
+    const head2 = await gitHeadCommit()
+
+    expect(master.published.get('a')?.docker?.tags.sort()).toEqual([head1, head2].sort())
   })
 
   test('run ci -> increase packageJson.version in minor -> run ci', async () => {
-    const { runCi, modifyPackageJson } = await createRepo({
+    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -57,6 +63,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
         },
       },
     })
+    const head1 = await gitHeadCommit()
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.1.0' }))
 
@@ -68,11 +75,13 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
         },
       },
     })
-    expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.1.0'])
+    const head2 = await gitHeadCommit()
+
+    expect(master.published.get('a')?.docker?.tags.sort()).toEqual([head1, head2].sort())
   })
 
   test('run ci -> increase packageJson.version in patch (should be next version anyway) -> run ci', async () => {
-    const { runCi, modifyPackageJson } = await createRepo({
+    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -90,6 +99,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
         },
       },
     })
+    const head1 = await gitHeadCommit()
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.1' }))
 
@@ -101,12 +111,13 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
         },
       },
     })
+    const head2 = await gitHeadCommit()
 
-    expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.1'])
+    expect(master.published.get('a')?.docker?.tags.sort()).toEqual([head1, head2].sort())
   })
 
   test('run ci -> increase packageJson.version in patch -> run ci', async () => {
-    const { runCi, modifyPackageJson } = await createRepo({
+    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -124,6 +135,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
         },
       },
     })
+    const head1 = await gitHeadCommit()
 
     await modifyPackageJson('a', packageJson => ({ ...packageJson, version: '1.0.4' }))
 
@@ -135,6 +147,8 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
         },
       },
     })
-    expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0', '1.0.4'])
+    const head2 = await gitHeadCommit()
+
+    expect(master.published.get('a')?.docker?.tags.sort()).toEqual([head1, head2].sort())
   })
 })
