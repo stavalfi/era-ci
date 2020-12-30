@@ -39,10 +39,12 @@ it(`reproduce bug - flow hangs when there is a npm + docker publishes`, async ()
       ]),
     },
   })
-  const { published } = await runCi()
+  const { published, jsonReport } = await runCi()
 
   expect(published.get('a')?.npm.versions).toEqual(['1.0.0'])
-  expect(published.get('b')?.docker.tags).toEqual([await gitHeadCommit()])
+  expect(published.get('b')?.docker.tags.sort()).toEqual(
+    [`artifact-hash-${jsonReport.artifacts[1].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
+  )
 })
 
 it(`reproduce bug - steps are triggered in the wrong time when using waitUntilArtifactParentsFinishedParentSteps=false in one of the steps`, async () => {

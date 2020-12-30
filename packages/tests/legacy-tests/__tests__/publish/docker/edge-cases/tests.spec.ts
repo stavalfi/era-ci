@@ -23,7 +23,7 @@ test(`run ci as the first time after there is already a docker publish`, async (
       },
     },
   })
-  expect(master.published.get('a')?.docker?.tags.sort()).toEqual(['1.0.0', await gitHeadCommit()].sort())
+  expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining(['1.0.0', await gitHeadCommit()]))
 })
 
 test(`run ci -> override all labels in registry with empty values -> run ci`, async () => {
@@ -63,7 +63,9 @@ test(`run ci -> override all labels in registry with empty values -> run ci`, as
     },
   })
 
-  expect(master.published.get('a')?.docker?.tags?.sort()).toEqual([head1, '1.0.0', await gitHeadCommit()].sort())
+  expect(master.published.get('a')?.docker?.tags).toEqual(
+    expect.arrayContaining([head1, '1.0.0', await gitHeadCommit()]),
+  )
 })
 
 test(`run ci -> override all labels in registry with invalid values -> run ci and ensure we can recover from that`, async () => {
@@ -103,7 +105,9 @@ test(`run ci -> override all labels in registry with invalid values -> run ci an
     },
   })
 
-  expect(master.published.get('a')?.docker?.tags?.sort()).toEqual([head1, '1.0.1', await gitHeadCommit()].sort())
+  expect(master.published.get('a')?.docker?.tags).toEqual(
+    expect.arrayContaining([head1, '1.0.1', await gitHeadCommit()]),
+  )
 })
 
 test(`run ci -> override latest-tag label in registry with empty value -> run ci`, async () => {
@@ -142,7 +146,9 @@ test(`run ci -> override latest-tag label in registry with empty value -> run ci
     },
   })
 
-  expect(master.published.get('a')?.docker?.tags?.sort()).toEqual([head1, '1.0.1', await gitHeadCommit()].sort())
+  expect(master.published.get('a')?.docker?.tags).toEqual(
+    expect.arrayContaining([head1, '1.0.1', await gitHeadCommit()]),
+  )
 })
 
 test('run ci -> change packageJson.version to invalid version -> run ci', async () => {

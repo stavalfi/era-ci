@@ -245,7 +245,7 @@ describe('docker-package depends on...', () => {
     const head1 = await gitHeadCommit()
 
     expect(master1.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
-    expect(master1.published.get('b')?.docker?.tags).toEqual([head1])
+    expect(master1.published.get('b')?.docker?.tags).toEqual(expect.arrayContaining([head1]))
 
     await addRandomFileToPackage('a')
 
@@ -265,7 +265,7 @@ describe('docker-package depends on...', () => {
 
     expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0', '1.0.1'])
     expect(master2.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')
-    expect(master2.published.get('b')?.docker?.tags?.sort()).toEqual([head1, head2].sort())
+    expect(master2.published.get('b')?.docker?.tags).toEqual(expect.arrayContaining([head1, head2]))
   })
 
   test('docker-package cannot depends on docker-package', async () => {
@@ -347,6 +347,6 @@ RUN yarn install --frozen-lockfile --production\
       },
     })
 
-    expect(master1.published.get('b')?.docker?.tags).toEqual([await gitHeadCommit()])
+    expect(master1.published.get('b')?.docker?.tags).toEqual(expect.arrayContaining([await gitHeadCommit()]))
   })
 })

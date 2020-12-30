@@ -12,7 +12,7 @@ export async function chooseTagAndPublish<
     publish: (tag: string) => Promise<UserReturnValue>
   },
 ): Promise<UserReturnValue> {
-  const toHashTag = (artifactHash: string): string => `artifact-hash-${artifactHash}`
+  const hashTag = `artifact-hash-${options.artifact.data.artifact.packageHash}`
 
   const tags = await listTags({
     registry: options.stepConfigurations.registry,
@@ -20,7 +20,7 @@ export async function chooseTagAndPublish<
     dockerOrg: options.stepConfigurations.dockerOrganizationName,
     repo: options.artifact.data.artifact.packageJson.name,
   })
-  const didHashPublished = tags.some(tag => tag === options.artifact.data.artifact.packageHash)
+  const didHashPublished = tags.some(tag => tag === hashTag)
 
   const fullImageNameWithTag = (tag: string): string =>
     buildFullDockerImageName({
@@ -36,15 +36,11 @@ export async function chooseTagAndPublish<
         executionStatus: ExecutionStatus.aborted,
         status: Status.skippedAsPassed,
         errors: [],
-        notes: [
-          `artifact already published: "${fullImageNameWithTag(
-            toHashTag(options.artifact.data.artifact.packageHash),
-          )}"`,
-        ],
-        returnValue: fullImageNameWithTag(toHashTag(options.artifact.data.artifact.packageHash)),
+        notes: [`artifact already published: "${fullImageNameWithTag(hashTag)}"`],
+        returnValue: fullImageNameWithTag(hashTag),
       }
     } else {
-      return options.publish(toHashTag(options.artifact.data.artifact.packageHash))
+      return options.publish(hashTag)
     }
   } else {
     const cacheKey = `${options.artifact.data.artifact.packageHash}-next-tag`
@@ -79,14 +75,6 @@ export async function chooseTagAndPublish<
     let artifactStepResult: UserReturnValue
     const newTag = options.gitRepoInfo.commit
     if (didHashPublished) {
-      await addTagToRemoteImage({
-        registry: options.stepConfigurations.registry,
-        auth: options.stepConfigurations.registryAuth,
-        dockerOrg: options.stepConfigurations.dockerOrganizationName,
-        repo: options.artifact.data.artifact.packageJson.name,
-        fromTag: toHashTag(options.artifact.data.artifact.packageHash),
-        toTag: newTag,
-      })
       artifactStepResult = {
         executionStatus: ExecutionStatus.aborted,
         status: Status.skippedAsPassed,
@@ -95,8 +83,16 @@ export async function chooseTagAndPublish<
         returnValue: fullImageNameWithTag(newTag),
       }
     } else {
-      artifactStepResult = await options.publish(newTag)
+      artifactStepResult = await options.publish(hashTag)
     }
+    await addTagToRemoteImage({
+      registry: options.stepConfigurations.registry,
+      auth: options.stepConfigurations.registryAuth,
+      dockerOrg: options.stepConfigurations.dockerOrganizationName,
+      repo: options.artifact.data.artifact.packageJson.name,
+      fromTag: hashTag,
+      toTag: newTag,
+    })
     if (artifactStepResult.status === Status.passed || artifactStepResult.status === Status.skippedAsPassed) {
       await options.immutableCache.set({
         key: cacheKey,
