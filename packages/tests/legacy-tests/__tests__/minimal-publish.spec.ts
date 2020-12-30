@@ -55,7 +55,7 @@ describe('skip publish of package that did not change from the last publish', ()
         },
       },
     })
-    expect(master1.published.get('a')?.docker?.tags).toEqual([await gitHeadCommit()])
+    expect(master1.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([await gitHeadCommit()]))
     const master2 = await runCi({
       targetsInfo: {
         docker: {
@@ -64,7 +64,7 @@ describe('skip publish of package that did not change from the last publish', ()
         },
       },
     })
-    expect(master2.published.get('a')?.docker?.tags).toEqual([await gitHeadCommit()])
+    expect(master2.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([await gitHeadCommit()]))
   })
 
   test('publish failed we will try to publish again in the nest flow even when the package-hash did not change', async () => {

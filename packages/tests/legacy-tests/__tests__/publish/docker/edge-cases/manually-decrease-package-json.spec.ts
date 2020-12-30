@@ -39,7 +39,7 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
       },
     })
 
-    expect(master.published.get('a')?.docker?.tags?.sort()).toEqual([head1, await gitHeadCommit()].sort())
+    expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([head1, await gitHeadCommit()]))
   })
 
   test('decrease to published version', async () => {
@@ -103,6 +103,6 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
 
     const head4 = await gitHeadCommit()
 
-    expect(master.published.get('a')?.docker?.tags?.sort()).toEqual([head1, head2, head3, head4].sort())
+    expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([head1, head2, head3, head4]))
   })
 })

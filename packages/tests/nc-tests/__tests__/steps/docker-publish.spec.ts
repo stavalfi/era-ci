@@ -54,9 +54,11 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
     },
   }))
 
-  const { passed, published } = await runCi()
+  const { passed, published, jsonReport } = await runCi()
   expect(passed).toBeTruthy()
-  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
+  expect(published.get('a')?.docker.tags.sort()).toEqual(
+    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
+  )
   expect(published.get('b')?.npm.versions).toEqual(['2.0.0'])
 })
 
@@ -85,9 +87,11 @@ test('publish with semver-tag', async () => {
     },
   })
 
-  const { published } = await runCi()
+  const { published, jsonReport } = await runCi()
 
-  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
+  expect(published.get('a')?.docker.tags.sort()).toEqual(
+    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
+  )
 })
 
 test('publish with hash-tag', async () => {
@@ -221,7 +225,9 @@ test('publish with semver-tag twice', async () => {
 
   await runCi()
 
-  const { published } = await runCi()
+  const { published, jsonReport } = await runCi()
 
-  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
+  expect(published.get('a')?.docker.tags.sort()).toEqual(
+    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
+  )
 })

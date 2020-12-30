@@ -25,7 +25,7 @@ test('1 package', async () => {
       },
     },
   })
-  expect(master.published.get('a')?.docker?.tags).toEqual([await gitHeadCommit()])
+  expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([await gitHeadCommit()]))
 })
 
 test('ensure the image is working', async () => {

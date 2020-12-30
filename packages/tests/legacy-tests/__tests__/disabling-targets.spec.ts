@@ -28,7 +28,7 @@ test('disable npm targets', async () => {
     },
   })
   expect(master1.published.get('a')?.npm?.versions).toBeFalsy()
-  expect(master1.published.get('b')?.docker?.tags).toEqual([await gitHeadCommit()])
+  expect(master1.published.get('b')?.docker?.tags).toEqual(expect.arrayContaining([await gitHeadCommit()]))
 })
 
 test('disable docker targets', async () => {
@@ -56,5 +56,5 @@ test('disable docker targets', async () => {
     },
   })
   expect(master1.published.get('a')?.npm?.versions).toBeFalsy()
-  expect(master1.published.get('b')?.docker?.tags).toEqual([await gitHeadCommit()])
+  expect(master1.published.get('b')?.docker?.tags).toEqual(expect.arrayContaining([await gitHeadCommit()]))
 })

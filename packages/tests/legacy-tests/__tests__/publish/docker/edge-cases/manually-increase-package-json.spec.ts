@@ -41,7 +41,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
 
     const head2 = await gitHeadCommit()
 
-    expect(master.published.get('a')?.docker?.tags.sort()).toEqual([head1, head2].sort())
+    expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([head1, head2]))
   })
 
   test('run ci -> increase packageJson.version in minor -> run ci', async () => {
@@ -77,7 +77,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     })
     const head2 = await gitHeadCommit()
 
-    expect(master.published.get('a')?.docker?.tags.sort()).toEqual([head1, head2].sort())
+    expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([head1, head2]))
   })
 
   test('run ci -> increase packageJson.version in patch (should be next version anyway) -> run ci', async () => {
@@ -113,7 +113,7 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     })
     const head2 = await gitHeadCommit()
 
-    expect(master.published.get('a')?.docker?.tags.sort()).toEqual([head1, head2].sort())
+    expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([head1, head2]))
   })
 
   test('run ci -> increase packageJson.version in patch -> run ci', async () => {
@@ -149,6 +149,6 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     })
     const head2 = await gitHeadCommit()
 
-    expect(master.published.get('a')?.docker?.tags.sort()).toEqual([head1, head2].sort())
+    expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([head1, head2]))
   })
 })
