@@ -13,9 +13,6 @@
     },
     {
       "path": "../utils/tsconfig-build.json"
-    },
-    {
-      "path": "../tests/e2e-tests-infra/tsconfig-build.json"
     }
   ]
 }
