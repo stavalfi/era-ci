@@ -7,7 +7,8 @@
   "files": [
     "dist",
     "src",
-    "__tests__"
+    "__tests__",
+    ".nc-swcrc.config"
   ],
   "bin": {
     "nc-ci": "./dist/src/index.js"
@@ -50,8 +51,7 @@
     "serialize-error": "^7.0.1",
     "source-map-support": "^0.5.19",
     "strict-event-emitter-types": "^2.0.0",
-    "superstruct": "^0.10.12",
-    "ts-node": "9.0.0",
+    "superstruct": "^0.13.1",
     "url-parse": "^1.4.7",
     "winston": "^3.3.3",
     "ws": "^7.3.1"

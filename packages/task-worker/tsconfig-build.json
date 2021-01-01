@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src", "__tests__"],
+  "references": [
+    {
+      "path": "../core/tsconfig-build.json"
+    },
+    {
+      "path": "../loggers/tsconfig-build.json"
+    },
+    {
+      "path": "../utils/tsconfig-build.json"
+    },
+    {
+      "path": "../tests/e2e-tests-infra/tsconfig-build.json"
+    }
+  ]
+}

@@ -16,6 +16,7 @@
     "baseUrl": "packages",
     "paths": {
       "@tahini/core": ["core/src/index.ts"],
+      "@tahini/task-worker": ["task-worker/src/index.ts"],
       "@tahini/quay-client": ["quay-client/src/index.ts"],
       "@tahini/image-registry-client": ["image-registry-client/src/index.ts"],
       "@tahini/constrains": ["constrains/src/index.ts"],

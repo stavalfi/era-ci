@@ -40,7 +40,7 @@
     "serialize-error": "^7.0.1",
     "source-map-support": "^0.5.19",
     "strict-event-emitter-types": "^2.0.0",
-    "superstruct": "^0.10.12",
+    "superstruct": "^0.13.1",
     "ts-node": "9.0.0",
     "url-parse": "^1.4.7",
     "winston": "^3.3.3",

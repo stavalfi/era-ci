@@ -4,13 +4,13 @@ import { createLinearStepsGraph } from '@tahini/steps-graph'
 import _ from 'lodash'
 import { DeepPartial } from './types'
 
-function isDeepSubsetOf({
+function isDeepSubsetOf<T = unknown>({
   subset,
   fullObj,
   path,
 }: {
-  fullObj: unknown
-  subset: unknown
+  fullObj: T
+  subset: DeepPartial<T>
   path: Array<string>
 }): { result: true } | { result: false; problem: string; fullObj: unknown; subset: unknown; path: Array<string> } {
   if (typeof fullObj !== typeof subset) {
@@ -54,6 +54,7 @@ function isDeepSubsetOf({
             path,
           }
         } else {
+          // @ts-ignore
           for (const [key, element] of subset.entries()) {
             if (
               fullObj.every(
@@ -106,6 +107,7 @@ function isDeepSubsetOf({
       }
     }
   }
+  throw new Error(`we can't be here`)
 }
 
 export function isDeepSubset<T>(fullObj: T, subset: DeepPartial<T>): boolean {

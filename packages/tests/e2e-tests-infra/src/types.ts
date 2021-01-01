@@ -3,6 +3,8 @@ import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap } from 'package-json-type'
 import { GitServer } from './git-server-testkit'
 
+export { DeepPartial } from 'ts-essentials'
+
 export { TargetType, PackageJson }
 
 export type Cleanup = () => Promise<unknown>
@@ -37,6 +39,8 @@ export type TestResources = {
   dockerRegistry: string
   gitServer: GitServer
   redisServerUri: string
+  redisServerHost: string
+  redisServerPort: number
   quayMockService: string
   quayHelperService: string
   quayNamespace: string
@@ -45,10 +49,6 @@ export type TestResources = {
 }
 
 export type ToActualName = (name: string) => string
-
-export type DeepPartial<T> = {
-  [P in keyof T]?: DeepPartial<T[P]>
-}
 
 export type ResultingArtifact = {
   npm: {

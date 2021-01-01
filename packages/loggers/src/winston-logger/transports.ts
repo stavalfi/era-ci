@@ -44,9 +44,11 @@ export const createConsoleTransport = (format: winston.Logform.Format): winston.
 
 export const createFileTransport = (
   ncLogFilePath: string,
+  silent: boolean,
   format?: winston.Logform.Format,
 ): winston.transports.FileTransportInstance =>
   new winston.transports.File({
     format,
     filename: ncLogFilePath,
+    silent,
   })
