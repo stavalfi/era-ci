@@ -1,8 +1,6 @@
 import { UserRunStepOptions } from '../create-step'
 import { Constrain, ConstrainResultBase } from './types'
 
-
-
 export function createConstrain<
   Configurations = void,
   NormalizedConfigurations = Configurations,

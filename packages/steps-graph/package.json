@@ -13,9 +13,6 @@
     "registry": "https://registry.npmjs.org/"
   },
   "types": "dist/src/index.d.ts",
-  "scripts": {
-    "test": "jest"
-  },
   "dependencies": {
     "@era-ci/core": "^2.0.0"
   }
