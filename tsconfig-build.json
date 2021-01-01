@@ -16,9 +16,6 @@
       "path": "packages/image-registry-client/tsconfig-build.json"
     },
     {
-      "path": "packages/serverless-example/tsconfig-build.json"
-    },
-    {
       "path": "packages/steps-graph/tsconfig-build.json"
     },
     {
