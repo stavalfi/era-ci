@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "files": ["nc-config.ts"],
+  "files": ["era-ci-config.ts"],
   "compilerOptions": { "outDir": "dist" }, // only the compiled root-ts-files will be there
   "references": [
     {
@@ -49,7 +49,7 @@
       "path": "packages/tests/e2e-tests-infra/tsconfig-build.json"
     },
     {
-      "path": "packages/tests/nc-tests/tsconfig-build.json"
+      "path": "packages/tests/era-ci-tests/tsconfig-build.json"
     },
     {
       "path": "packages/task-queues/tsconfig-build.json"

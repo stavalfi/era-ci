@@ -47,7 +47,7 @@ export default config({
   logger: winstonLogger({
     customLogLevel: LogLevel.trace,
     disabled: false,
-    logFilePath: './nc.log',
+    logFilePath: './era-ci.log',
   }),
   steps: createLinearStepsGraph([
     validatePackages(),

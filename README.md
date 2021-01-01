@@ -1,4 +1,4 @@
-# nc (Node CI)
+# era-ci (Node CI)
 
 ### What We Do Best
 
@@ -28,10 +28,10 @@ yarn add --dev -W @era-ci/core
 
 ### How To Use
 
-1. Create a `nc.config.ts` file as a root file.
+1. Create a `era-ci.config.ts` file as a root file.
    - Look at an example of this monorepo for how to write the configurations.
 2. Create a `test` script in every package.
-3. Run NC locally: `node --unhandled-rejections=strict node_modules/@era-ci/core/dist/src/index.js --config-file ./nc.config.ts`
+3. Run NC locally: `node --unhandled-rejections=strict node_modules/@era-ci/core/dist/src/index.js --config-file ./era-ci.config.ts`
 
 #### Use In Managed CI Systems
 
@@ -88,7 +88,7 @@ Optionally, you can skip the publish/deploy steps when you are in PR using `is-c
 - public (or scoped-restricted) npm package - NC will run `yarn publish` to the specified registry with a new version.
 - docker package - NC will build the dockerfile and run `docker push` to the specified docker registry.
 
-5. deployment - in `nc.config.ts` there is a deployment section for each tagret which is optional. each section has 3 functions:
+5. deployment - in `era-ci.config.ts` there is a deployment section for each tagret which is optional. each section has 3 functions:
 
 - `initializeDeploymentClient` - incase you deploy to k8s, it is used to set the context of kubectl to your cluster
 - `deploy` - deploy a specific package

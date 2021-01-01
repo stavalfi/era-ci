@@ -29,7 +29,7 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
         disabled: true,
         disableFileOutput: true,
         customLogLevel: LogLevel.debug,
-        logFilePath: path.join(repoPath, 'nc.log'),
+        logFilePath: path.join(repoPath, 'era-ci.log'),
       }
     } else {
       let finalLogFilePath: string

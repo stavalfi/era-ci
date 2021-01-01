@@ -18,5 +18,5 @@ tsconfig.tsbuildinfo
 dist-all
 yarn-error.log
 .history
-nc.log
-compiled-nc.config.js
+era-ci.log
+compiled-era-ci.config.js

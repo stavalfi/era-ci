@@ -12,7 +12,7 @@ export async function startCli(processArgv: Array<string>, processEnv: NodeJS.Pr
       'config-file': option({
         type: optional(string),
         long: 'config-file',
-        description: 'path of the ci configuration file. default: <repo-path>/nc.config.ts ',
+        description: 'path of the ci configuration file. default: <repo-path>/era-ci.config.ts ',
       }),
       'repo-path': option({
         type: string,
@@ -30,7 +30,7 @@ export async function startCli(processArgv: Array<string>, processEnv: NodeJS.Pr
       const repoPath = path.resolve(args['repo-path'])
       const configFilePath = args['config-file']
         ? path.resolve(args['config-file'])
-        : path.join(repoPath, 'nc.config.ts')
+        : path.join(repoPath, 'era-ci.config.ts')
       const config = await readNcConfigurationFile(configFilePath)
       if (args['print-flow']) {
         await printFlowLogs({

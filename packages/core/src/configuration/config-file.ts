@@ -6,7 +6,7 @@ import { Config } from './types'
 
 /**
  * ensures type safty of task-queues by only allowing steps thats uses task-queues which are declared in `task-queues` array.
- * @param options nc options
+ * @param options era-ci options
  */
 export function config<TaskQueue extends TaskQueueBase<unknown>>(options: Config<TaskQueue>): Config<TaskQueue> {
   return options
@@ -51,8 +51,8 @@ function validateConfiguration<TaskQueue>(configuration: unknown): configuration
 }
 
 export async function readNcConfigurationFile<TaskQueue>(ciConfigFilePath: string): Promise<Config<TaskQueue>> {
-  const outputFilePath = path.join(path.dirname(ciConfigFilePath), `compiled-nc.config.js`)
-  const swcConfigFile = require.resolve('@era-ci/core/.nc-swcrc.config')
+  const outputFilePath = path.join(path.dirname(ciConfigFilePath), `compiled-era-ci.config.js`)
+  const swcConfigFile = require.resolve('@era-ci/core/.era-ci-swcrc.config')
   const swcPath = require.resolve('.bin/swc')
   const command = `${swcPath} ${ciConfigFilePath} -o ${outputFilePath} --config-file ${swcConfigFile}`
 
@@ -70,6 +70,6 @@ export async function readNcConfigurationFile<TaskQueue>(ciConfigFilePath: strin
     return configuration
   } else {
     const [error] = validate(configuration, getConfigValidationObject())
-    throw new Error(`failed to parse nc.config.ts file: ${error?.message}`)
+    throw new Error(`failed to parse era-ci.config.ts file: ${error?.message}`)
   }
 }

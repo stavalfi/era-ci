@@ -11,7 +11,7 @@ pool:
   vmImage: $(imageName)
 
 variables:
-  - group: nc-project # i need this to get the SECRETHUB_TOKEN
+  - group: era-ci-project # i need this to get the SECRETHUB_TOKEN
 
 steps:
   - task: NodeTool@0
