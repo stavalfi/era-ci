@@ -1,15 +1,16 @@
 import { createTest, isDeepSubset } from '@tahini/e2e-tests-infra'
+import { amountOfWrokersKey, startWorker, WorkerConfig, WorkerTask } from '@tahini/task-worker'
 import { DoneResult, ExecutionStatus, Status } from '@tahini/utils'
 import Queue from 'bee-queue'
 import chance from 'chance'
+import { createFolder } from 'create-folder-structure'
 import execa from 'execa'
 import fs from 'fs'
+import Redis from 'ioredis'
 import _ from 'lodash'
 import path from 'path'
-import { amountOfWrokersKey, startWorker, WorkerConfig, WorkerTask } from '../src'
-import Redis from 'ioredis'
 
-const { createRepo, getResources } = createTest()
+const { getResources } = createTest()
 
 const cleanups: (() => Promise<unknown>)[] = []
 
@@ -32,30 +33,19 @@ async function createQueue(queueName: string): Promise<Queue<WorkerTask>> {
 }
 
 test('no tasks - manual close worker', async () => {
-  const { repoPath } = await createRepo({
-    repo: {
-      packages: [],
-    },
-  })
+  const repoPath = await createFolder()
   const { cleanup } = await startWorker({
     queueName: `queue-${chance().hash().slice(0, 8)}`,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redis: {
-      host: getResources().redisServerHost,
-      port: getResources().redisServerPort,
-    },
+    redisServerUri: getResources().redisServerUri,
   })
 
   await cleanup()
 })
 
 test('single worker - amount of workers === 1', async () => {
-  const { repoPath } = await createRepo({
-    repo: {
-      packages: [],
-    },
-  })
+  const repoPath = await createFolder()
 
   const queueName = `queue-${chance().hash().slice(0, 8)}`
 
@@ -63,10 +53,7 @@ test('single worker - amount of workers === 1', async () => {
     queueName,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redis: {
-      host: getResources().redisServerHost,
-      port: getResources().redisServerPort,
-    },
+    redisServerUri: getResources().redisServerUri,
   })
 
   const redisConnection = new Redis({ host: getResources().redisServerHost, port: getResources().redisServerPort })
@@ -80,19 +67,12 @@ test('single worker - amount of workers === 1', async () => {
 })
 
 test('manual close worker multiple times', async () => {
-  const { repoPath } = await createRepo({
-    repo: {
-      packages: [],
-    },
-  })
+  const repoPath = await createFolder()
   const { cleanup } = await startWorker({
     queueName: `queue-${chance().hash().slice(0, 8)}`,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redis: {
-      host: getResources().redisServerHost,
-      port: getResources().redisServerPort,
-    },
+    redisServerUri: getResources().redisServerUri,
   })
 
   await cleanup()
@@ -101,20 +81,13 @@ test('manual close worker multiple times', async () => {
 })
 
 test('single task - success', async () => {
-  const { repoPath } = await createRepo({
-    repo: {
-      packages: [],
-    },
-  })
+  const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
     queueName,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redis: {
-      host: getResources().redisServerHost,
-      port: getResources().redisServerPort,
-    },
+    redisServerUri: getResources().redisServerUri,
   })
   cleanups.push(cleanup)
 
@@ -144,20 +117,13 @@ test('single task - success', async () => {
 })
 
 test('multiple tasks - all success', async () => {
-  const { repoPath } = await createRepo({
-    repo: {
-      packages: [],
-    },
-  })
+  const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
     queueName,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redis: {
-      host: getResources().redisServerHost,
-      port: getResources().redisServerPort,
-    },
+    redisServerUri: getResources().redisServerUri,
   })
   cleanups.push(cleanup)
 
@@ -191,20 +157,13 @@ test('multiple tasks - all success', async () => {
 })
 
 test('single empty task - expect to fail', async () => {
-  const { repoPath } = await createRepo({
-    repo: {
-      packages: [],
-    },
-  })
+  const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
     queueName,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redis: {
-      host: getResources().redisServerHost,
-      port: getResources().redisServerPort,
-    },
+    redisServerUri: getResources().redisServerUri,
   })
   cleanups.push(cleanup)
 
@@ -231,20 +190,13 @@ test('single empty task - expect to fail', async () => {
 })
 
 test('single task - expect to fail', async () => {
-  const { repoPath } = await createRepo({
-    repo: {
-      packages: [],
-    },
-  })
+  const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
     queueName,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redis: {
-      host: getResources().redisServerHost,
-      port: getResources().redisServerPort,
-    },
+    redisServerUri: getResources().redisServerUri,
   })
   cleanups.push(cleanup)
 
@@ -275,20 +227,13 @@ test('single task - expect to fail', async () => {
 })
 
 test('multiple tasks - all fail', async () => {
-  const { repoPath } = await createRepo({
-    repo: {
-      packages: [],
-    },
-  })
+  const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
     queueName,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redis: {
-      host: getResources().redisServerHost,
-      port: getResources().redisServerPort,
-    },
+    redisServerUri: getResources().redisServerUri,
   })
   cleanups.push(cleanup)
 
@@ -326,19 +271,12 @@ test('multiple tasks - all fail', async () => {
 })
 
 test('no tasks so the worker is closing automaticaly', async () => {
-  const { repoPath } = await createRepo({
-    repo: {
-      packages: [],
-    },
-  })
+  const repoPath = await createFolder()
 
   const workerConfig: WorkerConfig = {
     queueName: `queue-${chance().hash().slice(0, 8)}`,
     waitBeforeExitMs: 1_000,
-    redis: {
-      host: getResources().redisServerHost,
-      port: getResources().redisServerPort,
-    },
+    redisServerUri: getResources().redisServerUri,
   }
 
   await fs.promises.writeFile(
@@ -348,7 +286,7 @@ test('no tasks so the worker is closing automaticaly', async () => {
   )
 
   const { stdout } = await execa.command(
-    `${require.resolve('.bin/swc-node')} ${require.resolve('../src/index.ts')} --repo-path ${repoPath}`,
+    `${require.resolve('.bin/swc-node')} ${require.resolve('@tahini/task-worker')} --repo-path ${repoPath}`,
     {
       stdio: 'pipe',
     },
@@ -358,21 +296,14 @@ test('no tasks so the worker is closing automaticaly', async () => {
 })
 
 test('single task -> no tasks so the worker is closing automaticaly', async () => {
-  const { repoPath } = await createRepo({
-    repo: {
-      packages: [],
-    },
-  })
+  const repoPath = await createFolder()
 
   const queueName = `queue-${chance().hash().slice(0, 8)}`
 
   const workerConfig: WorkerConfig = {
     queueName,
     waitBeforeExitMs: 3_000,
-    redis: {
-      host: getResources().redisServerHost,
-      port: getResources().redisServerPort,
-    },
+    redisServerUri: getResources().redisServerUri,
   }
 
   const queue = await createQueue(queueName)
@@ -388,7 +319,7 @@ test('single task -> no tasks so the worker is closing automaticaly', async () =
   )
 
   const workerProcess = execa.command(
-    `${require.resolve('.bin/swc-node')} ${require.resolve('../src/index.ts')} --repo-path ${repoPath}`,
+    `${require.resolve('.bin/swc-node')} ${require.resolve('@tahini/task-worker')} --repo-path ${repoPath}`,
     {
       stdio: 'pipe',
     },

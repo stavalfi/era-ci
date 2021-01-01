@@ -80,6 +80,7 @@ async function buildAndPublishArtifact({
     }
   }
 }
+
 export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, QuayDockerPublishConfiguration>({
   stepName: 'quay-docker-publish',
   stepGroup: 'docker-publish',

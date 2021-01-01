@@ -1,10 +1,7 @@
 export type WorkerConfig = {
   queueName: string
   waitBeforeExitMs: number
-  redis: {
-    host: string
-    port: number
-  }
+  redisServerUri: string
 }
 
 export type WorkerTask = {

@@ -45,14 +45,14 @@ export async function startWorker(
   }).callInitializeLogger({ repoPath: config.repoPath })
 
   const queue = new Queue<WorkerTask>(config.queueName, {
-    redis: { host: config.redis.host, port: config.redis.port },
+    redis: config.redisServerUri,
     removeOnSuccess: true,
     removeOnFailure: true,
   })
 
-  const redisConnection = new Redis({ host: config.redis.host, port: config.redis.port, lazyConnect: true })
+  const redisConnection = new Redis(config.redisServerUri)
 
-  await Promise.all([queue.ready(), redisConnection.connect()])
+  await queue.ready()
 
   await redisConnection.incr(amountOfWrokersKey(config.queueName))
 

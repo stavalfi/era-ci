@@ -7,10 +7,7 @@ function getConfigValidationObject(): Describe<WorkerConfig> {
   return object({
     queueName: string(),
     waitBeforeExitMs: number(),
-    redis: object({
-      host: string(),
-      port: number(),
-    }),
+    redisServerUri: string(),
   })
 }
 

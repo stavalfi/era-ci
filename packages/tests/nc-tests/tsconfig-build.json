@@ -9,10 +9,10 @@
       "path": "../../constrains/tsconfig-build.json"
     },
     {
-      "path": "../../image-registry-client/tsconfig-build.json"
+      "path": "../../task-worker/tsconfig-build.json"
     },
     {
-      "path": "../../constrains/tsconfig-build.json"
+      "path": "../../image-registry-client/tsconfig-build.json"
     },
     {
       "path": "../e2e-tests-infra/tsconfig-build.json"
