@@ -1,4 +1,4 @@
-import { QuayBuildStatusChangedTopicPayload, QuayNotificationEvents } from '@tahini/task-queues'
+import { QuayBuildStatusChangedTopicPayload, QuayNotificationEvents } from '@era-ci/task-queues'
 import fastify from 'fastify'
 import Redis from 'ioredis'
 import { getConfig } from './config'

@@ -1,5 +1,5 @@
 {
-  "name": "@tahini/core-tests",
+  "name": "@era-ci/core-tests",
   "version": "1.0.0",
   "license": "UNLICENSED",
   "private": true,
@@ -7,18 +7,18 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@tahini/constrains": "^1.0.0",
-    "@tahini/image-registry-client": "^1.0.0",
-    "@tahini/e2e-tests-infra": "^1.0.0",
-    "@tahini/quay-helper-service": "^1.0.0",
-    "@tahini/quay-mock-service": "^1.0.0",
-    "@tahini/steps": "^1.0.0",
-    "@tahini/loggers": "^1.0.0",
-    "@tahini/task-queues": "^1.0.0",
-    "@tahini/core": "^1.0.0",
-    "@tahini/utils": "^1.0.0",
-    "@tahini/steps-graph": "^1.0.0",
-    "@tahini/task-worker": "^1.0.0",
-    "@tahini/key-value-stores": "^1.0.0"
+    "@era-ci/constrains": "^1.0.0",
+    "@era-ci/image-registry-client": "^1.0.0",
+    "@era-ci/e2e-tests-infra": "^1.0.0",
+    "@era-ci/quay-helper-service": "^1.0.0",
+    "@era-ci/quay-mock-service": "^1.0.0",
+    "@era-ci/steps": "^1.0.0",
+    "@era-ci/loggers": "^1.0.0",
+    "@era-ci/task-queues": "^1.0.0",
+    "@era-ci/core": "^1.0.0",
+    "@era-ci/utils": "^1.0.0",
+    "@era-ci/steps-graph": "^1.0.0",
+    "@era-ci/task-worker": "^1.0.0",
+    "@era-ci/key-value-stores": "^1.0.0"
   }
 }

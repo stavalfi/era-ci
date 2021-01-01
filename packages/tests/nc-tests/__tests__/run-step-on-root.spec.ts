@@ -1,9 +1,9 @@
-import { createStepExperimental } from '@tahini/core'
-import { createTest, DeepPartial, isDeepSubset } from '@tahini/e2e-tests-infra'
-import { JsonReport } from '@tahini/steps'
-import { createLinearStepsGraph } from '@tahini/steps-graph'
-import { LocalSequentalTaskQueue } from '@tahini/task-queues'
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { createStepExperimental } from '@era-ci/core'
+import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { JsonReport } from '@era-ci/steps'
+import { createLinearStepsGraph } from '@era-ci/steps-graph'
+import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 
 const { createRepo } = createTest()
 

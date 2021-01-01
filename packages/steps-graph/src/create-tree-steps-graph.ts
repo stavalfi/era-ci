@@ -1,4 +1,4 @@
-import { StepExperimental } from '@tahini/core'
+import { StepExperimental } from '@era-ci/core'
 import { Steps } from './types'
 
 export function createTreeStepsGraph<TaskQueueConfigurations>(

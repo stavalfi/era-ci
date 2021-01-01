@@ -2,7 +2,7 @@
 
 import { createClientV2 } from 'docker-registry-client'
 import bunyan from 'bunyan'
-import { buildFullDockerImageName } from '@tahini/utils'
+import { buildFullDockerImageName } from '@era-ci/utils'
 
 type Options = {
   registry: string

@@ -1,5 +1,5 @@
-import { ConstrainResultType, createConstrain } from '@tahini/core'
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { ConstrainResultType, createConstrain } from '@era-ci/core'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 
 export const skipIfRootPackageJsonMissingScriptConstrain = createConstrain<{ scriptName: string }>({
   constrainName: 'skip-if-root-package-json-missing-script-constrain',

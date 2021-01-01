@@ -15,21 +15,21 @@
     "noErrorTruncation": true,
     "baseUrl": "packages",
     "paths": {
-      "@tahini/core": ["core/src/index.ts"],
-      "@tahini/task-worker": ["task-worker/src/index.ts"],
-      "@tahini/quay-client": ["quay-client/src/index.ts"],
-      "@tahini/image-registry-client": ["image-registry-client/src/index.ts"],
-      "@tahini/constrains": ["constrains/src/index.ts"],
-      "@tahini/steps-graph": ["steps-graph/src/index.ts"],
-      "@tahini/key-value-stores": ["key-value-stores/src/index.ts"],
-      "@tahini/utils": ["utils/src/index.ts"],
-      "@tahini/steps": ["steps/src/index.ts"],
-      "@tahini/loggers": ["loggers/src/index.ts"],
-      "@tahini/task-queues": ["task-queues/src/index.ts"],
-      "@tahini/quay-helper-service": ["quay-helper-service/src/index.ts"],
-      "@tahini/quay-task-queue": ["tests/quay-task-queue/src/index.ts"],
-      "@tahini/quay-mock-service": ["tests/quay-mock-service/src/index.ts"],
-      "@tahini/e2e-tests-infra": ["tests/e2e-tests-infra/src/index.ts"]
+      "@era-ci/core": ["core/src/index.ts"],
+      "@era-ci/task-worker": ["task-worker/src/index.ts"],
+      "@era-ci/quay-client": ["quay-client/src/index.ts"],
+      "@era-ci/image-registry-client": ["image-registry-client/src/index.ts"],
+      "@era-ci/constrains": ["constrains/src/index.ts"],
+      "@era-ci/steps-graph": ["steps-graph/src/index.ts"],
+      "@era-ci/key-value-stores": ["key-value-stores/src/index.ts"],
+      "@era-ci/utils": ["utils/src/index.ts"],
+      "@era-ci/steps": ["steps/src/index.ts"],
+      "@era-ci/loggers": ["loggers/src/index.ts"],
+      "@era-ci/task-queues": ["task-queues/src/index.ts"],
+      "@era-ci/quay-helper-service": ["quay-helper-service/src/index.ts"],
+      "@era-ci/quay-task-queue": ["tests/quay-task-queue/src/index.ts"],
+      "@era-ci/quay-mock-service": ["tests/quay-mock-service/src/index.ts"],
+      "@era-ci/e2e-tests-infra": ["tests/e2e-tests-infra/src/index.ts"]
     }
   }
 }

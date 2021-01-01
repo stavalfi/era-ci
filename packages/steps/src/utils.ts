@@ -1,6 +1,6 @@
-import { TaskQueueBase, UserReturnValue, UserRunStepOptions } from '@tahini/core'
-import { addTagToRemoteImage, listTags } from '@tahini/image-registry-client'
-import { Artifact, buildFullDockerImageName, ExecutionStatus, Node, Status } from '@tahini/utils'
+import { TaskQueueBase, UserReturnValue, UserRunStepOptions } from '@era-ci/core'
+import { addTagToRemoteImage, listTags } from '@era-ci/image-registry-client'
+import { Artifact, buildFullDockerImageName, ExecutionStatus, Node, Status } from '@era-ci/utils'
 import { DockerPublishConfiguration } from './types'
 
 export async function chooseTagAndPublish<

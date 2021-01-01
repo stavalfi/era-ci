@@ -1,5 +1,5 @@
-import { ConstrainResultType, createConstrain } from '@tahini/core'
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { ConstrainResultType, createConstrain } from '@era-ci/core'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 
 export const skipIfStepIsDisabledConstrain = createConstrain<void, void, { isStepEnabled: boolean }>({
   constrainName: 'skip-if-step-is-disabled-constrain',

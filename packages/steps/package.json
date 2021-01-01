@@ -1,5 +1,5 @@
 {
-  "name": "@tahini/steps",
+  "name": "@era-ci/steps",
   "version": "1.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
@@ -46,13 +46,13 @@
     "url-parse": "^1.4.7",
     "winston": "^3.3.3",
     "ws": "^7.3.1",
-    "@tahini/task-queues": "^1.0.0",
-    "@tahini/quay-client": "^1.0.0",
-    "@tahini/utils": "^1.0.0",
-    "@tahini/core": "^1.0.0",
-    "@tahini/task-worker": "^1.0.0",
-    "@tahini/constrains": "^1.0.0",
-    "@tahini/image-registry-client": "^1.0.0",
+    "@era-ci/task-queues": "^1.0.0",
+    "@era-ci/quay-client": "^1.0.0",
+    "@era-ci/utils": "^1.0.0",
+    "@era-ci/core": "^1.0.0",
+    "@era-ci/task-worker": "^1.0.0",
+    "@era-ci/constrains": "^1.0.0",
+    "@era-ci/image-registry-client": "^1.0.0",
     "npm-login-noninteractive": "^0.1.4"
   }
 }

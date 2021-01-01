@@ -1,5 +1,5 @@
-import { StepExperimental, StepInfo, TaskQueueBase, TaskQueueOptions } from '@tahini/core'
-import { Graph } from '@tahini/utils'
+import { StepExperimental, StepInfo, TaskQueueBase, TaskQueueOptions } from '@era-ci/core'
+import { Graph } from '@era-ci/utils'
 
 export type Steps<TaskQueueConfigurations> = Graph<{
   stepInfo: StepInfo

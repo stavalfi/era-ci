@@ -1,7 +1,7 @@
-import { createTest, DeepPartial, isDeepSubset } from '@tahini/e2e-tests-infra'
-import { installRoot, JsonReport, validatePackages } from '@tahini/steps'
-import { createLinearStepsGraph } from '@tahini/steps-graph'
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { installRoot, JsonReport, validatePackages } from '@era-ci/steps'
+import { createLinearStepsGraph } from '@era-ci/steps-graph'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 
 const { createRepo } = createTest()
 

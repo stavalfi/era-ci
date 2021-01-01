@@ -1,4 +1,4 @@
-import { listTags } from '@tahini/image-registry-client'
+import { listTags } from '@era-ci/image-registry-client'
 import execa from 'execa'
 
 export async function latestNpmPackageDistTags(

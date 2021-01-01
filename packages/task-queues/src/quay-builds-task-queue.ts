@@ -5,8 +5,8 @@ import {
   TaskQueueEventEmitter,
   TaskQueueOptions,
   TaskTimeoutEventEmitter,
-} from '@tahini/core'
-import { ExecutionStatus, Status } from '@tahini/utils'
+} from '@era-ci/core'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 import { queue } from 'async'
 import chance from 'chance'
 import { EventEmitter } from 'events'
@@ -21,9 +21,9 @@ import {
   QuayBuildStatus,
   QuayClient,
   QuayNotificationEvents,
-} from '@tahini/quay-client'
+} from '@era-ci/quay-client'
 
-export { QuayBuildStatus, QuayNotificationEvents } from '@tahini/quay-client'
+export { QuayBuildStatus, QuayNotificationEvents } from '@era-ci/quay-client'
 
 export type QuayBuildsTaskQueueConfigurations = {
   redisAddress: string

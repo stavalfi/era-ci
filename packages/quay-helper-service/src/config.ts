@@ -1,4 +1,4 @@
-import { QUAY_BUILD_STATUS_CHANED_REDIS_TOPIC } from '@tahini/task-queues'
+import { QUAY_BUILD_STATUS_CHANED_REDIS_TOPIC } from '@era-ci/task-queues'
 import { Config } from './types'
 
 export function getConfig(env: Record<string, string | undefined>): Config {

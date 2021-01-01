@@ -2,7 +2,7 @@ import { CreateKeyValueStoreConnection } from '../create-key-value-store-connect
 import { CreateLogger } from '../create-logger'
 import { StepExperimental, StepInfo } from '../create-step'
 import { CreateTaskQueue, TaskQueueOptions } from '../create-task-queue'
-import { Graph } from '@tahini/utils'
+import { Graph } from '@era-ci/utils'
 
 export type Config<TaskQueueConfigurations> = {
   keyValueStore: CreateKeyValueStoreConnection

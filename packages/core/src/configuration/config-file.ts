@@ -52,7 +52,7 @@ function validateConfiguration<TaskQueue>(configuration: unknown): configuration
 
 export async function readNcConfigurationFile<TaskQueue>(ciConfigFilePath: string): Promise<Config<TaskQueue>> {
   const outputFilePath = path.join(path.dirname(ciConfigFilePath), `compiled-nc.config.js`)
-  const swcConfigFile = require.resolve('@tahini/core/.nc-swcrc.config')
+  const swcConfigFile = require.resolve('@era-ci/core/.nc-swcrc.config')
   const swcPath = require.resolve('.bin/swc')
   const command = `${swcPath} ${ciConfigFilePath} -o ${outputFilePath} --config-file ${swcConfigFile}`
 

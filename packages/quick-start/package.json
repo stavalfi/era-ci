@@ -1,5 +1,5 @@
 {
-  "name": "@era-ci/image-registry-client",
+  "name": "@era-ci/quick-start",
   "version": "1.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
@@ -14,8 +14,13 @@
   },
   "types": "dist/src/index.d.ts",
   "dependencies": {
-    "bunyan": "1.8.14",
-    "docker-registry-client": "3.3.0",
+    "@era-ci/core": "^1.0.0",
+    "@era-ci/image-registry-client": "^1.0.0",
+    "@era-ci/key-value-stores": "^1.0.0",
+    "@era-ci/loggers": "^1.0.0",
+    "@era-ci/steps": "^1.0.0",
+    "@era-ci/steps-graph": "^1.0.0",
+    "@era-ci/task-queues": "^1.0.0",
     "@era-ci/utils": "^1.0.0"
   }
 }

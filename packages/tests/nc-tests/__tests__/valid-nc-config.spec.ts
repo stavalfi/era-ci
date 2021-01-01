@@ -1,7 +1,7 @@
-import { createStepExperimental, TaskQueueBase } from '@tahini/core'
-import { createTest } from '@tahini/e2e-tests-infra'
-import { createLinearStepsGraph } from '@tahini/steps-graph'
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { createStepExperimental, TaskQueueBase } from '@era-ci/core'
+import { createTest } from '@era-ci/e2e-tests-infra'
+import { createLinearStepsGraph } from '@era-ci/steps-graph'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 import { EventEmitter } from 'events'
 
 const { createRepo } = createTest()

@@ -7,6 +7,9 @@
       "path": "packages/utils/tsconfig-build.json"
     },
     {
+      "path": "packages/quick-start/tsconfig-build.json"
+    },
+    {
       "path": "packages/task-worker/tsconfig-build.json"
     },
     {

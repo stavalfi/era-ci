@@ -1,8 +1,8 @@
-import { createStepExperimental } from '@tahini/core'
-import { createTest } from '@tahini/e2e-tests-infra'
-import { createLinearStepsGraph } from '@tahini/steps-graph'
-import { LocalSequentalTaskQueue } from '@tahini/task-queues'
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { createStepExperimental } from '@era-ci/core'
+import { createTest } from '@era-ci/e2e-tests-infra'
+import { createLinearStepsGraph } from '@era-ci/steps-graph'
+import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 
 const { createRepo, sleep } = createTest()
 

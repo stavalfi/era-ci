@@ -1,5 +1,5 @@
 {
-  "name": "@tahini/task-queues",
+  "name": "@era-ci/task-queues",
   "version": "1.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
@@ -45,8 +45,8 @@
     "url-parse": "^1.4.7",
     "winston": "^3.3.3",
     "ws": "^7.3.1",
-    "@tahini/utils": "^1.0.0",
-    "@tahini/core": "^1.0.0",
-    "@tahini/quay-client": "^1.0.0"
+    "@era-ci/utils": "^1.0.0",
+    "@era-ci/core": "^1.0.0",
+    "@era-ci/quay-client": "^1.0.0"
   }
 }

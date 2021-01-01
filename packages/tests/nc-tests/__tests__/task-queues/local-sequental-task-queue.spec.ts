@@ -1,8 +1,8 @@
-import { LocalSequentalTaskQueue, localSequentalTaskQueue } from '@tahini/task-queues'
-import { LogLevel } from '@tahini/core'
-import { winstonLogger } from '@tahini/loggers'
-import { isDeepSubset, sleep } from '@tahini/e2e-tests-infra'
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { LocalSequentalTaskQueue, localSequentalTaskQueue } from '@era-ci/task-queues'
+import { LogLevel } from '@era-ci/core'
+import { winstonLogger } from '@era-ci/loggers'
+import { isDeepSubset, sleep } from '@era-ci/e2e-tests-infra'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 import { createFolder } from 'create-folder-structure'
 
 let taskQueue: LocalSequentalTaskQueue
