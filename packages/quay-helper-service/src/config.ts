@@ -8,11 +8,11 @@ export function getConfig(env: Record<string, string | undefined>): Config {
   return {
     auth: {
       github: {
-        token: env.GITHUB_TOKEN || 'e228688513b757fcd0ef5bb00d662c2edb20c787',
+        token: env.GITHUB_TOKEN!,
       },
       bitbucketCloud: {
-        username: env.BITBUCKET_CLOUD_USERNAME || 'stavalfi-octopol',
-        token: env.BITBUCKET_CLOUD_TOKEN || 'dtJN7SynXH6HtbtWQ7db',
+        username: env.BITBUCKET_CLOUD_USERNAME!,
+        token: env.BITBUCKET_CLOUD_TOKEN!,
       },
     },
     port: env.PORT === undefined ? 8080 : Number(env.PORT),
