@@ -43,7 +43,7 @@ export const newEnv: NewEnv = () => {
       repo,
       gitServer,
       toActualName,
-      gitIgnoreFiles: ['nc.log', 'test-logs.log'],
+      gitIgnoreFiles: ['era-ci.log', 'test-logs.log'],
     })
 
     const testLog = (
@@ -52,7 +52,7 @@ export const newEnv: NewEnv = () => {
         logFilePath: 'test-logs.log',
         disabled: true,
       }).callInitializeLogger({ repoPath })
-    ).createLog('nc-tests')
+    ).createLog('era-ci-tests')
 
     const getFlowLogs: GetFlowLogs = async ({ flowId, execaOptions }) => {
       return runNcExecutable({

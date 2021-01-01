@@ -189,13 +189,13 @@ const createRepo: CreateRepo = async options => {
     repo,
     gitServer,
     toActualName,
-    gitIgnoreFiles: ['nc.log'],
+    gitIgnoreFiles: ['era-ci.log'],
   })
 
   const testLogger = await winstonLogger({
     customLogLevel: logLevel,
     disabled: false,
-    logFilePath: path.join(repoPath, 'nc-test.log'),
+    logFilePath: path.join(repoPath, 'era-ci-test.log'),
   }).callInitializeLogger({ repoPath })
 
   const getImageTags = async (packageName: string): Promise<string[]> => {
@@ -206,7 +206,7 @@ const createRepo: CreateRepo = async options => {
     })
   }
 
-  const logFilePath = path.join(repoPath, 'nc.log')
+  const logFilePath = path.join(repoPath, 'era-ci.log')
 
   const finalConfigurations = config({
     logger:

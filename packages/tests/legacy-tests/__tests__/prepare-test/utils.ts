@@ -57,10 +57,10 @@ export async function runNcExecutable({
       stdio = 'inherit'
     }
   }
-  const configFilePath = require.resolve('./test-nc.config.ts')
-  const nc = require.resolve('@era-ci/core/dist/src/index.js')
+  const configFilePath = require.resolve('./test-era-ci.config.ts')
+  const era-ci = require.resolve('@era-ci/core/dist/src/index.js')
   const withFlowId = printFlowId ? `--print-flow ${printFlowId}` : ''
-  const command = `node --unhandled-rejections=strict ${nc} --config-file ${configFilePath} --repo-path ${repoPath} ${withFlowId}`
+  const command = `node --unhandled-rejections=strict ${era-ci} --config-file ${configFilePath} --repo-path ${repoPath} ${withFlowId}`
   return execa.command(command, {
     stdio,
     reject: testOptions?.execaOptions?.reject !== undefined ? testOptions.execaOptions?.reject : true,
@@ -149,7 +149,7 @@ export async function runCiUsingConfigFile({
     return published
   }
 
-  const ncLogfileContent = await fse.readFile(path.join(repoPath, 'nc.log'), 'utf-8')
+  const ncLogfileContent = await fse.readFile(path.join(repoPath, 'era-ci.log'), 'utf-8')
 
   const flowIdResult = ncLogfileContent.match(/flow-id: "(.*)"/)
   let flowId: string | undefined

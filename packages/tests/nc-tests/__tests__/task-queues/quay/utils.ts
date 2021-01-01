@@ -127,7 +127,7 @@ async function createTestDependencies(
   const logger = await winstonLogger({
     customLogLevel: LogLevel.trace,
     disabled: false,
-    logFilePath: './nc.log',
+    logFilePath: './era-ci.log',
   }).callInitializeLogger({ repoPath })
 
   // eslint-disable-next-line no-process-env

@@ -13,7 +13,7 @@ beforeEach(async () => {
   const repoPath = await createFolder()
   const logger = await winstonLogger({
     customLogLevel: LogLevel.trace,
-    logFilePath: 'nc.log',
+    logFilePath: 'era-ci.log',
     disabled: false,
   }).callInitializeLogger({ repoPath })
 

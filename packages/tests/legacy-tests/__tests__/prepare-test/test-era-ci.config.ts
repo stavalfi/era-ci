@@ -34,7 +34,7 @@ const {
 const logger = winstonLogger({
   customLogLevel: LogLevel.debug,
   disabled: false,
-  logFilePath: './nc.log',
+  logFilePath: './era-ci.log',
 })
 
 const keyValueStore = redisConnection({
