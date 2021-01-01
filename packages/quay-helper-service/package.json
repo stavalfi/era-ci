@@ -1,6 +1,6 @@
 {
   "name": "@era-ci/quay-helper-service",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": false,
@@ -18,7 +18,7 @@
     "start:prod": "node --unhandled-rejections=strict dist/src/index.js"
   },
   "dependencies": {
-    "@era-ci/task-queues": "^1.0.0",
+    "@era-ci/task-queues": "^2.0.0",
     "compressing": "^1.5.1",
     "fastify": "^3.8.0",
     "got": "^11.3.0",

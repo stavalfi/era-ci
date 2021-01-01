@@ -1,6 +1,6 @@
 {
   "name": "@era-ci/task-queues",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": false,
@@ -45,8 +45,8 @@
     "url-parse": "^1.4.7",
     "winston": "^3.3.3",
     "ws": "^7.3.1",
-    "@era-ci/utils": "^1.0.0",
-    "@era-ci/core": "^1.0.0",
-    "@era-ci/quay-client": "^1.0.0"
+    "@era-ci/utils": "^2.0.0",
+    "@era-ci/core": "^2.0.0",
+    "@era-ci/quay-client": "^2.0.0"
   }
 }

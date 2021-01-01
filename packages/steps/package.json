@@ -1,6 +1,6 @@
 {
   "name": "@era-ci/steps",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": false,
@@ -46,13 +46,13 @@
     "url-parse": "^1.4.7",
     "winston": "^3.3.3",
     "ws": "^7.3.1",
-    "@era-ci/task-queues": "^1.0.0",
-    "@era-ci/quay-client": "^1.0.0",
-    "@era-ci/utils": "^1.0.0",
-    "@era-ci/core": "^1.0.0",
-    "@era-ci/task-worker": "^1.0.0",
-    "@era-ci/constrains": "^1.0.0",
-    "@era-ci/image-registry-client": "^1.0.0",
+    "@era-ci/task-queues": "^2.0.0",
+    "@era-ci/quay-client": "^2.0.0",
+    "@era-ci/utils": "^2.0.0",
+    "@era-ci/core": "^2.0.0",
+    "@era-ci/task-worker": "^2.0.0",
+    "@era-ci/constrains": "^2.0.0",
+    "@era-ci/image-registry-client": "^2.0.0",
     "npm-login-noninteractive": "^0.1.4"
   }
 }

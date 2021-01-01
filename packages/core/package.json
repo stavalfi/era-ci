@@ -1,6 +1,6 @@
 {
   "name": "@era-ci/core",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": false,
@@ -8,10 +8,10 @@
     "dist",
     "src",
     "__tests__",
-    ".nc-swcrc.config"
+    ".era-ci-swcrc.config"
   ],
   "bin": {
-    "nc-ci": "./dist/src/index.js"
+    "nera-cic-ci": "./dist/src/index.js"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
@@ -24,7 +24,7 @@
     "@kubernetes/client-node": "^0.12.3",
     "@swc/cli": "^0.1.26",
     "@swc/core": "^1.2.9",
-    "@era-ci/utils": "^1.0.0",
+    "@era-ci/utils": "^2.0.0",
     "async": "^3.2.0",
     "async-lock": "^1.2.6",
     "chalk": "^4.1.0",

@@ -1,6 +1,6 @@
 {
   "name": "@era-ci/steps-graph",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": false,
@@ -17,6 +17,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "@era-ci/core": "^1.0.0"
+    "@era-ci/core": "^2.0.0"
   }
 }
