@@ -19,7 +19,7 @@
     "chance": "^1.1.5",
     "execa": "^4.0.1",
     "got": "^11.8.1",
-    "ioredis": "^4.17.1",
+    "ioredis": "^4.19.4",
     "serialize-error": "^7.0.1",
     "strict-event-emitter-types": "^2.0.0",
     "@era-ci/utils": "^2.0.0",

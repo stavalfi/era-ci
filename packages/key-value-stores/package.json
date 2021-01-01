@@ -14,7 +14,7 @@
   },
   "types": "dist/src/index.d.ts",
   "dependencies": {
-    "ioredis": "^4.17.1",
+    "ioredis": "^4.19.4",
     "@era-ci/core": "^2.0.0",
     "@era-ci/utils": "^2.0.0"
   }

@@ -1,8 +1,8 @@
 import ciInfo from 'ci-info'
-import { config, LogLevel } from './packages/core/src/index'
-import { redisConnection } from './packages/key-value-stores/src/index'
-import { winstonLogger } from './packages/loggers/src/index'
-import { createLinearStepsGraph } from './packages/steps-graph'
+import { config, LogLevel } from './packages/core/dist/src/index'
+import { redisConnection } from './packages/key-value-stores/dist/src/index'
+import { winstonLogger } from './packages/loggers/dist/src/index'
+import { createLinearStepsGraph } from './packages/steps-graph/dist/src/index'
 import {
   buildRoot,
   cliTableReporter,
@@ -14,9 +14,9 @@ import {
   NpmScopeAccess,
   test,
   validatePackages,
-} from './packages/steps/src/index'
-import { localSequentalTaskQueue } from './packages/task-queues/src/index'
-import { execaCommand } from './packages/utils/src/index'
+} from './packages/steps/dist/src/index'
+import { localSequentalTaskQueue } from './packages/task-queues/dist/src/index'
+import { execaCommand } from './packages/utils/dist/src/index'
 
 const {
   NPM_REGISTRY = 'https://registry.npmjs.org/',
@@ -96,5 +96,3 @@ export default config({
     cliTableReporter(),
   ]),
 })
-
-console.log('stav1')

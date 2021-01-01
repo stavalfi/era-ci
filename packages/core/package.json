@@ -17,9 +17,6 @@
     "registry": "https://registry.npmjs.org/"
   },
   "types": "dist/src/index.d.ts",
-  "scripts": {
-    "test": "jest"
-  },
   "dependencies": {
     "@swc/cli": "0.1.27",
     "@swc/core": "1.2.43",
