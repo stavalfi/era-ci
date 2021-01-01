@@ -38,7 +38,7 @@ const logger = winstonLogger({
 })
 
 const keyValueStore = redisConnection({
-  redisServerUri: REDIS_ENDPOINT!,
+  url: REDIS_ENDPOINT!,
 })
 
 const steps = createLinearStepsGraph([

@@ -1,24 +1,22 @@
 import ciInfo from 'ci-info'
-import _ from 'lodash'
-import { config, LogLevel } from './packages/core/dist/src/index.js'
+import { config, LogLevel } from './packages/core/src/index'
+import { redisConnection } from './packages/key-value-stores/src/index'
+import { winstonLogger } from './packages/loggers/src/index'
 import { createLinearStepsGraph } from './packages/steps-graph'
-import { localSequentalTaskQueue } from './packages/task-queues/dist/src/index.js'
-import { winstonLogger } from './packages/loggers/dist/src/index.js'
 import {
   buildRoot,
   cliTableReporter,
   dockerPublish,
   installRoot,
   jsonReporter,
-  k8sGcloudDeployment,
   lintRoot,
   npmPublish,
   NpmScopeAccess,
   test,
   validatePackages,
-} from './packages/steps/dist/src/index.js'
-import { execaCommand } from './packages/utils/dist/src/index.js'
-import { redisConnection } from './packages/key-value-stores/dist/src/index.js'
+} from './packages/steps/src/index'
+import { localSequentalTaskQueue } from './packages/task-queues/src/index'
+import { execaCommand } from './packages/utils/src/index'
 
 const {
   NPM_REGISTRY = 'https://registry.npmjs.org/',
@@ -29,11 +27,10 @@ const {
   DOCKER_HUB_TOKEN,
   DOCKER_ORG = 'stavalfi',
   DOCKER_REGISTRY = `https://registry.hub.docker.com/`,
-  K8S_CLUSTER_TOKEN,
   REDIS_ENDPOINT,
-  GCLOUD_PROJECT_ID = 'gcloudProjectId',
-  K8S_CLUSTER_NAME = `c-jxh57`,
-  K8S_CLUSTER_ZONE_NAME = `europe-west3-c`,
+  REDIS_ACL_USERNAME,
+  REDIS_ACL_PASSWORD,
+  // REDIS_PASSWORD,
   // eslint-disable-next-line no-process-env
 } = process.env
 
@@ -42,7 +39,11 @@ const isMasterBuild = Boolean(ciInfo.isCI && !ciInfo.isPR)
 export default config({
   taskQueues: [localSequentalTaskQueue()],
   keyValueStore: redisConnection({
-    redisServerUri: REDIS_ENDPOINT!,
+    url: REDIS_ENDPOINT!,
+    auth: {
+      username: REDIS_ACL_USERNAME,
+      password: REDIS_ACL_PASSWORD,
+    },
   }),
   logger: winstonLogger({
     customLogLevel: LogLevel.trace,
@@ -59,6 +60,18 @@ export default config({
       beforeAll: ({ log, repoPath }) =>
         execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
     }),
+    // testUsingTaskWorker({
+    //   queueName: '1',
+    //   scriptName: 'test',
+    //   redis: {
+    //     url: REDIS_ENDPOINT!,
+    //     auth: {
+    //       password: REDIS_PASSWORD,
+    //     },
+    //   },
+    //   beforeAll: ({ log, repoPath }) =>
+    //     execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
+    // }),
     npmPublish({
       isStepEnabled: isMasterBuild,
       npmScopeAccess: NpmScopeAccess.public,
@@ -78,15 +91,6 @@ export default config({
         token: DOCKER_HUB_TOKEN!,
       },
       buildAndPushOnlyTempVersion: !isMasterBuild,
-    }),
-    k8sGcloudDeployment({
-      isStepEnabled: false,
-      gcloudProjectId: GCLOUD_PROJECT_ID,
-      k8sClusterName: K8S_CLUSTER_NAME,
-      k8sClusterTokenBase64: K8S_CLUSTER_TOKEN!,
-      k8sClusterZoneName: K8S_CLUSTER_ZONE_NAME,
-      artifactNameToContainerName: _.identity,
-      artifactNameToDeploymentName: _.identity,
     }),
     jsonReporter(),
     cliTableReporter(),

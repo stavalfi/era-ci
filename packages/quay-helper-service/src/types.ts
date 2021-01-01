@@ -25,5 +25,9 @@ export type Config = {
   auth: Auth
   port: number
   redisAddress: string
+  redisAuth?: {
+    username?: string
+    password?: string
+  }
   quayBuildStatusChangedRedisTopic: string
 }

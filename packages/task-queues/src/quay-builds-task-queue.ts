@@ -26,7 +26,13 @@ import {
 export { QuayBuildStatus, QuayNotificationEvents } from '@era-ci/quay-client'
 
 export type QuayBuildsTaskQueueConfigurations = {
-  redisAddress: string
+  redis: {
+    url: string
+    auth?: {
+      username?: string
+      password?: string
+    }
+  }
   quayAddress: 'https://quay.io' | string
   quayServiceHelperAddress: string
   quayToken: string
@@ -509,7 +515,11 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
 export const quayBuildsTaskQueue = createTaskQueue<QuayBuildsTaskQueue, QuayBuildsTaskQueueConfigurations>({
   taskQueueName: 'quay-builds-task-queue',
   initializeTaskQueue: async options => {
-    const redisConnection = new Redis(options.taskQueueConfigurations.redisAddress, { lazyConnect: true })
+    const redisConnection = new Redis(options.taskQueueConfigurations.redis.url, {
+      lazyConnect: true,
+      username: options.taskQueueConfigurations.redis.auth?.username,
+      password: options.taskQueueConfigurations.redis.auth?.password,
+    })
     await redisConnection.connect()
     await redisConnection.subscribe(
       // eslint-disable-next-line no-process-env

@@ -96,7 +96,7 @@ async function createTestDependencies(
   const redisTopic = `redis-topic-${chance().hash().slice(0, 8)}`
   const quayServiceHelper = await startQuayHelperService({
     PORT: '0',
-    REDIS_ADDRESS: getResources().redisServerUri,
+    REDIS_ADDRESS: getResources().redisServerUrl,
     QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: redisTopic,
     NC_TEST_MODE: 'true',
   })
@@ -140,7 +140,9 @@ async function createTestDependencies(
     quayNamespace,
     quayServiceHelperAddress: quayServiceHelper.address,
     quayToken,
-    redisAddress: getResources().redisServerUri,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
   }).createFunc({
     log: logger.createLog('quayBuildsTaskQueue'),
     gitRepoInfo: await getGitRepoInfo(repoPath, logger.createLog('--')),
