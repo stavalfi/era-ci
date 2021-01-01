@@ -8,7 +8,7 @@ import {
   Graph,
   Node,
   Status,
-} from '@tahini/utils'
+} from '@era-ci/utils'
 import { StepsResultOfArtifact, StepsResultOfArtifactsByArtifact, StepsResultOfArtifactsByStep } from './types'
 
 function getStepsResultOfArtifact({

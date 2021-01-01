@@ -1,8 +1,8 @@
-import { LogLevel } from '@tahini/core'
-import { createTest } from '@tahini/e2e-tests-infra'
-import { dockerPublish, installRoot, npmPublish, NpmScopeAccess, validatePackages } from '@tahini/steps'
-import { createLinearStepsGraph } from '@tahini/steps-graph'
-import { TargetType } from '@tahini/utils'
+import { LogLevel } from '@era-ci/core'
+import { createTest } from '@era-ci/e2e-tests-infra'
+import { dockerPublish, installRoot, npmPublish, NpmScopeAccess, validatePackages } from '@era-ci/steps'
+import { createLinearStepsGraph } from '@era-ci/steps-graph'
+import { TargetType } from '@era-ci/utils'
 
 const { createRepo, getResources } = createTest()
 

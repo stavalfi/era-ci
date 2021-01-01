@@ -1,4 +1,4 @@
-import { createLogger, Log, LogLevel } from '@tahini/core'
+import { createLogger, Log, LogLevel } from '@era-ci/core'
 import { createConsoleTransport, createFileTransport, defaultFormat, noFormat } from './transports'
 import winston from 'winston'
 import path from 'path'

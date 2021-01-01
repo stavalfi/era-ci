@@ -1,5 +1,5 @@
-import { ConstrainResultType, createConstrain } from '@tahini/core'
-import { ExecutionStatus, Status, didPassOrSkippedAsPassed } from '@tahini/utils'
+import { ConstrainResultType, createConstrain } from '@era-ci/core'
+import { ExecutionStatus, Status, didPassOrSkippedAsPassed } from '@era-ci/utils'
 
 export const skipIfStepResultNotPassedConstrain = createConstrain<{
   stepName: string

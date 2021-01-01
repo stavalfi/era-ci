@@ -17,7 +17,7 @@ function validateConfiguration(configuration: unknown): configuration is WorkerC
 
 export async function parseConfig(ciConfigFilePath: string): Promise<WorkerConfig> {
   const outputFilePath = path.join(path.dirname(ciConfigFilePath), `compiled-task-worker.config.js`)
-  const swcConfigFile = require.resolve('@tahini/task-worker/.nc-swcrc.config')
+  const swcConfigFile = require.resolve('@era-ci/task-worker/.nc-swcrc.config')
   const swcPath = require.resolve('.bin/swc')
   const command = `${swcPath} ${ciConfigFilePath} -o ${outputFilePath} --config-file ${swcConfigFile}`
 

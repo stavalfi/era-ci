@@ -3,7 +3,7 @@ import NodeCache from 'node-cache'
 import { array, enums, number, object, optional, string, type, validate } from 'superstruct'
 import { KeyValueStoreConnection } from './create-key-value-store-connection'
 import { Log } from './create-logger'
-import { AbortResult, Artifact, DoneResult, ExecutionStatus, Graph, Status } from '@tahini/utils'
+import { AbortResult, Artifact, DoneResult, ExecutionStatus, Graph, Status } from '@era-ci/utils'
 
 export type ImmutableCache = {
   step: {

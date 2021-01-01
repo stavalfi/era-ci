@@ -1,8 +1,8 @@
-import { config, LogLevel } from '@tahini/core'
-import { createLinearStepsGraph } from '@tahini/steps-graph'
-import { redisConnection } from '@tahini/key-value-stores'
-import { localSequentalTaskQueue } from '@tahini/task-queues'
-import { winstonLogger } from '@tahini/loggers'
+import { config, LogLevel } from '@era-ci/core'
+import { createLinearStepsGraph } from '@era-ci/steps-graph'
+import { redisConnection } from '@era-ci/key-value-stores'
+import { localSequentalTaskQueue } from '@era-ci/task-queues'
+import { winstonLogger } from '@era-ci/loggers'
 import {
   buildRoot,
   cliTableReporter,
@@ -13,7 +13,7 @@ import {
   NpmScopeAccess,
   validatePackages,
   test,
-} from '@tahini/steps'
+} from '@era-ci/steps'
 
 const {
   SHOULD_PUBLISH_NPM,

@@ -1,7 +1,7 @@
 import { GitServer, starGittServer } from './git-server-testkit'
 import { TestResources } from './types'
-import { startQuayHelperService } from '@tahini/quay-helper-service'
-import { startQuayMockService } from '@tahini/quay-mock-service'
+import { startQuayHelperService } from '@era-ci/quay-helper-service'
+import { startQuayMockService } from '@era-ci/quay-mock-service'
 import chance from 'chance'
 
 type Deployment = { address: string; cleanup: () => Promise<unknown> }

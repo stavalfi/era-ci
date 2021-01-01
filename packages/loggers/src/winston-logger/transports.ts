@@ -1,5 +1,5 @@
 import winston from 'winston'
-import { LogLevel } from '@tahini/core'
+import { LogLevel } from '@era-ci/core'
 import { randomModuleColor } from './modules-color'
 
 export const defaultFormat = winston.format.combine(

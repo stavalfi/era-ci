@@ -1,6 +1,6 @@
-import { createTest, isDeepSubset } from '@tahini/e2e-tests-infra'
-import { amountOfWrokersKey, startWorker, WorkerConfig, WorkerTask } from '@tahini/task-worker'
-import { DoneResult, ExecutionStatus, Status } from '@tahini/utils'
+import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { amountOfWrokersKey, startWorker, WorkerConfig, WorkerTask } from '@era-ci/task-worker'
+import { DoneResult, ExecutionStatus, Status } from '@era-ci/utils'
 import Queue from 'bee-queue'
 import chance from 'chance'
 import { createFolder } from 'create-folder-structure'
@@ -286,7 +286,7 @@ test('no tasks so the worker is closing automaticaly', async () => {
   )
 
   const { stdout } = await execa.command(
-    `${require.resolve('.bin/swc-node')} ${require.resolve('@tahini/task-worker')} --repo-path ${repoPath}`,
+    `${require.resolve('.bin/swc-node')} ${require.resolve('@era-ci/task-worker')} --repo-path ${repoPath}`,
     {
       stdio: 'pipe',
     },
@@ -319,7 +319,7 @@ test('single task -> no tasks so the worker is closing automaticaly', async () =
   )
 
   const workerProcess = execa.command(
-    `${require.resolve('.bin/swc-node')} ${require.resolve('@tahini/task-worker')} --repo-path ${repoPath}`,
+    `${require.resolve('.bin/swc-node')} ${require.resolve('@era-ci/task-worker')} --repo-path ${repoPath}`,
     {
       stdio: 'pipe',
     },

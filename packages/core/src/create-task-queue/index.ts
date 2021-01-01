@@ -1,6 +1,6 @@
 import { fromEvent, merge, Observable, of, throwError } from 'rxjs'
 import { concatMap, filter, takeWhile } from 'rxjs/operators'
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 import {
   AbortedTask,
   ConfigureTaskQueue,

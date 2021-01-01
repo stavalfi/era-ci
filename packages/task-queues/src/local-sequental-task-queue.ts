@@ -1,8 +1,8 @@
 import { ErrorCallback, queue } from 'async'
 import chance from 'chance'
 import { EventEmitter } from 'events'
-import { createTaskQueue, TaskInfo, TaskQueueBase, TaskQueueEventEmitter, TaskQueueOptions } from '@tahini/core'
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { createTaskQueue, TaskInfo, TaskQueueBase, TaskQueueEventEmitter, TaskQueueOptions } from '@era-ci/core'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 import { serializeError } from 'serialize-error'
 
 type ProccessedTask = { taskInfo: TaskInfo; func: () => Promise<void>; startMs: number }

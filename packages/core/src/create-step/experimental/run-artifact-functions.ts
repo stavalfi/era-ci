@@ -1,4 +1,4 @@
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 import { queue } from 'async'
 import { Observable, of, Subject } from 'rxjs'
 import { first, mergeMap } from 'rxjs/operators'

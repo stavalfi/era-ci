@@ -9,7 +9,7 @@ import {
   RunningResult,
   ScheduledResult,
   Status,
-} from '@tahini/utils'
+} from '@era-ci/utils'
 
 export type TaskInfo = {
   taskName: string

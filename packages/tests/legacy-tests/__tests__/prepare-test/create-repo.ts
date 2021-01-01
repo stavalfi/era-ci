@@ -4,7 +4,7 @@ import { GitServer } from './git-server-testkit'
 import { Repo, TargetType, ToActualName, Package } from './types'
 import chance from 'chance'
 import path from 'path'
-import { PackageJson } from '@tahini/utils'
+import { PackageJson } from '@era-ci/utils'
 
 async function initializeGitRepo({
   gitServer,

@@ -1,5 +1,5 @@
-import { ConstrainResultType, createConstrain } from '@tahini/core'
-import { Artifact, didPassOrSkippedAsPassed, ExecutionStatus, Node, Status } from '@tahini/utils'
+import { ConstrainResultType, createConstrain } from '@era-ci/core'
+import { Artifact, didPassOrSkippedAsPassed, ExecutionStatus, Node, Status } from '@era-ci/utils'
 
 export const skipIfArtifactStepResultMissingOrFailedInCacheConstrain = createConstrain<{
   stepNameToSearchInCache: string

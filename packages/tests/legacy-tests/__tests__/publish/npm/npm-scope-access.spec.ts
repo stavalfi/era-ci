@@ -1,4 +1,4 @@
-import { NpmScopeAccess } from '@tahini/steps'
+import { NpmScopeAccess } from '@era-ci/steps'
 import { newEnv } from '../../prepare-test'
 import { TargetType } from '../../prepare-test/types'
 

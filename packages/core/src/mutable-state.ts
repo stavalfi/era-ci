@@ -1,6 +1,6 @@
 import { KeyValueStoreConnection } from './create-key-value-store-connection'
 import { Log } from './create-logger'
-import { Artifact, Graph } from '@tahini/utils'
+import { Artifact, Graph } from '@era-ci/utils'
 
 export type MutableState = {
   get: <T>(key: string, mapper: (result: unknown) => T) => Promise<T | undefined>

@@ -1,4 +1,4 @@
-import { ExecutionStatus, Status } from '@tahini/utils'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 import { from, Observable } from 'rxjs'
 import { first } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'

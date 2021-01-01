@@ -10,8 +10,8 @@ import {
   StepResultOfArtifacts,
   StepsResultOfArtifact,
   toStepsResultOfArtifactsByArtifact,
-} from '@tahini/core'
-import { LocalSequentalTaskQueue } from '@tahini/task-queues'
+} from '@era-ci/core'
+import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import {
   AbortResult,
   Artifact,
@@ -23,7 +23,7 @@ import {
   RunningResult,
   ScheduledResult,
   Status,
-} from '@tahini/utils'
+} from '@era-ci/utils'
 import _ from 'lodash'
 
 export type JsonReport = {

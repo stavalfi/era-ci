@@ -1,4 +1,4 @@
-import { QuayBuildStatus, QuayNotificationEvents } from '@tahini/task-queues'
+import { QuayBuildStatus, QuayNotificationEvents } from '@era-ci/task-queues'
 import compressing from 'compressing'
 import { createFolder } from 'create-folder-structure'
 import execa from 'execa'

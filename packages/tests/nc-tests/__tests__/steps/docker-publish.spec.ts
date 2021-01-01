@@ -1,8 +1,8 @@
-import { createTest } from '@tahini/e2e-tests-infra'
-import { dockerPublish, npmPublish, NpmScopeAccess } from '@tahini/steps'
-import { createLinearStepsGraph } from '@tahini/steps-graph'
-import { localSequentalTaskQueue } from '@tahini/task-queues'
-import { TargetType } from '@tahini/utils'
+import { createTest } from '@era-ci/e2e-tests-infra'
+import { dockerPublish, npmPublish, NpmScopeAccess } from '@era-ci/steps'
+import { createLinearStepsGraph } from '@era-ci/steps-graph'
+import { localSequentalTaskQueue } from '@era-ci/task-queues'
+import { TargetType } from '@era-ci/utils'
 
 const { createRepo, getResources } = createTest()
 

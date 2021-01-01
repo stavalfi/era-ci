@@ -1,8 +1,8 @@
 /// <reference path="../../../../../declarations.d.ts" />
 
-import { buildFullDockerImageName } from '@tahini/utils'
-import { LogLevel } from '@tahini/core'
-import { winstonLogger } from '@tahini/loggers'
+import { buildFullDockerImageName } from '@era-ci/utils'
+import { LogLevel } from '@era-ci/core'
+import { winstonLogger } from '@era-ci/loggers'
 import chance from 'chance'
 import { createRepo } from './create-repo'
 import { prepareTestResources } from './prepare-test-resources'

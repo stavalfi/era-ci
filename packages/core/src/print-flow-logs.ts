@@ -2,7 +2,7 @@ import { calculateArtifactsHash } from './artifacts-hash'
 import { Config } from './configuration'
 import { Log } from './create-logger'
 import { createImmutableCache } from './immutable-cache'
-import { getPackages, MISSING_FLOW_ID_ERROR, toFlowLogsContentKey, Cleanup } from '@tahini/utils'
+import { getPackages, MISSING_FLOW_ID_ERROR, toFlowLogsContentKey, Cleanup } from '@era-ci/utils'
 
 export async function printFlowLogs<TaskQueue>(options: {
   flowId: string

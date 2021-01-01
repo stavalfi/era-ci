@@ -1,5 +1,5 @@
 {
-  "name": "@tahini/steps-graph",
+  "name": "@era-ci/steps-graph",
   "version": "1.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
@@ -17,6 +17,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "@tahini/core": "^1.0.0"
+    "@era-ci/core": "^1.0.0"
   }
 }

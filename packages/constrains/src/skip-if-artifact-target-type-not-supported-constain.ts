@@ -1,5 +1,5 @@
-import { ConstrainResultType, createConstrain } from '@tahini/core'
-import { ExecutionStatus, Status, TargetType, getPackageTargetType, Artifact, Node } from '@tahini/utils'
+import { ConstrainResultType, createConstrain } from '@era-ci/core'
+import { ExecutionStatus, Status, TargetType, getPackageTargetType, Artifact, Node } from '@era-ci/utils'
 
 export const skipIfArtifactTargetTypeNotSupportedConstrain = createConstrain<{
   supportedTargetType: TargetType

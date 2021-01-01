@@ -1,8 +1,8 @@
-import { createTest } from '@tahini/e2e-tests-infra'
-import { quayDockerPublish } from '@tahini/steps'
-import { createLinearStepsGraph } from '@tahini/steps-graph'
-import { quayBuildsTaskQueue } from '@tahini/task-queues'
-import { ExecutionStatus, Status, TargetType } from '@tahini/utils'
+import { createTest } from '@era-ci/e2e-tests-infra'
+import { quayDockerPublish } from '@era-ci/steps'
+import { createLinearStepsGraph } from '@era-ci/steps-graph'
+import { quayBuildsTaskQueue } from '@era-ci/task-queues'
+import { ExecutionStatus, Status, TargetType } from '@era-ci/utils'
 
 const { createRepo, getResources } = createTest()
 

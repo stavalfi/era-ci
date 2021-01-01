@@ -10,7 +10,7 @@ import {
   RunningResult,
   ScheduledResult,
   Status,
-} from '@tahini/utils'
+} from '@era-ci/utils'
 import { Observable } from 'rxjs'
 import { ErrorObject } from 'serialize-error'
 import { Constrain } from '../create-constrain'
