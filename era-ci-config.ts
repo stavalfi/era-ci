@@ -46,8 +46,8 @@ export default config({
     },
   }),
   logger: winstonLogger({
-    customLogLevel: LogLevel.trace,
     disabled: false,
+    customLogLevel: LogLevel.info,
     logFilePath: './era-ci.log',
   }),
   steps: createLinearStepsGraph([

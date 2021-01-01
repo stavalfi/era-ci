@@ -1,4 +1,8 @@
-import { skipIfRootPackageJsonMissingScriptConstrain } from '@era-ci/constrains'
+import {
+  skipIfRootPackageJsonMissingScriptConstrain,
+  skipIfStepResultNotPassedConstrain,
+  skipIfStepResultPassedConstrain,
+} from '@era-ci/constrains'
 import { createStepExperimental } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { execaCommand } from '@era-ci/utils'
@@ -11,6 +15,12 @@ export const lintRoot = createStepExperimental<LocalSequentalTaskQueue, { script
     stepConstrains: [
       skipIfRootPackageJsonMissingScriptConstrain({
         scriptName: stepConfigurations.scriptName,
+      }),
+      skipIfStepResultPassedConstrain({
+        stepName: stepConfigurations.scriptName,
+      }),
+      skipIfStepResultNotPassedConstrain({
+        stepName: stepConfigurations.scriptName,
       }),
     ],
     stepLogic: async () => {
