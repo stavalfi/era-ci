@@ -21,9 +21,6 @@
       "path": "../constrains/tsconfig-build.json"
     },
     {
-      "path": "../quay-client/tsconfig-build.json"
-    },
-    {
       "path": "../core/tsconfig-build.json"
     }
   ]

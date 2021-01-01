@@ -7,7 +7,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "lodash": "4.17.20",
     "@era-ci/core": "^2.0.0",
     "@era-ci/image-registry-client": "^2.0.0",
     "@era-ci/steps": "^2.0.0",
