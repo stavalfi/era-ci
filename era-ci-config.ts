@@ -96,3 +96,5 @@ export default config({
     cliTableReporter(),
   ]),
 })
+
+console.log('stav1')

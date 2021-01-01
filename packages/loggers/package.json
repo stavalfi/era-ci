@@ -15,10 +15,8 @@
   "types": "dist/src/index.d.ts",
   "dependencies": {
     "chalk": "^4.1.0",
-    "colors": "^1.4.0",
     "randomcolor": "^0.6.2",
     "winston": "^3.3.3",
-    "@era-ci/core": "^2.0.0",
-    "@era-ci/utils": "^2.0.0"
+    "@era-ci/core": "^2.0.0"
   }
 }
