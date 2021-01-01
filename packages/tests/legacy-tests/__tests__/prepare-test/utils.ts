@@ -58,9 +58,9 @@ export async function runNcExecutable({
     }
   }
   const configFilePath = require.resolve('./test-era-ci.config.ts')
-  const era-ci = require.resolve('@era-ci/core/dist/src/index.js')
+  const eraCi = require.resolve('@era-ci/core/dist/src/index.js')
   const withFlowId = printFlowId ? `--print-flow ${printFlowId}` : ''
-  const command = `node --unhandled-rejections=strict ${era-ci} --config-file ${configFilePath} --repo-path ${repoPath} ${withFlowId}`
+  const command = `node --unhandled-rejections=strict ${eraCi} --config-file ${configFilePath} --repo-path ${repoPath} ${withFlowId}`
   return execa.command(command, {
     stdio,
     reject: testOptions?.execaOptions?.reject !== undefined ? testOptions.execaOptions?.reject : true,
