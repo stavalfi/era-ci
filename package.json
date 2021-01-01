@@ -1,15 +1,15 @@
 {
-  "name": "nc-root",
+  "name": "era-ci-root",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "UNLICENSED",
   "scripts": {
-    "lint:code": "(rm packages/tests/legacy-tests/__tests__/prepare-test/compiled-nc.config.js || true) && eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
+    "lint:code": "(rm packages/tests/legacy-tests/__tests__/prepare-test/compiled-era-ci.config.js || true) && eslint --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "lint:versions": "syncpack list-mismatches",
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
     "test": "jest --no-cache",
     "clean": "yarn workspace scripts clean",
-    "run-ci": "yarn build && node --unhandled-rejections=strict packages/core/dist/src/index.js --config-file ./nc-config.ts",
+    "run-ci": "yarn build && node --unhandled-rejections=strict packages/core/dist/src/index.js --config-file ./era-ci-config.ts",
     "build:tsc": "yarn tsc -b tsconfig-build.json",
     "build": "yarn build:tsc && chmod +x packages/core/dist/src/index.js",
     "build:watch": "yarn build:tsc --watch",
@@ -17,7 +17,7 @@
     "test-resources:down": "docker-compose -f ./packages/tests/legacy-tests/__tests__/prepare-test/docker-compose.yml down"
   },
   "repository": {
-    "url": "https://github.com/stavalfi/nc"
+    "url": "https://github.com/stavalfi/era-ci"
   },
   "workspaces": [
     "packages/*",
@@ -25,7 +25,7 @@
   ],
   "husky": {
     "hooks": {
-      "pre-commit": "(rm packages/tests/legacy-tests/__tests__/prepare-test/compiled-nc.config.js || true) && yarn lint:staged-files"
+      "pre-commit": "(rm packages/tests/legacy-tests/__tests__/prepare-test/compiled-era-ci.config.js || true) && yarn lint:staged-files"
     }
   },
   "devDependencies": {

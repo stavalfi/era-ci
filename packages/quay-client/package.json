@@ -1,6 +1,6 @@
 {
   "name": "@era-ci/quay-client",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
   "private": false,
@@ -16,7 +16,7 @@
   "dependencies": {
     "got": "^11.3.0",
     "http-status-codes": "^2.1.4",
-    "@era-ci/utils": "^1.0.0",
-    "@era-ci/core": "^1.0.0"
+    "@era-ci/utils": "^2.0.0",
+    "@era-ci/core": "^2.0.0"
   }
 }
