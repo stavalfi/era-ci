@@ -12,27 +12,40 @@ import Queue from 'bee-queue'
 import Redis from 'ioredis'
 import _ from 'lodash'
 
-export type TestConfigurations = {
+export type TestUsingTaskWorkerConfigurations = {
   scriptName: string
   queueName: string
-  redisServerUri: string
+  redis: {
+    url: string
+    auth?: {
+      // username is not supported in bee-queue because bee-queue uses redis and it doesn't support redis-acl:
+      // https://github.com/NodeRedis/node-redis/issues/1451
+      // in next-major version of bee-queue, they will move to ioredis so then we can use "username".
+      password?: string
+    }
+  }
   beforeAll?: (
-    options: Omit<UserRunStepOptions<LocalSequentalTaskQueue, TestConfigurations>, 'stepConfigurations'>,
+    options: Omit<UserRunStepOptions<LocalSequentalTaskQueue, TestUsingTaskWorkerConfigurations>, 'stepConfigurations'>,
   ) => Promise<unknown>
   afterAll?: (
-    options: Omit<UserRunStepOptions<LocalSequentalTaskQueue, TestConfigurations>, 'stepConfigurations'>,
+    options: Omit<UserRunStepOptions<LocalSequentalTaskQueue, TestUsingTaskWorkerConfigurations>, 'stepConfigurations'>,
   ) => Promise<unknown>
 }
 
-export const test = createStepExperimental<LocalSequentalTaskQueue, TestConfigurations>({
-  stepName: 'test-by-task-worker',
+export const testUsingTaskWorker = createStepExperimental<LocalSequentalTaskQueue, TestUsingTaskWorkerConfigurations>({
+  stepName: 'test-using-task-worker',
   stepGroup: 'test',
   taskQueueClass: LocalSequentalTaskQueue,
   run: options => {
     let taskWorkerCleanup: () => Promise<unknown>
-    const redisConnection = new Redis(options.stepConfigurations.redisServerUri)
+    const redisConnection = new Redis(options.stepConfigurations.redis.url, {
+      password: options.stepConfigurations.redis.auth?.password,
+    })
     const queue = new Queue<WorkerTask>(options.stepConfigurations.queueName, {
-      redis: options.stepConfigurations.redisServerUri,
+      redis: {
+        url: options.stepConfigurations.redis.url,
+        password: options.stepConfigurations.redis.auth?.password,
+      },
       removeOnSuccess: true,
       removeOnFailure: true,
     })
@@ -64,9 +77,9 @@ export const test = createStepExperimental<LocalSequentalTaskQueue, TestConfigur
       onBeforeArtifacts: async () => {
         const result = await startWorker({
           queueName: options.stepConfigurations.queueName,
-          redisServerUri: options.stepConfigurations.redisServerUri,
           repoPath: options.repoPath,
           waitBeforeExitMs: 100_000_000,
+          redis: options.stepConfigurations.redis,
         })
         taskWorkerCleanup = result.cleanup
         if (options.stepConfigurations.beforeAll) {

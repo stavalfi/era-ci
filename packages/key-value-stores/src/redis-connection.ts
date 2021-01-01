@@ -4,7 +4,11 @@ import { promisify } from 'util'
 import { createKeyValueStoreConnection } from '@era-ci/core'
 
 export type RedisConfiguration = {
-  redisServerUri: string
+  url: string
+  auth?: {
+    username?: string
+    password?: string
+  }
 }
 
 async function zip(data: string): Promise<Buffer> {
@@ -18,7 +22,10 @@ async function unzip(buffer: Buffer): Promise<string> {
 
 export const redisConnection = createKeyValueStoreConnection<RedisConfiguration>({
   initializeCreateKeyValueStoreConnection: async ({ keyValueStoreConnectionConfigurations }) => {
-    const redisClient = new Redis(keyValueStoreConnectionConfigurations.redisServerUri)
+    const redisClient = new Redis(keyValueStoreConnectionConfigurations.url, {
+      username: keyValueStoreConnectionConfigurations.auth?.username,
+      password: keyValueStoreConnectionConfigurations.auth?.password,
+    })
     async function set(options: { key: string; value: string; allowOverride: boolean; ttl: number }): Promise<void> {
       const zippedBuffer = await zip(options.value)
       await redisClient.set(options.key, zippedBuffer, 'px', options.ttl, options.allowOverride ? undefined : 'nx')

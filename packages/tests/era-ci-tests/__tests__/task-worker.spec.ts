@@ -38,7 +38,9 @@ test('no tasks - manual close worker', async () => {
     queueName: `queue-${chance().hash().slice(0, 8)}`,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redisServerUri: getResources().redisServerUri,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
   })
 
   await cleanup()
@@ -53,10 +55,12 @@ test('single worker - amount of workers === 1', async () => {
     queueName,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redisServerUri: getResources().redisServerUri,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
   })
 
-  const redisConnection = new Redis({ host: getResources().redisServerHost, port: getResources().redisServerPort })
+  const redisConnection = new Redis(getResources().redisServerUrl)
   cleanups.push(async () => redisConnection.disconnect())
 
   await expect(redisConnection.get(amountOfWrokersKey(queueName))).resolves.toEqual('1')
@@ -72,7 +76,9 @@ test('manual close worker multiple times', async () => {
     queueName: `queue-${chance().hash().slice(0, 8)}`,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redisServerUri: getResources().redisServerUri,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
   })
 
   await cleanup()
@@ -87,7 +93,9 @@ test('single task - success', async () => {
     queueName,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redisServerUri: getResources().redisServerUri,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
   })
   cleanups.push(cleanup)
 
@@ -123,7 +131,9 @@ test('multiple tasks - all success', async () => {
     queueName,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redisServerUri: getResources().redisServerUri,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
   })
   cleanups.push(cleanup)
 
@@ -163,7 +173,9 @@ test('single empty task - expect to fail', async () => {
     queueName,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redisServerUri: getResources().redisServerUri,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
   })
   cleanups.push(cleanup)
 
@@ -196,7 +208,9 @@ test('single task - expect to fail', async () => {
     queueName,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redisServerUri: getResources().redisServerUri,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
   })
   cleanups.push(cleanup)
 
@@ -233,7 +247,9 @@ test('multiple tasks - all fail', async () => {
     queueName,
     repoPath,
     waitBeforeExitMs: 100_000,
-    redisServerUri: getResources().redisServerUri,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
   })
   cleanups.push(cleanup)
 
@@ -276,7 +292,9 @@ test('no tasks so the worker is closing automaticaly', async () => {
   const workerConfig: WorkerConfig = {
     queueName: `queue-${chance().hash().slice(0, 8)}`,
     waitBeforeExitMs: 1_000,
-    redisServerUri: getResources().redisServerUri,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
   }
 
   await fs.promises.writeFile(
@@ -303,7 +321,9 @@ test('single task -> no tasks so the worker is closing automaticaly', async () =
   const workerConfig: WorkerConfig = {
     queueName,
     waitBeforeExitMs: 3_000,
-    redisServerUri: getResources().redisServerUri,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
   }
 
   const queue = await createQueue(queueName)

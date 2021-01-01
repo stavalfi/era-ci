@@ -1,13 +1,21 @@
 import execa from 'execa'
 import path from 'path'
-import { Describe, is, number, object, string, validate } from 'superstruct'
+import { Describe, is, number, object, optional, string, validate } from 'superstruct'
 import { WorkerConfig } from './types'
 
 function getConfigValidationObject(): Describe<WorkerConfig> {
   return object({
     queueName: string(),
     waitBeforeExitMs: number(),
-    redisServerUri: string(),
+    redis: object({
+      url: string(),
+      auth: optional(
+        object({
+          username: optional(string()),
+          password: optional(string()),
+        }),
+      ),
+    }),
   })
 }
 

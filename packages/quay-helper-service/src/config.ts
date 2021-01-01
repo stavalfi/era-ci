@@ -17,6 +17,10 @@ export function getConfig(env: Record<string, string | undefined>): Config {
     },
     port: env.PORT === undefined ? 8080 : Number(env.PORT),
     redisAddress: env.REDIS_ADDRESS,
+    redisAuth: {
+      username: env.REDIS_USERNAME,
+      password: env.REDIS_PASSWORD,
+    },
     quayBuildStatusChangedRedisTopic:
       env.QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC || QUAY_BUILD_STATUS_CHANED_REDIS_TOPIC,
   }

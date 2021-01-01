@@ -45,12 +45,15 @@ export async function startWorker(
   }).callInitializeLogger({ repoPath: config.repoPath })
 
   const queue = new Queue<WorkerTask>(config.queueName, {
-    redis: config.redisServerUri,
+    redis: {
+      url: config.redis.url,
+      password: config.redis.auth?.password,
+    },
     removeOnSuccess: true,
     removeOnFailure: true,
   })
 
-  const redisConnection = new Redis(config.redisServerUri)
+  const redisConnection = new Redis(config.redis.url, { password: config.redis.auth?.password })
 
   await queue.ready()
 

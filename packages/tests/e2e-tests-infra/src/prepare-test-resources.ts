@@ -81,7 +81,7 @@ export function resourcesBeforeAfterAll(): {
         auth: verdaccioCardentials,
       },
       dockerRegistry: dockerRegistry.address,
-      redisServerUri: redisDeployment.address,
+      redisServerUrl: redisDeployment.address,
       redisServerHost: 'localhost',
       redisServerPort: 36379,
       gitServer,

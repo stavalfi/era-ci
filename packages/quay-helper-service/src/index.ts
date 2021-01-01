@@ -10,7 +10,11 @@ export async function startQuayHelperService(
 ): Promise<{ address: string; cleanup: () => Promise<unknown> }> {
   const config = getConfig(env)
 
-  const redisConnection = new Redis(config.redisAddress, { lazyConnect: true })
+  const redisConnection = new Redis(config.redisAddress, {
+    lazyConnect: true,
+    username: config.redisAuth?.username,
+    password: config.redisAuth?.password,
+  })
   await redisConnection.connect()
 
   const app = fastify({

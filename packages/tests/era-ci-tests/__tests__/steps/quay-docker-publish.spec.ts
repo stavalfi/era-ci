@@ -33,7 +33,9 @@ test('single package - no problems - step should pass', async () => {
           quayNamespace: getResources().quayNamespace,
           quayServiceHelperAddress: getResources().quayHelperService,
           quayToken: getResources().quayToken,
-          redisAddress: getResources().redisServerUri,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
         }),
       ],
       steps: createLinearStepsGraph([
@@ -93,7 +95,9 @@ test('multiple packages - no problems - step should pass', async () => {
           quayNamespace: getResources().quayNamespace,
           quayServiceHelperAddress: getResources().quayHelperService,
           quayToken: getResources().quayToken,
-          redisAddress: getResources().redisServerUri,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
         }),
       ],
       steps: createLinearStepsGraph([
@@ -147,7 +151,9 @@ test('expect the step to be failed if the dockerfile has an error', async () => 
           quayNamespace: getResources().quayNamespace,
           quayServiceHelperAddress: getResources().quayHelperService,
           quayToken: getResources().quayToken,
-          redisAddress: getResources().redisServerUri,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
         }),
       ],
       steps: createLinearStepsGraph([
@@ -199,7 +205,9 @@ test('run step again on failure and expect to abort-as-failed on second run', as
           quayNamespace: getResources().quayNamespace,
           quayServiceHelperAddress: getResources().quayHelperService,
           quayToken: getResources().quayToken,
-          redisAddress: getResources().redisServerUri,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
         }),
       ],
       steps: createLinearStepsGraph([
@@ -253,7 +261,9 @@ test('do not run step again if step succeed (image built and pushed to registry)
           quayNamespace: getResources().quayNamespace,
           quayServiceHelperAddress: getResources().quayHelperService,
           quayToken: getResources().quayToken,
-          redisAddress: getResources().redisServerUri,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
         }),
       ],
       steps: createLinearStepsGraph([
@@ -302,7 +312,9 @@ test('publish with semver-tag', async () => {
           quayNamespace: getResources().quayNamespace,
           quayServiceHelperAddress: getResources().quayHelperService,
           quayToken: getResources().quayToken,
-          redisAddress: getResources().redisServerUri,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
         }),
       ],
       steps: createLinearStepsGraph([
@@ -347,7 +359,9 @@ test('publish with hash-tag', async () => {
           quayNamespace: getResources().quayNamespace,
           quayServiceHelperAddress: getResources().quayHelperService,
           quayToken: getResources().quayToken,
-          redisAddress: getResources().redisServerUri,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
         }),
       ],
       steps: createLinearStepsGraph([
@@ -392,7 +406,9 @@ test('publish with hash-tag and then with semver-tag', async () => {
           quayNamespace: getResources().quayNamespace,
           quayServiceHelperAddress: getResources().quayHelperService,
           quayToken: getResources().quayToken,
-          redisAddress: getResources().redisServerUri,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
         }),
       ],
       steps: createLinearStepsGraph([
@@ -443,7 +459,9 @@ test('publish with hash-tag twice', async () => {
           quayNamespace: getResources().quayNamespace,
           quayServiceHelperAddress: getResources().quayHelperService,
           quayToken: getResources().quayToken,
-          redisAddress: getResources().redisServerUri,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
         }),
       ],
       steps: createLinearStepsGraph([
@@ -490,7 +508,9 @@ test('publish with semver-tag twice', async () => {
           quayNamespace: getResources().quayNamespace,
           quayServiceHelperAddress: getResources().quayHelperService,
           quayToken: getResources().quayToken,
-          redisAddress: getResources().redisServerUri,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
         }),
       ],
       steps: createLinearStepsGraph([

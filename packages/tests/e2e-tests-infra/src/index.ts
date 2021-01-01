@@ -33,7 +33,7 @@ const getJsonReport = async ({
   testLogger: Logger
 }): Promise<JsonReport> => {
   const keyValueStoreConnection = await redisConnection({
-    redisServerUri: getResources().redisServerUri,
+    url: getResources().redisServerUrl,
   }).callInitializeKeyValueStoreConnection()
   const immutableCache = await createImmutableCache({
     artifacts: [],
@@ -219,7 +219,7 @@ const createRepo: CreateRepo = async options => {
     keyValueStore:
       configurations.keyValueStore ||
       redisConnection({
-        redisServerUri: getResources().redisServerUri,
+        url: getResources().redisServerUrl,
       }),
     taskQueues: [
       localSequentalTaskQueue(),

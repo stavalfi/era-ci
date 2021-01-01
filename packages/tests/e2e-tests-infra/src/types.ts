@@ -38,7 +38,7 @@ export type TestResources = {
   }
   dockerRegistry: string
   gitServer: GitServer
-  redisServerUri: string
+  redisServerUrl: string
   redisServerHost: string
   redisServerPort: number
   quayMockService: string
