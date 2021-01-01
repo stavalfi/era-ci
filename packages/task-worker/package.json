@@ -10,11 +10,16 @@
     "__tests__",
     ".nc-swcrc.config"
   ],
+  "bin": {
+    "task-worker": "./dist/src/index.js"
+  },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
   "types": "dist/src/index.d.ts",
   "dependencies": {
+    "chance": "^1.1.5",
+    "ioredis": "^4.17.1",
     "@swc/cli": "^0.1.26",
     "@swc/core": "^1.2.9",
     "@tahini/core": "^1.0.0",

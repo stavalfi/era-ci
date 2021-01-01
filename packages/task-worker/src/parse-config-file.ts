@@ -6,7 +6,6 @@ import { WorkerConfig } from './types'
 function getConfigValidationObject(): Describe<WorkerConfig> {
   return object({
     queueName: string(),
-    workerName: string(),
     waitBeforeExitMs: number(),
     redis: object({
       host: string(),

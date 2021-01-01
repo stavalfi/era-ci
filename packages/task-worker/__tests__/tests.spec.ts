@@ -6,7 +6,8 @@ import execa from 'execa'
 import fs from 'fs'
 import _ from 'lodash'
 import path from 'path'
-import { startWorker, WorkerConfig, WorkerTask } from '../src'
+import { amountOfWrokersKey, startWorker, WorkerConfig, WorkerTask } from '../src'
+import Redis from 'ioredis'
 
 const { createRepo, getResources } = createTest()
 
@@ -38,7 +39,6 @@ test('no tasks - manual close worker', async () => {
   })
   const { cleanup } = await startWorker({
     queueName: `queue-${chance().hash().slice(0, 8)}`,
-    workerName: 'worker1',
     repoPath,
     waitBeforeExitMs: 100_000,
     redis: {
@@ -50,6 +50,35 @@ test('no tasks - manual close worker', async () => {
   await cleanup()
 })
 
+test('single worker - amount of workers === 1', async () => {
+  const { repoPath } = await createRepo({
+    repo: {
+      packages: [],
+    },
+  })
+
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+
+  const { cleanup } = await startWorker({
+    queueName,
+    repoPath,
+    waitBeforeExitMs: 100_000,
+    redis: {
+      host: getResources().redisServerHost,
+      port: getResources().redisServerPort,
+    },
+  })
+
+  const redisConnection = new Redis({ host: getResources().redisServerHost, port: getResources().redisServerPort })
+  cleanups.push(async () => redisConnection.disconnect())
+
+  await expect(redisConnection.get(amountOfWrokersKey(queueName))).resolves.toEqual('1')
+
+  await cleanup()
+
+  await expect(redisConnection.get(amountOfWrokersKey(queueName))).resolves.toEqual('0')
+})
+
 test('manual close worker multiple times', async () => {
   const { repoPath } = await createRepo({
     repo: {
@@ -58,7 +87,6 @@ test('manual close worker multiple times', async () => {
   })
   const { cleanup } = await startWorker({
     queueName: `queue-${chance().hash().slice(0, 8)}`,
-    workerName: 'worker1',
     repoPath,
     waitBeforeExitMs: 100_000,
     redis: {
@@ -81,7 +109,6 @@ test('single task - success', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
     queueName,
-    workerName: 'worker1',
     repoPath,
     waitBeforeExitMs: 100_000,
     redis: {
@@ -125,7 +152,6 @@ test('multiple tasks - all success', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
     queueName,
-    workerName: 'worker1',
     repoPath,
     waitBeforeExitMs: 100_000,
     redis: {
@@ -173,7 +199,6 @@ test('single empty task - expect to fail', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
     queueName,
-    workerName: 'worker1',
     repoPath,
     waitBeforeExitMs: 100_000,
     redis: {
@@ -214,7 +239,6 @@ test('single task - expect to fail', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
     queueName,
-    workerName: 'worker1',
     repoPath,
     waitBeforeExitMs: 100_000,
     redis: {
@@ -259,7 +283,6 @@ test('multiple tasks - all fail', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
     queueName,
-    workerName: 'worker1',
     repoPath,
     waitBeforeExitMs: 100_000,
     redis: {
@@ -311,7 +334,6 @@ test('no tasks so the worker is closing automaticaly', async () => {
 
   const workerConfig: WorkerConfig = {
     queueName: `queue-${chance().hash().slice(0, 8)}`,
-    workerName: 'worker1',
     waitBeforeExitMs: 1_000,
     redis: {
       host: getResources().redisServerHost,
@@ -346,7 +368,6 @@ test('single task -> no tasks so the worker is closing automaticaly', async () =
 
   const workerConfig: WorkerConfig = {
     queueName,
-    workerName: 'worker1',
     waitBeforeExitMs: 3_000,
     redis: {
       host: getResources().redisServerHost,

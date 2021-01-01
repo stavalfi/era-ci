@@ -7,12 +7,16 @@ import { serializeError } from 'serialize-error'
 import yargsParser from 'yargs-parser'
 import { parseConfig } from './parse-config-file'
 import { WorkerTask, WorkerConfig } from './types'
+import Redis from 'ioredis'
+import chance from 'chance'
 
 export { WorkerTask, WorkerConfig }
 
 export function config(config: WorkerConfig): WorkerConfig {
   return config
 }
+
+export const amountOfWrokersKey = (queueName: string) => `${queueName}--amount-of-workers`
 
 export async function main(): Promise<void> {
   const argv = yargsParser(process.argv.slice(2), {
@@ -32,9 +36,11 @@ export async function main(): Promise<void> {
 export async function startWorker(
   config: WorkerConfig & { repoPath: string },
 ): Promise<{ cleanup: () => Promise<void> }> {
+  const workerName = `${config.queueName}-worker-${chance().hash().slice(0, 8)}`
+
   const logger = await winstonLogger({
     customLogLevel: LogLevel.trace,
-    logFilePath: path.join(config.repoPath, `${config.workerName}.log`),
+    logFilePath: path.join(config.repoPath, `${workerName}.log`),
     disableFileOutput: true,
   }).callInitializeLogger({ repoPath: config.repoPath })
 
@@ -44,14 +50,18 @@ export async function startWorker(
     removeOnFailure: true,
   })
 
-  await queue.ready()
+  const redisConnection = new Redis({ host: config.redis.host, port: config.redis.port, lazyConnect: true })
+
+  await Promise.all([queue.ready(), redisConnection.connect()])
+
+  await redisConnection.incr(amountOfWrokersKey(config.queueName))
 
   const state = {
     isRunningTaskNow: false,
     lastTaskEndedMs: Date.now(),
   }
 
-  const workerLog = logger.createLog(config.workerName)
+  const workerLog = logger.createLog(workerName)
 
   const intervalId = setInterval(async () => {
     const timePassedUntilNowMs = Date.now() - state.lastTaskEndedMs
@@ -66,7 +76,8 @@ export async function startWorker(
     if (!closed) {
       closed = true
       clearInterval(intervalId)
-      await queue.close()
+      await redisConnection.decr(amountOfWrokersKey(config.queueName))
+      await Promise.all([queue.close(), redisConnection.disconnect()])
     }
   }
 
@@ -74,7 +85,7 @@ export async function startWorker(
     const startMs = Date.now()
     state.isRunningTaskNow = true
 
-    const taskLog = logger.createLog(`${config.workerName}--task-${job.id}`)
+    const taskLog = logger.createLog(`${workerName}--task-${job.id}`)
 
     taskLog.info('----------------------------------')
     taskLog.info(`started task`)
