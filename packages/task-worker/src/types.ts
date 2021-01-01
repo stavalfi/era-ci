@@ -1,6 +1,5 @@
 export type WorkerConfig = {
   queueName: string
-  workerName: string
   waitBeforeExitMs: number
   redis: {
     host: string
