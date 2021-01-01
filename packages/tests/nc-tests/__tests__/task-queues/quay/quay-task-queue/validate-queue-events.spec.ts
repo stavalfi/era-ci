@@ -381,7 +381,7 @@ test('multiple tasks', async () => {
       imageTags: [`1.0.${i}`],
       relativeContextPath: '/',
       relativeDockerfilePath: packageInfo.relativeDockerFilePath,
-      taskTimeoutMs: 10000,
+      taskTimeoutMs: 100_000,
     })),
   )
 
