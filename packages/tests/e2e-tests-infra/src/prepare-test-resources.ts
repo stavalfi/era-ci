@@ -82,6 +82,8 @@ export function resourcesBeforeAfterAll(): {
       },
       dockerRegistry: dockerRegistry.address,
       redisServerUri: redisDeployment.address,
+      redisServerHost: 'localhost',
+      redisServerPort: 36379,
       gitServer,
       quayNamespace,
       quayToken,

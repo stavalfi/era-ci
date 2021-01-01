@@ -11,11 +11,13 @@ export type LoggerConfiguration =
   | {
       customLogLevel: LogLevel
       logFilePath: string
+      disableFileOutput?: boolean
       disabled?: boolean
     }
 
 type NormalizedLoggerConfiguration = {
   customLogLevel: LogLevel
+  disableFileOutput: boolean
   disabled: boolean
   logFilePath: string
 }
@@ -25,6 +27,7 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
     if (loggerConfigurations.disabled) {
       return {
         disabled: true,
+        disableFileOutput: true,
         customLogLevel: LogLevel.debug,
         logFilePath: path.join(repoPath, 'nc.log'),
       }
@@ -37,6 +40,7 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
       }
       return {
         customLogLevel: loggerConfigurations.customLogLevel,
+        disableFileOutput: Boolean(loggerConfigurations.disableFileOutput),
         disabled: Boolean(loggerConfigurations.disabled),
         logFilePath: finalLogFilePath,
       }
@@ -48,19 +52,24 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [
         createConsoleTransport(defaultFormat),
-        createFileTransport(loggerConfigurations.logFilePath, defaultFormat),
+        createFileTransport(loggerConfigurations.logFilePath, loggerConfigurations.disableFileOutput, defaultFormat),
       ],
       silent: loggerConfigurations.disabled,
     })
     const noFormattingLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
-      transports: [createConsoleTransport(noFormat), createFileTransport(loggerConfigurations.logFilePath, noFormat)],
+      transports: [
+        createConsoleTransport(noFormat),
+        createFileTransport(loggerConfigurations.logFilePath, loggerConfigurations.disableFileOutput, noFormat),
+      ],
       silent: loggerConfigurations.disabled,
     })
 
     const noFormattingOnlyFileLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
-      transports: [createFileTransport(loggerConfigurations.logFilePath, noFormat)],
+      transports: [
+        createFileTransport(loggerConfigurations.logFilePath, loggerConfigurations.disableFileOutput, noFormat),
+      ],
       silent: loggerConfigurations.disabled,
     })
 

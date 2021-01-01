@@ -60,7 +60,6 @@ export async function readNcConfigurationFile<TaskQueue>(ciConfigFilePath: strin
     stdio: 'pipe',
   })
 
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const configuration = (await import(outputFilePath)).default.default
 
   // await fse.remove(outputFilePath).catch(() => {
@@ -71,6 +70,6 @@ export async function readNcConfigurationFile<TaskQueue>(ciConfigFilePath: strin
     return configuration
   } else {
     const [error] = validate(configuration, getConfigValidationObject())
-    throw new Error(`failed to parse nc.config.js file: ${error?.message}`)
+    throw new Error(`failed to parse nc.config.ts file: ${error?.message}`)
   }
 }
