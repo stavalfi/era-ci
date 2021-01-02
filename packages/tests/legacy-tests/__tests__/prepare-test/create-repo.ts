@@ -110,6 +110,7 @@ function createPackages({
           ...(artifact.targetType === TargetType.docker && {
             Dockerfile: `\
             FROM alpine
+            ARG new_version=1 # it's just for remove the warning of docker-deamon that we pass this variable but do not use it
             CMD ["echo","hello"]
             `,
           }),
