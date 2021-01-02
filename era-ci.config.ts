@@ -59,6 +59,8 @@ export default config({
       scriptName: 'test',
       beforeAll: ({ log, repoPath }) =>
         execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
+      afterAll: ({ log, repoPath }) =>
+        execaCommand(`yarn test-resources:down`, { cwd: repoPath, log, stdio: 'inherit' }),
     }),
     // testUsingTaskWorker({
     //   queueName: '1',
