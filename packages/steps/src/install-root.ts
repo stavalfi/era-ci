@@ -1,4 +1,4 @@
-import { skipIfStepResultNotPassedConstrain } from '@era-ci/constrains'
+import { skipIfStepResultMissingOrFailedInCacheConstrain } from '@era-ci/constrains'
 import { createStepExperimental } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { execaCommand } from '@era-ci/utils'
@@ -11,8 +11,10 @@ export const installRoot = createStepExperimental({
   taskQueueClass: LocalSequentalTaskQueue,
   run: ({ repoPath, log }) => ({
     stepConstrains: [
-      skipIfStepResultNotPassedConstrain({
-        stepName: 'validate-packages',
+      skipIfStepResultMissingOrFailedInCacheConstrain({
+        stepNameToSearchInCache: 'validate-packages',
+        skipAsPassedIfStepNotExists: false,
+        skipAsFailedIfStepResultNotFoundInCache: true,
       }),
     ],
     stepLogic: async () => {

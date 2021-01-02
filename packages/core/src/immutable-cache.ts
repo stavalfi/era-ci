@@ -24,6 +24,20 @@ export type ImmutableCache = {
       artifactHash: string
       artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
     }) => Promise<void>
+    getStepResult: (options: {
+      stepId: string
+    }) => Promise<
+      | {
+          flowId: string
+          repoHash: string
+          stepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
+        }
+      | undefined
+    >
+    setStepResult: (options: {
+      stepId: string
+      stepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
+    }) => Promise<void>
   }
   get: <T>(
     key: string,
@@ -62,9 +76,11 @@ export async function createImmutableCache({
     })
 
     if (await keyValueStoreConnection.has(options.key)) {
-      log.debug(
-        `immutable-cache can't override values in key-value-store. key: ${options.key}, ignored-new-value: ${options.value}`,
-      )
+      log.trace(`immutable-cache can't override values in key-value-store`, {
+        key: options.key,
+        'ignored-new-value': options.value,
+        'exiting-value': await keyValueStoreConnection.get(options.key, r => JSON.parse(r as string).value),
+      })
       return
     }
     await keyValueStoreConnection.set({
@@ -112,6 +128,26 @@ export async function createImmutableCache({
     return `${stepId}-${artifactHash}`
   }
 
+  function toStepResultKey({ repoHash, stepId }: { repoHash: string; stepId: string }) {
+    return `${repoHash}-${stepId}`
+  }
+
+  const resultSchema = object({
+    executionStatus: enums([ExecutionStatus.done, ExecutionStatus.aborted]),
+    status: enums(Object.values(Status)),
+    durationMs: optional(number()),
+    returnValue: optional(string()),
+    notes: array(string()),
+    errors: array(
+      type({
+        name: optional(string()),
+        stack: optional(string()),
+        message: optional(string()),
+        code: optional(string()),
+      }),
+    ),
+  })
+
   const step: ImmutableCache['step'] = {
     didStepRun: options => has(toArtifactStepResultKey({ stepId: options.stepId, artifactHash: options.artifactHash })),
     getArtifactStepResult: async ({ stepId, artifactHash }) => {
@@ -122,24 +158,7 @@ export async function createImmutableCache({
           )
         }
 
-        const [error, parsedResult] = validate(
-          JSON.parse(r),
-          object({
-            executionStatus: enums([ExecutionStatus.done, ExecutionStatus.aborted]),
-            status: enums(Object.values(Status)),
-            durationMs: optional(number()),
-            returnValue: optional(string()),
-            notes: array(string()),
-            errors: array(
-              type({
-                name: optional(string()),
-                stack: optional(string()),
-                message: optional(string()),
-                code: optional(string()),
-              }),
-            ),
-          }),
-        )
+        const [error, parsedResult] = validate(JSON.parse(r), resultSchema)
         if (parsedResult) {
           return parsedResult
         } else {
@@ -167,6 +186,45 @@ export async function createImmutableCache({
           artifactHash,
         }),
         value: JSON.stringify(artifactStepResult),
+        ttl: ttls.ArtifactStepResult,
+      })
+    },
+    getStepResult: async ({ stepId }) => {
+      const stepResult = await get(toStepResultKey({ stepId, repoHash }), r => {
+        if (typeof r !== 'string') {
+          throw new Error(
+            `(2) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
+          )
+        }
+
+        const [error, parsedResult] = validate(JSON.parse(r), resultSchema)
+        if (parsedResult) {
+          return parsedResult
+        } else {
+          throw new Error(
+            `(3) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
+          )
+        }
+      })
+      if (!stepResult) {
+        return undefined
+      }
+
+      return {
+        flowId: stepResult.flowId,
+        repoHash: stepResult.repoHash,
+        stepResult: stepResult.value as
+          | DoneResult
+          | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>,
+      }
+    },
+    setStepResult: async ({ stepId, stepResult }) => {
+      await set({
+        key: toStepResultKey({
+          stepId,
+          repoHash,
+        }),
+        value: JSON.stringify(stepResult),
         ttl: ttls.ArtifactStepResult,
       })
     },

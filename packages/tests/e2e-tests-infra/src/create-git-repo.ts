@@ -147,6 +147,7 @@ export async function createGitRepo({
       private: true,
       license: 'UNLICENSED',
       workspaces: [`${packagesFolderName}/*`, `${packagesFolderName}/${subPackagesFolderName}/*`],
+      ...repo.rootPackageJson,
     },
     '.dockerignore': `node_modules`,
     '.gitignore': `\

@@ -1,6 +1,7 @@
 import { PackageJson, TargetType } from '@era-ci/utils'
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap } from 'package-json-type'
+import { DeepPartial } from 'ts-essentials'
 import { GitServer } from './git-server-testkit'
 
 export { DeepPartial } from 'ts-essentials'
@@ -25,6 +26,7 @@ export type Package = {
 export type Repo = {
   packages?: Package[]
   rootFiles?: FolderStructure
+  rootPackageJson?: DeepPartial<PackageJson>
 }
 
 export type TestResources = {

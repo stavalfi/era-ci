@@ -118,13 +118,21 @@ export async function calculateArtifactsHash({
   )
 
   const artifactsWithoutChildren: Graph<{ artifact: Artifact }> = packagesPath.map((packagePath, index) => {
-    const parentsIndexes = Array.from(
+    const deps = Array.from(
       new Set([
         ...Object.keys(packageJsons[index].dependencies || {}),
         ...Object.keys(packageJsons[index].devDependencies || {}),
         ...Object.keys(packageJsons[index].peerDependencies || {}),
       ]),
-    ).map(parentArtifactName => packageJsons.findIndex(packageJson => packageJson.name === parentArtifactName))
+    )
+    const parentsIndexes = deps
+      .map(parentArtifactName => packageJsons.findIndex(packageJson => packageJson.name === parentArtifactName))
+      .filter(
+        index =>
+          // keep only deps from this monorepo
+          index >= 0,
+      )
+
     return {
       parentsIndexes,
       childrenIndexes: [],
@@ -140,7 +148,7 @@ export async function calculateArtifactsHash({
     }
   })
 
-  const artifactsWithChildren = artifactsWithoutChildren.map(artifact => ({
+  const artifacts = artifactsWithoutChildren.map(artifact => ({
     ...artifact,
     childrenIndexes: artifactsWithoutChildren
       .filter(possibleChild => possibleChild.parentsIndexes.includes(artifact.index))
@@ -150,7 +158,7 @@ export async function calculateArtifactsHash({
   const rootFilesInfo = repoFilesPath.filter(filePath => isRootFile(repoPath, filePath))
   const rootFilesHash = await calculateHashOfFiles(repoPath, rootFilesInfo)
 
-  const artifactsWithCombinedHash = calculateConbinedHashes(rootFilesHash, artifactsWithChildren)
+  const artifactsWithCombinedHash = calculateConbinedHashes(rootFilesHash, artifacts)
 
   const repoHash = combineHashes([rootFilesHash, ...artifactsWithCombinedHash.map(p => p.data.artifact.packageHash)])
 
