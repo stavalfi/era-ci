@@ -189,7 +189,7 @@ const createRepo: CreateRepo = async options => {
     repo,
     gitServer,
     toActualName,
-    gitIgnoreFiles: ['era-ci.log'],
+    gitIgnoreFiles: ['era-ci.log', 'era-ci-test.log'],
   })
 
   const testLogger = await winstonLogger({

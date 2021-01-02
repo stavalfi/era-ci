@@ -20,7 +20,7 @@ export const skipIfRootPackageJsonMissingScriptConstrain = createConstrain<{ scr
           errors: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsPassed,
-          notes: [`skipping because missing ${scriptName}-script in root package.json`],
+          notes: [`skipping because missing script: "${scriptName}" in root package.json`],
         },
       }
     }

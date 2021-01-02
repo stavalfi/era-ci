@@ -207,6 +207,12 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
             artifactStepResult: e.artifactStepResult,
           })
         }
+        if (e.type === StepOutputEventType.step && e.stepResult.executionStatus === ExecutionStatus.done) {
+          await options.immutableCache.step.setStepResult({
+            stepId: e.step.data.stepInfo.stepId,
+            stepResult: e.stepResult,
+          })
+        }
         return e
       }),
       tap(e => allStepsEvents$.next(e)),

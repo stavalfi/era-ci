@@ -32,7 +32,7 @@ const {
 } = process.env
 
 const logger = winstonLogger({
-  customLogLevel: LogLevel.debug,
+  customLogLevel: LogLevel.trace,
   disabled: false,
   logFilePath: './era-ci.log',
 })

@@ -4,5 +4,5 @@ export { skipIfArtifactStepResultMissingOrPassedInCacheConstrain } from './skip-
 export { skipIfArtifactTargetTypeNotSupportedConstrain } from './skip-if-artifact-target-type-not-supported-constain'
 export { skipIfStepIsDisabledConstrain } from './skip-if-step-is-disabled-constrain'
 export { skipIfRootPackageJsonMissingScriptConstrain } from './skip-if-root-package-json-missing-script-constrain'
-export { skipIfStepResultNotPassedConstrain } from './skip-if-step-result-not-passed-constrain'
-export { skipIfStepResultPassedConstrain } from './skip-if-step-result-passed-constrain'
+export { skipIfStepResultMissingOrFailedInCacheConstrain } from './skip-if-step-result-missing-or-failed-in-cache-constrain'
+export { skipIfStepResultMissingOrPassedInCacheConstrain } from './skip-if-step-result-missing-or-passed-in-cache-constrain'

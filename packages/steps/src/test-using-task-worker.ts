@@ -2,7 +2,7 @@ import {
   skipIfArtifactPackageJsonMissingScriptConstrain,
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
   skipIfArtifactStepResultMissingOrPassedInCacheConstrain,
-  skipIfStepResultNotPassedConstrain,
+  skipIfStepResultMissingOrFailedInCacheConstrain,
 } from '@era-ci/constrains'
 import { createStepExperimental, UserRunStepOptions } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
@@ -51,8 +51,10 @@ export const testUsingTaskWorker = createStepExperimental<LocalSequentalTaskQueu
     })
     return {
       stepConstrains: [
-        skipIfStepResultNotPassedConstrain({
-          stepName: 'install-root',
+        skipIfStepResultMissingOrFailedInCacheConstrain({
+          stepNameToSearchInCache: 'install-root',
+          skipAsPassedIfStepNotExists: true,
+          skipAsFailedIfStepResultNotFoundInCache: true,
         }),
       ],
       artifactConstrains: [
