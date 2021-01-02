@@ -38,9 +38,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      - name: Yarn Install
+      - name: Yarn Install && Build
         run: |
           yarn install
+          yarn build
 
       - name: Start Task Worker
         env:
@@ -51,5 +52,5 @@ jobs:
           then
             yarn run-era-ci
           else
-            yarn swc-node packages/task-worker/src/index.ts
+            node packages/task-worker/src/index.ts
           fi
