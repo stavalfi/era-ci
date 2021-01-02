@@ -49,7 +49,7 @@ jobs:
         run: |
           if [ "$CI_NODE_INDEX" -eq "0" ]
           then
-            yarn swc-node packages/core/src/index.ts
+            yarn run-era-ci
           else
             yarn swc-node packages/task-worker/src/index.ts
           fi
