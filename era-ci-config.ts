@@ -51,15 +51,15 @@ export default config({
     logFilePath: './era-ci.log',
   }),
   steps: createLinearStepsGraph([
-    // validatePackages(),
-    // installRoot(),
+    validatePackages(),
+    installRoot(),
     lintRoot({ scriptName: 'lint:code' }),
-    // buildRoot({ scriptName: 'build' }),
-    // test({
-    //   scriptName: 'test',
-    //   beforeAll: ({ log, repoPath }) =>
-    //     execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
-    // }),
+    buildRoot({ scriptName: 'build' }),
+    test({
+      scriptName: 'test',
+      beforeAll: ({ log, repoPath }) =>
+        execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
+    }),
     // testUsingTaskWorker({
     //   queueName: '1',
     //   scriptName: 'test',
@@ -72,26 +72,26 @@ export default config({
     //   beforeAll: ({ log, repoPath }) =>
     //     execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
     // }),
-    // npmPublish({
-    //   isStepEnabled: isMasterBuild,
-    //   npmScopeAccess: NpmScopeAccess.public,
-    //   registry: NPM_REGISTRY,
-    //   publishAuth: {
-    //     email: NPM_EMAIL,
-    //     username: NPM_USERNAME!,
-    //     token: NPM_TOKEN!,
-    //   },
-    // }),
-    // dockerPublish({
-    //   isStepEnabled: false,
-    //   dockerOrganizationName: DOCKER_ORG,
-    //   registry: DOCKER_REGISTRY,
-    //   registryAuth: {
-    //     username: DOCKER_HUB_USERNAME!,
-    //     token: DOCKER_HUB_TOKEN!,
-    //   },
-    //   buildAndPushOnlyTempVersion: !isMasterBuild,
-    // }),
+    npmPublish({
+      isStepEnabled: isMasterBuild,
+      npmScopeAccess: NpmScopeAccess.public,
+      registry: NPM_REGISTRY,
+      publishAuth: {
+        email: NPM_EMAIL,
+        username: NPM_USERNAME!,
+        token: NPM_TOKEN!,
+      },
+    }),
+    dockerPublish({
+      isStepEnabled: false,
+      dockerOrganizationName: DOCKER_ORG,
+      registry: DOCKER_REGISTRY,
+      registryAuth: {
+        username: DOCKER_HUB_USERNAME!,
+        token: DOCKER_HUB_TOKEN!,
+      },
+      buildAndPushOnlyTempVersion: !isMasterBuild,
+    }),
     jsonReporter(),
     cliTableReporter(),
   ]),

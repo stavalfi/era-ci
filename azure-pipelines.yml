@@ -25,5 +25,7 @@ steps:
 
   - script: yarn install
     displayName: 'yarn install'
+  - script: yarn build
+    displayName: 'yarn build'
   - script: secrethub run -- yarn run-ci
-    displayName: 'run ci'
+    displayName: 'run era-ci'
