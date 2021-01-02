@@ -47,6 +47,10 @@ jobs:
         env:
           CI_NODE_TOTAL: ${{ matrix.ci_node_total }}
           CI_NODE_INDEX: ${{ matrix.ci_node_index }}
+          REDIS_ENDPOINT: ${{ secrets.REDIS_ENDPOINT }}
+          REDIS_ACL_USERNAME: ${{ secrets.REDIS_ACL_USERNAME }}
+          REDIS_ACL_PASSWORD: ${{ secrets.REDIS_ACL_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         run: |
           if [ "$CI_NODE_INDEX" -eq "0" ]
           then
