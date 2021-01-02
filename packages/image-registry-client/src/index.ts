@@ -51,10 +51,18 @@ async function runTask<T>(task: () => Promise<T>, retry = 1): Promise<T> {
 }
 
 export const listTags = (options: { dockerOrg: string; repo: string } & Options): Promise<string[]> => {
+  const client = getClient(options)
   return runTask(
     () =>
       new Promise<string[]>((res, rej) =>
-        getClient(options).listTags((err, tags) => (err ? rej(err) : res(tags.tags))),
+        client.listTags((err, tags) => {
+          if (err) {
+            rej(err)
+          } else {
+            res(tags.tags)
+          }
+          client.close()
+        }),
       ),
   ).catch(error => {
     if (error?.message?.includes('NAME_UNKNOWN')) {
@@ -69,18 +77,22 @@ export const addTagToRemoteImage = async (
   options: { dockerOrg: string; repo: string; fromTag: string; toTag: string } & Options,
 ): Promise<void> => {
   const client = getClient(options)
-  const manifestStr = await runTask(
-    () =>
-      new Promise<string>((res, rej) =>
-        client.getManifest({ ref: options.fromTag }, (err, _manifest, _response, manifestStr) =>
-          err ? rej(err) : res(manifestStr),
+  try {
+    const manifestStr = await runTask(
+      () =>
+        new Promise<string>((res, rej) =>
+          client.getManifest({ ref: options.fromTag }, (err, _manifest, _response, manifestStr) =>
+            err ? rej(err) : res(manifestStr),
+          ),
         ),
-      ),
-  )
-  return runTask(
-    () =>
-      new Promise<void>((res, rej) =>
-        client.putManifest({ ref: options.toTag, manifest: manifestStr }, err => (err ? rej(err) : res())),
-      ),
-  )
+    )
+    return await runTask(
+      () =>
+        new Promise<void>((res, rej) =>
+          client.putManifest({ ref: options.toTag, manifest: manifestStr }, err => (err ? rej(err) : res())),
+        ),
+    )
+  } finally {
+    client.close()
+  }
 }

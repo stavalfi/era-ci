@@ -35,7 +35,16 @@ test('multiple tasks', async () => {
     ...tasks.map(task =>
       toTaskEvent$(task.taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: true }),
     ),
-  ).toPromise()
+  )
+    .toPromise()
+    .catch(error => {
+      // eslint-disable-next-line no-console
+      console.log(
+        'manually printing error because the error-properties are not shown by jest: ',
+        JSON.stringify(error, null, 2),
+      )
+      throw error
+    })
 
   for (const [i, packageInfo] of Object.values(getResources().packages).entries()) {
     await expect(getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])

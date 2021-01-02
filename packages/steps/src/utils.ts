@@ -85,15 +85,15 @@ export async function chooseTagAndPublish<
     } else {
       artifactStepResult = await options.publish(hashTag)
     }
-    await addTagToRemoteImage({
-      registry: options.stepConfigurations.registry,
-      auth: options.stepConfigurations.registryAuth,
-      dockerOrg: options.stepConfigurations.dockerOrganizationName,
-      repo: options.artifact.data.artifact.packageJson.name,
-      fromTag: hashTag,
-      toTag: newTag,
-    })
     if (artifactStepResult.status === Status.passed || artifactStepResult.status === Status.skippedAsPassed) {
+      await addTagToRemoteImage({
+        registry: options.stepConfigurations.registry,
+        auth: options.stepConfigurations.registryAuth,
+        dockerOrg: options.stepConfigurations.dockerOrganizationName,
+        repo: options.artifact.data.artifact.packageJson.name,
+        fromTag: hashTag,
+        toTag: newTag,
+      })
       await options.immutableCache.set({
         key: cacheKey,
         value: newTag,

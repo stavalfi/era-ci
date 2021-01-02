@@ -29,6 +29,7 @@ declare module 'docker-registry-client' {
       options: { ref: string; manifest: string },
       callback: (err: unknown, res: unknown, digest: unknown, location: unknown) => void,
     ) => void
+    close: () => void
   }
 }
 
