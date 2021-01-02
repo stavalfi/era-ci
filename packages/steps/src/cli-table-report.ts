@@ -199,7 +199,10 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
           hAlign: 'center',
           content,
         })),
-        ...row.notes.slice(0, 1),
+        ...row.notes.slice(0, 1).map(content => ({
+          content,
+          style: {},
+        })),
       ],
       ...row.notes.slice(1).map(note => [note]),
     ]
@@ -228,6 +231,8 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
 
   const packagesStatusTable = new Table({
     chars: DEFAULT_CHART,
+    colWidths: colums.map((_, i) => (i < colums.length - 1 ? null : 100)),
+    wordWrap: true,
   })
 
   packagesStatusTable.push(colums, ...rowsInTableFormat)
