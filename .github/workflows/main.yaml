@@ -52,5 +52,5 @@ jobs:
           then
             yarn run-era-ci
           else
-            node packages/task-worker/src/index.ts
+            yarn run-task-worker
           fi
