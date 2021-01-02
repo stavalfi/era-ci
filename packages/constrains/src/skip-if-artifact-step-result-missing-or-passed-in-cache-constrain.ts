@@ -3,7 +3,6 @@ import { Artifact, didPassOrSkippedAsPassed, ExecutionStatus, Node, Status } fro
 
 export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createConstrain<{
   stepNameToSearchInCache: string
-  skipAsFailedIfStepResultNotFoundInCache: boolean
   skipAsPassedIfStepNotExists?: boolean
   currentArtifact: Node<{ artifact: Artifact }>
 }>({
@@ -13,12 +12,7 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createCon
     currentStepInfo,
     steps,
     flowId,
-    constrainConfigurations: {
-      currentArtifact,
-      skipAsFailedIfStepResultNotFoundInCache,
-      skipAsPassedIfStepNotExists = true,
-      stepNameToSearchInCache,
-    },
+    constrainConfigurations: { currentArtifact, skipAsPassedIfStepNotExists = true, stepNameToSearchInCache },
   }) => {
     const stepName = stepNameToSearchInCache
     const step = steps.find(step => step.data.stepInfo.stepName === stepName)
@@ -53,24 +47,12 @@ export const skipIfArtifactStepResultMissingOrPassedInCacheConstrain = createCon
     })
 
     if (!actualStepResult) {
-      if (skipAsFailedIfStepResultNotFoundInCache) {
-        return {
-          resultType: ConstrainResultType.shouldSkip,
-          result: {
-            errors: [],
-            notes: [`could not find step result of: "${step.data.stepInfo.displayName}"`],
-            executionStatus: ExecutionStatus.aborted,
-            status: Status.skippedAsFailed,
-          },
-        }
-      } else {
-        return {
-          resultType: ConstrainResultType.ignoreThisConstrain,
-          result: {
-            errors: [],
-            notes: [],
-          },
-        }
+      return {
+        resultType: ConstrainResultType.ignoreThisConstrain,
+        result: {
+          errors: [],
+          notes: [],
+        },
       }
     }
 

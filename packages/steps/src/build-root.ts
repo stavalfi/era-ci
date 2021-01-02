@@ -15,7 +15,6 @@ export const buildRoot = createStepExperimental<LocalSequentalTaskQueue, { scrip
       skipIfStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'install-root',
         skipAsPassedIfStepNotExists: true,
-        skipAsFailedIfStepResultNotFoundInCache: true,
       }),
       skipIfRootPackageJsonMissingScriptConstrain({
         scriptName: stepConfigurations.scriptName,

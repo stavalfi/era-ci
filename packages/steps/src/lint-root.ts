@@ -19,12 +19,10 @@ export const lintRoot = createStepExperimental<LocalSequentalTaskQueue, { script
       skipIfStepResultMissingOrPassedInCacheConstrain({
         stepNameToSearchInCache: 'lint-root',
         skipAsPassedIfStepNotExists: true,
-        skipAsFailedIfStepResultNotFoundInCache: false,
       }),
       skipIfStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'lint-root',
         skipAsPassedIfStepNotExists: true,
-        skipAsFailedIfStepResultNotFoundInCache: false,
       }),
     ],
     stepLogic: async () => {

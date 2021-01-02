@@ -27,7 +27,7 @@ export const test = createStepExperimental<LocalSequentalTaskQueue, TestConfigur
     stepConstrains: [
       skipIfStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'install-root',
-        skipAsFailedIfStepResultNotFoundInCache: false,
+
         skipAsPassedIfStepNotExists: true,
       }),
     ],
@@ -37,20 +37,18 @@ export const test = createStepExperimental<LocalSequentalTaskQueue, TestConfigur
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'install-root',
-          skipAsFailedIfStepResultNotFoundInCache: false,
+
           skipAsPassedIfStepNotExists: true,
         }),
       artifact =>
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'test',
-          skipAsFailedIfStepResultNotFoundInCache: false,
         }),
       artifact =>
         skipIfArtifactStepResultMissingOrPassedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'test',
-          skipAsFailedIfStepResultNotFoundInCache: false,
         }),
     ],
     onBeforeArtifacts: async () => {
