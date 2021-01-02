@@ -55,11 +55,11 @@ export default config({
     installRoot(),
     lintRoot({ scriptName: 'lint:code' }),
     buildRoot({ scriptName: 'build' }),
-    test({
-      scriptName: 'test',
-      beforeAll: ({ log, repoPath }) =>
-        execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
-    }),
+    // test({
+    //   scriptName: 'test',
+    //   beforeAll: ({ log, repoPath }) =>
+    //     execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
+    // }),
     // testUsingTaskWorker({
     //   queueName: '1',
     //   scriptName: 'test',

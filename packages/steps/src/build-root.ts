@@ -1,4 +1,4 @@
-import { skipIfRootPackageJsonMissingScriptConstrain } from '@era-ci/constrains'
+import { skipIfRootPackageJsonMissingScriptConstrain, skipIfStepResultNotPassedConstrain } from '@era-ci/constrains'
 import { createStepExperimental } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { execaCommand } from '@era-ci/utils'
@@ -9,6 +9,10 @@ export const buildRoot = createStepExperimental<LocalSequentalTaskQueue, { scrip
   taskQueueClass: LocalSequentalTaskQueue,
   run: ({ stepConfigurations, log, repoPath }) => ({
     stepConstrains: [
+      skipIfStepResultNotPassedConstrain({
+        stepName: 'install-root',
+        skipAsPassedIfStepNotExists: true,
+      }),
       skipIfRootPackageJsonMissingScriptConstrain({
         scriptName: stepConfigurations.scriptName,
       }),

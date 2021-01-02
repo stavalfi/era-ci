@@ -3,6 +3,7 @@ import { ExecutionStatus, Status, didPassOrSkippedAsPassed } from '@era-ci/utils
 
 export const skipIfStepResultNotPassedConstrain = createConstrain<{
   stepName: string
+  skipAsPassedIfStepNotExists?: boolean
 }>({
   constrainName: 'skip-if-step-result-not-passed-constrain',
   constrain: async ({ constrainConfigurations, steps, getState }) => {
@@ -10,17 +11,24 @@ export const skipIfStepResultNotPassedConstrain = createConstrain<{
     const step = steps.find(step => step.data.stepInfo.stepName === stepName)
 
     if (!step) {
-      return {
-        resultType: ConstrainResultType.shouldSkip,
-        result: {
-          errors: [],
-          executionStatus: ExecutionStatus.aborted,
-          status: Status.skippedAsFailed,
-          // if the constrain needs this missing step, then it means that the step that is using
-          // this constrain needs this missing step to run. and if it is missing, the result are missing
-          // as well so it means that we should skip the run of the current step.
-          notes: [`step: "${stepName}" doesn't exists in this flow`],
-        },
+      if (constrainConfigurations.skipAsPassedIfStepNotExists) {
+        return {
+          resultType: ConstrainResultType.ignoreThisConstrain,
+          result: { errors: [], notes: [] },
+        }
+      } else {
+        return {
+          resultType: ConstrainResultType.shouldSkip,
+          result: {
+            errors: [],
+            executionStatus: ExecutionStatus.aborted,
+            status: Status.skippedAsFailed,
+            // if the constrain needs this missing step, then it means that the step that is using
+            // this constrain needs this missing step to run. and if it is missing, the result are missing
+            // as well so it means that we should skip the run of the current step.
+            notes: [`step: "${stepName}" doesn't exists in this flow`],
+          },
+        }
       }
     }
 
