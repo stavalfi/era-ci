@@ -43,7 +43,7 @@ jobs:
           yarn install
           yarn build
 
-      - name: Start Task Worker
+      - name: Execute ERA CI
         env:
           CI_NODE_TOTAL: ${{ matrix.ci_node_total }}
           CI_NODE_INDEX: ${{ matrix.ci_node_index }}
