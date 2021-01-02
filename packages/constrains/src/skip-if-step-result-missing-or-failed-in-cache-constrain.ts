@@ -3,7 +3,6 @@ import { didPassOrSkippedAsPassed, ExecutionStatus, Status } from '@era-ci/utils
 
 export const skipIfStepResultMissingOrFailedInCacheConstrain = createConstrain<{
   stepNameToSearchInCache: string
-  skipAsFailedIfStepResultNotFoundInCache: boolean
   skipAsPassedIfStepNotExists?: boolean
 }>({
   constrainName: 'skip-if-step-result-missing-or-failed-in-cache-constrain',
@@ -12,11 +11,7 @@ export const skipIfStepResultMissingOrFailedInCacheConstrain = createConstrain<{
     currentStepInfo,
     steps,
     flowId,
-    constrainConfigurations: {
-      stepNameToSearchInCache,
-      skipAsPassedIfStepNotExists = true,
-      skipAsFailedIfStepResultNotFoundInCache,
-    },
+    constrainConfigurations: { stepNameToSearchInCache, skipAsPassedIfStepNotExists = true },
   }) => {
     const stepName = stepNameToSearchInCache
     const step = steps.find(step => step.data.stepInfo.stepName === stepName)
@@ -50,24 +45,12 @@ export const skipIfStepResultMissingOrFailedInCacheConstrain = createConstrain<{
     })
 
     if (!actualStepResult) {
-      if (skipAsFailedIfStepResultNotFoundInCache) {
-        return {
-          resultType: ConstrainResultType.shouldSkip,
-          result: {
-            errors: [],
-            notes: [`could not find step result of: "${step.data.stepInfo.displayName}"`],
-            executionStatus: ExecutionStatus.aborted,
-            status: Status.skippedAsFailed,
-          },
-        }
-      } else {
-        return {
-          resultType: ConstrainResultType.ignoreThisConstrain,
-          result: {
-            errors: [],
-            notes: [],
-          },
-        }
+      return {
+        resultType: ConstrainResultType.ignoreThisConstrain,
+        result: {
+          errors: [],
+          notes: [],
+        },
       }
     }
 

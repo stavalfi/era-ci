@@ -14,7 +14,6 @@ export const installRoot = createStepExperimental({
       skipIfStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'validate-packages',
         skipAsPassedIfStepNotExists: false,
-        skipAsFailedIfStepResultNotFoundInCache: true,
       }),
     ],
     stepLogic: async () => {

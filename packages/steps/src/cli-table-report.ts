@@ -535,7 +535,6 @@ export const cliTableReporter = createStepExperimental({
       skipIfStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: jsonReporterStepName,
         skipAsPassedIfStepNotExists: false,
-        skipAsFailedIfStepResultNotFoundInCache: true,
       }),
     ],
     stepLogic: async () => {

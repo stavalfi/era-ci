@@ -59,7 +59,7 @@ export const k8sGcloudDeployment = createStepExperimental<LocalSequentalTaskQueu
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'docker-publish',
-          skipAsFailedIfStepResultNotFoundInCache: true,
+
           skipAsPassedIfStepNotExists: false,
         }),
       artifact => customConstrain({ currentArtifact: artifact }),

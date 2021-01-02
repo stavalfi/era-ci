@@ -106,14 +106,14 @@ export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, Qua
           skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'build',
-            skipAsFailedIfStepResultNotFoundInCache: false,
+
             skipAsPassedIfStepNotExists: true,
           }),
         artifact =>
           skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'test',
-            skipAsFailedIfStepResultNotFoundInCache: false,
+
             skipAsPassedIfStepNotExists: true,
           }),
       ],

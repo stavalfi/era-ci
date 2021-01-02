@@ -54,7 +54,6 @@ export const testUsingTaskWorker = createStepExperimental<LocalSequentalTaskQueu
         skipIfStepResultMissingOrFailedInCacheConstrain({
           stepNameToSearchInCache: 'install-root',
           skipAsPassedIfStepNotExists: true,
-          skipAsFailedIfStepResultNotFoundInCache: true,
         }),
       ],
       artifactConstrains: [
@@ -67,13 +66,11 @@ export const testUsingTaskWorker = createStepExperimental<LocalSequentalTaskQueu
           skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'test-by-task-worker',
-            skipAsFailedIfStepResultNotFoundInCache: false,
           }),
         artifact =>
           skipIfArtifactStepResultMissingOrPassedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'test-by-task-worker',
-            skipAsFailedIfStepResultNotFoundInCache: false,
           }),
       ],
       onBeforeArtifacts: async () => {
