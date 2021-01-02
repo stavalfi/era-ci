@@ -13,8 +13,6 @@ module.exports = {
     path.join(__dirname, 'packages/*/__tests__/**/*.spec.ts'),
     path.join(__dirname, 'packages/tests/*/__tests__/**/*.spec.ts'),
   ],
-  globalSetup: path.join(__dirname, 'jest-global-setup.js'),
-
   // uncomment and remove ts-node when swc has source-maps support
   transform: {
     '^.+\\.(t|j)sx?$': ['@swc/jest'],

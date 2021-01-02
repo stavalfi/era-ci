@@ -105,6 +105,8 @@ export async function calculateArtifactsHash({
   const repoFilesPath = repoFilesPathResult.stdout
     .split('\n')
     .map(relativeFilePath => path.join(repoPath, relativeFilePath))
+    // remove uncommnited deleted files from the list of existing files
+    .filter(filePath => fse.pathExistsSync(filePath))
 
   const packageJsons: PackageJson[] = await Promise.all(
     packagesPath.map(async packagePath => fse.readJson(path.join(packagePath, 'package.json'))),

@@ -33,9 +33,8 @@ export async function parseConfig(ciConfigFilePath: string): Promise<WorkerConfi
     stdio: 'pipe',
   })
 
-  const result = await import(outputFilePath)
-
-  const configuration = result.default
+  const result = (await import(outputFilePath)).default
+  const configuration = result.default ?? result
 
   // await fse.remove(outputFilePath).catch(() => {
   //   // ignore error
