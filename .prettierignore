@@ -3,3 +3,4 @@ target
 .history
 era-ci.log
 compiled-era-ci.config.js
+compiled-task-worker.config.js
