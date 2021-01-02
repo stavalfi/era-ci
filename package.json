@@ -9,7 +9,7 @@
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
     "test": "jest",
     "clean": "yarn workspace scripts clean",
-    "run-ci": "yarn build && node --unhandled-rejections=strict packages/core/dist/src/index.js --config-file ./era-ci.config.ts",
+    "run-era-ci": "yarn build && node --unhandled-rejections=strict packages/core/dist/src/index.js --config-file ./era-ci.config.ts",
     "build:tsc": "yarn tsc -b tsconfig-build.json",
     "build": "yarn build:tsc && chmod +x packages/core/dist/src/index.js",
     "build:watch": "yarn build:tsc --watch",
