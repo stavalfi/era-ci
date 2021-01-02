@@ -60,7 +60,7 @@ export const testUsingTaskWorker = createStepExperimental<LocalSequentalTaskQueu
         artifact =>
           skipIfArtifactPackageJsonMissingScriptConstrain({
             currentArtifact: artifact,
-            scriptName: 'test-by-task-worker',
+            scriptName: 'test',
           }),
         artifact =>
           skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
@@ -77,7 +77,7 @@ export const testUsingTaskWorker = createStepExperimental<LocalSequentalTaskQueu
         const result = await startWorker({
           queueName: options.stepConfigurations.queueName,
           repoPath: options.repoPath,
-          waitBeforeExitMs: 10_000,
+          waitBeforeExitMs: 30_000,
           redis: options.stepConfigurations.redis,
         })
         taskWorkerCleanup = result.cleanup

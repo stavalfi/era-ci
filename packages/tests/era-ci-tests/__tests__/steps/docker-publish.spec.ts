@@ -7,6 +7,8 @@ import { TargetType } from '@era-ci/utils'
 const { createRepo, getResources } = createTest()
 
 test('docker-artifact depends on published npm-artifact during docker-build', async () => {
+  // eslint-disable-next-line no-process-env
+  const hostIp = process.env.GITHUB_RUN_NUMBER ? `172.17.0.1` : 'host.docker.internal'
   const { runCi, gitHeadCommit } = await createRepo(toActualName => ({
     repo: {
       packages: [
@@ -17,7 +19,7 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
             Dockerfile: `\
             FROM alpine
             RUN apk add wget
-            RUN wget ${getResources().npmRegistry.address.replace('localhost', 'host.docker.internal')}/${toActualName(
+            RUN wget ${getResources().npmRegistry.address.replace('localhost', hostIp)}/${toActualName(
               'b',
             )}/-/${toActualName('b')}-2.0.0.tgz
             CMD ["echo","hello"]

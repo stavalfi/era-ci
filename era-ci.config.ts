@@ -1,4 +1,3 @@
-import ciInfo from 'ci-info'
 import { config, LogLevel } from './packages/core/dist/src/index'
 import { redisConnection } from './packages/key-value-stores/dist/src/index'
 import { winstonLogger } from './packages/loggers/dist/src/index'
@@ -13,6 +12,7 @@ import {
   npmPublish,
   NpmScopeAccess,
   test,
+  testUsingTaskWorker,
   validatePackages,
 } from './packages/steps/dist/src/index'
 import { localSequentalTaskQueue } from './packages/task-queues/dist/src/index'
@@ -30,11 +30,10 @@ const {
   REDIS_ENDPOINT,
   REDIS_ACL_USERNAME,
   REDIS_ACL_PASSWORD,
-  // REDIS_PASSWORD,
+  REDIS_PASSWORD,
+  GITHUB_RUN_NUMBER,
   // eslint-disable-next-line no-process-env
 } = process.env
-
-const isMasterBuild = Boolean(ciInfo.isCI && !ciInfo.isPR)
 
 export default config({
   taskQueues: [localSequentalTaskQueue()],
@@ -55,27 +54,27 @@ export default config({
     installRoot(),
     lintRoot({ scriptName: 'lint:code' }),
     buildRoot({ scriptName: 'build' }),
-    test({
-      scriptName: 'test',
-      beforeAll: ({ log, repoPath }) =>
-        execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
-      afterAll: ({ log, repoPath }) =>
-        execaCommand(`yarn test-resources:down`, { cwd: repoPath, log, stdio: 'inherit' }),
-    }),
-    // testUsingTaskWorker({
-    //   queueName: '1',
+    // test({
     //   scriptName: 'test',
-    //   redis: {
-    //     url: REDIS_ENDPOINT!,
-    //     auth: {
-    //       password: REDIS_PASSWORD,
-    //     },
-    //   },
     //   beforeAll: ({ log, repoPath }) =>
     //     execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
+    //   afterAll: ({ log, repoPath }) =>
+    //     execaCommand(`yarn test-resources:down`, { cwd: repoPath, log, stdio: 'inherit' }),
     // }),
+    testUsingTaskWorker({
+      queueName: `queue-${GITHUB_RUN_NUMBER}`,
+      scriptName: 'test',
+      redis: {
+        url: REDIS_ENDPOINT!,
+        auth: {
+          password: REDIS_PASSWORD,
+        },
+      },
+      beforeAll: ({ log, repoPath }) =>
+        execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
+    }),
     npmPublish({
-      isStepEnabled: isMasterBuild,
+      isStepEnabled: false,
       npmScopeAccess: NpmScopeAccess.public,
       registry: NPM_REGISTRY,
       publishAuth: {
@@ -92,7 +91,7 @@ export default config({
         username: DOCKER_HUB_USERNAME!,
         token: DOCKER_HUB_TOKEN!,
       },
-      buildAndPushOnlyTempVersion: !isMasterBuild,
+      buildAndPushOnlyTempVersion: false,
     }),
     jsonReporter(),
     cliTableReporter(),

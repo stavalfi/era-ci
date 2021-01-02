@@ -26,7 +26,7 @@ export const skipIfArtifactPackageJsonMissingScriptConstrain = createConstrain<{
           errors: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsPassed,
-          notes: [`skipping because missing ${scriptName}-script in artifact package.json`],
+          notes: [`skipping because missing script: "${scriptName}" in artifact package.json`],
         },
       }
     }
