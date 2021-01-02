@@ -4,7 +4,7 @@ import {
 } from '@era-ci/constrains'
 import { ConstrainResultType, createConstrain, createStepExperimental } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
-import { Artifact, execaCommand, ExecutionStatus, getPackageTargetType, Node, Status, TargetType } from '@era-ci/utils'
+import { Artifact, execaCommand, ExecutionStatus, getPackageTargetTypes, Node, Status, TargetType } from '@era-ci/utils'
 import { createFile } from 'create-folder-structure'
 import _ from 'lodash'
 
@@ -25,11 +25,11 @@ const customConstrain = createConstrain<
 >({
   constrainName: 'custom-constrain',
   constrain: async ({ constrainConfigurations: { currentArtifact } }) => {
-    const targetType = await getPackageTargetType(
+    const targetTypes = await getPackageTargetTypes(
       currentArtifact.data.artifact.packagePath,
       currentArtifact.data.artifact.packageJson,
     )
-    if (targetType !== TargetType.docker) {
+    if (!targetTypes.includes(TargetType.docker)) {
       return {
         resultType: ConstrainResultType.shouldSkip,
         result: {

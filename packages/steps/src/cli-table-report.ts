@@ -184,7 +184,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
 
   const hasNotes = rows.some(row => row.notes.length > 0)
 
-  const colums: TableRow = ['', ...stepsName, 'duration', 'summary'].concat(hasNotes ? ['notes'] : []).map(content => ({
+  const colums: TableRow = ['', ...stepsName, 'summary'].concat(hasNotes ? ['notes'] : []).map(content => ({
     vAlign: 'center',
     hAlign: 'center',
     content,
@@ -193,12 +193,14 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
   const rowsInTableFormat = rows.flatMap(row => {
     return [
       [
-        ...[row.packageName, ...row.stepsStatus, row.duration, row.artifactStatus].map<CellOptions>(content => ({
-          rowSpan: Object.keys(row.notes).length || 1,
-          vAlign: 'center',
-          hAlign: 'center',
-          content,
-        })),
+        ...[row.packageName, ...row.stepsStatus, `${row.artifactStatus} (${row.duration})`].map<CellOptions>(
+          content => ({
+            rowSpan: Object.keys(row.notes).length || 1,
+            vAlign: 'center',
+            hAlign: 'center',
+            content,
+          }),
+        ),
         ...row.notes.slice(0, 1).map(content => ({
           content,
           style: {},
@@ -231,7 +233,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
 
   const packagesStatusTable = new Table({
     chars: DEFAULT_CHART,
-    colWidths: colums.map((_, i) => (i < colums.length - 1 ? null : 100)),
+    colWidths: colums.map((_, i) => (hasNotes && i === colums.length - 1 ? 100 : null)),
     wordWrap: true,
   })
 

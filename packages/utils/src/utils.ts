@@ -249,18 +249,17 @@ export function calculateNewVersion({
   return nextVersion
 }
 
-export async function getPackageTargetType(
-  packagePath: string,
-  packageJson: PackageJson,
-): Promise<TargetType | undefined> {
+export async function getPackageTargetTypes(packagePath: string, packageJson: PackageJson): Promise<TargetType[]> {
   const isNpm = !packageJson.private
-  // @ts-ignore
   const isDocker: boolean = fs.existsSync(path.join(packagePath, 'Dockerfile'))
 
+  const result: TargetType[] = []
   if (isDocker) {
-    return TargetType.docker
+    result.push(TargetType.docker)
   }
   if (isNpm) {
-    return TargetType.npm
+    result.push(TargetType.npm)
   }
+
+  return result
 }
