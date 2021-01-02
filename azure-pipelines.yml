@@ -5,7 +5,7 @@ strategy:
   matrix:
     linux_node_14:
       imageName: 'ubuntu-latest'
-      node_version: 14.x
+      node_version: 15.x
 
 pool:
   vmImage: $(imageName)
