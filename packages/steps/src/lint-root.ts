@@ -18,9 +18,11 @@ export const lintRoot = createStepExperimental<LocalSequentalTaskQueue, { script
       }),
       skipIfStepResultPassedConstrain({
         stepName: stepConfigurations.scriptName,
+        skipAsPassedIfStepNotExists: true,
       }),
       skipIfStepResultNotPassedConstrain({
         stepName: stepConfigurations.scriptName,
+        skipAsPassedIfStepNotExists: true,
       }),
     ],
     stepLogic: async () => {

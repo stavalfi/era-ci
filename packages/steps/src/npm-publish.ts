@@ -6,7 +6,7 @@ import {
   calculateNewVersion,
   execaCommand,
   ExecutionStatus,
-  getPackageTargetType,
+  getPackageTargetTypes,
   Node,
   PackageJson,
   setPackageVersion,
@@ -173,12 +173,12 @@ const customConstrain = createConstrain<
     log,
     constrainConfigurations: { currentArtifact },
   }) => {
-    const targetType = await getPackageTargetType(
+    const targetTypes = await getPackageTargetTypes(
       currentArtifact.data.artifact.packagePath,
       currentArtifact.data.artifact.packageJson,
     )
 
-    if (targetType !== TargetType.npm) {
+    if (!targetTypes.includes(TargetType.npm)) {
       return {
         resultType: ConstrainResultType.shouldSkip,
         result: {

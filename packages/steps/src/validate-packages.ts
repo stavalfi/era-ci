@@ -1,6 +1,6 @@
 import { createStepExperimental } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
-import { ExecutionStatus, getPackageTargetType, Status, TargetType } from '@era-ci/utils'
+import { ExecutionStatus, getPackageTargetTypes, Status, TargetType } from '@era-ci/utils'
 import _ from 'lodash'
 import { IDependencyMap } from 'package-json-type'
 import semver from 'semver'
@@ -32,7 +32,7 @@ export const validatePackages = createStepExperimental({
         ...artifact.data.artifact.packageJson.peerDependencies,
       }
 
-      const currentArtifactTargetType = await getPackageTargetType(
+      const currentArtifactTargetTypes = await getPackageTargetTypes(
         artifact.data.artifact.packagePath,
         artifact.data.artifact.packageJson,
       )
@@ -51,16 +51,10 @@ export const validatePackages = createStepExperimental({
             if (depVersion) {
               const isInRange = semver.satisfies(depVersion, versionRange)
               if (isInRange) {
-                const depTargetType = await getPackageTargetType(depInMonoRepo.packagePath, depInMonoRepo.packageJson)
-                if (currentArtifactTargetType === TargetType.npm && !depTargetType) {
+                const depTargetTypes = await getPackageTargetTypes(depInMonoRepo.packagePath, depInMonoRepo.packageJson)
+                if (currentArtifactTargetTypes.includes(TargetType.npm) && depTargetTypes.length === 0) {
                   depProblems.push(
                     `the package "${artifact.data.artifact.packageJson.name}" can't depend on dependency: "${dep}" in version "${versionRange}" becuase this version represents a private-npm-package`,
-                  )
-                }
-
-                if (depTargetType === TargetType.docker) {
-                  depProblems.push(
-                    `the package "${artifact.data.artifact.packageJson.name}" can't depend on dependency: "${dep}" in version "${versionRange}" becuase this version represents a docker-package`,
                   )
                 }
               }
