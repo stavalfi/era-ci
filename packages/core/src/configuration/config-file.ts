@@ -60,7 +60,8 @@ export async function readNcConfigurationFile<TaskQueue>(ciConfigFilePath: strin
     stdio: 'pipe',
   })
 
-  const configuration = (await import(outputFilePath)).default.default
+  const result = (await import(outputFilePath)).default
+  const configuration = result.default ?? result
 
   // await fse.remove(outputFilePath).catch(() => {
   //   // ignore error

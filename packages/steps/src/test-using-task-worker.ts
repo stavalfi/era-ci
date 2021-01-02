@@ -77,7 +77,7 @@ export const testUsingTaskWorker = createStepExperimental<LocalSequentalTaskQueu
         const result = await startWorker({
           queueName: options.stepConfigurations.queueName,
           repoPath: options.repoPath,
-          waitBeforeExitMs: 100_000_000,
+          waitBeforeExitMs: 10_000,
           redis: options.stepConfigurations.redis,
         })
         taskWorkerCleanup = result.cleanup
