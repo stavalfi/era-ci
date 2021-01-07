@@ -1,6 +1,6 @@
-import { Graph } from '@era-ci/utils'
+import { Graph, StepInfo } from '@era-ci/utils'
 import { CreateLogger } from '../create-logger'
-import { StepExperimental, StepInfo } from '../create-step'
+import { StepExperimental } from '../create-step'
 import { CreateTaskQueue, TaskQueueOptions } from '../create-task-queue'
 import { RedisConfiguration } from '../redis-client'
 

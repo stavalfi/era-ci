@@ -1,11 +1,11 @@
-import { ExecutionStatus, Status } from '@era-ci/utils'
+import { ExecutionStatus, Status, StepOutputEvents, StepOutputEventType } from '@era-ci/utils'
 import { queue } from 'async'
 import { Observable, of, Subject } from 'rxjs'
 import { first, mergeMap } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'
 import { CombinedConstrainResult, ConstrainResultType, runConstrains } from '../../create-constrain'
 import { TaskQueueBase } from '../../create-task-queue'
-import { ArtifactFunctions, StepOutputEvents, StepOutputEventType, UserRunStepOptions } from '../types'
+import { ArtifactFunctions, UserRunStepOptions } from '../types'
 import {
   areArtifactParentsFinishedParentSteps,
   areRecursiveParentStepsFinishedOnArtifact,

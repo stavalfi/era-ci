@@ -6,7 +6,6 @@ import {
   DoneStepsResultOfArtifact,
   ScheduledStepResultOfArtifacts,
   ScheduledStepsResultOfArtifact,
-  StepInfo,
   StepResultOfArtifacts,
   StepsResultOfArtifact,
   toStepsResultOfArtifactsByArtifact,
@@ -23,6 +22,7 @@ import {
   RunningResult,
   ScheduledResult,
   Status,
+  StepInfo,
 } from '@era-ci/utils'
 import _ from 'lodash'
 

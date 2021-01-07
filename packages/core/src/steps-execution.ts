@@ -1,18 +1,25 @@
-import { Artifact, ExecutionStatus, GitRepoInfo, Graph, PackageJson } from '@era-ci/utils'
-import { merge, Observable, Subject } from 'rxjs'
-import { filter, mergeMap, tap } from 'rxjs/operators'
-import { deserializeError } from 'serialize-error'
-import { Log, Logger, LogLevel } from './create-logger'
 import {
-  StepExperimental,
+  Artifact,
+  ExecutionStatus,
+  GitRepoInfo,
+  Graph,
+  PackageJson,
   StepInfo,
   StepOutputEvents,
   StepOutputEventType,
-  toStepsResultOfArtifactsByArtifact,
-} from './create-step'
+  StepRedisEvent,
+} from '@era-ci/utils'
+import _ from 'lodash'
+import { merge, Observable, Subject } from 'rxjs'
+import { concatMap, filter, tap } from 'rxjs/operators'
+import { deserializeError } from 'serialize-error'
+import { Log, Logger, LogLevel } from './create-logger'
+import { StepExperimental, toStepsResultOfArtifactsByArtifact } from './create-step'
 import { TaskQueueBase, TaskQueueOptions } from './create-task-queue'
 import { ImmutableCache } from './immutable-cache'
+import { RedisClient } from './redis-client'
 import { GetState, State } from './types'
+import { getEventsTopicName } from './utils'
 
 type Options = {
   log: Log
@@ -35,6 +42,7 @@ type Options = {
   logger: Logger
   artifacts: Graph<{ artifact: Artifact }>
   processEnv: NodeJS.ProcessEnv
+  redisClient: RedisClient
 }
 
 function runStep(
@@ -122,8 +130,6 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
     getReturnValue,
   }
 
-  const allStepsEvents$ = new Subject<StepOutputEvents[StepOutputEventType]>()
-
   const logEvent = (e: StepOutputEvents[StepOutputEventType]) => {
     switch (e.type) {
       case StepOutputEventType.step: {
@@ -175,11 +181,48 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
     }
   }
 
+  const allStepsEvents$ = new Subject<StepOutputEvents[StepOutputEventType]>()
+
   merge(
     ...options.steps.map(s => runStep({ stepIndex: s.index, allStepsEvents$, ...options, getState: () => fullState })),
   )
     .pipe(
       tap(logEvent),
+      concatMap(async event => {
+        if (
+          event.type === StepOutputEventType.artifactStep &&
+          event.artifactStepResult.executionStatus === ExecutionStatus.done
+        ) {
+          await options.immutableCache.step.setArtifactStepResult({
+            stepId: event.step.data.stepInfo.stepId,
+            artifactHash: event.artifact.data.artifact.packageHash,
+            artifactStepResult: event.artifactStepResult,
+          })
+        }
+        if (event.type === StepOutputEventType.step && event.stepResult.executionStatus === ExecutionStatus.done) {
+          await options.immutableCache.step.setStepResult({
+            stepId: event.step.data.stepInfo.stepId,
+            stepResult: event.stepResult,
+          })
+        }
+        return event
+      }),
+      concatMap(async event => {
+        await options.redisClient.connection.publish(
+          getEventsTopicName(options.processEnv),
+          JSON.stringify(
+            _.identity<StepRedisEvent>({
+              flowId: options.flowId,
+              gitCommit: options.gitRepoInfo.commit,
+              repoName: options.gitRepoInfo.repoName,
+              repoHash: options.repoHash,
+              startFlowMs: options.startFlowMs,
+              event,
+            }),
+          ),
+        )
+        return event
+      }),
       tap(e => {
         const stepResult = fullState.stepsResultOfArtifactsByStep[e.step.index].data
         switch (e.type) {
@@ -195,28 +238,9 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
           artifacts: options.artifacts,
           stepsResultOfArtifactsByStep: fullState.stepsResultOfArtifactsByStep,
         })
-      }),
-      mergeMap(async e => {
-        if (
-          e.type === StepOutputEventType.artifactStep &&
-          e.artifactStepResult.executionStatus === ExecutionStatus.done
-        ) {
-          await options.immutableCache.step.setArtifactStepResult({
-            stepId: e.step.data.stepInfo.stepId,
-            artifactHash: e.artifact.data.artifact.packageHash,
-            artifactStepResult: e.artifactStepResult,
-          })
-        }
-        if (e.type === StepOutputEventType.step && e.stepResult.executionStatus === ExecutionStatus.done) {
-          await options.immutableCache.step.setStepResult({
-            stepId: e.step.data.stepInfo.stepId,
-            stepResult: e.stepResult,
-          })
-        }
-        return e
-      }),
-      tap(e => allStepsEvents$.next(e)),
-      tap(() => {
+
+        allStepsEvents$.next(e)
+
         // after all steps are done, close all streams
         const isFlowFinished = fullState.stepsResultOfArtifactsByStep.every(step =>
           [ExecutionStatus.aborted, ExecutionStatus.done].includes(step.data.stepExecutionStatus),
@@ -224,6 +248,7 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
         if (isFlowFinished) {
           allStepsEvents$.complete()
         }
+        return e
       }),
     )
     .subscribe({

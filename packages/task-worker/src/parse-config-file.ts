@@ -6,7 +6,8 @@ import { WorkerConfig } from './types'
 function getConfigValidationObject(): Describe<WorkerConfig> {
   return object({
     queueName: string(),
-    waitBeforeExitMs: number(),
+    maxWaitMsWithoutTasks: number(),
+    maxWaitMsUntilFirstTask: number(),
     redis: object({
       url: string(),
       auth: optional(

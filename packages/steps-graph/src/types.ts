@@ -1,4 +1,5 @@
-import { StepExperimental, StepInfo, TaskQueueBase, TaskQueueOptions } from '@era-ci/core'
+import { StepExperimental, TaskQueueBase, TaskQueueOptions } from '@era-ci/core'
+import { StepInfo } from '@era-ci/utils'
 import { Graph } from '@era-ci/utils'
 
 export type Steps<TaskQueueConfigurations> = Graph<{

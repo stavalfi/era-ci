@@ -9,7 +9,8 @@ const {
 
 export default config({
   queueName: `queue-${GITHUB_RUN_NUMBER}`,
-  waitBeforeExitMs: 30_000,
+  maxWaitMsWithoutTasks: 10_000,
+  maxWaitMsUntilFirstTask: 30_000,
   redis: {
     url: REDIS_ENDPOINT!,
     auth: {

@@ -22,7 +22,7 @@ function getConfigValidationObject() {
       auth: optional(
         object({
           username: optional(string()),
-          stepName: optional(string()),
+          password: optional(string()),
         }),
       ),
     }),

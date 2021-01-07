@@ -31,6 +31,13 @@ export type Artifact = {
   packageJson: PackageJson
 }
 
+export type StepInfo = {
+  stepGroup: string
+  stepName: string
+  stepId: string
+  displayName: string
+}
+
 export type UnionArrayValues<T, Array1 extends Array<T>> = Array1[number]
 
 // ---------------------
@@ -77,6 +84,33 @@ export type ScheduledResult = {
   executionStatus: ExecutionStatus.scheduled
 }
 
+export enum StepOutputEventType {
+  artifactStep = 'output-artifact-step',
+  step = 'output-step',
+}
+
+export type StepOutputEvents = {
+  [StepOutputEventType.artifactStep]: {
+    type: StepOutputEventType.artifactStep
+    artifact: Node<{ artifact: Artifact }>
+    step: Node<{ stepInfo: StepInfo }>
+    artifactStepResult:
+      | ScheduledResult
+      | RunningResult
+      | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
+      | DoneResult
+  }
+  [StepOutputEventType.step]: {
+    type: StepOutputEventType.step
+    step: Node<{ stepInfo: StepInfo }>
+    stepResult:
+      | ScheduledResult
+      | RunningResult
+      | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
+      | DoneResult
+  }
+}
+
 // ---------------------
 
 export type GitRepoInfo = {
@@ -92,4 +126,13 @@ export type GitRepoInfo = {
 export enum TargetType {
   docker = 'docker',
   npm = 'npm',
+}
+
+export type StepRedisEvent = {
+  flowId: string
+  gitCommit: string
+  repoName: string
+  repoHash: string
+  startFlowMs: number
+  event: StepOutputEvents[StepOutputEventType]
 }

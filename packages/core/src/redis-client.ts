@@ -32,6 +32,7 @@ export const connectToRedis = async (config: RedisConfiguration): Promise<RedisC
     username: config.auth?.username,
     password: config.auth?.password,
   })
+
   async function set(options: { key: string; value: string; allowOverride: boolean; ttl: number }): Promise<void> {
     const zippedBuffer = await zip(options.value)
     await connection.set(options.key, zippedBuffer, 'px', options.ttl, options.allowOverride ? undefined : 'nx')

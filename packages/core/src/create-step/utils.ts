@@ -1,14 +1,14 @@
-import _ from 'lodash'
-import { StepInfo } from '.'
 import {
+  Artifact,
   calculateCombinedStatus,
   calculateExecutionStatus,
-  Artifact,
   ExecutionStatus,
   Graph,
   Node,
   Status,
+  StepInfo,
 } from '@era-ci/utils'
+import _ from 'lodash'
 import { StepsResultOfArtifact, StepsResultOfArtifactsByArtifact, StepsResultOfArtifactsByStep } from './types'
 
 function getStepsResultOfArtifact({

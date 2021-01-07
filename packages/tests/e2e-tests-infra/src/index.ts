@@ -1,19 +1,9 @@
-import {
-  ci,
-  config,
-  Config,
-  connectToRedis,
-  createImmutableCache,
-  Logger,
-  LogLevel,
-  StepInfo,
-  TaskQueueBase,
-} from '@era-ci/core'
+import { ci, config, Config, connectToRedis, createImmutableCache, Logger, LogLevel, TaskQueueBase } from '@era-ci/core'
 import { listTags } from '@era-ci/image-registry-client'
 import { winstonLogger } from '@era-ci/loggers'
 import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@era-ci/steps'
 import { localSequentalTaskQueue } from '@era-ci/task-queues'
-import { ExecutionStatus, Graph, Status } from '@era-ci/utils'
+import { ExecutionStatus, Graph, Status, StepInfo } from '@era-ci/utils'
 import chance from 'chance'
 import fse from 'fs-extra'
 import path from 'path'
@@ -41,12 +31,13 @@ const getJsonReport = async ({
   jsonReportStepId: string
   testLogger: Logger
 }): Promise<JsonReport> => {
+  const redisClient = await connectToRedis({ url: getResources().redisServerUrl })
   const immutableCache = await createImmutableCache({
     artifacts: [],
     flowId,
     repoHash,
     log: testLogger.createLog('cache'),
-    redisClient: await connectToRedis({ url: getResources().redisServerUrl }),
+    redisClient,
     ttls: {
       ArtifactStepResult: 1000 * 60 * 60 * 24 * 7,
       flowLogs: 1000 * 60 * 60 * 24 * 7,
@@ -68,6 +59,7 @@ const getJsonReport = async ({
     return jsonReportResult.value
   } finally {
     await immutableCache.cleanup()
+    await redisClient.cleanup()
   }
 }
 

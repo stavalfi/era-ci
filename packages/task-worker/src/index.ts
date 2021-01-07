@@ -38,6 +38,8 @@ export async function startWorker(
 ): Promise<{ cleanup: () => Promise<void> }> {
   const workerName = `${config.queueName}-worker-${chance().hash().slice(0, 8)}`
 
+  const cleanups: (() => Promise<unknown>)[] = []
+
   const logger = await winstonLogger({
     customLogLevel: LogLevel.trace,
     logFilePath: path.join(config.repoPath, `${workerName}.log`),
@@ -52,14 +54,20 @@ export async function startWorker(
     removeOnSuccess: true,
     removeOnFailure: true,
   })
+  cleanups.push(() => queue.close())
 
   const redisConnection = new Redis(config.redis.url, { password: config.redis.auth?.password })
 
   await queue.ready()
 
   await redisConnection.incr(amountOfWrokersKey(config.queueName))
+  cleanups.push(async () => {
+    await redisConnection.decr(amountOfWrokersKey(config.queueName))
+    redisConnection.disconnect()
+  })
 
   const state = {
+    receivedFirstTask: false,
     isRunningTaskNow: false,
     lastTaskEndedMs: Date.now(),
   }
@@ -68,25 +76,38 @@ export async function startWorker(
 
   const intervalId = setInterval(async () => {
     const timePassedUntilNowMs = Date.now() - state.lastTaskEndedMs
-    if (!state.isRunningTaskNow && timePassedUntilNowMs >= config.waitBeforeExitMs) {
+    if (!state.receivedFirstTask) {
+      if (timePassedUntilNowMs < config.maxWaitMsUntilFirstTask) {
+        return
+      } else {
+        await cleanup()
+        workerLog.info(`no tasks at all - shuting down worker`)
+        return
+      }
+    }
+    if (!state.isRunningTaskNow && timePassedUntilNowMs >= config.maxWaitMsWithoutTasks) {
       await cleanup()
       workerLog.info(`no more tasks - shuting down worker`)
+      return
     }
   }, 500)
+  cleanups.push(async () => clearInterval(intervalId))
 
   let closed = false
   const cleanup = async () => {
     if (!closed) {
       closed = true
-      clearInterval(intervalId)
-      await redisConnection.decr(amountOfWrokersKey(config.queueName))
-      await Promise.all([queue.close(), redisConnection.disconnect()])
+      await Promise.allSettled(cleanups.map(f => f()))
     }
   }
 
   queue.process<DoneResult>(1, async job => {
     const startMs = Date.now()
     state.isRunningTaskNow = true
+    if (!state.receivedFirstTask) {
+      state.receivedFirstTask = true
+      state.lastTaskEndedMs = Date.now()
+    }
 
     const taskLog = logger.createLog(`${workerName}--task-${job.id}`)
 

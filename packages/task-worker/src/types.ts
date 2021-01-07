@@ -1,6 +1,7 @@
 export type WorkerConfig = {
   queueName: string
-  waitBeforeExitMs: number
+  maxWaitMsWithoutTasks: number
+  maxWaitMsUntilFirstTask: number
   redis: {
     url: string
     auth?: {
