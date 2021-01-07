@@ -1,8 +1,9 @@
+import { Cleanup, getPackages, MISSING_FLOW_ID_ERROR, toFlowLogsContentKey } from '@era-ci/utils'
 import { calculateArtifactsHash } from './artifacts-hash'
 import { Config } from './configuration'
 import { Log } from './create-logger'
 import { createImmutableCache } from './immutable-cache'
-import { getPackages, MISSING_FLOW_ID_ERROR, toFlowLogsContentKey, Cleanup } from '@era-ci/utils'
+import { connectToRedis } from './redis-client'
 
 export async function printFlowLogs<TaskQueue>(options: {
   flowId: string
@@ -23,15 +24,15 @@ export async function printFlowLogs<TaskQueue>(options: {
       log: logger.createLog('calculate-hashes'),
     })
 
-    const keyValueStoreConnection = await options.config.keyValueStore.callInitializeKeyValueStoreConnection()
-    cleanups.push(keyValueStoreConnection.cleanup)
+    const redisClient = await connectToRedis(options.config.redis)
+    cleanups.push(redisClient.cleanup)
 
     const immutableCache = await createImmutableCache({
       artifacts,
       flowId: 'it-wont-be-used-so-we-dont-pass-it',
       repoHash: 'it-wont-be-used-so-we-dont-pass-it-as-well',
       log: logger.createLog('cache'),
-      keyValueStoreConnection,
+      redisClient,
       ttls: {
         ArtifactStepResult: 1000 * 60 * 60 * 24 * 7,
         flowLogs: 1000 * 60 * 60 * 24 * 7,

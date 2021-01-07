@@ -21,7 +21,6 @@
       "@era-ci/image-registry-client": ["image-registry-client/src/index.ts"],
       "@era-ci/constrains": ["constrains/src/index.ts"],
       "@era-ci/steps-graph": ["steps-graph/src/index.ts"],
-      "@era-ci/key-value-stores": ["key-value-stores/src/index.ts"],
       "@era-ci/utils": ["utils/src/index.ts"],
       "@era-ci/steps": ["steps/src/index.ts"],
       "@era-ci/loggers": ["loggers/src/index.ts"],

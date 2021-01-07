@@ -1,6 +1,5 @@
 import { config, LogLevel } from '@era-ci/core'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
-import { redisConnection } from '@era-ci/key-value-stores'
 import { localSequentalTaskQueue } from '@era-ci/task-queues'
 import { winstonLogger } from '@era-ci/loggers'
 import {
@@ -37,10 +36,6 @@ const logger = winstonLogger({
   logFilePath: './era-ci.log',
 })
 
-const keyValueStore = redisConnection({
-  url: REDIS_ENDPOINT!,
-})
-
 const steps = createLinearStepsGraph([
   validatePackages(),
   installRoot(),
@@ -72,4 +67,11 @@ const steps = createLinearStepsGraph([
   cliTableReporter(),
 ])
 
-export default config({ taskQueues: [localSequentalTaskQueue()], steps, keyValueStore, logger })
+export default config({
+  taskQueues: [localSequentalTaskQueue()],
+  steps,
+  redis: {
+    url: REDIS_ENDPOINT!,
+  },
+  logger,
+})

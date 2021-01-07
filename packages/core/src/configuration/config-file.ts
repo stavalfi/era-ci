@@ -1,6 +1,6 @@
 import execa from 'execa'
 import path from 'path'
-import { array, func, is, number, object, string, validate } from 'superstruct'
+import { array, func, is, number, object, optional, string, validate } from 'superstruct'
 import { TaskQueueBase } from '../create-task-queue'
 import { Config } from './types'
 
@@ -17,8 +17,14 @@ function getConfigValidationObject() {
     logger: object({
       callInitializeLogger: func(),
     }),
-    keyValueStore: object({
-      callInitializeKeyValueStoreConnection: func(),
+    redis: object({
+      url: string(),
+      auth: optional(
+        object({
+          username: optional(string()),
+          stepName: optional(string()),
+        }),
+      ),
     }),
     taskQueues: array(
       object({

@@ -22,9 +22,6 @@
       "path": "packages/steps-graph/tsconfig-build.json"
     },
     {
-      "path": "packages/key-value-stores/tsconfig-build.json"
-    },
-    {
       "path": "packages/constrains/tsconfig-build.json"
     },
     {

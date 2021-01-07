@@ -18,7 +18,6 @@
     "@era-ci/core": "^2.0.0",
     "@era-ci/utils": "^2.0.0",
     "@era-ci/steps-graph": "^2.0.0",
-    "@era-ci/task-worker": "^2.0.0",
-    "@era-ci/key-value-stores": "^2.0.0"
+    "@era-ci/task-worker": "^2.0.0"
   }
 }

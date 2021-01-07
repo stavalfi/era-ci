@@ -1,11 +1,11 @@
-import { CreateKeyValueStoreConnection } from '../create-key-value-store-connection'
+import { Graph } from '@era-ci/utils'
 import { CreateLogger } from '../create-logger'
 import { StepExperimental, StepInfo } from '../create-step'
 import { CreateTaskQueue, TaskQueueOptions } from '../create-task-queue'
-import { Graph } from '@era-ci/utils'
+import { RedisConfiguration } from '../redis-client'
 
 export type Config<TaskQueueConfigurations> = {
-  keyValueStore: CreateKeyValueStoreConnection
+  redis: RedisConfiguration
   logger: CreateLogger
   taskQueues: Array<{
     taskQueueName: string

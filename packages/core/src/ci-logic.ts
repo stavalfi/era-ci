@@ -7,6 +7,7 @@ import { Config } from './configuration'
 import { Log, Logger } from './create-logger'
 import { StepInfo } from './create-step'
 import { createImmutableCache, ImmutableCache } from './immutable-cache'
+import { connectToRedis } from './redis-client'
 import { runAllSteps } from './steps-execution'
 import { getExitCode, getStepsResultOfArtifactsByStepAndArtifact } from './utils'
 
@@ -57,15 +58,15 @@ export async function ci<TaskQueue>(options: {
 
     repoHash = rh
 
-    const keyValueStoreConnection = await options.config.keyValueStore.callInitializeKeyValueStoreConnection()
-    cleanups.push(keyValueStoreConnection.cleanup)
+    const redisClient = await connectToRedis(options.config.redis)
+    cleanups.push(redisClient.cleanup)
 
     immutableCache = await createImmutableCache({
       artifacts,
       flowId,
       repoHash,
       log: logger.createLog('cache'),
-      keyValueStoreConnection,
+      redisClient,
       ttls: {
         ArtifactStepResult: 1000 * 60 * 60 * 24 * 7,
         flowLogs: 1000 * 60 * 60 * 24 * 7,
