@@ -1,9 +1,9 @@
+import { AbortResult, Artifact, DoneResult, ExecutionStatus, Graph, Status } from '@era-ci/utils'
 import _ from 'lodash'
 import NodeCache from 'node-cache'
 import { array, enums, number, object, optional, string, type, validate } from 'superstruct'
-import { KeyValueStoreConnection } from './create-key-value-store-connection'
 import { Log } from './create-logger'
-import { AbortResult, Artifact, DoneResult, ExecutionStatus, Graph, Status } from '@era-ci/utils'
+import { RedisClient } from './redis-client'
 
 export type ImmutableCache = {
   step: {
@@ -55,11 +55,11 @@ export type ImmutableCache = {
 export async function createImmutableCache({
   repoHash,
   flowId,
-  keyValueStoreConnection,
+  redisClient,
   log,
   ttls,
 }: {
-  keyValueStoreConnection: KeyValueStoreConnection
+  redisClient: RedisClient
   flowId: string
   repoHash: string
   log: Log
@@ -75,15 +75,15 @@ export async function createImmutableCache({
       value: options.value,
     })
 
-    if (await keyValueStoreConnection.has(options.key)) {
-      log.trace(`immutable-cache can't override values in key-value-store`, {
+    if (await redisClient.has(options.key)) {
+      log.trace(`immutable-cache can't override values in redis`, {
         key: options.key,
         'ignored-new-value': options.value,
-        'exiting-value': await keyValueStoreConnection.get(options.key, r => JSON.parse(r as string).value),
+        'exiting-value': await redisClient.get(options.key, r => JSON.parse(r as string).value),
       })
       return
     }
-    await keyValueStoreConnection.set({
+    await redisClient.set({
       allowOverride: false,
       key: options.key,
       ttl: options.ttl,
@@ -102,7 +102,7 @@ export async function createImmutableCache({
     key: string,
     mapper: (result: string) => T,
   ): Promise<{ flowId: string; repoHash: string; value: T } | undefined> {
-    const strigifiedJson = nodeCache.get<string>(key) ?? (await keyValueStoreConnection.get(key, _.identity))
+    const strigifiedJson = nodeCache.get<string>(key) ?? (await redisClient.get(key, _.identity))
     if (strigifiedJson === undefined) {
       return undefined
     }
@@ -121,7 +121,7 @@ export async function createImmutableCache({
   }
 
   async function has(key: string): Promise<boolean> {
-    return nodeCache.has(key) || (await keyValueStoreConnection.has(key))
+    return nodeCache.has(key) || (await redisClient.has(key))
   }
 
   function toArtifactStepResultKey({ artifactHash, stepId }: { stepId: string; artifactHash: string }) {

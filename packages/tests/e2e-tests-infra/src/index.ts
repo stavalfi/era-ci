@@ -1,6 +1,15 @@
-import { ci, config, Config, createImmutableCache, Logger, LogLevel, StepInfo, TaskQueueBase } from '@era-ci/core'
+import {
+  ci,
+  config,
+  Config,
+  connectToRedis,
+  createImmutableCache,
+  Logger,
+  LogLevel,
+  StepInfo,
+  TaskQueueBase,
+} from '@era-ci/core'
 import { listTags } from '@era-ci/image-registry-client'
-import { redisConnection } from '@era-ci/key-value-stores'
 import { winstonLogger } from '@era-ci/loggers'
 import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@era-ci/steps'
 import { localSequentalTaskQueue } from '@era-ci/task-queues'
@@ -32,15 +41,12 @@ const getJsonReport = async ({
   jsonReportStepId: string
   testLogger: Logger
 }): Promise<JsonReport> => {
-  const keyValueStoreConnection = await redisConnection({
-    url: getResources().redisServerUrl,
-  }).callInitializeKeyValueStoreConnection()
   const immutableCache = await createImmutableCache({
     artifacts: [],
     flowId,
     repoHash,
     log: testLogger.createLog('cache'),
-    keyValueStoreConnection,
+    redisClient: await connectToRedis({ url: getResources().redisServerUrl }),
     ttls: {
       ArtifactStepResult: 1000 * 60 * 60 * 24 * 7,
       flowLogs: 1000 * 60 * 60 * 24 * 7,
@@ -61,7 +67,6 @@ const getJsonReport = async ({
     }
     return jsonReportResult.value
   } finally {
-    await keyValueStoreConnection.cleanup()
     await immutableCache.cleanup()
   }
 }
@@ -216,11 +221,9 @@ const createRepo: CreateRepo = async options => {
         disabled: false,
         logFilePath,
       }),
-    keyValueStore:
-      configurations.keyValueStore ||
-      redisConnection({
-        url: getResources().redisServerUrl,
-      }),
+    redis: configurations.redis || {
+      url: getResources().redisServerUrl,
+    },
     taskQueues: [
       localSequentalTaskQueue(),
       ...(configurations.taskQueues?.filter(t => t.taskQueueName !== localSequentalTaskQueue().taskQueueName) || []),

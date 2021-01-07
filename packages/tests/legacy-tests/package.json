@@ -12,7 +12,6 @@
     "@era-ci/steps": "^2.0.0",
     "@era-ci/utils": "^2.0.0",
     "@era-ci/loggers": "^2.0.0",
-    "@era-ci/steps-graph": "^2.0.0",
-    "@era-ci/key-value-stores": "^2.0.0"
+    "@era-ci/steps-graph": "^2.0.0"
   }
 }

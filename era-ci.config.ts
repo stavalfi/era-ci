@@ -1,5 +1,4 @@
 import { config, LogLevel } from './packages/core/dist/src/index'
-import { redisConnection } from './packages/key-value-stores/dist/src/index'
 import { winstonLogger } from './packages/loggers/dist/src/index'
 import { createLinearStepsGraph } from './packages/steps-graph/dist/src/index'
 import {
@@ -11,7 +10,6 @@ import {
   lintRoot,
   npmPublish,
   NpmScopeAccess,
-  test,
   testUsingTaskWorker,
   validatePackages,
 } from './packages/steps/dist/src/index'
@@ -37,13 +35,13 @@ const {
 
 export default config({
   taskQueues: [localSequentalTaskQueue()],
-  keyValueStore: redisConnection({
+  redis: {
     url: REDIS_ENDPOINT!,
     auth: {
       username: REDIS_ACL_USERNAME,
       password: REDIS_ACL_PASSWORD,
     },
-  }),
+  },
   logger: winstonLogger({
     disabled: false,
     customLogLevel: LogLevel.info,
@@ -54,13 +52,6 @@ export default config({
     installRoot(),
     lintRoot({ scriptName: 'lint:code' }),
     buildRoot({ scriptName: 'build' }),
-    // test({
-    //   scriptName: 'test',
-    //   beforeAll: ({ log, repoPath }) =>
-    //     execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
-    //   afterAll: ({ log, repoPath }) =>
-    //     execaCommand(`yarn test-resources:down`, { cwd: repoPath, log, stdio: 'inherit' }),
-    // }),
     testUsingTaskWorker({
       queueName: `queue-${GITHUB_RUN_NUMBER}`,
       scriptName: 'test',
@@ -72,6 +63,8 @@ export default config({
       },
       beforeAll: ({ log, repoPath }) =>
         execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
+      afterAll: ({ log, repoPath }) =>
+        execaCommand(`yarn test-resources:down`, { cwd: repoPath, log, stdio: 'inherit' }),
     }),
     npmPublish({
       isStepEnabled: false,

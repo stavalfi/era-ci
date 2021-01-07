@@ -16,7 +16,6 @@
   "dependencies": {
     "@era-ci/core": "^2.0.0",
     "@era-ci/image-registry-client": "^2.0.0",
-    "@era-ci/key-value-stores": "^2.0.0",
     "@era-ci/loggers": "^2.0.0",
     "@era-ci/quay-helper-service": "^2.0.0",
     "@era-ci/quay-mock-service": "^2.0.0",
