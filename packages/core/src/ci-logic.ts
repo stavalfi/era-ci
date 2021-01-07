@@ -1,11 +1,10 @@
-import { Cleanup, getGitRepoInfo, getPackages, Graph, PackageJson, toFlowLogsContentKey } from '@era-ci/utils'
+import { Cleanup, getGitRepoInfo, getPackages, Graph, PackageJson, StepInfo, toFlowLogsContentKey } from '@era-ci/utils'
 import chance from 'chance'
 import fse from 'fs-extra'
 import path from 'path'
 import { calculateArtifactsHash } from './artifacts-hash'
 import { Config } from './configuration'
 import { Log, Logger } from './create-logger'
-import { StepInfo } from './create-step'
 import { createImmutableCache, ImmutableCache } from './immutable-cache'
 import { connectToRedis } from './redis-client'
 import { runAllSteps } from './steps-execution'
@@ -111,6 +110,7 @@ export async function ci<TaskQueue>(options: {
         steps,
         taskQueues,
         processEnv: options.processEnv,
+        redisClient,
       },
       state,
     )

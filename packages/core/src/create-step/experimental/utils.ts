@@ -1,13 +1,16 @@
-import { Artifact, calculateCombinedStatus, ExecutionStatus, Graph, Node, Status } from '@era-ci/utils'
-import _ from 'lodash'
 import {
+  Artifact,
+  calculateCombinedStatus,
+  ExecutionStatus,
+  Graph,
+  Node,
+  Status,
   StepInfo,
   StepOutputEvents,
   StepOutputEventType,
-  StepResultOfArtifacts,
-  StepsResultOfArtifact,
-  StepsResultOfArtifactsByStep,
-} from '../types'
+} from '@era-ci/utils'
+import _ from 'lodash'
+import { StepResultOfArtifacts, StepsResultOfArtifact, StepsResultOfArtifactsByStep } from '../types'
 
 export const artifactsEventsRunning = ({
   artifacts,

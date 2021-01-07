@@ -37,7 +37,8 @@ test('no tasks - manual close worker', async () => {
   const { cleanup } = await startWorker({
     queueName: `queue-${chance().hash().slice(0, 8)}`,
     repoPath,
-    waitBeforeExitMs: 100_000,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 100_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -54,7 +55,8 @@ test('single worker - amount of workers === 1', async () => {
   const { cleanup } = await startWorker({
     queueName,
     repoPath,
-    waitBeforeExitMs: 100_000,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 100_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -75,7 +77,8 @@ test('manual close worker multiple times', async () => {
   const { cleanup } = await startWorker({
     queueName: `queue-${chance().hash().slice(0, 8)}`,
     repoPath,
-    waitBeforeExitMs: 100_000,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 100_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -92,7 +95,8 @@ test('single task - success', async () => {
   const { cleanup } = await startWorker({
     queueName,
     repoPath,
-    waitBeforeExitMs: 100_000,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 100_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -130,7 +134,8 @@ test('multiple tasks - all success', async () => {
   const { cleanup } = await startWorker({
     queueName,
     repoPath,
-    waitBeforeExitMs: 100_000,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 100_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -172,7 +177,8 @@ test('single empty task - expect to fail', async () => {
   const { cleanup } = await startWorker({
     queueName,
     repoPath,
-    waitBeforeExitMs: 100_000,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 100_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -207,7 +213,8 @@ test('single task - expect to fail', async () => {
   const { cleanup } = await startWorker({
     queueName,
     repoPath,
-    waitBeforeExitMs: 100_000,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 100_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -246,7 +253,8 @@ test('multiple tasks - all fail', async () => {
   const { cleanup } = await startWorker({
     queueName,
     repoPath,
-    waitBeforeExitMs: 100_000,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 100_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -291,7 +299,8 @@ test('no tasks so the worker is closing automaticaly', async () => {
 
   const workerConfig: WorkerConfig = {
     queueName: `queue-${chance().hash().slice(0, 8)}`,
-    waitBeforeExitMs: 1_000,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 1_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -310,7 +319,7 @@ test('no tasks so the worker is closing automaticaly', async () => {
     },
   )
 
-  expect(stdout).toEqual(expect.stringContaining('no more tasks - shuting down worker'))
+  expect(stdout).toEqual(expect.stringContaining('no tasks at all - shuting down worker'))
 })
 
 test('single task -> no tasks so the worker is closing automaticaly', async () => {
@@ -320,7 +329,8 @@ test('single task -> no tasks so the worker is closing automaticaly', async () =
 
   const workerConfig: WorkerConfig = {
     queueName,
-    waitBeforeExitMs: 3_000,
+    maxWaitMsWithoutTasks: 3_000,
+    maxWaitMsUntilFirstTask: 100_000,
     redis: {
       url: getResources().redisServerUrl,
     },

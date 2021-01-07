@@ -5,14 +5,24 @@ import {
   ExecutionStatus,
   Graph,
   Status,
+  StepInfo,
 } from '@era-ci/utils'
 import _ from 'lodash'
 import {
-  StepInfo,
   StepsResultOfArtifactsByArtifact,
   StepsResultOfArtifactsByStep,
   toStepsResultOfArtifactsByArtifact,
 } from './create-step'
+
+export function getEventsTopicName(env: NodeJS.ProcessEnv): string {
+  const topic = 'era-ci-events'
+  const postfix = env['ERA_CI_EVENTS_TOPIC_PREFIX']
+  if (postfix) {
+    return `${topic}-${postfix}`
+  } else {
+    return topic
+  }
+}
 
 export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep): number {
   const finalStepsStatus = calculateCombinedStatus(

@@ -10,6 +10,9 @@ import {
   RunningResult,
   ScheduledResult,
   Status,
+  StepInfo,
+  StepOutputEvents,
+  StepOutputEventType,
 } from '@era-ci/utils'
 import { Observable } from 'rxjs'
 import { ErrorObject } from 'serialize-error'
@@ -18,15 +21,6 @@ import { Log, Logger } from '../create-logger'
 import { TaskQueueBase, TaskQueueOptions } from '../create-task-queue'
 import { ImmutableCache } from '../immutable-cache'
 import { GetState } from '../types'
-
-export type StepInfo = {
-  stepGroup: string
-  stepName: string
-  stepId: string
-  displayName: string
-}
-
-// ------------------------
 
 export type DoneStepResultOfArtifacts = {
   stepExecutionStatus: ExecutionStatus.done // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
@@ -163,11 +157,6 @@ export type UserArtifactResult = {
   artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
 }
 
-export enum StepOutputEventType {
-  artifactStep = 'output-artifact-step',
-  step = 'output-step',
-}
-
 export type UserReturnValue =
   | {
       executionStatus: ExecutionStatus.aborted
@@ -183,28 +172,6 @@ export type UserReturnValue =
       errors?: Array<ErrorObject>
       returnValue?: string
     }
-
-export type StepOutputEvents = {
-  [StepOutputEventType.artifactStep]: {
-    type: StepOutputEventType.artifactStep
-    artifact: Node<{ artifact: Artifact }>
-    step: Node<{ stepInfo: StepInfo }>
-    artifactStepResult:
-      | ScheduledResult
-      | RunningResult
-      | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
-      | DoneResult
-  }
-  [StepOutputEventType.step]: {
-    type: StepOutputEventType.step
-    step: Node<{ stepInfo: StepInfo }>
-    stepResult:
-      | ScheduledResult
-      | RunningResult
-      | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
-      | DoneResult
-  }
-}
 
 export type UserStepResult = {
   stepResult: {

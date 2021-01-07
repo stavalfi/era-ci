@@ -1,10 +1,10 @@
-import { ExecutionStatus, Status } from '@era-ci/utils'
+import { ExecutionStatus, Status, StepOutputEvents, StepOutputEventType } from '@era-ci/utils'
 import { from, Observable } from 'rxjs'
 import { first } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'
 import { ConstrainResultType, runConstrains } from '../../create-constrain'
 import { TaskQueueBase } from '../../create-task-queue'
-import { StepFunctions, StepOutputEvents, StepOutputEventType, UserRunStepOptions } from '../types'
+import { StepFunctions, UserRunStepOptions } from '../types'
 import {
   areRecursiveParentStepsFinished,
   artifactsEventsAbort,
