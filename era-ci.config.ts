@@ -81,16 +81,16 @@ export default config({
         token: NPM_TOKEN!,
       },
     }),
-    // dockerPublish({
-    //   isStepEnabled: CI === 'false',
-    //   dockerOrganizationName: DOCKER_ORG,
-    //   registry: DOCKER_REGISTRY,
-    //   registryAuth: {
-    //     username: DOCKER_HUB_USERNAME!,
-    //     token: DOCKER_HUB_TOKEN!,
-    //   },
-    //   buildAndPushOnlyTempVersion: false,
-    // }),
+    dockerPublish({
+      isStepEnabled: CI === 'false',
+      dockerOrganizationName: DOCKER_ORG,
+      registry: DOCKER_REGISTRY,
+      registryAuth: {
+        username: DOCKER_HUB_USERNAME!,
+        token: DOCKER_HUB_TOKEN!,
+      },
+      buildAndPushOnlyTempVersion: false,
+    }),
     jsonReporter(),
     cliTableReporter(),
   ]),

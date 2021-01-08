@@ -13,9 +13,6 @@
   "bin": {
     "nera-cic-ci": "./dist/src/index.js"
   },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
-  },
   "types": "dist/src/index.d.ts",
   "dependencies": {
     "@swc/cli": "0.1.27",

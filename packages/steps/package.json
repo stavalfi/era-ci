@@ -9,9 +9,6 @@
     "src",
     "__tests__"
   ],
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
-  },
   "types": "dist/src/index.d.ts",
   "dependencies": {
     "@era-ci/constrains": "^2.0.0",

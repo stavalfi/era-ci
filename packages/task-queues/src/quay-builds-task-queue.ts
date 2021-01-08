@@ -49,6 +49,8 @@ export type QuayBuildsTaskQueueConfigurations = {
   }) => string
 }
 
+// if you change this strin, change it also in "quay-helper-service" because it depends on it.
+// "quay-helper-service" don't import this package to avoid big docker-image
 export const QUAY_BUILD_STATUS_CHANED_REDIS_TOPIC = 'quayBuildStatusChangedRedisTopic'
 
 export type QuayBuildStatusChangedTopicPayload = {

@@ -1,4 +1,3 @@
-import { QUAY_BUILD_STATUS_CHANED_REDIS_TOPIC } from '@era-ci/task-queues'
 import { Config } from './types'
 
 export function getConfig(env: Record<string, string | undefined>): Config {
@@ -22,6 +21,6 @@ export function getConfig(env: Record<string, string | undefined>): Config {
       password: env.REDIS_PASSWORD,
     },
     quayBuildStatusChangedRedisTopic:
-      env.QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC || QUAY_BUILD_STATUS_CHANED_REDIS_TOPIC,
+      env.QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC || 'quayBuildStatusChangedRedisTopic',
   }
 }

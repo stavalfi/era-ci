@@ -31,3 +31,19 @@ export type Config = {
   }
   quayBuildStatusChangedRedisTopic: string
 }
+
+export enum QuayBuildStatus {
+  waiting = 'waiting',
+  started = 'started', // this is not confirmed. can't find in the docs what it is
+  cancelled = 'cancelled', // this is not confirmed. can't find in the docs if this exists
+  complete = 'complete',
+  error = 'error',
+}
+
+export enum QuayNotificationEvents {
+  buildQueued = 'build_queued',
+  buildStart = 'build_start',
+  buildSuccess = 'build_success',
+  buildFailure = 'build_failure',
+  buildCancelled = 'build_cancelled',
+}

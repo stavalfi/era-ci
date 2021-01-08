@@ -9,22 +9,20 @@
     "src",
     "__tests__"
   ],
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
-  },
   "types": "dist/src/index.d.ts",
   "scripts": {
     "start:dev": "node -r @swc/register src/index.ts",
     "start:prod": "node --unhandled-rejections=strict dist/src/index.js"
   },
   "dependencies": {
-    "@era-ci/task-queues": "^2.0.0",
     "compressing": "^1.5.1",
     "fastify": "^3.8.0",
     "got": "^11.8.1",
     "execa": "^4.0.1",
-    "fs-extra": "^9.0.0",
     "create-folder-structure": "^3.0.5",
     "pino-pretty": "^4.3.0"
+  },
+  "devDependencies": {
+    "@era-ci/task-queues": "^2.0.0"
   }
 }
