@@ -361,3 +361,209 @@ test('single task -> no tasks so the worker is closing automaticaly', async () =
 
   expect(stdout).toEqual(expect.stringContaining('no more tasks - shuting down worker'))
 })
+
+test('single task - success - override processEnv', async () => {
+  const repoPath = await createFolder()
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { cleanup } = await startWorker({
+    queueName,
+    repoPath,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 100_000,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
+  })
+  cleanups.push(cleanup)
+
+  const queue = await createQueue(queueName)
+  const task1 = queue.createJob({
+    task: {
+      shellCommand: 'echo $X > file1.txt',
+      cwd: repoPath,
+      processEnv: {
+        X: 'hi',
+      },
+    },
+  })
+
+  const result = await new Promise<DoneResult>(res => {
+    task1.once('succeeded', res)
+    task1.save()
+  })
+
+  expect(
+    isDeepSubset(result, {
+      executionStatus: ExecutionStatus.done,
+      status: Status.passed,
+      notes: [],
+      errors: [],
+      returnValue: undefined,
+    }),
+  ).toBeTruthy()
+
+  const content = await fs.promises.readFile(path.join(repoPath, 'file1.txt'), 'utf-8')
+  expect(content).toEqual('hi\n')
+})
+
+test('single task - success - part of a group', async () => {
+  const repoPath = await createFolder()
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { cleanup } = await startWorker({
+    queueName,
+    repoPath,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 100_000,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
+  })
+  cleanups.push(cleanup)
+
+  const queue = await createQueue(queueName)
+  const task1 = queue.createJob({
+    group: {
+      groupId: '1',
+      beforeAll: {
+        shellCommand: 'echo hi1 > file1.txt',
+        cwd: repoPath,
+      },
+    },
+    task: {
+      shellCommand: 'echo hi2 > file2.txt',
+      cwd: repoPath,
+    },
+  })
+
+  const result = await new Promise<DoneResult>(res => {
+    task1.once('succeeded', res)
+    task1.save()
+  })
+
+  expect(
+    isDeepSubset(result, {
+      executionStatus: ExecutionStatus.done,
+      status: Status.passed,
+      notes: [],
+      errors: [],
+      returnValue: undefined,
+    }),
+  ).toBeTruthy()
+
+  const content1 = await fs.promises.readFile(path.join(repoPath, 'file1.txt'), 'utf-8')
+  expect(content1).toEqual('hi1\n')
+
+  const content2 = await fs.promises.readFile(path.join(repoPath, 'file2.txt'), 'utf-8')
+  expect(content2).toEqual('hi2\n')
+})
+
+test('single task - success - part of a group - override process-env', async () => {
+  const repoPath = await createFolder()
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { cleanup } = await startWorker({
+    queueName,
+    repoPath,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 100_000,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
+  })
+  cleanups.push(cleanup)
+
+  const queue = await createQueue(queueName)
+  const task1 = queue.createJob({
+    group: {
+      groupId: '1',
+      beforeAll: {
+        shellCommand: 'echo $X > file1.txt',
+        cwd: repoPath,
+        processEnv: {
+          X: 'hi1',
+        },
+      },
+    },
+    task: {
+      shellCommand: 'echo hi2 > file2.txt',
+      cwd: repoPath,
+    },
+  })
+
+  const result = await new Promise<DoneResult>(res => {
+    task1.once('succeeded', res)
+    task1.save()
+  })
+
+  expect(
+    isDeepSubset(result, {
+      executionStatus: ExecutionStatus.done,
+      status: Status.passed,
+      notes: [],
+      errors: [],
+      returnValue: undefined,
+    }),
+  ).toBeTruthy()
+
+  const content1 = await fs.promises.readFile(path.join(repoPath, 'file1.txt'), 'utf-8')
+  expect(content1).toEqual('hi1\n')
+
+  const content2 = await fs.promises.readFile(path.join(repoPath, 'file2.txt'), 'utf-8')
+  expect(content2).toEqual('hi2\n')
+})
+
+test('multiple tasks - before-all is called once', async () => {
+  const repoPath = await createFolder()
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { cleanup } = await startWorker({
+    queueName,
+    repoPath,
+    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsUntilFirstTask: 100_000,
+    redis: {
+      url: getResources().redisServerUrl,
+    },
+  })
+  cleanups.push(cleanup)
+
+  const queue = await createQueue(queueName)
+  const task1 = queue.createJob({
+    group: {
+      groupId: '1',
+      beforeAll: {
+        shellCommand: 'echo hi1 >> file1.txt',
+        cwd: repoPath,
+      },
+    },
+    task: {
+      shellCommand: 'echo hi2 > file2.txt',
+      cwd: repoPath,
+    },
+  })
+
+  await new Promise<DoneResult>(res => {
+    task1.once('succeeded', res)
+    task1.save()
+  })
+
+  const task2 = queue.createJob({
+    group: {
+      groupId: '1',
+      beforeAll: {
+        shellCommand: 'echo hi1 >> file1.txt',
+        cwd: repoPath,
+      },
+    },
+    task: {
+      shellCommand: 'echo hi3 > file2.txt',
+      cwd: repoPath,
+    },
+  })
+
+  await new Promise<DoneResult>(res => {
+    task2.once('succeeded', res)
+    task2.save()
+  })
+
+  const content1 = await fs.promises.readFile(path.join(repoPath, 'file1.txt'), 'utf-8')
+  expect(content1).toEqual('hi1\n')
+})
