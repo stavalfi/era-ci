@@ -1,12 +1,11 @@
-import { QuayBuildStatus, QuayNotificationEvents } from '@era-ci/task-queues'
 import compressing from 'compressing'
 import { createFolder } from 'create-folder-structure'
 import execa from 'execa'
-import fse from 'fs-extra'
+import fs from 'fs'
 import got from 'got'
 import path from 'path'
 import { Readable } from 'stream'
-import { Auth, QueryStringOptions } from './types'
+import { Auth, QuayBuildStatus, QuayNotificationEvents, QueryStringOptions } from './types'
 
 function downloadFromGithub(
   options: {
@@ -49,7 +48,7 @@ async function downloadFromLocalFilesystem(repo_abs_path: string): Promise<Reada
   })
   const newLocation = path.join(await createFolder(), `${gitRepoName}-${gitHeadCommit}`)
 
-  await fse.symlink(repo_abs_path, newLocation)
+  await fs.promises.symlink(repo_abs_path, newLocation)
 
   const tarStream = new compressing.tar.Stream()
   tarStream.addEntry(newLocation)
