@@ -105,8 +105,10 @@ test('single task - success', async () => {
 
   const queue = await createQueue(queueName)
   const task1 = queue.createJob({
-    shellCommand: 'echo hi > file1.txt',
-    cwd: repoPath,
+    task: {
+      shellCommand: 'echo hi > file1.txt',
+      cwd: repoPath,
+    },
   })
 
   const result = await new Promise<DoneResult>(res => {
@@ -147,8 +149,7 @@ test('multiple tasks - all success', async () => {
   const results = await Promise.all(
     _.range(0, 3).map(i => {
       const task1 = queue.createJob({
-        shellCommand: 'echo hi',
-        cwd: repoPath,
+        task: { shellCommand: 'echo hi', cwd: repoPath },
       })
 
       return new Promise<DoneResult>(res => {
@@ -187,8 +188,7 @@ test('single empty task - expect to fail', async () => {
 
   const queue = await createQueue(queueName)
   const task1 = queue.createJob({
-    shellCommand: '',
-    cwd: repoPath,
+    task: { shellCommand: '', cwd: repoPath },
   })
 
   const result = await new Promise<DoneResult>(res => {
@@ -223,8 +223,7 @@ test('single task - expect to fail', async () => {
 
   const queue = await createQueue(queueName)
   const task1 = queue.createJob({
-    shellCommand: 'exit 1',
-    cwd: repoPath,
+    task: { shellCommand: 'exit 1', cwd: repoPath },
   })
 
   const result = await new Promise<DoneResult>(res => {
@@ -266,8 +265,7 @@ test('multiple tasks - all fail', async () => {
   const results = await Promise.all(
     _.range(0, 3).map(i => {
       const task1 = queue.createJob({
-        shellCommand: 'exit 1',
-        cwd: repoPath,
+        task: { shellCommand: 'exit 1', cwd: repoPath },
       })
 
       return new Promise<DoneResult>(res => {
@@ -338,8 +336,7 @@ test('single task -> no tasks so the worker is closing automaticaly', async () =
 
   const queue = await createQueue(queueName)
   const task1 = queue.createJob({
-    shellCommand: 'echo hi',
-    cwd: repoPath,
+    task: { shellCommand: 'echo hi', cwd: repoPath },
   })
 
   await fs.promises.writeFile(

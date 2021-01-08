@@ -4,20 +4,18 @@ import {
   skipIfArtifactStepResultMissingOrPassedInCacheConstrain,
   skipIfStepResultMissingOrFailedInCacheConstrain,
 } from '@era-ci/constrains'
-import { createStepExperimental, toTaskEvent$, UserRunStepOptions } from '@era-ci/core'
+import { createStepExperimental, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus } from '@era-ci/utils'
-import _ from 'lodash'
 import { last } from 'rxjs/operators'
 
 export type TestConfigurations = {
   scriptName: string
-  beforeAll?: (
-    options: Omit<UserRunStepOptions<TaskWorkerTaskQueue, TestConfigurations>, 'stepConfigurations'>,
-  ) => Promise<unknown>
-  afterAll?: (
-    options: Omit<UserRunStepOptions<TaskWorkerTaskQueue, TestConfigurations>, 'stepConfigurations'>,
-  ) => Promise<unknown>
+  workerBeforeAll?: {
+    shellCommand: string
+    cwd: string
+    processEnv?: NodeJS.ProcessEnv
+  }
 }
 
 export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfigurations>({
@@ -48,17 +46,19 @@ export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfiguratio
           stepNameToSearchInCache: 'test',
         }),
     ],
-    onBeforeArtifacts: async () => {
-      if (options.stepConfigurations.beforeAll) {
-        await options.stepConfigurations.beforeAll(_.omit(options, 'stepConfigurations'))
-      }
-    },
     onArtifact: async ({ artifact }) => {
+      const { workerBeforeAll } = options.stepConfigurations
       const [task] = options.taskQueue.addTasksToQueue([
         {
+          group: workerBeforeAll && {
+            groupId: `${options.flowId}-${options.currentStepInfo.data.stepInfo.stepId}`,
+            beforeAll: workerBeforeAll,
+          },
           taskName: `${artifact.data.artifact.packageJson.name}---tests`,
-          shellCommand: `yarn run ${options.stepConfigurations.scriptName}`,
-          cwd: artifact.data.artifact.packagePath,
+          task: {
+            shellCommand: `yarn run ${options.stepConfigurations.scriptName}`,
+            cwd: artifact.data.artifact.packagePath,
+          },
         },
       ])
       const taskResult = await toTaskEvent$(task.taskId, {
@@ -77,11 +77,6 @@ export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfiguratio
         case ExecutionStatus.done: {
           return taskResult.taskResult
         }
-      }
-    },
-    onAfterArtifacts: async () => {
-      if (options.stepConfigurations.afterAll) {
-        await options.stepConfigurations.afterAll(_.omit(options, 'stepConfigurations'))
       }
     },
   }),

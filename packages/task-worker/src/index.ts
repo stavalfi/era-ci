@@ -106,6 +106,14 @@ export async function startWorker(config: WorkerConfig & { repoPath: string }, l
     }
   }
 
+  const tasksByGroupId = new Map<
+    string,
+    {
+      succeedBeforeAll: boolean
+      tasks: Array<WorkerTask>
+    }
+  >()
+
   queue.process<DoneResult>(1, async job => {
     const startMs = Date.now()
     state.isRunningTaskNow = true
@@ -118,16 +126,76 @@ export async function startWorker(config: WorkerConfig & { repoPath: string }, l
 
     const taskLog = finalLogger.createLog(`${workerName}--task-${job.id}`)
 
+    const { group, task } = job.data
+    if (group) {
+      if (!tasksByGroupId.get(group.groupId)) {
+        taskLog.info('----------------------------------')
+        taskLog.info(`executing before-all: "${group.beforeAll.shellCommand}"`)
+        taskLog.info('----------------------------------')
+
+        const result = await execaCommand(group.beforeAll.shellCommand, {
+          stdio: 'inherit',
+          cwd: group.beforeAll.cwd,
+          reject: false,
+          log: taskLog,
+          shell: true,
+          env: group.beforeAll.processEnv,
+        }).catch((error: unknown) => {
+          // we can be here if the command is an empty string (it is covered with a test)
+          return {
+            failed: true,
+            error,
+          }
+        })
+
+        taskLog.info('----------------------------------')
+        taskLog.info(`ended before-all: "${group.beforeAll.shellCommand}" - passed: ${!result.failed}.`)
+        taskLog.info('----------------------------------')
+
+        tasksByGroupId.set(group.groupId, {
+          succeedBeforeAll: !result.failed,
+          tasks: [job.data],
+        })
+
+        if (result.failed) {
+          taskLog.info('----------------------------------')
+          taskLog.info(`skipping task: "${job.data.task.shellCommand}" because the before-all failed on this worker.`)
+          taskLog.info('----------------------------------')
+
+          return {
+            executionStatus: ExecutionStatus.aborted,
+            status: Status.skippedAsFailed,
+            durationMs: Date.now() - startMs,
+            notes: [`failed to run before-all-tests in worker: "${workerName}": "${group.beforeAll.shellCommand}"`],
+            errors: result.failed ? [serializeError('error' in result ? result.error : result)] : [],
+          }
+        }
+      }
+
+      if (!tasksByGroupId.get(group.groupId)?.succeedBeforeAll) {
+        return {
+          executionStatus: ExecutionStatus.aborted,
+          status: Status.skippedAsFailed,
+          durationMs: Date.now() - startMs,
+          notes: [`failed to run before-all-tests in worker: "${workerName}": "${group.beforeAll.shellCommand}"`],
+          errors: [],
+        }
+      }
+
+      tasksByGroupId.get(group.groupId)?.tasks.push(job.data)
+    }
+
     taskLog.info('----------------------------------')
-    taskLog.info(`started task`)
+    taskLog.info(`started task: "${task.shellCommand}"`)
     taskLog.info('----------------------------------')
 
-    const result = await execaCommand(job.data.shellCommand, {
+    const result = await execaCommand(task.shellCommand, {
       stdio: 'inherit',
-      cwd: job.data.cwd,
+      cwd: task.cwd,
       reject: false,
       log: taskLog,
       shell: true,
+      env: task.processEnv,
     }).catch((error: unknown) => {
       // we can be here if the command is an empty string (it is covered with a test)
       return {
@@ -137,7 +205,7 @@ export async function startWorker(config: WorkerConfig & { repoPath: string }, l
     })
 
     taskLog.info('----------------------------------')
-    taskLog.info(`ended task - passed: ${!result.failed}`)
+    taskLog.info(`ended task: "${task.shellCommand}" - passed: ${!result.failed}`)
     taskLog.info('----------------------------------')
 
     state.lastTaskEndedMs = Date.now()

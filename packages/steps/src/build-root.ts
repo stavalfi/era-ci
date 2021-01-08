@@ -25,8 +25,10 @@ export const buildRoot = createStepExperimental<TaskWorkerTaskQueue, { scriptNam
       const [task] = taskQueue.addTasksToQueue([
         {
           taskName: `build`,
-          shellCommand: `yarn run ${stepConfigurations.scriptName}`,
-          cwd: repoPath,
+          task: {
+            shellCommand: `yarn run ${stepConfigurations.scriptName}`,
+            cwd: repoPath,
+          },
         },
       ])
       const taskResult = await toTaskEvent$(task.taskId, {

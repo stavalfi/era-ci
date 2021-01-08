@@ -5,6 +5,7 @@ import { queue } from 'async'
 import Queue from 'bee-queue'
 import chance from 'chance'
 import { EventEmitter } from 'events'
+import _ from 'lodash'
 import { serializeError } from 'serialize-error'
 
 export type TaskWorkerTaskQueueConfigurations = {
@@ -55,10 +56,7 @@ export class TaskWorkerTaskQueue implements TaskQueueBase<TaskWorkerTaskQueueCon
     }
 
     return tasksOptions.map(taskOption => {
-      const task = this.queue.createJob({
-        shellCommand: taskOption.shellCommand,
-        cwd: taskOption.cwd,
-      })
+      const task = this.queue.createJob(_.omit(taskOption, ['taskName']))
 
       const taskInfo: TaskInfo<WorkerTask> = {
         taskId: chance().hash().slice(0, 8),
