@@ -14,7 +14,6 @@ import {
   validatePackages,
 } from './packages/steps/dist/src/index'
 import { localSequentalTaskQueue, taskWorkerTaskQueue } from './packages/task-queues/dist/src/index'
-import { execaCommand } from './packages/utils/dist/src/index'
 
 const {
   NPM_REGISTRY = 'http://localhost:34873',
@@ -66,10 +65,10 @@ export default config({
     buildRoot({ scriptName: 'build' }),
     test({
       scriptName: 'test',
-      beforeAll: async ({ log, repoPath }) =>
-        CI === 'true' && execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
-      afterAll: async ({ log, repoPath }) =>
-        CI === 'true' && execaCommand(`yarn test-resources:down`, { cwd: repoPath, log, stdio: 'inherit' }),
+      workerBeforeAll: {
+        shellCommand: 'yarn test-resources:up',
+        cwd: __dirname,
+      },
     }),
     npmPublish({
       isStepEnabled: CI === 'false',

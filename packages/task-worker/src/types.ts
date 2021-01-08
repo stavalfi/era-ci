@@ -14,6 +14,19 @@ export type WorkerConfig = {
 }
 
 export type WorkerTask = {
-  shellCommand: string
-  cwd: string
+  task: {
+    shellCommand: string
+    cwd: string
+    processEnv?: NodeJS.ProcessEnv
+  }
+  group?:
+    | {
+        groupId: string
+        beforeAll: {
+          shellCommand: string
+          cwd: string
+          processEnv?: NodeJS.ProcessEnv
+        }
+      }
+    | false
 }

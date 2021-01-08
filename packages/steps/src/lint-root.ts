@@ -30,8 +30,10 @@ export const lintRoot = createStepExperimental<TaskWorkerTaskQueue, { scriptName
       const [task] = taskQueue.addTasksToQueue([
         {
           taskName: `lint`,
-          shellCommand: `yarn run ${stepConfigurations.scriptName}`,
-          cwd: repoPath,
+          task: {
+            shellCommand: `yarn run ${stepConfigurations.scriptName}`,
+            cwd: repoPath,
+          },
         },
       ])
       const taskResult = await toTaskEvent$(task.taskId, {
