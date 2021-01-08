@@ -10,7 +10,7 @@ import {
   lintRoot,
   npmPublish,
   NpmScopeAccess,
-  testUsingTaskWorker,
+  test,
   validatePackages,
 } from './packages/steps/dist/src/index'
 import { localSequentalTaskQueue, taskWorkerTaskQueue } from './packages/task-queues/dist/src/index'
@@ -64,15 +64,8 @@ export default config({
     installRoot(),
     lintRoot({ scriptName: 'lint:code' }),
     buildRoot({ scriptName: 'build' }),
-    testUsingTaskWorker({
-      queueName: `queue-${GITHUB_RUN_NUMBER}`,
+    test({
       scriptName: 'test',
-      redis: {
-        url: REDIS_ENDPOINT!,
-        auth: {
-          password: REDIS_PASSWORD,
-        },
-      },
       beforeAll: ({ log, repoPath }) =>
         execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
       afterAll: async ({ log, repoPath }) =>
