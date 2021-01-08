@@ -2,8 +2,9 @@ import { createStepExperimental } from '@era-ci/core'
 import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { buildRoot, installRoot, JsonReport, npmPublish, NpmScopeAccess, validatePackages, test } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
-import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
+import { LocalSequentalTaskQueue, taskWorkerTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status, TargetType } from '@era-ci/utils'
+import chance from 'chance'
 
 const { createRepo, getResources } = createTest()
 
@@ -147,6 +148,14 @@ it('reproduce bug - step is invoked multiple times', async () => {
       ],
     },
     configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName: `queue-${chance().hash().slice(0, 8)}`,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
       steps: createLinearStepsGraph([
         validatePackages(),
         installRoot(),
