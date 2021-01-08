@@ -100,6 +100,8 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
   ) {
     this.internalTaskQueue.error(error => options.log.error(`failed to run a task in internalTaskQueue`, error))
     this.eventEmitter.setMaxListeners(Infinity)
+    this.taskTimeoutEventEmitter.setMaxListeners(Infinity)
+    this.queueStatusChanged.setMaxListeners(Infinity)
     this.quayClient = new QuayClient(
       this.taskTimeoutEventEmitter,
       this.queueStatusChanged,

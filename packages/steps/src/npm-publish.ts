@@ -157,7 +157,7 @@ export async function npmRegistryLogin({
   } else {
     await fse.writeFile(path.join(os.homedir(), '.npmrc'), `//${npmRegistry}/:_authToken=${npmRegistryToken}`)
   }
-  log.verbose(`logged in to npm-registry: "${npmRegistry}"`)
+  log.info(`logged in to npm-registry: "${npmRegistry}"`)
 }
 
 const customConstrain = createConstrain<
