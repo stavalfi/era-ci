@@ -28,7 +28,8 @@ export {
 } from './types'
 
 export function createTaskQueue<
-  TaskQueue extends TaskQueueBase<NormalizedTaskQueueConfigurations>,
+  TaskQueue extends TaskQueueBase<NormalizedTaskQueueConfigurations, WorkerTask>,
+  WorkerTask,
   TaskQueueConfigurations = void,
   NormalizedTaskQueueConfigurations = TaskQueueConfigurations
 >(createTaskQueueOptions: {
@@ -37,7 +38,7 @@ export function createTaskQueue<
   }) => Promise<NormalizedTaskQueueConfigurations>
   taskQueueName: string
   initializeTaskQueue: (options: TaskQueueOptions<NormalizedTaskQueueConfigurations>) => Promise<TaskQueue>
-}): ConfigureTaskQueue<TaskQueueConfigurations, TaskQueue> {
+}): ConfigureTaskQueue<TaskQueueConfigurations, TaskQueue, WorkerTask> {
   return (taskQueueConfigurations: TaskQueueConfigurations) => ({
     taskQueueName: createTaskQueueOptions.taskQueueName,
     createFunc: async ({ logger, log, gitRepoInfo, repoPath }) => {
@@ -56,18 +57,20 @@ export function createTaskQueue<
   })
 }
 
-export function toTaskEvent$(
+export function toTaskEvent$<TaskPayload>(
   taskId: string,
   options: {
-    eventEmitter: TaskQueueEventEmitter
+    eventEmitter: TaskQueueEventEmitter<TaskPayload>
     throwOnTaskNotPassed: boolean
   },
-): Observable<ScheduledTask | RunningTask | AbortedTask | DoneTask> {
+): Observable<
+  ScheduledTask<TaskPayload> | RunningTask<TaskPayload> | AbortedTask<TaskPayload> | DoneTask<TaskPayload>
+> {
   return merge(
-    fromEvent<ScheduledTask>(options.eventEmitter, ExecutionStatus.scheduled),
-    fromEvent<RunningTask>(options.eventEmitter, ExecutionStatus.running),
-    fromEvent<AbortedTask>(options.eventEmitter, ExecutionStatus.aborted),
-    fromEvent<DoneTask>(options.eventEmitter, ExecutionStatus.done),
+    fromEvent<ScheduledTask<TaskPayload>>(options.eventEmitter, ExecutionStatus.scheduled),
+    fromEvent<RunningTask<TaskPayload>>(options.eventEmitter, ExecutionStatus.running),
+    fromEvent<AbortedTask<TaskPayload>>(options.eventEmitter, ExecutionStatus.aborted),
+    fromEvent<DoneTask<TaskPayload>>(options.eventEmitter, ExecutionStatus.done),
   ).pipe(
     filter(e => e.taskInfo.taskId === taskId),
     takeWhile(e => ![ExecutionStatus.aborted, ExecutionStatus.done].includes(e.taskExecutionStatus), true),

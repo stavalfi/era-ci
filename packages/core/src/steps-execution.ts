@@ -25,7 +25,8 @@ type Options = {
   log: Log
   gitRepoInfo: GitRepoInfo
   rootPackageJson: PackageJson
-  taskQueues: Array<TaskQueueBase<unknown>>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  taskQueues: Array<TaskQueueBase<any, any>>
   repoPath: string
   steps: Graph<{ stepInfo: StepInfo }>
   stepsToRun: Graph<{

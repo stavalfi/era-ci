@@ -33,12 +33,14 @@ export async function main(): Promise<void> {
   await startWorker({ ...config, repoPath })
 }
 
-export async function startWorker(
-  config: WorkerConfig & { repoPath: string },
-  logger?: Logger,
-): Promise<{ logFilePath: string; cleanup: () => Promise<void> }> {
+export type Worker = {
+  logFilePath: string
+  cleanup: () => Promise<void>
+}
+
+export async function startWorker(config: WorkerConfig & { repoPath: string }, logger?: Logger): Promise<Worker> {
   const workerName = `${config.queueName}-worker-${chance().hash().slice(0, 8)}`
-  const logFilePath = path.join(config.repoPath, `${workerName}.log`)
+  const logFilePath = logger?.logFilePath ?? path.join(config.repoPath, `${workerName}.log`)
 
   const cleanups: (() => Promise<unknown>)[] = []
 
@@ -111,6 +113,8 @@ export async function startWorker(
       state.receivedFirstTask = true
       state.lastTaskEndedMs = Date.now()
     }
+
+    job.reportProgress(1) // it's to nofity that we started to process this task
 
     const taskLog = finalLogger.createLog(`${workerName}--task-${job.id}`)
 

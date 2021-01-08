@@ -127,7 +127,8 @@ export type StepsResultOfArtifactsByArtifact = Graph<StepsResultOfArtifact>
 
 // ------------------------
 
-export type RunStepOptions<TaskQueue extends TaskQueueBase<unknown>> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RunStepOptions<TaskQueue extends TaskQueueBase<any, any>> = {
   flowId: string
   repoHash: string
   startFlowMs: number
@@ -144,7 +145,8 @@ export type RunStepOptions<TaskQueue extends TaskQueueBase<unknown>> = {
   gitRepoInfo: GitRepoInfo
 }
 
-export type UserRunStepOptions<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = RunStepOptions<
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type UserRunStepOptions<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = RunStepOptions<
   TaskQueue
 > & {
   log: Log
@@ -181,11 +183,13 @@ export type UserStepResult = {
   artifactsResult: Array<UserArtifactResult>
 }
 
-export type RunStepOnArtifacts<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RunStepOnArtifacts<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations>,
 ) => Promise<UserStepResult>
 
-export type RunStepOnArtifact<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RunStepOnArtifact<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations> & {
     currentArtifact: Node<{ artifact: Artifact }>
   },
@@ -194,7 +198,8 @@ export type RunStepOnArtifact<TaskQueue extends TaskQueueBase<unknown>, StepConf
   | Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>, 'durationMs'>
 >
 
-export type RunStepOnRoot<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RunStepOnRoot<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations>,
 ) => Promise<
   | Omit<DoneResult, 'durationMs'>
@@ -214,7 +219,8 @@ export type ArtifactFunctions<StepConfigurations> = {
   onAfterArtifacts?: () => Promise<void>
 }
 
-export type RunStepExperimental<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RunStepExperimental<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations>,
 ) =>
   | ({
@@ -223,7 +229,8 @@ export type RunStepExperimental<TaskQueue extends TaskQueueBase<unknown>, StepCo
   | undefined
   | void
 
-export type StepExperimental<TaskQueue extends TaskQueueBase<unknown>> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type StepExperimental<TaskQueue extends TaskQueueBase<any, any>> = {
   stepName: string
   stepGroup: string
   taskQueueClass: { new (options: TaskQueueOptions<unknown>): TaskQueue }
@@ -240,7 +247,8 @@ export enum RunStrategy {
   experimental = 'experimental',
 }
 
-export type Run<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Run<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = {
   onStepDone?: (options: UserRunStepOptions<TaskQueue, StepConfigurations>) => Promise<void>
 } & (
   | {
@@ -265,7 +273,7 @@ export type Run<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations> = 
 
 export type CreateStepOptionsExperimental<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  TaskQueue extends TaskQueueBase<any>,
+  TaskQueue extends TaskQueueBase<any, any>,
   StepConfigurations = void,
   NormalizedStepConfigurations = StepConfigurations
 > = {

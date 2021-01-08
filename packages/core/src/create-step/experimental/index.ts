@@ -8,7 +8,8 @@ import { runArtifactFunctions } from './run-artifact-functions'
 import { runStepFunctions } from './run-step-functions'
 import { artifactsEventsAbort } from './utils'
 
-function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function runStep<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations>({
   allStepsEventsRecorded$,
   userRunStepOptions,
   run,
@@ -80,7 +81,8 @@ function runStep<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
 }
 
 export function createStepExperimental<
-  TaskQueue extends TaskQueueBase<unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TaskQueue extends TaskQueueBase<any, any>,
   StepConfigurations = void,
   NormalizedStepConfigurations = StepConfigurations
 >(createStepOptions: CreateStepOptionsExperimental<TaskQueue, StepConfigurations, NormalizedStepConfigurations>) {

@@ -48,12 +48,7 @@ async function buildAndPublishArtifact({
     case ExecutionStatus.running:
       throw new Error(`we can't be here15`)
     case ExecutionStatus.aborted:
-      return {
-        executionStatus: ExecutionStatus.aborted,
-        errors: taskResult.taskResult.errors,
-        notes: taskResult.taskResult.notes,
-        status: taskResult.taskResult.status,
-      }
+      return taskResult.taskResult
     case ExecutionStatus.done: {
       const notes = [...taskResult.taskResult.notes]
 

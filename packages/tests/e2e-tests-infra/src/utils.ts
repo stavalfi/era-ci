@@ -122,7 +122,8 @@ export function isDeepSubset<T>(fullObj: T, subset: DeepPartial<T>): boolean {
   }
 }
 
-export function addReportToStepsAsLastNodes<TaskQueue extends TaskQueueBase<unknown>>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function addReportToStepsAsLastNodes<TaskQueue extends TaskQueueBase<any, any>>(
   steps: Config<TaskQueue>['steps'] = [],
 ): Config<TaskQueue>['steps'] {
   const stepsCopy = _.cloneDeep(steps)

@@ -13,7 +13,8 @@ import {
   calculateCombinedStatusOfCurrentStep,
 } from './utils'
 
-export function runArtifactFunctions<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function runArtifactFunctions<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations>({
   allStepsEventsRecorded$,
   startStepMs,
   userRunStepOptions,

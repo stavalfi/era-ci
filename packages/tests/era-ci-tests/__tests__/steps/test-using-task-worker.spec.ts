@@ -3,6 +3,7 @@ import { testUsingTaskWorker } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { startWorker } from '@era-ci/task-worker'
 import { ExecutionStatus, Status } from '@era-ci/utils'
+import { taskWorkerTaskQueue } from '@era-ci/task-queues'
 import chance from 'chance'
 import fs from 'fs'
 
@@ -15,6 +16,14 @@ it('single worker - no packages', async () => {
       packages: [],
     },
     configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
       steps: createLinearStepsGraph([
         testUsingTaskWorker({
           scriptName: 'test',
@@ -44,6 +53,14 @@ it('single worker - no tasks', async () => {
       ],
     },
     configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
       steps: createLinearStepsGraph([
         testUsingTaskWorker({
           scriptName: 'test',
@@ -77,6 +94,14 @@ it('single worker - single task', async () => {
       ],
     },
     configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
       steps: createLinearStepsGraph([
         testUsingTaskWorker({
           scriptName: 'test',
@@ -119,6 +144,14 @@ it('single worker - two tasks', async () => {
       ],
     },
     configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
       steps: createLinearStepsGraph([
         testUsingTaskWorker({
           scriptName: 'test',
@@ -156,6 +189,14 @@ it('two workers - single task - only one worker should execute the task', async 
       ],
     },
     configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
       steps: createLinearStepsGraph([
         testUsingTaskWorker({
           scriptName: 'test',
@@ -211,6 +252,14 @@ it('two workers - one task for each worker', async () => {
       ],
     },
     configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
       steps: createLinearStepsGraph([
         testUsingTaskWorker({
           scriptName: 'test',
@@ -262,6 +311,14 @@ it('reproduce bug - single worker - single task - test should be skipped-as-pass
       ],
     },
     configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
       steps: createLinearStepsGraph([
         testUsingTaskWorker({
           scriptName: 'test',

@@ -4,7 +4,8 @@ import { Artifact, buildFullDockerImageName, ExecutionStatus, Node, Status } fro
 import { DockerPublishConfiguration } from './types'
 
 export async function chooseTagAndPublish<
-  TaskQueue extends TaskQueueBase<unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TaskQueue extends TaskQueueBase<any, any>,
   StepConfigurations extends DockerPublishConfiguration
 >(
   options: UserRunStepOptions<TaskQueue, StepConfigurations> & {
