@@ -13,7 +13,7 @@ import {
   testUsingTaskWorker,
   validatePackages,
 } from './packages/steps/dist/src/index'
-import { localSequentalTaskQueue } from './packages/task-queues/dist/src/index'
+import { localSequentalTaskQueue, taskWorkerTaskQueue } from './packages/task-queues/dist/src/index'
 import { execaCommand } from './packages/utils/dist/src/index'
 
 const {
@@ -35,7 +35,18 @@ const {
 } = process.env
 
 export default config({
-  taskQueues: [localSequentalTaskQueue()],
+  taskQueues: [
+    localSequentalTaskQueue(),
+    taskWorkerTaskQueue({
+      queueName: `queue-${GITHUB_RUN_NUMBER}`,
+      redis: {
+        url: REDIS_ENDPOINT!,
+        auth: {
+          password: REDIS_PASSWORD,
+        },
+      },
+    }),
+  ],
   redis: {
     url: REDIS_ENDPOINT!,
     auth: {

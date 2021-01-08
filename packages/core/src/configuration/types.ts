@@ -10,7 +10,7 @@ export type Config<TaskQueueConfigurations> = {
   taskQueues: Array<{
     taskQueueName: string
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    createFunc: CreateTaskQueue<TaskQueueConfigurations, any>
+    createFunc: CreateTaskQueue<TaskQueueConfigurations, any, any>
   }>
   steps: Graph<{
     stepInfo: StepInfo

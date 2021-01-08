@@ -14,7 +14,8 @@ import {
   stepEventRunning,
 } from './utils'
 
-export async function runStepFunctions<TaskQueue extends TaskQueueBase<unknown>, StepConfigurations>({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function runStepFunctions<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations>({
   allStepsEventsRecorded$,
   startStepMs,
   userRunStepOptions,

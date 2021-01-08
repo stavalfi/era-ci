@@ -1,10 +1,10 @@
 import { StepExperimental } from '@era-ci/core'
 import { Steps } from './types'
 
-export function createTreeStepsGraph<TaskQueueConfigurations>(
+export function createTreeStepsGraph<TaskQueueConfigurations, TaskPayload>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   steps: Array<{ step: StepExperimental<any>; children: number[] }>,
-): Steps<TaskQueueConfigurations> {
+): Steps<TaskQueueConfigurations, TaskPayload> {
   return steps.map(({ step, children }, i, array) => {
     const stepId = `${step.stepName}-${i}`
     const isExistsOnce = array.filter(s => s.step.stepName === step.stepName).length === 1

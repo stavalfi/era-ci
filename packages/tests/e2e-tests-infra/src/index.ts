@@ -73,7 +73,8 @@ type RunCiResult = {
   published: Map<string, ResultingArtifact>
 }
 
-const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const runCi = <TaskQueue extends TaskQueueBase<any, any>>({
   repoPath,
   configurations,
   logFilePath,
@@ -153,14 +154,16 @@ const runCi = <TaskQueue extends TaskQueueBase<unknown>>({
   }
 }
 
-type CreateRepoOptions<TaskQueue extends TaskQueueBase<unknown>> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CreateRepoOptions<TaskQueue extends TaskQueueBase<any, any>> = {
   repo: Repo
   configurations?: Partial<Config<TaskQueue>>
   dontAddReportSteps?: boolean
   logLevel?: LogLevel
 }
 
-export type CreateRepo = <TaskQueue extends TaskQueueBase<unknown>>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type CreateRepo = <TaskQueue extends TaskQueueBase<any, any>>(
   options: CreateRepoOptions<TaskQueue> | ((toActualName: ToActualName) => CreateRepoOptions<TaskQueue>),
 ) => Promise<{
   repoPath: string

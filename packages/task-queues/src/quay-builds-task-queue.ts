@@ -23,6 +23,8 @@ import {
   QuayNotificationEvents,
 } from '@era-ci/quay-client'
 
+export type QuayBuildsTaskPayload = Record<string, never>
+
 export { QuayBuildStatus, QuayNotificationEvents } from '@era-ci/quay-client'
 
 export type QuayBuildsTaskQueueConfigurations = {
@@ -61,7 +63,7 @@ type Task = {
   imageTags: string[]
   taskTimeoutMs: number
   startTaskMs: number
-  taskInfo: TaskInfo
+  taskInfo: TaskInfo<QuayBuildsTaskPayload>
   packageName: string
   quayRepoName: string
   quayRepoVisibility: 'private' | 'public'
@@ -73,8 +75,10 @@ type Task = {
   lastEmittedTaskExecutionStatus?: ExecutionStatus
 }
 
-export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueConfigurations> {
-  public readonly eventEmitter: TaskQueueEventEmitter = new EventEmitter({ captureRejections: true })
+export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueConfigurations, QuayBuildsTaskPayload> {
+  public readonly eventEmitter: TaskQueueEventEmitter<QuayBuildsTaskPayload> = new EventEmitter({
+    captureRejections: true,
+  })
   public readonly taskTimeoutEventEmitter: TaskTimeoutEventEmitter = new EventEmitter({ captureRejections: true })
   private readonly tasks: Map<string, Task> = new Map()
   private isQueueActive = true
@@ -256,13 +260,13 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       imageTags: string[]
       taskTimeoutMs: number
     }[],
-  ): TaskInfo[] {
+  ): TaskInfo<QuayBuildsTaskPayload>[] {
     const startTaskMs = Date.now()
     if (!this.isQueueActive) {
       throw new Error(`task-queue was destroyed so you can not add new tasks to it`)
     }
 
-    const tasks: TaskInfo[] = []
+    const tasks: TaskInfo<QuayBuildsTaskPayload>[] = []
 
     for (const taskOptions of tasksOptions) {
       const p1 = path.join(this.options.repoPath, taskOptions.relativeContextPath)
@@ -283,13 +287,14 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         )
       }
 
-      const taskInfo: TaskInfo = {
+      const taskInfo: TaskInfo<QuayBuildsTaskPayload> = {
         taskName: `${taskOptions.packageName}-docker-image`,
         // for now, we support triggering a build on the same image+tag multiple
         // times because maybe the caller may have retry algorithm so the taskId must be random.
         // later on, we may stop supporting it and the taskId will be deterministic to make sure
         // that we don't trigger the same build multiple times. and the task-ids will be saved in redis(?).
         taskId: chance().hash().slice(0, 8),
+        payload: {},
       }
 
       tasks.push(taskInfo)
@@ -512,7 +517,11 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
   }
 }
 
-export const quayBuildsTaskQueue = createTaskQueue<QuayBuildsTaskQueue, QuayBuildsTaskQueueConfigurations>({
+export const quayBuildsTaskQueue = createTaskQueue<
+  QuayBuildsTaskQueue,
+  QuayBuildsTaskPayload,
+  QuayBuildsTaskQueueConfigurations
+>({
   taskQueueName: 'quay-builds-task-queue',
   initializeTaskQueue: async options => {
     const redisConnection = new Redis(options.taskQueueConfigurations.redis.url, {

@@ -5,11 +5,13 @@ import { createTaskQueue, TaskInfo, TaskQueueBase, TaskQueueEventEmitter, TaskQu
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import { serializeError } from 'serialize-error'
 
-type ProccessedTask = { taskInfo: TaskInfo; func: () => Promise<void>; startMs: number }
+export type LocalSequentalTaskPayload = Record<string, never>
+
+type ProccessedTask = { taskInfo: TaskInfo<LocalSequentalTaskPayload>; func: () => Promise<void>; startMs: number }
 
 type Func = () => Promise<void>
-export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
-  public readonly eventEmitter: TaskQueueEventEmitter = new EventEmitter({
+export class LocalSequentalTaskQueue implements TaskQueueBase<void, LocalSequentalTaskPayload> {
+  public readonly eventEmitter: TaskQueueEventEmitter<LocalSequentalTaskPayload> = new EventEmitter({
     captureRejections: true,
   })
   private readonly queueState = { isQueueKilled: false }
@@ -35,7 +37,9 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
    * this operation is not async to ensure that the caller can do other stuff before any of the tasks are executed
    * @param tasksOptions tasks array to preform
    */
-  public addTasksToQueue(tasksOptions: ({ taskName: string; func: Func } | Func)[]): TaskInfo[] {
+  public addTasksToQueue(
+    tasksOptions: ({ taskName: string; func: Func } | Func)[],
+  ): TaskInfo<LocalSequentalTaskPayload>[] {
     const taskOptionsNormalized: { taskName: string; func: Func }[] = tasksOptions.map(t =>
       typeof t === 'function' ? { taskName: 'anonymous-task', func: t } : t,
     )
@@ -47,9 +51,10 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
       )
     }
 
-    const tasks: TaskInfo[] = taskOptionsNormalized.map(taskOptions => ({
+    const tasks: TaskInfo<LocalSequentalTaskPayload>[] = taskOptionsNormalized.map(taskOptions => ({
       taskName: taskOptions.taskName,
       taskId: chance().hash().slice(0, 8),
+      payload: {},
     }))
 
     this.internalTaskQueue.push(async () => {
@@ -153,7 +158,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void> {
   }
 }
 
-export const localSequentalTaskQueue = createTaskQueue<LocalSequentalTaskQueue>({
+export const localSequentalTaskQueue = createTaskQueue<LocalSequentalTaskQueue, LocalSequentalTaskPayload>({
   taskQueueName: 'local-sequental-task-queue',
   initializeTaskQueue: async options => new LocalSequentalTaskQueue(options),
 })

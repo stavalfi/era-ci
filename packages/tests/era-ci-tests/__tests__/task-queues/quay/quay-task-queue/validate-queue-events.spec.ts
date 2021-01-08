@@ -1,7 +1,7 @@
 import { isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { AbortedTask, DoneTask, RunningTask, ScheduledTask, toTaskEvent$ } from '@era-ci/core'
 import { ExecutionStatus, Status } from '@era-ci/utils'
-import { QuayBuildsTaskQueue } from '@era-ci/task-queues'
+import { QuayBuildsTaskPayload, QuayBuildsTaskQueue } from '@era-ci/task-queues'
 import fs from 'fs'
 import path from 'path'
 import { first, map, toArray } from 'rxjs/operators'
@@ -143,7 +143,7 @@ RUN exit 1
   const doneEvent = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.done),
-      map(e => e as DoneTask),
+      map(e => e as DoneTask<QuayBuildsTaskPayload>),
     )
     .toPromise()
 
@@ -171,7 +171,11 @@ test('events schema is valid', async () => {
   })
     .pipe(
       toArray(),
-      map(array => [array[0] as ScheduledTask, array[1] as RunningTask, array[2] as DoneTask]),
+      map(array => [
+        array[0] as ScheduledTask<QuayBuildsTaskPayload>,
+        array[1] as RunningTask<QuayBuildsTaskPayload>,
+        array[2] as DoneTask<QuayBuildsTaskPayload>,
+      ]),
     )
     .toPromise()
 
@@ -230,7 +234,7 @@ RUN exit 1
   const done = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.done),
-      map(e => e as DoneTask),
+      map(e => e as DoneTask<QuayBuildsTaskPayload>),
     )
     .toPromise()
 
@@ -355,7 +359,7 @@ RUN sleep 10000 # make sure that this task will not end
   const abort = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.aborted),
-      map(e => e as AbortedTask),
+      map(e => e as AbortedTask<QuayBuildsTaskPayload>),
     )
     .toPromise()
 

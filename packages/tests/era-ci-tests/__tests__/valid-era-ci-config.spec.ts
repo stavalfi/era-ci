@@ -29,7 +29,7 @@ test('no steps and no task-queues in config is considered as valid', async () =>
 })
 
 test('should throw error if user forgot to declare a task-queue which one of the steps needs', async () => {
-  class MissingTaskQueue implements TaskQueueBase<void> {
+  class MissingTaskQueue implements TaskQueueBase<void, void> {
     public readonly eventEmitter = new EventEmitter()
     async cleanup() {
       //
