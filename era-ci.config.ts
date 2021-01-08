@@ -17,7 +17,7 @@ import { localSequentalTaskQueue, taskWorkerTaskQueue } from './packages/task-qu
 import { execaCommand } from './packages/utils/dist/src/index'
 
 const {
-  NPM_REGISTRY = 'http://localhost:34873/',
+  NPM_REGISTRY = 'http://localhost:34873',
   NPM_USERNAME = 'root',
   NPM_TOKEN = 'root',
   NPM_EMAIL = 'root@root.root',
