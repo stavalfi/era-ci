@@ -66,8 +66,8 @@ export default config({
     buildRoot({ scriptName: 'build' }),
     test({
       scriptName: 'test',
-      beforeAll: ({ log, repoPath }) =>
-        execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
+      beforeAll: async ({ log, repoPath }) =>
+        CI === 'true' && execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
       afterAll: async ({ log, repoPath }) =>
         CI === 'true' && execaCommand(`yarn test-resources:down`, { cwd: repoPath, log, stdio: 'inherit' }),
     }),
