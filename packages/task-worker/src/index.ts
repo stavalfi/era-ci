@@ -1,4 +1,4 @@
-import { LogLevel } from '@era-ci/core'
+import { Logger, LogLevel } from '@era-ci/core'
 import { winstonLogger } from '@era-ci/loggers'
 import { DoneResult, execaCommand, ExecutionStatus, Status } from '@era-ci/utils'
 import Queue from 'bee-queue'
@@ -35,16 +35,19 @@ export async function main(): Promise<void> {
 
 export async function startWorker(
   config: WorkerConfig & { repoPath: string },
-): Promise<{ cleanup: () => Promise<void> }> {
+  logger?: Logger,
+): Promise<{ logFilePath: string; cleanup: () => Promise<void> }> {
   const workerName = `${config.queueName}-worker-${chance().hash().slice(0, 8)}`
+  const logFilePath = path.join(config.repoPath, `${workerName}.log`)
 
   const cleanups: (() => Promise<unknown>)[] = []
 
-  const logger = await winstonLogger({
-    customLogLevel: LogLevel.trace,
-    logFilePath: path.join(config.repoPath, `${workerName}.log`),
-    disableFileOutput: true,
-  }).callInitializeLogger({ repoPath: config.repoPath })
+  const finalLogger =
+    logger ||
+    (await winstonLogger({
+      customLogLevel: LogLevel.trace,
+      logFilePath,
+    }).callInitializeLogger({ repoPath: config.repoPath }))
 
   const queue = new Queue<WorkerTask>(config.queueName, {
     redis: {
@@ -72,7 +75,7 @@ export async function startWorker(
     lastTaskEndedMs: Date.now(),
   }
 
-  const workerLog = logger.createLog(workerName)
+  const workerLog = finalLogger.createLog(workerName)
 
   const intervalId = setInterval(async () => {
     const timePassedUntilNowMs = Date.now() - state.lastTaskEndedMs
@@ -109,7 +112,7 @@ export async function startWorker(
       state.lastTaskEndedMs = Date.now()
     }
 
-    const taskLog = logger.createLog(`${workerName}--task-${job.id}`)
+    const taskLog = finalLogger.createLog(`${workerName}--task-${job.id}`)
 
     taskLog.info('----------------------------------')
     taskLog.info(`started task`)
@@ -146,6 +149,7 @@ export async function startWorker(
   })
 
   return {
+    logFilePath,
     cleanup,
   }
 }
