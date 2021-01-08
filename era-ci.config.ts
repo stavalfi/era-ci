@@ -17,14 +17,14 @@ import { localSequentalTaskQueue, taskWorkerTaskQueue } from './packages/task-qu
 import { execaCommand } from './packages/utils/dist/src/index'
 
 const {
-  NPM_REGISTRY = 'https://registry.npmjs.org/',
-  NPM_USERNAME,
-  NPM_TOKEN,
-  NPM_EMAIL = 'stavalfi@gmail.com',
+  NPM_REGISTRY = 'http://localhost:34873/',
+  NPM_USERNAME = 'root',
+  NPM_TOKEN = 'root',
+  NPM_EMAIL = 'root@root.root',
   DOCKER_HUB_USERNAME,
   DOCKER_HUB_TOKEN,
-  DOCKER_ORG = 'stavalfi',
-  DOCKER_REGISTRY = `https://registry.hub.docker.com/`,
+  DOCKER_ORG = 'local-run-org',
+  DOCKER_REGISTRY = `http://localhost:35000`,
   REDIS_ENDPOINT = 'redis://localhost:36379',
   REDIS_ACL_USERNAME,
   REDIS_ACL_PASSWORD,
@@ -72,7 +72,7 @@ export default config({
         CI === 'true' && execaCommand(`yarn test-resources:down`, { cwd: repoPath, log, stdio: 'inherit' }),
     }),
     npmPublish({
-      isStepEnabled: false,
+      isStepEnabled: CI === 'false',
       npmScopeAccess: NpmScopeAccess.public,
       registry: NPM_REGISTRY,
       publishAuth: {
@@ -81,16 +81,16 @@ export default config({
         token: NPM_TOKEN!,
       },
     }),
-    dockerPublish({
-      isStepEnabled: false,
-      dockerOrganizationName: DOCKER_ORG,
-      registry: DOCKER_REGISTRY,
-      registryAuth: {
-        username: DOCKER_HUB_USERNAME!,
-        token: DOCKER_HUB_TOKEN!,
-      },
-      buildAndPushOnlyTempVersion: false,
-    }),
+    // dockerPublish({
+    //   isStepEnabled: CI === 'false',
+    //   dockerOrganizationName: DOCKER_ORG,
+    //   registry: DOCKER_REGISTRY,
+    //   registryAuth: {
+    //     username: DOCKER_HUB_USERNAME!,
+    //     token: DOCKER_HUB_TOKEN!,
+    //   },
+    //   buildAndPushOnlyTempVersion: false,
+    // }),
     jsonReporter(),
     cliTableReporter(),
   ]),

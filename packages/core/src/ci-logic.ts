@@ -21,6 +21,9 @@ export async function ci<TaskQueue>(options: {
   passed: boolean
   fatalError: boolean
 }> {
+  process.stdout.setMaxListeners(Infinity)
+  process.stderr.setMaxListeners(Infinity)
+
   const cleanups: Cleanup[] = []
   const flowId = chance().hash().slice(0, 8)
   let fatalError: boolean

@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "test": "jest __tests__/steps/test-using-task-worker.spec.ts"
+    "test": "# jest __tests__/steps/test.spec.ts"
   },
   "devDependencies": {
     "@era-ci/constrains": "^2.0.0",

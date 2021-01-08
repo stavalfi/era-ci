@@ -304,6 +304,7 @@ it('reproduce bug - single worker - single task - test should be skipped-as-pass
   })
 
   await runCi()
+
   const { jsonReport } = await runCi()
 
   expect(

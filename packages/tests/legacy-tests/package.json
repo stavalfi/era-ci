@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "test": "jest __tests__/pr-build.spec.ts"
+    "test": "# jest __tests__/pr-build.spec.ts"
   },
   "dependencies": {
     "@era-ci/core": "^2.0.0",

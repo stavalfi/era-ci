@@ -3,6 +3,7 @@ import { startWorker, Worker, WorkerTask } from '@era-ci/task-worker'
 import { DoneResult, ExecutionStatus, Status } from '@era-ci/utils'
 import { queue } from 'async'
 import Queue from 'bee-queue'
+import chance from 'chance'
 import { EventEmitter } from 'events'
 import { serializeError } from 'serialize-error'
 
@@ -60,7 +61,7 @@ export class TaskWorkerTaskQueue implements TaskQueueBase<TaskWorkerTaskQueueCon
       })
 
       const taskInfo: TaskInfo<WorkerTask> = {
-        taskId: task.id,
+        taskId: chance().hash().slice(0, 8),
         taskName: taskOption.taskName,
         payload: taskOption,
       }
@@ -122,6 +123,13 @@ export class TaskWorkerTaskQueue implements TaskQueueBase<TaskWorkerTaskQueueCon
 
     this.isQueueActive = false
     this.options.log.verbose(`closing quay-builds task-queue and aborting scheduled and running tasks`)
+
+    if (!this.internalTaskQueue.idle()) {
+      // drain will not resolve if the queue is empty so we drain if it's not empty
+      await this.internalTaskQueue.drain()
+    }
+    this.internalTaskQueue.kill()
+
     await Promise.allSettled(this.cleanups.map(f => f()))
 
     // TODO: wait until all tasks are finished, add timeout, report on "waiting" tasks as aborted.
