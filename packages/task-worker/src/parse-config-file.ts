@@ -1,5 +1,7 @@
 import execa from 'execa'
 import path from 'path'
+import fse from 'fs-extra'
+import chance from 'chance'
 import { Describe, is, number, object, optional, string, validate } from 'superstruct'
 import { WorkerConfig } from './types'
 
@@ -25,7 +27,10 @@ function validateConfiguration(configuration: unknown): configuration is WorkerC
 }
 
 export async function parseConfig(ciConfigFilePath: string): Promise<WorkerConfig> {
-  const outputFilePath = path.join(path.dirname(ciConfigFilePath), `compiled-task-worker.config.js`)
+  const outputFilePath = path.join(
+    path.dirname(ciConfigFilePath),
+    `compiled-task-worker-${chance().hash().slice(0, 8)}.config.js`,
+  )
   const swcConfigFile = require.resolve('@era-ci/task-worker/.era-ci-swcrc.config')
   const swcPath = require.resolve('.bin/swc')
   const command = `${swcPath} ${ciConfigFilePath} -o ${outputFilePath} --config-file ${swcConfigFile}`
@@ -37,9 +42,9 @@ export async function parseConfig(ciConfigFilePath: string): Promise<WorkerConfi
   const result = (await import(outputFilePath)).default
   const configuration = result.default ?? result
 
-  // await fse.remove(outputFilePath).catch(() => {
-  //   // ignore error
-  // })
+  await fse.remove(outputFilePath).catch(() => {
+    // ignore error
+  })
 
   if (validateConfiguration(configuration)) {
     return configuration

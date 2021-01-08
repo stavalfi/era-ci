@@ -3,6 +3,8 @@ import path from 'path'
 import { array, func, is, number, object, optional, string, validate } from 'superstruct'
 import { TaskQueueBase } from '../create-task-queue'
 import { Config } from './types'
+import chance from 'chance'
+import fse from 'fs-extra'
 
 /**
  * ensures type safty of task-queues by only allowing steps thats uses task-queues which are declared in `task-queues` array.
@@ -57,7 +59,10 @@ function validateConfiguration<TaskQueue>(configuration: unknown): configuration
 }
 
 export async function readNcConfigurationFile<TaskQueue>(ciConfigFilePath: string): Promise<Config<TaskQueue>> {
-  const outputFilePath = path.join(path.dirname(ciConfigFilePath), `compiled-era-ci.config.js`)
+  const outputFilePath = path.join(
+    path.dirname(ciConfigFilePath),
+    `compiled-era-ci-${chance().hash().slice(0, 8)}.config.js`,
+  )
   const swcConfigFile = require.resolve('@era-ci/core/.era-ci-swcrc.config')
   const swcPath = require.resolve('.bin/swc')
   const command = `${swcPath} ${ciConfigFilePath} -o ${outputFilePath} --config-file ${swcConfigFile}`
@@ -69,9 +74,9 @@ export async function readNcConfigurationFile<TaskQueue>(ciConfigFilePath: strin
   const result = (await import(outputFilePath)).default
   const configuration = result.default ?? result
 
-  // await fse.remove(outputFilePath).catch(() => {
-  //   // ignore error
-  // })
+  await fse.remove(outputFilePath).catch(() => {
+    // ignore error
+  })
 
   if (validateConfiguration<TaskQueue>(configuration)) {
     return configuration

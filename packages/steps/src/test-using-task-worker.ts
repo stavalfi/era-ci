@@ -9,7 +9,6 @@ import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { startWorker, WorkerTask } from '@era-ci/task-worker'
 import { DoneResult } from '@era-ci/utils'
 import Queue from 'bee-queue'
-import Redis from 'ioredis'
 import _ from 'lodash'
 
 export type TestUsingTaskWorkerConfigurations = {
@@ -38,17 +37,7 @@ export const testUsingTaskWorker = createStepExperimental<LocalSequentalTaskQueu
   taskQueueClass: LocalSequentalTaskQueue,
   run: options => {
     let taskWorkerCleanup: () => Promise<unknown>
-    const redisConnection = new Redis(options.stepConfigurations.redis.url, {
-      password: options.stepConfigurations.redis.auth?.password,
-    })
-    const queue = new Queue<WorkerTask>(options.stepConfigurations.queueName, {
-      redis: {
-        url: options.stepConfigurations.redis.url,
-        password: options.stepConfigurations.redis.auth?.password,
-      },
-      removeOnSuccess: true,
-      removeOnFailure: true,
-    })
+    let queue: Queue<WorkerTask>
     return {
       stepConstrains: [
         skipIfStepResultMissingOrFailedInCacheConstrain({
@@ -65,22 +54,33 @@ export const testUsingTaskWorker = createStepExperimental<LocalSequentalTaskQueu
         artifact =>
           skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
             currentArtifact: artifact,
-            stepNameToSearchInCache: 'test-by-task-worker',
+            stepNameToSearchInCache: 'test-using-task-worker',
           }),
         artifact =>
           skipIfArtifactStepResultMissingOrPassedInCacheConstrain({
             currentArtifact: artifact,
-            stepNameToSearchInCache: 'test-by-task-worker',
+            stepNameToSearchInCache: 'test-using-task-worker',
           }),
       ],
       onBeforeArtifacts: async () => {
-        const result = await startWorker({
-          queueName: options.stepConfigurations.queueName,
-          repoPath: options.repoPath,
-          maxWaitMsWithoutTasks: 300_000,
-          maxWaitMsUntilFirstTask: 300_000,
-          redis: options.stepConfigurations.redis,
+        queue = new Queue<WorkerTask>(options.stepConfigurations.queueName, {
+          redis: {
+            url: options.stepConfigurations.redis.url,
+            password: options.stepConfigurations.redis.auth?.password,
+          },
+          removeOnSuccess: true,
+          removeOnFailure: true,
         })
+        const result = await startWorker(
+          {
+            queueName: options.stepConfigurations.queueName,
+            repoPath: options.repoPath,
+            maxWaitMsWithoutTasks: 300_000,
+            maxWaitMsUntilFirstTask: 300_000,
+            redis: options.stepConfigurations.redis,
+          },
+          options.logger,
+        )
         taskWorkerCleanup = result.cleanup
         if (options.stepConfigurations.beforeAll) {
           await options.stepConfigurations.beforeAll(_.omit(options, 'stepConfigurations'))
@@ -100,8 +100,8 @@ export const testUsingTaskWorker = createStepExperimental<LocalSequentalTaskQueu
         if (options.stepConfigurations.afterAll) {
           await options.stepConfigurations.afterAll(_.omit(options, 'stepConfigurations'))
         }
-        redisConnection.disconnect()
         await taskWorkerCleanup()
+        await queue.close()
       },
     }
   },

@@ -2,6 +2,8 @@ import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { lintRoot } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { ExecutionStatus, Status } from '@era-ci/utils'
+import fs from 'fs'
+import path from 'path'
 
 const { createRepo } = createTest()
 
@@ -125,6 +127,67 @@ it('ensure lint-root skipped-as-passed in second run (when there are no changes 
                   artifactStepResult: {
                     executionStatus: ExecutionStatus.aborted,
                     status: Status.skippedAsPassed,
+                  },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    }),
+  ).toBeTruthy()
+})
+
+it('reproduce bug - lint-root should run if hash of one of the packages change', async () => {
+  const { runCi, repoPath, toActualName } = await createRepo({
+    repo: {
+      rootPackageJson: {
+        scripts: {
+          lint: 'echo hi123',
+        },
+      },
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          additionalFiles: {
+            file1: '',
+          },
+        },
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([lintRoot({ scriptName: 'lint' })]),
+    },
+  })
+
+  await runCi() // should run because its the first run
+
+  await runCi() // should skip because all the hashes are the same
+
+  await fs.promises.writeFile(path.join(repoPath, 'packages', toActualName('a'), 'file1'), 'hi', 'utf-8')
+
+  const { jsonReport } = await runCi() // should run because the hash of one of the packages changed.
+
+  expect(
+    isDeepSubset(jsonReport, {
+      flowResult: {
+        executionStatus: ExecutionStatus.done,
+        status: Status.passed,
+      },
+      stepsResultOfArtifactsByStep: [
+        {
+          data: {
+            stepResult: {
+              executionStatus: ExecutionStatus.done,
+              status: Status.passed,
+            },
+            artifactsResult: [
+              {
+                data: {
+                  artifactStepResult: {
+                    executionStatus: ExecutionStatus.done,
+                    status: Status.passed,
                   },
                 },
               },

@@ -25,11 +25,12 @@ const {
   DOCKER_HUB_TOKEN,
   DOCKER_ORG = 'stavalfi',
   DOCKER_REGISTRY = `https://registry.hub.docker.com/`,
-  REDIS_ENDPOINT,
+  REDIS_ENDPOINT = 'redis://localhost:36379',
   REDIS_ACL_USERNAME,
   REDIS_ACL_PASSWORD,
   REDIS_PASSWORD,
-  GITHUB_RUN_NUMBER,
+  GITHUB_RUN_NUMBER = 'local-run',
+  CI = 'false',
   // eslint-disable-next-line no-process-env
 } = process.env
 
@@ -63,8 +64,8 @@ export default config({
       },
       beforeAll: ({ log, repoPath }) =>
         execaCommand(`yarn test-resources:up`, { cwd: repoPath, log, stdio: 'inherit' }),
-      afterAll: ({ log, repoPath }) =>
-        execaCommand(`yarn test-resources:down`, { cwd: repoPath, log, stdio: 'inherit' }),
+      afterAll: async ({ log, repoPath }) =>
+        CI === 'true' && execaCommand(`yarn test-resources:down`, { cwd: repoPath, log, stdio: 'inherit' }),
     }),
     npmPublish({
       isStepEnabled: false,
