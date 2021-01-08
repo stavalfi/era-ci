@@ -2,10 +2,12 @@ import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { lintRoot } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { ExecutionStatus, Status } from '@era-ci/utils'
+import { taskWorkerTaskQueue } from '@era-ci/task-queues'
 import fs from 'fs'
 import path from 'path'
+import chance from 'chance'
 
-const { createRepo } = createTest()
+const { createRepo, getResources } = createTest()
 
 it('ensure lint-root runs', async () => {
   const { runCi } = await createRepo({
@@ -23,6 +25,14 @@ it('ensure lint-root runs', async () => {
       ],
     },
     configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName: `queue-${chance().hash().slice(0, 8)}`,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
       steps: createLinearStepsGraph([lintRoot({ scriptName: 'lint' })]),
     },
   })
@@ -48,6 +58,14 @@ it('ensure lint-root pass successfully', async () => {
       ],
     },
     configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName: `queue-${chance().hash().slice(0, 8)}`,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
       steps: createLinearStepsGraph([lintRoot({ scriptName: 'lint' })]),
     },
   })
@@ -100,6 +118,14 @@ it('ensure lint-root skipped-as-passed in second run (when there are no changes 
       ],
     },
     configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName: `queue-${chance().hash().slice(0, 8)}`,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
       steps: createLinearStepsGraph([lintRoot({ scriptName: 'lint' })]),
     },
   })
@@ -157,6 +183,14 @@ it('reproduce bug - lint-root should run if hash of one of the packages change',
       ],
     },
     configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName: `queue-${chance().hash().slice(0, 8)}`,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
       steps: createLinearStepsGraph([lintRoot({ scriptName: 'lint' })]),
     },
   })

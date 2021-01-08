@@ -1,6 +1,6 @@
 import { config, LogLevel } from '@era-ci/core'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
-import { localSequentalTaskQueue } from '@era-ci/task-queues'
+import { localSequentalTaskQueue, taskWorkerTaskQueue } from '@era-ci/task-queues'
 import { winstonLogger } from '@era-ci/loggers'
 import {
   buildRoot,
@@ -13,6 +13,7 @@ import {
   validatePackages,
   test,
 } from '@era-ci/steps'
+import chance from 'chance'
 
 const {
   SHOULD_PUBLISH_NPM,
@@ -68,7 +69,15 @@ const steps = createLinearStepsGraph([
 ])
 
 export default config({
-  taskQueues: [localSequentalTaskQueue()],
+  taskQueues: [
+    localSequentalTaskQueue(),
+    taskWorkerTaskQueue({
+      queueName: `queue-${chance().hash().slice(0, 8)}`,
+      redis: {
+        url: REDIS_ENDPOINT!,
+      },
+    }),
+  ],
   steps,
   redis: {
     url: REDIS_ENDPOINT!,
