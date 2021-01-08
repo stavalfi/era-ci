@@ -16,7 +16,8 @@
     "build": "yarn build:tsc && chmod +x packages/core/dist/src/index.js",
     "build:watch": "yarn build:tsc --watch",
     "test-resources:up": "docker-compose -f ./packages/tests/legacy-tests/__tests__/prepare-test/docker-compose.yml up -d",
-    "test-resources:down": "docker-compose -f ./packages/tests/legacy-tests/__tests__/prepare-test/docker-compose.yml down"
+    "test-resources:down": "docker-compose -f ./packages/tests/legacy-tests/__tests__/prepare-test/docker-compose.yml down",
+    "test-resources:reset": "yarn test-resources:down && yarn test-resources:up"
   },
   "repository": {
     "url": "https://github.com/stavalfi/era-ci"
