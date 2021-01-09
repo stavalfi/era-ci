@@ -306,7 +306,6 @@ export const jsonReporter = createStepExperimental({
       })
 
       const jsonReportTtl = immutableCache.ttls.ArtifactStepResult
-
       await immutableCache.set({
         key: jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
         value: jsonReportToString({ jsonReport }),

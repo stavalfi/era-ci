@@ -20,7 +20,10 @@ export function createTreeStepsGraph<TaskQueueConfigurations, TaskPayload>(
         taskQueueClass: step.taskQueueClass,
         runStep: step.runStep,
       },
-      parentsIndexes: array.filter(s => s.children.includes(i)).map((_, parentIndex) => parentIndex),
+      parentsIndexes: array
+        .map((step, index) => ({ step, index }))
+        .filter(({ step }) => step.children.includes(i))
+        .map(({ index }) => index),
       childrenIndexes: children,
     }
   })

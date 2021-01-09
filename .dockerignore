@@ -5,3 +5,4 @@ compiled-era-ci.config.js
 compiled-task-worker.config.js
 *.log
 .eslintcache
+compiled-era-ci-*

@@ -1,4 +1,5 @@
 // #!/usr/bin/env node --unhandled-rejections=strict
+/* eslint-disable no-console */
 
 /// <reference path="../../../declarations.d.ts" />
 
@@ -21,14 +22,15 @@ async function main() {
   try {
     // eslint-disable-next-line no-process-env
     await startCli(process.argv, process.env)
+  } catch (error: unknown) {
+    console.error(`CI failed unexpectedly`, error)
+    throw error
   } finally {
     // eslint-disable-next-line no-process-env
     if (process.env.NC_TEST_MODE) {
       // jest don't show last two console logs so we add this as a workaround
       // so we can see the *actual* two last console logs.
-      // eslint-disable-next-line no-console
       console.log('---------------------------')
-      // eslint-disable-next-line no-console
       console.log('---------------------------')
     }
   }
