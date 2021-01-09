@@ -62,24 +62,31 @@ export default config({
     {
       // 0
       step: validatePackages(),
-      children: [6],
+      children: [5],
     },
     {
       // 1
-      step: npmPublish({
-        isStepEnabled: CI === 'false',
-        npmScopeAccess: NpmScopeAccess.public,
-        registry: NPM_REGISTRY,
-        publishAuth: {
-          email: NPM_EMAIL,
-          username: NPM_USERNAME!,
-          token: NPM_TOKEN!,
-        },
-      }),
-      children: [6],
+      step: lintRoot({ scriptName: 'lint:code' }),
+      children: [5],
     },
     {
       // 2
+      step: buildRoot({ scriptName: 'build' }),
+      children: [5],
+    },
+    {
+      // 3
+      step: test({
+        scriptName: 'test',
+        workerBeforeAll: {
+          shellCommand: 'yarn test-resources:up',
+          cwd: __dirname,
+        },
+      }),
+      children: [5],
+    },
+    {
+      // 4
       step: dockerPublish({
         isStepEnabled: CI === 'false',
         dockerOrganizationName: DOCKER_ORG,
@@ -90,25 +97,18 @@ export default config({
         },
         buildAndPushOnlyTempVersion: false,
       }),
-      children: [6],
-    },
-    {
-      // 3
-      step: lintRoot({ scriptName: 'lint:code' }),
-      children: [6],
-    },
-    {
-      // 4
-      step: buildRoot({ scriptName: 'build' }),
-      children: [6],
+      children: [5],
     },
     {
       // 5
-      step: test({
-        scriptName: 'test',
-        workerBeforeAll: {
-          shellCommand: 'yarn test-resources:up',
-          cwd: __dirname,
+      step: npmPublish({
+        isStepEnabled: CI === 'false',
+        npmScopeAccess: NpmScopeAccess.public,
+        registry: NPM_REGISTRY,
+        publishAuth: {
+          email: NPM_EMAIL,
+          username: NPM_USERNAME!,
+          token: NPM_TOKEN!,
         },
       }),
       children: [6],
