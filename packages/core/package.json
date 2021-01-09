@@ -11,7 +11,7 @@
     ".era-ci-swcrc.config"
   ],
   "bin": {
-    "nera-cic-ci": "./dist/src/index.js"
+    "era-ci": "./dist/src/index.js"
   },
   "types": "dist/src/index.d.ts",
   "dependencies": {

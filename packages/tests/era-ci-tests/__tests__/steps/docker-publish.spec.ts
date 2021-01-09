@@ -233,3 +233,35 @@ test('publish with semver-tag twice', async () => {
     [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
   )
 })
+
+test('artifact package-json name has @ symbol', async () => {
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: '@scope1/a1',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [localSequentalTaskQueue()],
+      steps: createLinearStepsGraph([
+        dockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          registry: getResources().dockerRegistry,
+          imageInstallArtifactsFromNpmRegistry: true,
+          buildAndPushOnlyTempVersion: true,
+        }),
+      ]),
+    },
+  })
+
+  const { published, jsonReport } = await runCi()
+
+  expect(published.get('@scope1/a1')?.docker.tags).toEqual([
+    `artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`,
+  ])
+})

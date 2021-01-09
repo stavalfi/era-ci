@@ -1,4 +1,5 @@
 import ciInfo from 'ci-info'
+import { distructPackageJsonName } from '@era-ci/utils'
 import execa, { StdioOption } from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
@@ -122,7 +123,7 @@ export async function runCiUsingConfigFile({
             publishedNpmPackageVersions(packageName, npmRegistry.address),
             latestNpmPackageVersion(packageName, npmRegistry.address),
             publishedDockerImageTags({
-              imageName: packageName,
+              imageName: distructPackageJsonName(packageName).name,
               dockerOrganizationName,
               dockerRegistry,
             }),

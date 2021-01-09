@@ -124,10 +124,6 @@ export async function getPackages({
     .map(relativePackagePath => path.join(repoPath, relativePackagePath))
 }
 
-const buildDockerImageName = (packageJsonName: string) => {
-  return packageJsonName.replace('/', '-').replace('@', '')
-}
-
 export const buildFullDockerImageName = ({
   dockerOrganizationName,
   dockerRegistry,
@@ -140,9 +136,9 @@ export const buildFullDockerImageName = ({
   imageTag?: string
 }): string => {
   const withImageTag = imageTag ? `:${imageTag}` : ''
-  return `${dockerRegistry
-    .replace(`http://`, '')
-    .replace(`https://`, '')}/${dockerOrganizationName}/${buildDockerImageName(imageName)}${withImageTag}`
+  return `${dockerRegistry.replace(`http://`, '').replace(`https://`, '')}/${dockerOrganizationName}/${
+    distructPackageJsonName(imageName).name
+  }${withImageTag}`
 }
 
 export async function getGitRepoInfo(
@@ -167,6 +163,15 @@ export async function getGitRepoInfo(
     commit: headCommit,
     repoName: gitInfo.name,
     repoNameWithOrgName: gitInfo.full_name,
+  }
+}
+
+export function distructPackageJsonName(packageJsonName: string): { name: string; scope?: string } {
+  if (packageJsonName.includes('@')) {
+    const [scope, name] = packageJsonName.split('/')
+    return { scope, name }
+  } else {
+    return { name: packageJsonName }
   }
 }
 

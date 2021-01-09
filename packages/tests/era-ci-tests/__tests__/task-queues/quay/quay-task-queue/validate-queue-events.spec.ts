@@ -1,6 +1,6 @@
 import { isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { AbortedTask, DoneTask, RunningTask, ScheduledTask, toTaskEvent$ } from '@era-ci/core'
-import { ExecutionStatus, Status } from '@era-ci/utils'
+import { distructPackageJsonName, ExecutionStatus, Status } from '@era-ci/utils'
 import { QuayBuildsTaskPayload, QuayBuildsTaskQueue } from '@era-ci/task-queues'
 import fs from 'fs'
 import path from 'path'
@@ -42,7 +42,7 @@ test('task is executed and we expect the docker-image to be presentin the regist
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResources().packages.package1.name,
-      repoName: getResources().packages.package1.name,
+      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
@@ -66,7 +66,7 @@ test('scheduled and running events are fired', async () => {
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResources().packages.package1.name,
-      repoName: getResources().packages.package1.name,
+      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
@@ -86,7 +86,7 @@ test('illegal parameter - relativeContextPath', async () => {
     taskQueue.addTasksToQueue([
       {
         packageName: getResources().packages.package1.name,
-        repoName: getResources().packages.package1.name,
+        repoName: distructPackageJsonName(getResources().packages.package1.name).name,
         visibility: 'public',
         imageTags: ['1.0.0'],
         relativeContextPath: '/invalid-path-to-context',
@@ -102,7 +102,7 @@ test('illegal parameter - relativeDockerfilePath', async () => {
     taskQueue.addTasksToQueue([
       {
         packageName: getResources().packages.package1.name,
-        repoName: getResources().packages.package1.name,
+        repoName: distructPackageJsonName(getResources().packages.package1.name).name,
         visibility: 'public',
         imageTags: ['1.0.0'],
         relativeContextPath: '/',
@@ -131,7 +131,7 @@ RUN exit 1
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResources().packages.package1.name,
-      repoName: getResources().packages.package1.name,
+      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
@@ -156,7 +156,7 @@ test('events schema is valid', async () => {
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResources().packages.package1.name,
-      repoName: getResources().packages.package1.name,
+      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
@@ -222,7 +222,7 @@ RUN exit 1
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResources().packages.package1.name,
-      repoName: getResources().packages.package1.name,
+      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
@@ -263,7 +263,7 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
   taskQueue.addTasksToQueue([
     {
       packageName: getResources().packages.package1.name,
-      repoName: getResources().packages.package1.name,
+      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
@@ -307,7 +307,7 @@ RUN sleep 10000 # make sure that this task will not end
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResources().packages.package1.name,
-      repoName: getResources().packages.package1.name,
+      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
@@ -340,7 +340,7 @@ RUN sleep 10000 # make sure that this task will not end
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResources().packages.package1.name,
-      repoName: getResources().packages.package1.name,
+      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
@@ -380,7 +380,7 @@ test('multiple tasks', async () => {
   const tasks = taskQueue.addTasksToQueue(
     Object.values(getResources().packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,
-      repoName: packageInfo.name,
+      repoName: distructPackageJsonName(packageInfo.name).name,
       visibility: 'public',
       imageTags: [`1.0.${i}`],
       relativeContextPath: '/',

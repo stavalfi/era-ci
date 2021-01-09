@@ -233,7 +233,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
 
   const packagesStatusTable = new Table({
     chars: DEFAULT_CHART,
-    colWidths: colums.map((_, i) => (hasNotes && i === colums.length - 1 ? 50 : null)),
+    colWidths: colums.map((_, i) => (hasNotes && i === colums.length - 1 ? 100 : null)),
     wordWrap: true,
   })
 
