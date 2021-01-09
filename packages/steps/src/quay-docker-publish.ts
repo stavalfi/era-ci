@@ -5,7 +5,15 @@ import {
 } from '@era-ci/constrains'
 import { createStepExperimental, toTaskEvent$, UserReturnValue, UserRunStepOptions } from '@era-ci/core'
 import { QuayBuildsTaskQueue } from '@era-ci/task-queues'
-import { Artifact, buildFullDockerImageName, ExecutionStatus, Node, Status, TargetType } from '@era-ci/utils'
+import {
+  Artifact,
+  buildFullDockerImageName,
+  distructPackageJsonName,
+  ExecutionStatus,
+  Node,
+  Status,
+  TargetType,
+} from '@era-ci/utils'
 import path from 'path'
 import { last } from 'rxjs/operators'
 import { QuayDockerPublishConfiguration } from './types'
@@ -31,7 +39,7 @@ async function buildAndPublishArtifact({
       ),
       imageTags: [tag],
       taskTimeoutMs: stepConfigurations.dockerfileBuildTimeoutMs,
-      repoName: currentArtifact.data.artifact.packageJson.name,
+      repoName: distructPackageJsonName(currentArtifact.data.artifact.packageJson.name).name,
       visibility: stepConfigurations.imagesVisibility,
     },
   ])

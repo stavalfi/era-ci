@@ -1,5 +1,6 @@
 import { toTaskEvent$ } from '@era-ci/core'
 import { QuayBuildsTaskQueue } from '@era-ci/task-queues'
+import { distructPackageJsonName } from '@era-ci/utils'
 import { merge } from 'rxjs'
 import { beforeAfterEach } from '../utils'
 
@@ -22,7 +23,7 @@ test('multiple tasks', async () => {
   const tasks = taskQueue.addTasksToQueue(
     Object.values(getResources().packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,
-      repoName: packageInfo.name,
+      repoName: distructPackageJsonName(packageInfo.name).name,
       visibility: 'public',
       imageTags: [`1.0.${i}`],
       relativeContextPath: '/',

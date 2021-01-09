@@ -1,6 +1,6 @@
 import { AbortedTask, toTaskEvent$ } from '@era-ci/core'
 import { QuayBuildsTaskPayload } from '@era-ci/task-queues'
-import { ExecutionStatus } from '@era-ci/utils'
+import { distructPackageJsonName, ExecutionStatus } from '@era-ci/utils'
 import { QuayBuildsTaskQueue } from '@era-ci/task-queues'
 import path from 'path'
 import fs from 'fs'
@@ -26,7 +26,7 @@ test('ensure task is aborted when it reaches timeout (while the retry mechanism 
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResources().packages.package1.name,
-      repoName: getResources().packages.package1.name,
+      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
@@ -57,7 +57,7 @@ RUN sleep 10000 # make sure that this task will not end
   const [{ taskId }] = taskQueue.addTasksToQueue([
     {
       packageName: getResources().packages.package1.name,
-      repoName: getResources().packages.package1.name,
+      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',

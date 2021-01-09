@@ -1,6 +1,13 @@
 import { TaskQueueBase, UserReturnValue, UserRunStepOptions } from '@era-ci/core'
 import { addTagToRemoteImage, listTags } from '@era-ci/image-registry-client'
-import { Artifact, buildFullDockerImageName, ExecutionStatus, Node, Status } from '@era-ci/utils'
+import {
+  Artifact,
+  buildFullDockerImageName,
+  distructPackageJsonName,
+  ExecutionStatus,
+  Node,
+  Status,
+} from '@era-ci/utils'
 import { DockerPublishConfiguration } from './types'
 
 export async function chooseTagAndPublish<
@@ -19,7 +26,7 @@ export async function chooseTagAndPublish<
     registry: options.stepConfigurations.registry,
     auth: options.stepConfigurations.registryAuth,
     dockerOrg: options.stepConfigurations.dockerOrganizationName,
-    repo: options.artifact.data.artifact.packageJson.name,
+    repo: distructPackageJsonName(options.artifact.data.artifact.packageJson.name).name,
   })
   const didHashPublished = tags.some(tag => tag === hashTag)
 
@@ -91,7 +98,7 @@ export async function chooseTagAndPublish<
         registry: options.stepConfigurations.registry,
         auth: options.stepConfigurations.registryAuth,
         dockerOrg: options.stepConfigurations.dockerOrganizationName,
-        repo: options.artifact.data.artifact.packageJson.name,
+        repo: distructPackageJsonName(options.artifact.data.artifact.packageJson.name).name,
         fromTag: hashTag,
         toTag: newTag,
       })

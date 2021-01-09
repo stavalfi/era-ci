@@ -1,6 +1,6 @@
 import { Logger } from '@era-ci/core'
 import { listTags } from '@era-ci/image-registry-client'
-import { getPackages } from '@era-ci/utils'
+import { distructPackageJsonName, getPackages } from '@era-ci/utils'
 import execa from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
@@ -68,7 +68,7 @@ export const getPublishResult = async ({
           latestNpmPackageVersion(packageName, getResources().npmRegistry.address),
           listTags({
             dockerOrg: getResources().quayNamespace,
-            repo: packageName,
+            repo: distructPackageJsonName(packageName).name,
             registry: getResources().dockerRegistry,
           }).then(tags => [
             ...tags.filter(tag => !semver.valid(tag)),

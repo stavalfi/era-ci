@@ -5,7 +5,7 @@ import { winstonLogger } from '@era-ci/loggers'
 import { startQuayHelperService } from '@era-ci/quay-helper-service'
 import { startQuayMockService } from '@era-ci/quay-mock-service'
 import { QuayBuildsTaskQueue, quayBuildsTaskQueue } from '@era-ci/task-queues'
-import { getGitRepoInfo } from '@era-ci/utils'
+import { distructPackageJsonName, getGitRepoInfo } from '@era-ci/utils'
 import chance from 'chance'
 import _ from 'lodash'
 import path from 'path'
@@ -50,7 +50,7 @@ export function beforeAfterEach(options?: {
     listTags({
       registry: getResources().dockerRegistry,
       dockerOrg: testDependencies.quayNamespace,
-      repo: testDependencies.toActualPackageName(packageName),
+      repo: distructPackageJsonName(testDependencies.toActualPackageName(packageName)).name,
     })
 
   return {

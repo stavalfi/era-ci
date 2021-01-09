@@ -312,7 +312,7 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
               await execaCommand(
                 `npm view ${artifact.data.artifact.packageJson.name}@${newVersion} --registry ${stepConfigurations.registry}`,
                 {
-                  stdio: 'inherit',
+                  stdio: 'ignore',
                   cwd: artifact.data.artifact.packagePath,
                   env: {
                     // npm need this env-var for auth - this is needed only for production publishing.
