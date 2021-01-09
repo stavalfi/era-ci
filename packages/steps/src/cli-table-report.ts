@@ -543,6 +543,7 @@ export const cliTableReporter = createStepExperimental({
       if (!jsonReporterStepId) {
         throw new Error(`cli-table-reporter can't find json-reporter-step-id. is it part of the flow?`)
       }
+
       const jsonReportResult = await options.immutableCache.get(
         jsonReporterCacheKey({ flowId: options.flowId, stepId: jsonReporterStepId }),
         r => {

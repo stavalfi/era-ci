@@ -1,6 +1,6 @@
 import { config, LogLevel } from './packages/core/dist/src/index'
 import { winstonLogger } from './packages/loggers/dist/src/index'
-import { createLinearStepsGraph } from './packages/steps-graph/dist/src/index'
+import { createTreeStepsGraph } from './packages/steps-graph/dist/src/index'
 import {
   buildRoot,
   cliTableReporter,
@@ -58,39 +58,70 @@ export default config({
     customLogLevel: LogLevel.info,
     logFilePath: './era-ci.log',
   }),
-  steps: createLinearStepsGraph([
-    validatePackages(),
-    installRoot(),
-    lintRoot({ scriptName: 'lint:code' }),
-    buildRoot({ scriptName: 'build' }),
-    test({
-      scriptName: 'test',
-      workerBeforeAll: {
-        shellCommand: 'yarn test-resources:up',
-        cwd: __dirname,
-      },
-    }),
-    npmPublish({
-      isStepEnabled: CI === 'false',
-      npmScopeAccess: NpmScopeAccess.public,
-      registry: NPM_REGISTRY,
-      publishAuth: {
-        email: NPM_EMAIL,
-        username: NPM_USERNAME!,
-        token: NPM_TOKEN!,
-      },
-    }),
-    dockerPublish({
-      isStepEnabled: CI === 'false',
-      dockerOrganizationName: DOCKER_ORG,
-      registry: DOCKER_REGISTRY,
-      registryAuth: {
-        username: DOCKER_HUB_USERNAME!,
-        token: DOCKER_HUB_TOKEN!,
-      },
-      buildAndPushOnlyTempVersion: false,
-    }),
-    jsonReporter(),
-    cliTableReporter(),
+  steps: createTreeStepsGraph([
+    {
+      // 0
+      step: validatePackages(),
+      children: [6],
+    },
+    {
+      // 1
+      step: npmPublish({
+        isStepEnabled: CI === 'false',
+        npmScopeAccess: NpmScopeAccess.public,
+        registry: NPM_REGISTRY,
+        publishAuth: {
+          email: NPM_EMAIL,
+          username: NPM_USERNAME!,
+          token: NPM_TOKEN!,
+        },
+      }),
+      children: [6],
+    },
+    {
+      // 2
+      step: dockerPublish({
+        isStepEnabled: CI === 'false',
+        dockerOrganizationName: DOCKER_ORG,
+        registry: DOCKER_REGISTRY,
+        registryAuth: {
+          username: DOCKER_HUB_USERNAME!,
+          token: DOCKER_HUB_TOKEN!,
+        },
+        buildAndPushOnlyTempVersion: false,
+      }),
+      children: [6],
+    },
+    {
+      // 3
+      step: lintRoot({ scriptName: 'lint:code' }),
+      children: [6],
+    },
+    {
+      // 4
+      step: buildRoot({ scriptName: 'build' }),
+      children: [6],
+    },
+    {
+      // 5
+      step: test({
+        scriptName: 'test',
+        workerBeforeAll: {
+          shellCommand: 'yarn test-resources:up',
+          cwd: __dirname,
+        },
+      }),
+      children: [6],
+    },
+    {
+      // 6
+      step: jsonReporter(),
+      children: [7],
+    },
+    {
+      // 7
+      step: cliTableReporter(),
+      children: [],
+    },
   ]),
 })
