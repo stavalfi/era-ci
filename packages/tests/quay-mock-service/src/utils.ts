@@ -142,6 +142,6 @@ export async function buildDockerFile({
         }
       })
     }
-    log.error(e)
+    log.error(repoName, e)
   }
 }

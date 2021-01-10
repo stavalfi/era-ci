@@ -2701,6 +2701,11 @@ es-to-primitive@^1.2.1:
     is-date-object "^1.0.1"
     is-symbol "^1.0.2"
 
+esbuild-jest@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/esbuild-jest/-/esbuild-jest-0.3.0.tgz#2e8a0b876196befaf3870637ca4aa04cfdbdb785"
+  integrity sha512-J1ZHN4IbQiLJAsCMK2XkPYZsTrD8ius+1B09RVqfrvmT+BnwGdR6CLvRq6DGopOaEmdkr4AIk/J6LQUhRQDsSg==
+
 esbuild-node@^0.4.0:
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/esbuild-node/-/esbuild-node-0.4.0.tgz#2c2428252c85ed804f63dbc5eb586c2b53e681c3"
