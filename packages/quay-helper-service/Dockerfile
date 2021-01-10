@@ -10,7 +10,6 @@ ARG task_queue_package_path=packages/task-queues
 COPY ${package_path}/package.json ./${package_path}/package.json
 
 RUN node remove-all-dev-deps-from-all-package-jsons.js && rm remove-all-dev-deps-from-all-package-jsons.js
-RUN echo hi
 RUN yarn install --frozen-lockfile --production
 
 COPY ${package_path}/dist/src ./${package_path}/dist/src

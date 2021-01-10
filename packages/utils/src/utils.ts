@@ -136,6 +136,9 @@ export const buildFullDockerImageName = ({
   imageTag?: string
 }): string => {
   const withImageTag = imageTag ? `:${imageTag}` : ''
+  if (dockerRegistry[dockerRegistry.length - 1] === '/') {
+    dockerRegistry = dockerRegistry.slice(0, dockerRegistry.length - 1)
+  }
   return `${dockerRegistry.replace(`http://`, '').replace(`https://`, '')}/${dockerOrganizationName}/${
     distructPackageJsonName(imageName).name
   }${withImageTag}`
