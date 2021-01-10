@@ -5,7 +5,6 @@ import {
   buildRoot,
   cliTableReporter,
   dockerPublish,
-  installRoot,
   jsonReporter,
   lintRoot,
   npmPublish,
@@ -25,8 +24,6 @@ const {
   DOCKER_ORG = 'local-run-org',
   DOCKER_REGISTRY = `http://localhost:35000`,
   REDIS_ENDPOINT = 'redis://localhost:36379',
-  REDIS_ACL_USERNAME,
-  REDIS_ACL_PASSWORD,
   REDIS_PASSWORD,
   GITHUB_RUN_NUMBER = 'local-run',
   CI = 'false',
@@ -49,8 +46,7 @@ export default config({
   redis: {
     url: REDIS_ENDPOINT!,
     auth: {
-      username: REDIS_ACL_USERNAME,
-      password: REDIS_ACL_PASSWORD,
+      password: REDIS_PASSWORD,
     },
   },
   logger: winstonLogger({

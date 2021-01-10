@@ -356,34 +356,15 @@ function generatePackagesErrorsReport(jsonReport: JsonReport): string {
     return ''
   }
 
-  const colums: TableRow = [''].concat(hasErrors ? ['errors'] : []).map(content => ({
-    vAlign: 'center',
-    hAlign: 'center',
-    content,
-  }))
+  let result = 'Errors in Packages:'
+  for (const row of rows) {
+    for (const error of row.errors) {
+      result += '\n'
+      result += `error in package: "${row.packageName}" - ${error}`
+    }
+  }
 
-  const rowsInTableFormat = rows.flatMap(row => {
-    return [
-      [
-        ...[row.packageName].map<CellOptions>(content => ({
-          rowSpan: Object.keys(row.errors).length || 1,
-          vAlign: 'center',
-          hAlign: 'center',
-          content,
-        })),
-        ...row.errors.slice(0, 1),
-      ],
-      ...row.errors.slice(1).map(error => [error]),
-    ]
-  })
-
-  const packagesErrorsTable = new Table({
-    chars: DEFAULT_CHART,
-  })
-
-  packagesErrorsTable.push(colums, ...rowsInTableFormat)
-
-  return packagesErrorsTable.toString()
+  return result
 }
 
 function generateStepsErrorsReport(jsonReport: JsonReport): string {
@@ -428,34 +409,15 @@ function generateStepsErrorsReport(jsonReport: JsonReport): string {
     return ''
   }
 
-  const colums: TableRow = [''].concat(hasErrors ? ['errors'] : []).map(content => ({
-    vAlign: 'center',
-    hAlign: 'center',
-    content,
-  }))
+  let result = 'Errors in Packages:'
+  for (const row of rows) {
+    for (const error of row.errors) {
+      result += '\n'
+      result += `error in step: "${row.stepName}" - ${error}`
+    }
+  }
 
-  const rowsInTableFormat = rows.flatMap(row => {
-    return [
-      [
-        ...[row.stepName].map<CellOptions>(content => ({
-          rowSpan: Object.keys(row.errors).length || 1,
-          vAlign: 'center',
-          hAlign: 'center',
-          content,
-        })),
-        ...row.errors.slice(0, 1),
-      ],
-      ...row.errors.slice(1).map(error => [error]),
-    ]
-  })
-
-  const stepsErrorsTable = new Table({
-    chars: DEFAULT_CHART,
-  })
-
-  stepsErrorsTable.push(colums, ...rowsInTableFormat)
-
-  return stepsErrorsTable.toString()
+  return result
 }
 
 function generateSummaryReport(jsonReport: JsonReport): string {

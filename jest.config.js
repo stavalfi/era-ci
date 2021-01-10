@@ -14,13 +14,19 @@ module.exports = {
     path.join(__dirname, 'packages/tests/*/__tests__/**/*.spec.ts'),
   ],
   // uncomment and remove ts-node when swc has source-maps support
-  // transform: {
-  //   '^.+\\.(t|j)sx?$': ['@swc/jest'],
-  // },
-  preset: 'ts-jest',
-  globals: {
-    'ts-jest': {
-      tsconfig: path.join(__dirname, 'tsconfig.json'),
-    },
+  transform: {
+    // '^.+\\.(t|j)sx?$': ['@swc/jest'],
+    '^.+\\.tsx?$': [
+      'esbuild-jest',
+      {
+        sourcemap: 'inline',
+      },
+    ],
   },
+  // preset: 'ts-jest',
+  // globals: {
+  //   'ts-jest': {
+  //     tsconfig: path.join(__dirname, 'tsconfig.json'),
+  //   },
+  // },
 }

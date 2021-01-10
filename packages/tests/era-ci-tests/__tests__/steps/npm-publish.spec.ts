@@ -3,8 +3,11 @@ import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { buildRoot, installRoot, JsonReport, npmPublish, NpmScopeAccess, validatePackages, test } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue, taskWorkerTaskQueue } from '@era-ci/task-queues'
-import { ExecutionStatus, Status, TargetType } from '@era-ci/utils'
+import { ExecutionStatus, PackageJson, Status, TargetType } from '@era-ci/utils'
 import chance from 'chance'
+import execa from 'execa'
+import fse from 'fs-extra'
+import path from 'path'
 
 const { createRepo, getResources } = createTest()
 
@@ -180,4 +183,110 @@ it('reproduce bug - step is invoked multiple times', async () => {
   }
 
   expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
+})
+
+it(`single run - if a depends on b, a.package.json.dep.b.version should be the version of b which is published rigth now`, async () => {
+  const { runCi, repoPath, toActualName } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'b',
+          version: '1.0.0',
+          targetType: TargetType.npm,
+        },
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.npm,
+          dependencies: {
+            b: '1.0.0',
+          },
+        },
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        npmPublish({
+          isStepEnabled: true,
+          npmScopeAccess: NpmScopeAccess.public,
+          registry: getResources().npmRegistry.address,
+          publishAuth: getResources().npmRegistry.auth,
+        }),
+      ]),
+    },
+  })
+
+  const flow1 = await runCi()
+
+  expect(flow1.published.get('a')?.npm.versions).toEqual(['1.0.0'])
+  expect(flow1.published.get('b')?.npm.versions).toEqual(['1.0.0'])
+
+  const result1 = await execa.command(
+    `npm view ${toActualName('a')} --json --registry ${getResources().npmRegistry.address}`,
+    {
+      cwd: repoPath,
+    },
+  )
+
+  const aDeps1 = JSON.parse(result1.stdout).dependencies
+
+  expect(aDeps1[toActualName('b')]).toEqual('1.0.0')
+})
+
+it.skip(`two runs - if a depends on b, a.package.json.dep.b.version should be the version of b which is published rigth now`, async () => {
+  const { runCi, repoPath, toActualName } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'b',
+          version: '1.0.0',
+          targetType: TargetType.npm,
+        },
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.npm,
+          dependencies: {
+            b: '1.0.0',
+          },
+        },
+      ],
+    },
+    configurations: {
+      steps: createLinearStepsGraph([
+        npmPublish({
+          isStepEnabled: true,
+          npmScopeAccess: NpmScopeAccess.public,
+          registry: getResources().npmRegistry.address,
+          publishAuth: getResources().npmRegistry.auth,
+        }),
+      ]),
+    },
+  })
+
+  await runCi()
+
+  await execa.command(`echo hi > a.txt && git add --all && git commit -am wip`, { cwd: repoPath, shell: true })
+
+  const flow2 = await runCi()
+
+  expect(flow2.published.get('a')?.npm.versions).toEqual(['1.0.0', '1.0.1'])
+  expect(flow2.published.get('b')?.npm.versions).toEqual(['1.0.0', '1.0.1'])
+
+  const result2 = await execa.command(
+    `npm view ${toActualName('a')} --json --registry ${getResources().npmRegistry.address}`,
+    {
+      cwd: repoPath,
+    },
+  )
+
+  const aDeps2 = JSON.parse(result2.stdout).dependencies
+
+  expect(aDeps2[toActualName('b')]).toEqual('1.0.1') // <<-- this is the purpose of this test
+
+  // ensure we don't mutate the repository
+  const aPackageJson: PackageJson = await fse.readJSON(
+    path.join(repoPath, 'packages', toActualName('a'), 'package.json'),
+  )
+  expect(aPackageJson.dependencies?.[toActualName('b')]).toEqual('1.0.0')
 })
