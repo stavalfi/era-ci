@@ -101,7 +101,7 @@ export async function buildDockerFile({
 
       const p = execa.command(`docker build -f Dockerfile -t ${image} ${path.join(extractedContextPath, context)}`, {
         cwd: path.dirname(path.join(extractedContextPath, dockerfile_path)),
-        stdio: 'inherit',
+        stdio: 'pipe',
       })
 
       cleanups.push(async () => p.kill())
@@ -109,7 +109,7 @@ export async function buildDockerFile({
       await p
 
       await execa.command(`docker push ${image}`, {
-        stdio: 'inherit',
+        stdio: 'pipe',
       })
 
       await execa.command(`docker rmi ${image}`, {
@@ -137,11 +137,11 @@ export async function buildDockerFile({
       }).catch(notifyError => {
         if (notifyError.code === 'ECONNREFUSED') {
           log.error(
-            `quay-helper-service is down. probably because the test is over so we can ignore this error: ${notifyError}`,
+            `stav1 [${repoName}] - quay-helper-service is down. probably because the test is over so we can ignore this error: ${notifyError}`,
           )
         }
       })
     }
-    log.error(repoName, e)
+    log.error(`failed to build-push image: ${repoName}`, e)
   }
 }

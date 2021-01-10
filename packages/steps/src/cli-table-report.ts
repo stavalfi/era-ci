@@ -60,7 +60,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
       case ExecutionStatus.done:
         return jsonReport.stepsResultOfArtifactsByArtifact.map(node => {
           return {
-            packageName: node.data.artifact.packageJson.name,
+            packageName: `${node.data.artifact.packageJson.name} (${node.data.artifact.packageHash})`,
             stepsStatus: jsonReport.steps.map(
               (_, i) => RESULT_STATUS_COLORED[node.data.stepsResult[i].data.artifactStepResult.status],
             ),
@@ -93,7 +93,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
       case ExecutionStatus.aborted:
         return jsonReport.stepsResultOfArtifactsByArtifact.map(node => {
           return {
-            packageName: node.data.artifact.packageJson.name,
+            packageName: `${node.data.artifact.packageJson.name} (${node.data.artifact.packageHash})`,
             stepsStatus: jsonReport.steps.map(
               (_, i) => RESULT_STATUS_COLORED[node.data.stepsResult[i].data.artifactStepResult.status],
             ),
@@ -122,7 +122,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
           switch (node.data.artifactExecutionStatus) {
             case ExecutionStatus.done:
               return {
-                packageName: node.data.artifact.packageJson.name,
+                packageName: `${node.data.artifact.packageJson.name} (${node.data.artifact.packageHash})`,
                 stepsStatus: node.data.stepsResult.map(s => RESULT_STATUS_COLORED[s.data.artifactStepResult.status]),
                 artifactStatus: RESULT_STATUS_COLORED[node.data.artifactResult.status],
                 duration: prettyMs(node.data.artifactResult.durationMs),
@@ -130,7 +130,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
               }
             case ExecutionStatus.aborted:
               return {
-                packageName: node.data.artifact.packageJson.name,
+                packageName: `${node.data.artifact.packageJson.name} (${node.data.artifact.packageHash})`,
                 stepsStatus: node.data.stepsResult.map(s => RESULT_STATUS_COLORED[s.data.artifactStepResult.status]),
                 artifactStatus: RESULT_STATUS_COLORED[node.data.artifactResult.status],
                 duration: prettyMs(node.data.artifactResult.durationMs),
@@ -138,7 +138,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
               }
             case ExecutionStatus.running:
               return {
-                packageName: node.data.artifact.packageJson.name,
+                packageName: `${node.data.artifact.packageJson.name} (${node.data.artifact.packageHash})`,
                 stepsStatus: node.data.stepsResult.map(s => {
                   if (
                     s.data.artifactStepResult.executionStatus === ExecutionStatus.done ||
@@ -155,7 +155,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
               }
             case ExecutionStatus.scheduled:
               return {
-                packageName: node.data.artifact.packageJson.name,
+                packageName: `${node.data.artifact.packageJson.name} (${node.data.artifact.packageHash})`,
                 stepsStatus: node.data.stepsResult.map(
                   s => EXECUTION_STATUS_COLORED[s.data.artifactStepResult.executionStatus],
                 ),
@@ -168,7 +168,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
       case ExecutionStatus.scheduled:
         return jsonReport.stepsResultOfArtifactsByArtifact.map(node => {
           return {
-            packageName: node.data.artifact.packageJson.name,
+            packageName: `${node.data.artifact.packageJson.name} (${node.data.artifact.packageHash})`,
             stepsStatus: node.data.stepsResult.map(
               s => EXECUTION_STATUS_COLORED[s.data.artifactStepResult.executionStatus],
             ),
@@ -194,10 +194,10 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
     return [
       [
         ...[row.packageName, ...row.stepsStatus, `${row.artifactStatus} (${row.duration})`].map<CellOptions>(
-          content => ({
+          (content, i) => ({
             rowSpan: Object.keys(row.notes).length || 1,
             vAlign: 'center',
-            hAlign: 'center',
+            hAlign: i === 0 ? 'left' : 'center',
             content,
           }),
         ),

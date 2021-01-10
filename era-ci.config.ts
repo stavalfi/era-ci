@@ -51,7 +51,7 @@ export default config({
   },
   logger: winstonLogger({
     disabled: false,
-    customLogLevel: LogLevel.info,
+    customLogLevel: LogLevel.trace,
     logFilePath: './era-ci.log',
   }),
   steps: createTreeStepsGraph([
