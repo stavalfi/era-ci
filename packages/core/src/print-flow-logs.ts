@@ -40,14 +40,18 @@ export async function printFlowLogs<TaskQueue>(options: {
     })
     cleanups.push(immutableCache.cleanup)
 
-    const flowLogsResult = await immutableCache.get(toFlowLogsContentKey(options.flowId), r => {
-      if (typeof r === 'string') {
-        return r
-      } else {
-        throw new Error(
-          `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-        )
-      }
+    const flowLogsResult = await immutableCache.get({
+      key: toFlowLogsContentKey(options.flowId),
+      isBuffer: true,
+      mapper: r => {
+        if (typeof r === 'string') {
+          return r
+        } else {
+          throw new Error(
+            `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+          )
+        }
+      },
     })
     if (!flowLogsResult) {
       // we want to avoid stacktraces so we don't throw an Error object

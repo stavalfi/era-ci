@@ -1,11 +1,12 @@
 import { Logger } from '@era-ci/core'
 import { listTags } from '@era-ci/image-registry-client'
 import { distructPackageJsonName, getPackages } from '@era-ci/utils'
+import { ExecutionContext } from 'ava'
 import execa from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
 import semver from 'semver'
-import { ResultingArtifact, TestResources } from './types'
+import { ResultingArtifact, TestWithContextType } from './types'
 
 async function latestNpmPackageDistTags(
   packageName: string,
@@ -49,13 +50,13 @@ async function publishedNpmPackageVersions(packageName: string, npmRegistry: str
 export const getPublishResult = async ({
   toOriginalName,
   repoPath,
-  getResources,
   testLogger,
+  t,
 }: {
   toOriginalName: (artifactName: string) => string
   repoPath: string
-  getResources: () => TestResources
   testLogger: Logger
+  t: ExecutionContext<TestWithContextType>
 }): Promise<Map<string, ResultingArtifact>> => {
   const log = testLogger.createLog('test')
   const packagesPaths = await getPackages({ repoPath, log })
@@ -64,12 +65,12 @@ export const getPublishResult = async ({
       .map(packagePath => fse.readJSONSync(path.join(packagePath, 'package.json')).name)
       .map<Promise<[string, ResultingArtifact]>>(async (packageName: string) => {
         const [versions, highestVersion, tags] = await Promise.all([
-          publishedNpmPackageVersions(packageName, getResources().npmRegistry.address),
-          latestNpmPackageVersion(packageName, getResources().npmRegistry.address),
+          publishedNpmPackageVersions(packageName, t.context.resources.npmRegistry.address),
+          latestNpmPackageVersion(packageName, t.context.resources.npmRegistry.address),
           listTags({
-            dockerOrg: getResources().quayNamespace,
+            dockerOrg: t.context.resources.quayNamespace,
             repo: distructPackageJsonName(packageName).name,
-            registry: getResources().dockerRegistry,
+            registry: t.context.resources.dockerRegistry,
           }).then(tags => [
             ...tags.filter(tag => !semver.valid(tag)),
             ...semver.sort(tags.filter(tag => semver.valid(tag))),

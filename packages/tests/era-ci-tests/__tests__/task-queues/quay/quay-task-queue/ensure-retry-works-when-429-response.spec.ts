@@ -1,10 +1,9 @@
 import { toTaskEvent$ } from '@era-ci/core'
-import { QuayBuildsTaskQueue } from '@era-ci/task-queues'
 import { distructPackageJsonName } from '@era-ci/utils'
 import { merge } from 'rxjs'
-import { beforeAfterEach } from '../utils'
+import { beforeAfterEach, test } from '../utils'
 
-const { getResources, getImageTags } = beforeAfterEach({
+beforeAfterEach(test, {
   quayMockService: {
     rateLimit: {
       max: 14,
@@ -13,15 +12,9 @@ const { getResources, getImageTags } = beforeAfterEach({
   },
 })
 
-let taskQueue: QuayBuildsTaskQueue
-
-beforeEach(() => {
-  taskQueue = getResources().queue
-})
-
-test('multiple tasks', async () => {
-  const tasks = taskQueue.addTasksToQueue(
-    Object.values(getResources().packages).map((packageInfo, i) => ({
+test('multiple tasks', async t => {
+  const tasks = t.context.taskQueuesResources.queue.addTasksToQueue(
+    Object.values(t.context.packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,
       repoName: distructPackageJsonName(packageInfo.name).name,
       visibility: 'public',
@@ -34,7 +27,10 @@ test('multiple tasks', async () => {
 
   await merge(
     ...tasks.map(task =>
-      toTaskEvent$(task.taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: true }),
+      toTaskEvent$(task.taskId, {
+        eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+        throwOnTaskNotPassed: true,
+      }),
     ),
   )
     .toPromise()
@@ -47,7 +43,7 @@ test('multiple tasks', async () => {
       throw error
     })
 
-  for (const [i, packageInfo] of Object.values(getResources().packages).entries()) {
-    await expect(getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])
+  for (const [i, packageInfo] of Object.values(t.context.packages).entries()) {
+    await expect(t.context.getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])
   }
 })

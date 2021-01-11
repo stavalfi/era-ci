@@ -26,5 +26,5 @@ export type Logger = {
 }
 
 export type CreateLogger = {
-  callInitializeLogger: (options: { repoPath: string }) => Promise<Logger>
+  callInitializeLogger: (options: { repoPath: string; customLog?: (...values: unknown[]) => void }) => Promise<Logger>
 }

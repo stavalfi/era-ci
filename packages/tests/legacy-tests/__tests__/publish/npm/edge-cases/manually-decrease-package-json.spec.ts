@@ -4,8 +4,8 @@ import { TargetType } from '../../../prepare-test/types'
 const { createRepo } = newEnv()
 
 describe('run ci -> decrease packageJson.version -> run ci', () => {
-  test('decrease to unpublished version', async () => {
-    const { runCi, modifyPackageJson } = await createRepo({
+  test('decrease to unpublished version', async t => {
+    const { runCi, modifyPackageJson } = await createRepo(t, {
       packages: [
         {
           name: 'a',
@@ -39,8 +39,8 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
     expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.11')
   })
 
-  test('decrease to published version', async () => {
-    const { runCi, modifyPackageJson, addRandomFileToPackage } = await createRepo({
+  test('decrease to published version', async t => {
+    const { runCi, modifyPackageJson, addRandomFileToPackage } = await createRepo(t, {
       packages: [
         {
           name: 'a',

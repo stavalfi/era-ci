@@ -1,11 +1,21 @@
-import { PackageJson, TargetType } from '@era-ci/utils'
+import { Config, LogLevel, TaskQueueBase } from '@era-ci/core'
+import { JsonReport } from '@era-ci/steps'
+import { Graph, PackageJson, StepInfo, TargetType } from '@era-ci/utils'
+import { ExecutionContext, TestInterface } from 'ava'
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap } from 'package-json-type'
 import { DeepPartial } from 'ts-essentials'
 import { GitServer } from './git-server-testkit'
 
-export { DeepPartial } from 'ts-essentials'
+export type TestWithContextType = {
+  resources: TestResources
+  sleep: (ms: number) => Promise<void>
+  createRepo: CreateRepo
+  cleanups: Cleanup[]
+}
+export type TestWithContext = TestInterface<TestWithContextType>
 
+export { DeepPartial } from 'ts-essentials'
 export { TargetType, PackageJson }
 
 export type Cleanup = () => Promise<unknown>
@@ -43,8 +53,8 @@ export type TestResources = {
   redisServerUrl: string
   redisServerHost: string
   redisServerPort: number
-  quayMockService: string
-  quayHelperService: string
+  quayMockService: Deployment
+  quayHelperService: Deployment
   quayNamespace: string
   quayToken: string
   quayBuildStatusChangedRedisTopic: string
@@ -61,3 +71,35 @@ export type ResultingArtifact = {
     tags: Array<string>
   }
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type CreateRepoOptions<TaskQueue extends TaskQueueBase<any, any>> = {
+  repo: Repo
+  configurations?: Partial<Config<TaskQueue>>
+  dontAddReportSteps?: boolean
+  logLevel?: LogLevel
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type CreateRepo = <TaskQueue extends TaskQueueBase<any, any>>(
+  t: ExecutionContext<TestWithContextType>,
+  options: CreateRepoOptions<TaskQueue> | ((toActualName: ToActualName) => CreateRepoOptions<TaskQueue>),
+) => Promise<{
+  repoPath: string
+  gitHeadCommit: () => Promise<string>
+  getImageTags: (packageName: string) => Promise<string[]>
+  runCi: (options?: { processEnv?: NodeJS.ProcessEnv }) => Promise<RunCiResult>
+  toActualName: ToActualName
+}>
+
+export type RunCiResult = {
+  flowId: string
+  steps: Graph<{ stepInfo: StepInfo }>
+  jsonReport: JsonReport
+  passed: boolean
+  logFilePath: string
+  flowLogs: string
+  published: Map<string, ResultingArtifact>
+}
+
+type Deployment = { address: string; cleanup: () => Promise<unknown> }

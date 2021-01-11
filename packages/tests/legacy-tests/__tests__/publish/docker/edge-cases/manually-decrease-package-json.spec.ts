@@ -6,8 +6,8 @@ const { createRepo } = newEnv()
 // NOTE: this tests are legacy and can be removed if needed
 
 describe('run ci -> decrease packageJson.version -> run ci', () => {
-  test('decrease to unpublished version', async () => {
-    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo({
+  test('decrease to unpublished version', async t => {
+    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo(t, {
       packages: [
         {
           name: 'a',
@@ -42,8 +42,8 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
     expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([head1, await gitHeadCommit()]))
   })
 
-  test('decrease to published version', async () => {
-    const { runCi, modifyPackageJson, addRandomFileToPackage, gitHeadCommit } = await createRepo({
+  test('decrease to published version', async t => {
+    const { runCi, modifyPackageJson, addRandomFileToPackage, gitHeadCommit } = await createRepo(t, {
       packages: [
         {
           name: 'a',

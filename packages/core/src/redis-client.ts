@@ -12,8 +12,14 @@ export type RedisConfiguration = {
 
 export type RedisClient = {
   connection: Redis.Redis
-  get: <T>(key: string, mapper: (result: unknown) => T) => Promise<T | undefined>
-  set: (options: { key: string; value: string; allowOverride: boolean; ttl: number }) => Promise<void>
+  get: <T>(options: { key: string; isBuffer: boolean; mapper: (result: unknown) => T }) => Promise<T | undefined>
+  set: (options: {
+    key: string
+    value: string
+    asBuffer: boolean
+    allowOverride: boolean
+    ttl: number
+  }) => Promise<void>
   has: (key: string) => Promise<boolean>
   cleanup: () => Promise<unknown>
 }
@@ -33,18 +39,45 @@ export const connectToRedis = async (config: RedisConfiguration): Promise<RedisC
     password: config.auth?.password,
   })
 
-  async function set(options: { key: string; value: string; allowOverride: boolean; ttl: number }): Promise<void> {
-    const zippedBuffer = await zip(options.value)
-    await connection.set(options.key, zippedBuffer, 'px', options.ttl, options.allowOverride ? undefined : 'nx')
+  async function set({
+    key,
+    value,
+    asBuffer,
+    allowOverride,
+    ttl,
+  }: {
+    key: string
+    value: string
+    asBuffer: boolean
+    allowOverride: boolean
+    ttl: number
+  }): Promise<void> {
+    await connection.set(key, asBuffer ? await zip(value) : value, 'px', ttl, allowOverride ? undefined : 'nx')
   }
 
-  async function get<T>(key: string, mapper: (result: string) => T): Promise<T | undefined> {
-    const fromRedis = await connection.getBuffer(key)
-    if (fromRedis === null || fromRedis === undefined) {
-      return undefined
+  async function get<T>({
+    key,
+    isBuffer,
+    mapper,
+  }: {
+    key: string
+    isBuffer: boolean
+    mapper: (result: string) => T
+  }): Promise<T | undefined> {
+    if (isBuffer) {
+      const fromRedis = await connection.getBuffer(key)
+      if (fromRedis === null || fromRedis === undefined) {
+        return undefined
+      }
+      const unzipped = await unzip(fromRedis)
+      return mapper(unzipped)
+    } else {
+      const fromRedis = await connection.get(key)
+      if (fromRedis === null || fromRedis === undefined) {
+        return undefined
+      }
+      return mapper(fromRedis)
     }
-    const unzipped = await unzip(fromRedis)
-    return mapper(unzipped)
   }
 
   async function has(key: string): Promise<boolean> {

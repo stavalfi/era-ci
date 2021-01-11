@@ -3,35 +3,39 @@ import { listTags } from '@era-ci/image-registry-client'
 import { winstonLogger } from '@era-ci/loggers'
 import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@era-ci/steps'
 import { localSequentalTaskQueue } from '@era-ci/task-queues'
-import { ExecutionStatus, Graph, Status, StepInfo } from '@era-ci/utils'
+import { ExecutionStatus, Status } from '@era-ci/utils'
+import anyTest, { ExecutionContext } from 'ava'
 import chance from 'chance'
+import execa from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
-import execa from 'execa'
 import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterAll } from './prepare-test-resources'
 import { getPublishResult } from './seach-targets'
-import { Cleanup, Repo, ResultingArtifact, TestResources, ToActualName } from './types'
+import { Cleanup, CreateRepo, RunCiResult, TestWithContext, TestWithContextType } from './types'
 import { addReportToStepsAsLastNodes } from './utils'
 
-export { createGitRepo } from './create-git-repo'
-export { DeepPartial, TestResources } from './types'
-export { isDeepSubset, sleep } from './utils'
+export const test = anyTest as TestWithContext
 
-const { getResources } = resourcesBeforeAfterAll()
+export { createGitRepo } from './create-git-repo'
+export { DeepPartial, TestResources, TestWithContextType, CreateRepo } from './types'
+export { isDeepSubset } from './utils'
+export { resourcesBeforeAfterAll } from './prepare-test-resources'
 
 const getJsonReport = async ({
   flowId,
   repoHash,
   jsonReportStepId,
   testLogger,
+  t,
 }: {
   flowId: string
   repoHash: string
   jsonReportStepId: string
   testLogger: Logger
+  t: ExecutionContext<TestWithContextType>
 }): Promise<JsonReport> => {
-  const redisClient = await connectToRedis({ url: getResources().redisServerUrl })
+  const redisClient = await connectToRedis({ url: t.context.resources.redisServerUrl })
   const immutableCache = await createImmutableCache({
     artifacts: [],
     flowId,
@@ -44,14 +48,18 @@ const getJsonReport = async ({
     },
   })
   try {
-    const jsonReportResult = await immutableCache.get(jsonReporterCacheKey({ flowId, stepId: jsonReportStepId }), r => {
-      if (typeof r === 'string') {
-        return stringToJsonReport({ jsonReportAsString: r })
-      } else {
-        throw new Error(
-          `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
-        )
-      }
+    const jsonReportResult = await immutableCache.get({
+      key: jsonReporterCacheKey({ flowId, stepId: jsonReportStepId }),
+      isBuffer: true,
+      mapper: r => {
+        if (typeof r === 'string') {
+          return stringToJsonReport({ jsonReportAsString: r })
+        } else {
+          throw new Error(
+            `invalid value in cache. expected the type to be: string, acutal-type: ${typeof r}. actual value: ${r}`,
+          )
+        }
+      },
     })
     if (!jsonReportResult) {
       throw new Error(`can't find json-report in the cache. failing test`)
@@ -63,16 +71,6 @@ const getJsonReport = async ({
   }
 }
 
-type RunCiResult = {
-  flowId: string
-  steps: Graph<{ stepInfo: StepInfo }>
-  jsonReport: JsonReport
-  passed: boolean
-  logFilePath: string
-  flowLogs: string
-  published: Map<string, ResultingArtifact>
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const runCi = <TaskQueue extends TaskQueueBase<any, any>>({
   repoPath,
@@ -80,7 +78,7 @@ const runCi = <TaskQueue extends TaskQueueBase<any, any>>({
   logFilePath,
   stepsDontContainReport,
   toOriginalName,
-  getResources,
+  t,
   testLogger,
 }: {
   repoPath: string
@@ -88,7 +86,7 @@ const runCi = <TaskQueue extends TaskQueueBase<any, any>>({
   logFilePath: string
   stepsDontContainReport: boolean
   toOriginalName: (artifactName: string) => string
-  getResources: () => TestResources
+  t: ExecutionContext<TestWithContextType>
   testLogger: Logger
 }) => async (options?: { processEnv?: NodeJS.ProcessEnv }): Promise<RunCiResult> => {
   const { flowId, repoHash, steps, passed, fatalError } = await ci({
@@ -97,6 +95,7 @@ const runCi = <TaskQueue extends TaskQueueBase<any, any>>({
     // DO NOT CHANGE THE DEFAULT VALUE! we don't want the tests to depend on the real "process.env"!!!
     // if we will depend on it, we can't parallelize any test in AVA!!
     processEnv: options?.processEnv ?? {},
+    customLog: t.log.bind(t),
   })
 
   if (!repoHash) {
@@ -115,6 +114,7 @@ const runCi = <TaskQueue extends TaskQueueBase<any, any>>({
     !fatalError &&
     !stepsDontContainReport &&
     (await getJsonReport({
+      t,
       testLogger,
       flowId,
       repoHash,
@@ -123,8 +123,8 @@ const runCi = <TaskQueue extends TaskQueueBase<any, any>>({
     }))
 
   const published = await getPublishResult({
+    t,
     testLogger,
-    getResources,
     toOriginalName,
     repoPath,
   })
@@ -154,26 +154,7 @@ const runCi = <TaskQueue extends TaskQueueBase<any, any>>({
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type CreateRepoOptions<TaskQueue extends TaskQueueBase<any, any>> = {
-  repo: Repo
-  configurations?: Partial<Config<TaskQueue>>
-  dontAddReportSteps?: boolean
-  logLevel?: LogLevel
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type CreateRepo = <TaskQueue extends TaskQueueBase<any, any>>(
-  options: CreateRepoOptions<TaskQueue> | ((toActualName: ToActualName) => CreateRepoOptions<TaskQueue>),
-) => Promise<{
-  repoPath: string
-  gitHeadCommit: () => Promise<string>
-  getImageTags: (packageName: string) => Promise<string[]>
-  runCi: (options?: { processEnv?: NodeJS.ProcessEnv }) => Promise<RunCiResult>
-  toActualName: ToActualName
-}>
-
-const createRepo: CreateRepo = async options => {
+export const createRepo: CreateRepo = async (t, options) => {
   const resourcesNamesPostfix = chance().hash().slice(0, 8)
 
   const toActualName = (name: string): string =>
@@ -183,7 +164,7 @@ const createRepo: CreateRepo = async options => {
   const { repo, configurations = {}, dontAddReportSteps, logLevel = LogLevel.trace } =
     typeof options === 'function' ? options(toActualName) : options
 
-  const { gitServer } = getResources()
+  const { gitServer } = t.context.resources
 
   const { repoPath } = await createGitRepo({
     repo,
@@ -200,8 +181,8 @@ const createRepo: CreateRepo = async options => {
 
   const getImageTags = async (packageName: string): Promise<string[]> => {
     return listTags({
-      registry: getResources().dockerRegistry,
-      dockerOrg: getResources().quayNamespace,
+      registry: t.context.resources.dockerRegistry,
+      dockerOrg: t.context.resources.quayNamespace,
       repo: toActualName(packageName),
     })
   }
@@ -217,7 +198,7 @@ const createRepo: CreateRepo = async options => {
         logFilePath,
       }),
     redis: configurations.redis || {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
     taskQueues: [
       localSequentalTaskQueue(),
@@ -232,10 +213,10 @@ const createRepo: CreateRepo = async options => {
     toActualName,
     getImageTags,
     runCi: runCi({
+      t,
       testLogger,
       repoPath,
       toOriginalName,
-      getResources,
       configurations: finalConfigurations,
       logFilePath,
       stepsDontContainReport: Boolean(dontAddReportSteps),
@@ -243,18 +224,16 @@ const createRepo: CreateRepo = async options => {
   }
 }
 
-function beforeAfterCleanups() {
-  const cleanups: Cleanup[] = []
-  beforeEach(async () => {
-    cleanups.splice(0, cleanups.length)
+function beforeAfterCleanups(test: TestWithContext) {
+  test.beforeEach(async t => {
+    t.context.cleanups = []
   })
-  afterEach(async () => {
-    await Promise.allSettled(cleanups.map(f => f()))
+  test.afterEach(async t => {
+    await Promise.allSettled(t.context.cleanups.map(f => f()))
   })
-  return cleanups
 }
 
-const sleep = (cleanups: Cleanup[]) => (ms: number): Promise<void> => {
+export const sleep = (cleanups: Cleanup[]) => (ms: number): Promise<void> => {
   return new Promise(res => {
     const id = setTimeout(res, ms)
     cleanups.push(async () => {
@@ -264,11 +243,11 @@ const sleep = (cleanups: Cleanup[]) => (ms: number): Promise<void> => {
   })
 }
 
-export function createTest(): {
-  getResources: () => TestResources
-  createRepo: CreateRepo
-  sleep: (ms: number) => Promise<void>
-} {
-  const cleanups = beforeAfterCleanups()
-  return { getResources, createRepo, sleep: sleep(cleanups) }
+export function createTest(test: TestWithContext): void {
+  resourcesBeforeAfterAll(test)
+  beforeAfterCleanups(test)
+  test.beforeEach(t => {
+    t.context.sleep = sleep(t.context.cleanups)
+    t.context.createRepo = createRepo
+  })
 }

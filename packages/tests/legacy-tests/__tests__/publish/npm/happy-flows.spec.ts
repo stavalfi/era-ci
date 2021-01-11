@@ -4,8 +4,8 @@ import { TargetType } from '../../prepare-test/types'
 
 const { createRepo } = newEnv()
 
-test('1 package', async () => {
-  const { runCi } = await createRepo({
+test('1 package', async t => {
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -26,8 +26,8 @@ test('1 package', async () => {
   expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
 })
 
-test('multiple publishes of the same package', async () => {
-  const { runCi, addRandomFileToPackage } = await createRepo({
+test('multiple publishes of the same package', async t => {
+  const { runCi, addRandomFileToPackage } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -75,8 +75,8 @@ test('multiple publishes of the same package', async () => {
   expect(master3.published.get('a')?.npm?.highestVersion).toEqual('1.0.2')
 })
 
-test('multiple packages', async () => {
-  const { runCi } = await createRepo({
+test('multiple packages', async t => {
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -109,9 +109,9 @@ test('multiple packages', async () => {
   expect(master.published.get('c')?.npm?.versions).toEqual(['3.0.0'])
 })
 
-test('1 package - validate publish content', async () => {
+test('1 package - validate publish content', async t => {
   const hash = chance().hash().slice(0, 8)
-  const { runCi, installAndRunNpmDependency } = await createRepo({
+  const { runCi, installAndRunNpmDependency } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -138,8 +138,8 @@ test('1 package - validate publish content', async () => {
   )
 })
 
-test('reproduce bug in travelGraph function', async () => {
-  const { runCi } = await createRepo({
+test('reproduce bug in travelGraph function', async t => {
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',

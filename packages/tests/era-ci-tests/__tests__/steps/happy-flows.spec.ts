@@ -1,14 +1,16 @@
 import { createStepExperimental } from '@era-ci/core'
-import { createTest } from '@era-ci/e2e-tests-infra'
+import { createRepo, createTest, test } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
+import expect from 'expect'
+import sinon from 'sinon'
 
-const { createRepo, sleep } = createTest()
+createTest(test)
 
-test('ensure onArtifact is called at most once', async () => {
-  const onArtifact = jest.fn(() => Promise.resolve())
+test('ensure onArtifact is called at most once', async t => {
+  const onArtifact = sinon.fake.resolves(undefined)
 
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -34,12 +36,12 @@ test('ensure onArtifact is called at most once', async () => {
   const { passed } = await runCi()
 
   expect(passed).toBeTruthy()
-  expect(onArtifact).toHaveBeenCalledTimes(1)
+  expect(onArtifact.calledOnce).toBeTruthy()
 })
 
-test('ensure onArtifact is called on child-step while parent-step did not finish all artifacts', async () => {
+test('ensure onArtifact is called on child-step while parent-step did not finish all artifacts', async t => {
   const callsOrder: string[] = []
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -62,7 +64,7 @@ test('ensure onArtifact is called on child-step while parent-step did not finish
             onArtifact: async ({ artifact }) => {
               callsOrder.push(`step1-${artifact.index}`)
               if (artifact.index === 0) {
-                await sleep(1000)
+                await t.context.sleep(1000)
               }
             },
           }),

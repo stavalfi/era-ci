@@ -203,7 +203,7 @@ export const installAndRunNpmDependency = async ({
   createRepo: CreateAndManageRepo
   dependencyName: string
 }): Promise<execa.ExecaChildProcess<string>> => {
-  const { getPackagePath } = await createRepo({
+  const { getPackagePath } = await createRepo(t, {
     packages: [
       {
         name: 'b',

@@ -1,15 +1,16 @@
-import { createTest } from '@era-ci/e2e-tests-infra'
+import { createRepo, createTest, test } from '@era-ci/e2e-tests-infra'
 import { dockerPublish, npmPublish, NpmScopeAccess } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { localSequentalTaskQueue } from '@era-ci/task-queues'
 import { TargetType } from '@era-ci/utils'
+import expect from 'expect'
 
-const { createRepo, getResources } = createTest()
+createTest(test)
 
-test('docker-artifact depends on published npm-artifact during docker-build', async () => {
+test('docker-artifact depends on published npm-artifact during docker-build', async t => {
   // eslint-disable-next-line no-process-env
   const hostIp = process.env.GITHUB_RUN_NUMBER ? `172.17.0.1` : 'host.docker.internal'
-  const { runCi, gitHeadCommit } = await createRepo(toActualName => ({
+  const { runCi, gitHeadCommit } = await createRepo(t, toActualName => ({
     repo: {
       packages: [
         {
@@ -19,7 +20,7 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
             Dockerfile: `\
             FROM alpine
             RUN apk add wget
-            RUN wget ${getResources().npmRegistry.address.replace('localhost', hostIp)}/${toActualName(
+            RUN wget ${t.context.resources.npmRegistry.address.replace('localhost', hostIp)}/${toActualName(
               'b',
             )}/-/${toActualName('b')}-2.0.0.tgz
             CMD ["echo","hello"]
@@ -42,13 +43,13 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
         npmPublish({
           isStepEnabled: true,
           npmScopeAccess: NpmScopeAccess.public,
-          registry: getResources().npmRegistry.address,
-          publishAuth: getResources().npmRegistry.auth,
+          registry: t.context.resources.npmRegistry.address,
+          publishAuth: t.context.resources.npmRegistry.auth,
         }),
         dockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerOrganizationName: t.context.resources.quayNamespace,
+          registry: t.context.resources.dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
           buildAndPushOnlyTempVersion: false,
         }),
@@ -64,8 +65,8 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
   expect(published.get('b')?.npm.versions).toEqual(['2.0.0'])
 })
 
-test('publish with semver-tag', async () => {
-  const { runCi, gitHeadCommit } = await createRepo({
+test('publish with semver-tag', async t => {
+  const { runCi, gitHeadCommit } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -80,8 +81,8 @@ test('publish with semver-tag', async () => {
       steps: createLinearStepsGraph([
         dockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerOrganizationName: t.context.resources.quayNamespace,
+          registry: t.context.resources.dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
           buildAndPushOnlyTempVersion: false,
         }),
@@ -96,8 +97,8 @@ test('publish with semver-tag', async () => {
   )
 })
 
-test('publish with hash-tag', async () => {
-  const { runCi } = await createRepo({
+test('publish with hash-tag', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -112,8 +113,8 @@ test('publish with hash-tag', async () => {
       steps: createLinearStepsGraph([
         dockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerOrganizationName: t.context.resources.quayNamespace,
+          registry: t.context.resources.dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
           buildAndPushOnlyTempVersion: true,
         }),
@@ -128,8 +129,8 @@ test('publish with hash-tag', async () => {
   ])
 })
 
-test('publish with hash-tag and then with semver-tag', async () => {
-  const { runCi, gitHeadCommit } = await createRepo({
+test('publish with hash-tag and then with semver-tag', async t => {
+  const { runCi, gitHeadCommit } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -144,8 +145,8 @@ test('publish with hash-tag and then with semver-tag', async () => {
       steps: createLinearStepsGraph([
         dockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerOrganizationName: t.context.resources.quayNamespace,
+          registry: t.context.resources.dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
           buildAndPushOnlyTempVersion: true,
         }),
@@ -166,8 +167,8 @@ test('publish with hash-tag and then with semver-tag', async () => {
   )
 })
 
-test('publish with hash-tag twice', async () => {
-  const { runCi } = await createRepo({
+test('publish with hash-tag twice', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -182,8 +183,8 @@ test('publish with hash-tag twice', async () => {
       steps: createLinearStepsGraph([
         dockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerOrganizationName: t.context.resources.quayNamespace,
+          registry: t.context.resources.dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
           buildAndPushOnlyTempVersion: true,
         }),
@@ -200,8 +201,8 @@ test('publish with hash-tag twice', async () => {
   ])
 })
 
-test('publish with semver-tag twice', async () => {
-  const { runCi, gitHeadCommit } = await createRepo({
+test('publish with semver-tag twice', async t => {
+  const { runCi, gitHeadCommit } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -216,8 +217,8 @@ test('publish with semver-tag twice', async () => {
       steps: createLinearStepsGraph([
         dockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerOrganizationName: t.context.resources.quayNamespace,
+          registry: t.context.resources.dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
           buildAndPushOnlyTempVersion: false,
         }),
@@ -234,8 +235,8 @@ test('publish with semver-tag twice', async () => {
   )
 })
 
-test('artifact package-json name has @ symbol', async () => {
-  const { runCi } = await createRepo({
+test('artifact package-json name has @ symbol', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -250,8 +251,8 @@ test('artifact package-json name has @ symbol', async () => {
       steps: createLinearStepsGraph([
         dockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerOrganizationName: t.context.resources.quayNamespace,
+          registry: t.context.resources.dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
           buildAndPushOnlyTempVersion: true,
         }),

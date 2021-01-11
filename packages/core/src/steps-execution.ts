@@ -10,8 +10,8 @@ import {
   StepRedisEvent,
 } from '@era-ci/utils'
 import _ from 'lodash'
-import { merge, Observable, Subject } from 'rxjs'
-import { concatMap, filter, tap } from 'rxjs/operators'
+import { from, merge, Observable, Subject } from 'rxjs'
+import { bufferTime, concatMap, filter, tap, map } from 'rxjs/operators'
 import { deserializeError } from 'serialize-error'
 import { Log, Logger, LogLevel } from './create-logger'
 import { StepExperimental, toStepsResultOfArtifactsByArtifact } from './create-step'
@@ -189,27 +189,33 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
   )
     .pipe(
       tap(logEvent),
-      concatMap(async event => {
+      map<
+        StepOutputEvents[StepOutputEventType],
+        { event: StepOutputEvents[StepOutputEventType]; redisCommands: string[][] }
+      >(event => {
+        const redisCommands: string[][] = []
         if (
           event.type === StepOutputEventType.artifactStep &&
           event.artifactStepResult.executionStatus === ExecutionStatus.done
         ) {
-          await options.immutableCache.step.setArtifactStepResult({
-            stepId: event.step.data.stepInfo.stepId,
-            artifactHash: event.artifact.data.artifact.packageHash,
-            artifactStepResult: event.artifactStepResult,
-          })
+          redisCommands.push(
+            options.immutableCache.step.setArtifactStepResultResipe({
+              stepId: event.step.data.stepInfo.stepId,
+              artifactHash: event.artifact.data.artifact.packageHash,
+              artifactStepResult: event.artifactStepResult,
+            }),
+          )
         }
         if (event.type === StepOutputEventType.step && event.stepResult.executionStatus === ExecutionStatus.done) {
-          await options.immutableCache.step.setStepResult({
-            stepId: event.step.data.stepInfo.stepId,
-            stepResult: event.stepResult,
-          })
+          redisCommands.push(
+            options.immutableCache.step.setStepResultResipe({
+              stepId: event.step.data.stepInfo.stepId,
+              stepResult: event.stepResult,
+            }),
+          )
         }
-        return event
-      }),
-      concatMap(async event => {
-        await options.redisClient.connection.publish(
+        redisCommands.push([
+          'publish',
           getEventsTopicName(options.processEnv),
           JSON.stringify(
             _.identity<StepRedisEvent>({
@@ -221,9 +227,17 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
               event,
             }),
           ),
-        )
-        return event
+        ])
+
+        return { event, redisCommands }
       }),
+      bufferTime(500),
+      concatMap(async array => {
+        const commands = _.flatten(array.map(({ redisCommands }) => redisCommands))
+        await options.redisClient.connection.multi(commands).exec()
+        return array.map(({ event }) => event)
+      }),
+      concatMap(events => from(events)),
       tap(e => {
         const stepResult = fullState.stepsResultOfArtifactsByStep[e.step.index].data
         switch (e.type) {
@@ -249,7 +263,6 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
         if (isFlowFinished) {
           allStepsEvents$.complete()
         }
-        return e
       }),
     )
     .subscribe({

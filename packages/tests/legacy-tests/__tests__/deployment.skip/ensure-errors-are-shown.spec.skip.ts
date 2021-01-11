@@ -4,8 +4,8 @@ import { TargetType } from '../prepare-test/types'
 
 const { createRepo } = newEnv()
 
-test('make sure that errors from initializeDeploymentClient function are shown', async () => {
-  const { runCi } = await createRepo({
+test('make sure that errors from initializeDeploymentClient function are shown', async t => {
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -35,8 +35,8 @@ test('make sure that errors from initializeDeploymentClient function are shown',
   expect(result.ciProcessResult.stderr).toMatch(error)
 })
 
-test('make sure that errors from deploy function are shown', async () => {
-  const { runCi } = await createRepo({
+test('make sure that errors from deploy function are shown', async t => {
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -66,8 +66,8 @@ test('make sure that errors from deploy function are shown', async () => {
   expect(result.ciProcessResult.stderr).toMatch(error)
 })
 
-test('make sure that errors from destroyDeploymentClient function are shown', async () => {
-  const { runCi } = await createRepo({
+test('make sure that errors from destroyDeploymentClient function are shown', async t => {
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',

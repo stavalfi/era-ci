@@ -5,9 +5,9 @@ import { manageStepResult } from '../../prepare-test/test-helpers'
 const { createRepo } = newEnv()
 
 describe('publish only packages without failing tests', () => {
-  test('tests failed so there is no publish', async () => {
+  test('tests failed so there is no publish', async t => {
     const aTests = await manageStepResult()
-    const { runCi } = await createRepo({
+    const { runCi } = await createRepo(t, {
       packages: [
         {
           name: 'a',
@@ -37,9 +37,9 @@ describe('publish only packages without failing tests', () => {
     expect(master.published.get('a')?.npm?.versions).toBeFalsy()
   })
 
-  test('tests passed so there is a publish', async () => {
+  test('tests passed so there is a publish', async t => {
     const aTests = await manageStepResult()
-    const { runCi } = await createRepo({
+    const { runCi } = await createRepo(t, {
       packages: [
         {
           name: 'a',
@@ -67,10 +67,10 @@ describe('publish only packages without failing tests', () => {
     expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.0')
   })
 
-  test('multiple packages - publish only packages with passed tests', async () => {
+  test('multiple packages - publish only packages with passed tests', async t => {
     const aTests = await manageStepResult()
     const bTests = await manageStepResult()
-    const { runCi } = await createRepo({
+    const { runCi } = await createRepo(t, {
       packages: [
         {
           name: 'a',

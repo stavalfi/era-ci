@@ -4,10 +4,10 @@ import { manageStepResult } from './prepare-test/test-helpers'
 
 const { createRepo } = newEnv()
 
-test('make sure tests output is printed', async () => {
+test('make sure tests output is printed', async t => {
   const test = await manageStepResult()
 
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -31,10 +31,10 @@ test('make sure tests output is printed', async () => {
   expect(ciProcessResult.stdout).toContain(test.expectedContentInLog())
 })
 
-test('make sure ci fails if tests fails', async () => {
+test('make sure ci fails if tests fails', async t => {
   const test = await manageStepResult()
 
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -58,11 +58,11 @@ test('make sure ci fails if tests fails', async () => {
   // todo: find a way to check in the report that a-package failed in test-step
 })
 
-test('multiple packages', async () => {
+test('multiple packages', async t => {
   const aTest = await manageStepResult()
   const bTest = await manageStepResult()
 
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -95,9 +95,9 @@ test('multiple packages', async () => {
   expect(result.ciProcessResult.failed).toBeTruthy()
 })
 
-test('skip package with passed tests', async () => {
+test('skip package with passed tests', async t => {
   const test = await manageStepResult()
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -119,9 +119,9 @@ test('skip package with passed tests', async () => {
   await expect(runCi()).resolves.toBeTruthy()
 })
 
-test('skip package with failed tests', async () => {
+test('skip package with failed tests', async t => {
   const test = await manageStepResult()
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -154,9 +154,9 @@ test('skip package with failed tests', async () => {
   // todo: find a way to check in the report that a-package failed in test-step
 })
 
-test('run tests of package after the package changed even if the tests passed at the first run', async () => {
+test('run tests of package after the package changed even if the tests passed at the first run', async t => {
   const test = await manageStepResult()
-  const { runCi, addRandomFileToPackage } = await createRepo({
+  const { runCi, addRandomFileToPackage } = await createRepo(t, {
     packages: [
       {
         name: 'a',

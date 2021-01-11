@@ -14,6 +14,7 @@ export async function ci<TaskQueue>(options: {
   repoPath: string
   config: Config<TaskQueue>
   processEnv: NodeJS.ProcessEnv
+  customLog?: (...values: unknown[]) => void
 }): Promise<{
   flowId: string
   repoHash?: string
@@ -34,7 +35,10 @@ export async function ci<TaskQueue>(options: {
   let steps: Graph<{ stepInfo: StepInfo }> | undefined
   try {
     const startFlowMs = Date.now()
-    logger = await options.config.logger.callInitializeLogger({ repoPath: options.repoPath })
+    logger = await options.config.logger.callInitializeLogger({
+      repoPath: options.repoPath,
+      customLog: options.customLog,
+    })
 
     log = logger.createLog('ci-logic')
 
@@ -131,6 +135,7 @@ export async function ci<TaskQueue>(options: {
       await immutableCache.set({
         key: toFlowLogsContentKey(flowId),
         value: await fse.readFile(logger.logFilePath, 'utf-8'),
+        asBuffer: true,
         ttl: immutableCache.ttls.flowLogs,
       })
     }

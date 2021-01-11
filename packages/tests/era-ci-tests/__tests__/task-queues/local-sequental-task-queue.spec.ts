@@ -1,15 +1,24 @@
-import { LocalSequentalTaskQueue, localSequentalTaskQueue } from '@era-ci/task-queues'
 import { LogLevel } from '@era-ci/core'
-import { winstonLogger } from '@era-ci/loggers'
 import { isDeepSubset, sleep } from '@era-ci/e2e-tests-infra'
+import { winstonLogger } from '@era-ci/loggers'
+import { LocalSequentalTaskQueue, localSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
+import anyTest, { TestInterface } from 'ava'
 import { createFolder } from 'create-folder-structure'
+import expect from 'expect'
+import sinon from 'sinon'
 
-let taskQueue: LocalSequentalTaskQueue
-let cleanups: (() => Promise<unknown>)[] = []
+export type TestWithContextType = {
+  taskQueue: LocalSequentalTaskQueue
+  cleanups: (() => Promise<unknown>)[]
+  sleep: (ms: number) => Promise<void>
+}
 
-beforeEach(async () => {
-  cleanups = []
+const test = anyTest as TestInterface<TestWithContextType>
+
+test.beforeEach(async t => {
+  t.context.cleanups = []
+  t.context.sleep = sleep(t.context.cleanups)
   const repoPath = await createFolder()
   const logger = await winstonLogger({
     customLogLevel: LogLevel.trace,
@@ -17,7 +26,7 @@ beforeEach(async () => {
     disabled: false,
   }).callInitializeLogger({ repoPath })
 
-  taskQueue = await localSequentalTaskQueue().createFunc({
+  t.context.taskQueue = await localSequentalTaskQueue().createFunc({
     log: logger.createLog('task-queue'),
     gitRepoInfo: {
       auth: {
@@ -33,77 +42,76 @@ beforeEach(async () => {
   })
 })
 
-afterEach(async () => {
-  await taskQueue.cleanup()
-  await Promise.all(cleanups.map(f => f()))
-  cleanups = []
+test.afterEach(async t => {
+  await t.context.taskQueue.cleanup()
+  await Promise.allSettled(t.context.cleanups.map(f => f()))
 })
 
-test('cleanup dont throw when queue is empty', async () => {
+test('cleanup dont throw when queue is empty', async t => {
   // ensure even if we don't use the queue, it won't throw errors.
 })
 
-test('can add zero length array', async () => {
-  taskQueue.addTasksToQueue([])
+test('can add zero length array', async t => {
+  t.context.taskQueue.addTasksToQueue([])
 })
 
-test('cleanup can be called multiple times', async () => {
-  await taskQueue.cleanup()
-  await taskQueue.cleanup()
+test('cleanup can be called multiple times', async t => {
+  await t.context.taskQueue.cleanup()
+  await t.context.taskQueue.cleanup()
 })
 
-test('cant add tasks after cleanup', async () => {
-  await taskQueue.cleanup()
-  expect(() => taskQueue.addTasksToQueue([])).toThrow()
+test('cant add tasks after cleanup', async t => {
+  await t.context.taskQueue.cleanup()
+  expect(() => t.context.taskQueue.addTasksToQueue([])).toThrow()
 })
 
-test('cleanup can be called multiple times concurrenctly', async () => {
-  await Promise.all([taskQueue.cleanup(), taskQueue.cleanup()])
+test('cleanup can be called multiple times concurrenctly', async t => {
+  await Promise.all([t.context.taskQueue.cleanup(), t.context.taskQueue.cleanup()])
 })
 
-test('task is executed', async () => {
-  const func = jest.fn().mockResolvedValue(void 0)
-  taskQueue.addTasksToQueue([{ taskName: 'task1', func }])
+test('task is executed', async t => {
+  const func = sinon.fake.resolves(void 0)
+  t.context.taskQueue.addTasksToQueue([{ taskName: 'task1', func }])
 
-  await new Promise(res => taskQueue.eventEmitter.addListener(ExecutionStatus.done, res))
+  await new Promise(res => t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.done, res))
 
-  expect(func).toHaveBeenCalledTimes(1)
+  expect(func.calledOnce).toBeTruthy()
 })
 
-test('events are fired', async () => {
-  const scheduled = jest.fn()
-  const running = jest.fn()
+test('events are fired', async t => {
+  const scheduled = sinon.fake()
+  const running = sinon.fake()
 
-  taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
-  taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
+  t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
+  t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
 
-  taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.resolve() }])
+  t.context.taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.resolve() }])
 
-  await new Promise(res => taskQueue.eventEmitter.addListener(ExecutionStatus.done, res))
+  await new Promise(res => t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.done, res))
 
-  expect(scheduled).toHaveBeenCalledTimes(1)
-  expect(running).toHaveBeenCalledTimes(1)
+  expect(scheduled.calledOnce).toBeTruthy()
+  expect(running.calledOnce).toBeTruthy()
 })
 
-test('events are fired even when task failed', async () => {
-  const scheduled = jest.fn()
-  const running = jest.fn()
+test('events are fired even when task failed', async t => {
+  const scheduled = sinon.fake()
+  const running = sinon.fake()
 
-  taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
-  taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
+  t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
+  t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
 
-  taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.reject('fail') }])
+  t.context.taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.reject('fail') }])
 
-  await new Promise(res => taskQueue.eventEmitter.addListener(ExecutionStatus.done, res))
+  await new Promise(res => t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.done, res))
 
-  expect(scheduled).toHaveBeenCalledTimes(1)
-  expect(running).toHaveBeenCalledTimes(1)
+  expect(scheduled.calledOnce).toBeTruthy()
+  expect(running.calledOnce).toBeTruthy()
 })
 
-test('events schema is valid', async () => {
+test('events schema is valid', async t => {
   expect.assertions(3)
 
-  taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, event => {
+  t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, event => {
     expect(
       isDeepSubset(event, {
         taskExecutionStatus: ExecutionStatus.scheduled,
@@ -117,7 +125,7 @@ test('events schema is valid', async () => {
     ).toBeTruthy()
   })
 
-  taskQueue.eventEmitter.addListener(ExecutionStatus.running, event => {
+  t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.running, event => {
     expect(
       isDeepSubset(event, {
         taskExecutionStatus: ExecutionStatus.running,
@@ -131,10 +139,10 @@ test('events schema is valid', async () => {
     ).toBeTruthy()
   })
 
-  taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.resolve() }])
+  t.context.taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.resolve() }])
 
   await new Promise<void>(res =>
-    taskQueue.eventEmitter.addListener(ExecutionStatus.done, event => {
+    t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.done, event => {
       expect(
         isDeepSubset(event, {
           taskExecutionStatus: ExecutionStatus.done,
@@ -154,13 +162,13 @@ test('events schema is valid', async () => {
   )
 })
 
-test('done events schema is valid when task fail', async () => {
-  taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.reject(new Error('error1')) }])
+test('done events schema is valid when task fail', async t => {
+  t.context.taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.reject(new Error('error1')) }])
 
   expect.hasAssertions()
 
   await new Promise<void>(res =>
-    taskQueue.eventEmitter.addListener(ExecutionStatus.done, event => {
+    t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.done, event => {
       expect(
         isDeepSubset(event, {
           taskExecutionStatus: ExecutionStatus.done,
@@ -184,21 +192,21 @@ test('done events schema is valid when task fail', async () => {
   )
 })
 
-test('abort event is fired for all tasks when queue is cleaned before the tasks are executed', async () => {
-  const scheduled = jest.fn()
-  const running = jest.fn()
-  const aborted = jest.fn()
+test('abort event is fired for all tasks when queue is cleaned before the tasks are executed', async t => {
+  const scheduled = sinon.fake()
+  const running = sinon.fake()
+  const aborted = sinon.fake()
 
-  taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
-  taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
-  taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
+  t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
+  t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
+  t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
 
-  const shouldntBeCalled = jest.fn()
+  const shouldntBeCalled = sinon.fake()
 
-  taskQueue.addTasksToQueue([
+  t.context.taskQueue.addTasksToQueue([
     {
       taskName: 'task1',
-      func: () => sleep(300_000, cleanups),
+      func: () => t.context.sleep(300_000),
     },
     {
       taskName: 'task2',
@@ -206,39 +214,39 @@ test('abort event is fired for all tasks when queue is cleaned before the tasks 
     },
   ])
 
-  await taskQueue.cleanup()
+  await t.context.taskQueue.cleanup()
 
-  expect(scheduled).toHaveBeenCalledTimes(2)
-  expect(running).toHaveBeenCalledTimes(0)
-  expect(aborted).toHaveBeenCalledTimes(2)
-  expect(shouldntBeCalled).not.toHaveBeenCalled()
+  expect(scheduled.calledOnce).toBeTruthy()
+  expect(running.notCalled).toBeTruthy()
+  expect(aborted.calledTwice).toBeTruthy()
+  expect(shouldntBeCalled.notCalled).toBeTruthy()
 })
 
-test('abort event is fired for running tasks', async () => {
-  const aborted = jest.fn()
+test('abort event is fired for running tasks', async t => {
+  const aborted = sinon.fake()
 
-  taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
+  t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
 
-  taskQueue.addTasksToQueue([
+  t.context.taskQueue.addTasksToQueue([
     {
       taskName: 'task1',
-      func: () => sleep(300_000, cleanups),
+      func: () => t.context.sleep(300_000),
     },
   ])
 
-  await new Promise(res => taskQueue.eventEmitter.addListener(ExecutionStatus.running, res))
+  await new Promise(res => t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.running, res))
 
-  await taskQueue.cleanup()
+  await t.context.taskQueue.cleanup()
 
-  expect(aborted).toHaveBeenCalledTimes(1)
+  expect(aborted.calledOnce).toBeTruthy()
 })
 
-test('abort events schema is valid', async () => {
-  taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => sleep(300_000, cleanups) }])
+test('abort events schema is valid', async t => {
+  t.context.taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => t.context.sleep(300_000) }])
 
   expect.hasAssertions()
 
-  taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, event => {
+  t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, event => {
     expect(
       isDeepSubset(event, {
         taskExecutionStatus: ExecutionStatus.aborted,
@@ -255,5 +263,5 @@ test('abort events schema is valid', async () => {
     ).toBeTruthy()
   })
 
-  await taskQueue.cleanup()
+  await t.context.taskQueue.cleanup()
 })

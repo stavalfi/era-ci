@@ -1,13 +1,14 @@
 import { LogLevel } from '@era-ci/core'
-import { createTest } from '@era-ci/e2e-tests-infra'
+import { createRepo, createTest, test } from '@era-ci/e2e-tests-infra'
 import { dockerPublish, installRoot, npmPublish, NpmScopeAccess, validatePackages } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { TargetType } from '@era-ci/utils'
+import expect from 'expect'
 
-const { createRepo, getResources } = createTest()
+createTest(test)
 
-it(`reproduce bug - flow hangs when there is a npm + docker publishes`, async () => {
-  const { runCi, gitHeadCommit } = await createRepo({
+test(`reproduce bug - flow hangs when there is a npm + docker publishes`, async t => {
+  const { runCi, gitHeadCommit } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -27,13 +28,13 @@ it(`reproduce bug - flow hangs when there is a npm + docker publishes`, async ()
         npmPublish({
           isStepEnabled: true,
           npmScopeAccess: NpmScopeAccess.public,
-          registry: getResources().npmRegistry.address,
-          publishAuth: getResources().npmRegistry.auth,
+          registry: t.context.resources.npmRegistry.address,
+          publishAuth: t.context.resources.npmRegistry.auth,
         }),
         dockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerOrganizationName: t.context.resources.quayNamespace,
+          registry: t.context.resources.dockerRegistry,
           buildAndPushOnlyTempVersion: false,
         }),
       ]),
@@ -47,8 +48,8 @@ it(`reproduce bug - flow hangs when there is a npm + docker publishes`, async ()
   )
 })
 
-it(`reproduce bug - steps are triggered in the wrong time when using waitUntilArtifactParentsFinishedParentSteps=false in one of the steps`, async () => {
-  const { runCi } = await createRepo({
+test(`reproduce bug - steps are triggered in the wrong time when using waitUntilArtifactParentsFinishedParentSteps=false in one of the steps`, async t => {
+  const { runCi } = await createRepo(t, {
     logLevel: LogLevel.debug,
     repo: {
       packages: [
@@ -66,8 +67,8 @@ it(`reproduce bug - steps are triggered in the wrong time when using waitUntilAr
         npmPublish({
           isStepEnabled: true,
           npmScopeAccess: NpmScopeAccess.public,
-          registry: getResources().npmRegistry.address,
-          publishAuth: getResources().npmRegistry.auth,
+          registry: t.context.resources.npmRegistry.address,
+          publishAuth: t.context.resources.npmRegistry.auth,
         }),
       ]),
     },

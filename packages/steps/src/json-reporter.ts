@@ -309,6 +309,7 @@ export const jsonReporter = createStepExperimental({
       await immutableCache.set({
         key: jsonReporterCacheKey({ flowId, stepId: currentStepInfo.data.stepInfo.stepId }),
         value: jsonReportToString({ jsonReport }),
+        asBuffer: true,
         ttl: jsonReportTtl,
       })
     },

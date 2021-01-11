@@ -144,17 +144,3 @@ export function addReportToStepsAsLastNodes<TaskQueue extends TaskQueueBase<any,
 
   return [...stepsCopy, ...additionalSteps]
 }
-
-/**
- * smart promise-based sleep function to avoid hanging the test
- * @param ms how much time to sleep
- * @param cleanups array of cleanup functions that will be called at the end of every test
- */
-export const sleep = (ms: number, cleanups: (() => Promise<unknown>)[]): Promise<void> =>
-  new Promise(res => {
-    const id = setTimeout(res, ms)
-    cleanups.push(async () => {
-      res()
-      clearTimeout(id)
-    })
-  })

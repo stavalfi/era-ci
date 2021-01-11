@@ -3,8 +3,8 @@ import { TargetType } from '../../../prepare-test/types'
 
 const { createRepo } = newEnv()
 
-test(`run ci as the first time after there is already an npm publish`, async () => {
-  const { runCi, publishNpmPackageWithoutCi } = await createRepo({
+test(`run ci as the first time after there is already an npm publish`, async t => {
+  const { runCi, publishNpmPackageWithoutCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -29,8 +29,8 @@ test(`run ci as the first time after there is already an npm publish`, async () 
 })
 
 test(`run ci -> unpublish npm while keeping hashes in redis that indicate that we dont need to\
- publish again - but we should because the package is not in the registry -> run ci`, async () => {
-  const { runCi, unpublishNpmPackage } = await createRepo({
+ publish again - but we should because the package is not in the registry -> run ci`, async t => {
+  const { runCi, unpublishNpmPackage } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -64,8 +64,8 @@ test(`run ci -> unpublish npm while keeping hashes in redis that indicate that w
   expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.0')
 })
 
-test(`run ci -> remove all npm hash tags -> run ci`, async () => {
-  const { runCi, removeAllNpmHashTags } = await createRepo({
+test(`run ci -> remove all npm hash tags -> run ci`, async t => {
+  const { runCi, removeAllNpmHashTags } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -99,8 +99,8 @@ test(`run ci -> remove all npm hash tags -> run ci`, async () => {
   expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')
 })
 
-test('run ci -> change packageJson.version to invalid version -> run ci', async () => {
-  const { runCi, modifyPackageJson } = await createRepo({
+test('run ci -> change packageJson.version to invalid version -> run ci', async t => {
+  const { runCi, modifyPackageJson } = await createRepo(t, {
     packages: [
       {
         name: 'a',

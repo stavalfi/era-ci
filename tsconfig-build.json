@@ -37,9 +37,6 @@
       "path": "packages/quay-helper-service/tsconfig-build.json"
     },
     {
-      "path": "packages/tests/legacy-tests/tsconfig-build.json"
-    },
-    {
       "path": "packages/tests/quay-mock-service/tsconfig-build.json"
     },
     {

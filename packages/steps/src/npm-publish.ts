@@ -190,12 +190,13 @@ const customConstrain = createConstrain<
       }
     }
 
-    const npmVersionResult = await immutableCache.get(
-      getVersionCacheKey({
+    const npmVersionResult = await immutableCache.get({
+      key: getVersionCacheKey({
         artifactHash: currentArtifact.data.artifact.packageHash,
         artifactName: currentArtifact.data.artifact.packageJson.name,
       }),
-      r => {
+      isBuffer: true,
+      mapper: r => {
         if (typeof r === 'string') {
           return r
         } else {
@@ -204,7 +205,7 @@ const customConstrain = createConstrain<
           )
         }
       },
-    )
+    })
 
     if (!npmVersionResult) {
       return {
@@ -340,6 +341,7 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
               artifactName: artifact.data.artifact.packageJson.name,
             }),
             value: newVersion,
+            asBuffer: true,
             ttl: immutableCache.ttls.ArtifactStepResult,
           }),
         )

@@ -1,12 +1,13 @@
-import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { createRepo, createTest, DeepPartial, isDeepSubset, test } from '@era-ci/e2e-tests-infra'
 import { JsonReport, validatePackages } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { ExecutionStatus, Status } from '@era-ci/utils'
+import expect from 'expect'
 
-const { createRepo } = createTest()
+createTest(test)
 
-it('validate-packages-step should pass', async () => {
-  const { runCi } = await createRepo({
+test('validate-packages-step should pass', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {

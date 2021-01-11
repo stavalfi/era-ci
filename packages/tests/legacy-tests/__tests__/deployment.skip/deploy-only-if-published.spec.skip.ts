@@ -4,10 +4,10 @@ import { TargetType, TestOptions } from '../prepare-test/types'
 
 const { createRepo } = newEnv()
 
-test('packages with failed tests wont deploy', async () => {
+test('packages with failed tests wont deploy', async t => {
   const bTest = await manageStepResult()
 
-  const { runCi, toActualName } = await createRepo({
+  const { runCi, toActualName } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -64,9 +64,9 @@ test('packages with failed tests wont deploy', async () => {
 })
 
 // usecase: incase the developer revert a PR, we want to re-deploy the previous deployment again!
-test(`deployment succeed but there will be an addtional deployment in the next flow`, async () => {
+test(`deployment succeed but there will be an addtional deployment in the next flow`, async t => {
   const aDeployment = await manageStepResult()
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -103,9 +103,9 @@ test(`deployment succeed but there will be an addtional deployment in the next f
 })
 
 // usecase: i don't really have one. it's just the same behavior as if the deployment succeed -> we will redeploy anyway.
-test(`deployment failed but there will be an addtional deployment in the next flow`, async () => {
+test(`deployment failed but there will be an addtional deployment in the next flow`, async t => {
   const aDeployment = await manageStepResult()
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
