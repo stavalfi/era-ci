@@ -16,7 +16,7 @@ export type TestWithContextType = {
 
 const test = anyTest as TestInterface<TestWithContextType>
 
-test.beforeEach(async t => {
+test.serial.beforeEach(async t => {
   t.context.cleanups = []
   t.context.sleep = sleep(t.context.cleanups)
   const repoPath = await createFolder()
@@ -24,7 +24,7 @@ test.beforeEach(async t => {
     customLogLevel: LogLevel.trace,
     logFilePath: 'era-ci.log',
     disabled: false,
-  }).callInitializeLogger({ repoPath })
+  }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
 
   t.context.taskQueue = await localSequentalTaskQueue().createFunc({
     log: logger.createLog('task-queue'),
@@ -42,7 +42,7 @@ test.beforeEach(async t => {
   })
 })
 
-test.afterEach(async t => {
+test.serial.afterEach(async t => {
   await t.context.taskQueue.cleanup()
   await Promise.allSettled(t.context.cleanups.map(f => f()))
 })
@@ -113,7 +113,7 @@ test('events schema is valid', async t => {
 
   t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, event => {
     expect(
-      isDeepSubset(event, {
+      isDeepSubset(t, event, {
         taskExecutionStatus: ExecutionStatus.scheduled,
         taskInfo: {
           taskName: 'task1',
@@ -127,7 +127,7 @@ test('events schema is valid', async t => {
 
   t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.running, event => {
     expect(
-      isDeepSubset(event, {
+      isDeepSubset(t, event, {
         taskExecutionStatus: ExecutionStatus.running,
         taskInfo: {
           taskName: 'task1',
@@ -144,7 +144,7 @@ test('events schema is valid', async t => {
   await new Promise<void>(res =>
     t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.done, event => {
       expect(
-        isDeepSubset(event, {
+        isDeepSubset(t, event, {
           taskExecutionStatus: ExecutionStatus.done,
           taskInfo: {
             taskName: 'task1',
@@ -170,7 +170,7 @@ test('done events schema is valid when task fail', async t => {
   await new Promise<void>(res =>
     t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.done, event => {
       expect(
-        isDeepSubset(event, {
+        isDeepSubset(t, event, {
           taskExecutionStatus: ExecutionStatus.done,
           taskInfo: {
             taskName: 'task1',
@@ -192,7 +192,7 @@ test('done events schema is valid when task fail', async t => {
   )
 })
 
-test('abort event is fired for all tasks when queue is cleaned before the tasks are executed', async t => {
+test.only('abort event is fired for all tasks when queue is cleaned (before the tasks are executed)', async t => {
   const scheduled = sinon.fake()
   const running = sinon.fake()
   const aborted = sinon.fake()
@@ -216,7 +216,7 @@ test('abort event is fired for all tasks when queue is cleaned before the tasks 
 
   await t.context.taskQueue.cleanup()
 
-  expect(scheduled.calledOnce).toBeTruthy()
+  expect(scheduled.calledTwice).toBeTruthy()
   expect(running.notCalled).toBeTruthy()
   expect(aborted.calledTwice).toBeTruthy()
   expect(shouldntBeCalled.notCalled).toBeTruthy()
@@ -248,7 +248,7 @@ test('abort events schema is valid', async t => {
 
   t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, event => {
     expect(
-      isDeepSubset(event, {
+      isDeepSubset(t, event, {
         taskExecutionStatus: ExecutionStatus.aborted,
         taskInfo: {
           taskName: 'task1',

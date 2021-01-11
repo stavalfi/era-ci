@@ -112,5 +112,5 @@ test('passed,passed => passed', async t => {
     ],
   }
 
-  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })

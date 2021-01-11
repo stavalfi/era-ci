@@ -232,6 +232,7 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
         return { event, redisCommands }
       }),
       bufferTime(500),
+      filter(array => array.length > 0),
       concatMap(async array => {
         const commands = _.flatten(array.map(({ redisCommands }) => redisCommands))
         await options.redisClient.connection.multi(commands).exec()

@@ -29,5 +29,5 @@ test('validate-packages-step should pass', async t => {
     },
   }
 
-  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })

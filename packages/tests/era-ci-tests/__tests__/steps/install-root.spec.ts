@@ -29,7 +29,7 @@ test('install-step should pass', async t => {
     },
   }
 
-  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
 test('install-step should abort-as-failed because it depends on other step which is not defined: validatePackages', async t => {
@@ -88,5 +88,5 @@ test('install-step should abort-as-failed because it depends on other step which
     ],
   }
 
-  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })

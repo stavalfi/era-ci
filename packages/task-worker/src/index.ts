@@ -38,7 +38,10 @@ export type Worker = {
   cleanup: () => Promise<void>
 }
 
-export async function startWorker(config: WorkerConfig & { repoPath: string }, logger?: Logger): Promise<Worker> {
+export async function startWorker(
+  config: WorkerConfig & { repoPath: string; customLog?: (...values: unknown[]) => void },
+  logger?: Logger,
+): Promise<Worker> {
   const workerName = `${config.queueName}-worker-${chance().hash().slice(0, 8)}`
   const logFilePath = logger?.logFilePath ?? path.join(config.repoPath, `${workerName}.log`)
 
@@ -49,7 +52,7 @@ export async function startWorker(config: WorkerConfig & { repoPath: string }, l
     (await winstonLogger({
       customLogLevel: LogLevel.trace,
       logFilePath,
-    }).callInitializeLogger({ repoPath: config.repoPath }))
+    }).callInitializeLogger({ repoPath: config.repoPath, customLog: config.customLog }))
 
   const queue = new Queue<WorkerTask>(config.queueName, {
     redis: {

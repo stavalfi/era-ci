@@ -8,7 +8,6 @@ import sinon from 'sinon'
 createTest(test)
 
 test.only('ensure constrain is called at most once', async t => {
-  t.log('stav1')
   const constrain = sinon.fake.resolves({
     resultType: ConstrainResultType.ignoreThisConstrain,
     result: {

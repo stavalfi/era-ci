@@ -25,14 +25,6 @@ async function main() {
   } catch (error: unknown) {
     console.error(`CI failed unexpectedly`, error)
     throw error
-  } finally {
-    // eslint-disable-next-line no-process-env
-    if (process.env.NC_TEST_MODE) {
-      // jest don't show last two console logs so we add this as a workaround
-      // so we can see the *actual* two last console logs.
-      console.log('---------------------------')
-      console.log('---------------------------')
-    }
   }
 }
 

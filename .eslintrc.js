@@ -8,14 +8,8 @@ module.exports = {
     es6: true,
     node: true,
   },
-  plugins: ['@typescript-eslint', 'json', 'prettier', 'jest', 'spellcheck'],
-  extends: [
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:json/recommended',
-    'prettier',
-    'plugin:jest/recommended',
-  ],
+  plugins: ['@typescript-eslint', 'json', 'prettier', 'spellcheck'],
+  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'plugin:json/recommended', 'prettier'],
   globals: {
     globalThis: false, // it means that it is not writeable
   },
@@ -26,7 +20,6 @@ module.exports = {
     'no-console': 'error',
     'prettier/prettier': 'error',
     'no-unused-vars': 'off', // it is the same as @typescript-eslint/no-unused-vars which is on
-    'jest/no-disabled-tests': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/member-delimiter-style': 'off',
     '@typescript-eslint/ban-ts-ignore': 'off',

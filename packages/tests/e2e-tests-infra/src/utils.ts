@@ -1,6 +1,7 @@
 import { Config, TaskQueueBase } from '@era-ci/core'
 import { cliTableReporter, jsonReporter } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
+import { ExecutionContext } from 'ava'
 import _ from 'lodash'
 import { DeepPartial } from './types'
 
@@ -110,14 +111,14 @@ function isDeepSubsetOf<T = unknown>({
   throw new Error(`we can't be here`)
 }
 
-export function isDeepSubset<T>(fullObj: T, subset: DeepPartial<T>): boolean {
+export function isDeepSubset<T>(t: ExecutionContext, fullObj: T, subset: DeepPartial<T>): boolean {
   const result = isDeepSubsetOf({ fullObj, subset, path: [] })
 
   if (result.result) {
     return true
   } else {
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify(result, null, 2))
+    t.log(JSON.stringify(result, null, 2))
     return false
   }
 }

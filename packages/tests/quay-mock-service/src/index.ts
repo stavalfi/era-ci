@@ -31,11 +31,17 @@ export {
 export async function startQuayMockService(
   config: Config,
 ): Promise<{ address: string; cleanup: () => Promise<unknown> }> {
+  const logger = {
+    debug: (log: unknown) => config.customLog(log),
+    info: (log: unknown) => config.customLog(log),
+    trace: (log: unknown) => config.customLog(log),
+    error: (log: unknown) => config.customLog(log),
+    warn: (log: unknown) => config.customLog(log),
+    fatal: (log: unknown) => config.customLog(log),
+    child: () => logger,
+  }
   const app = fastify({
-    logger: {
-      prettyPrint: true,
-      level: 'error',
-    },
+    logger,
   })
 
   app.register(fastifyRateLimiter, {
@@ -242,7 +248,7 @@ export async function startQuayMockService(
 
   const address = await app.listen(0)
   // eslint-disable-next-line no-console
-  console.log(`quay-mock-service: "${address}"`)
+  // console.log(`quay-mock-service: "${address}"`)
   let closed = false
   return {
     address,
