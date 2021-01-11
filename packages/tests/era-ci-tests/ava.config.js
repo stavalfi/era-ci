@@ -3,4 +3,5 @@ export default {
   extensions: ['ts'],
   require: ['ts-node/register'],
   files: [`__tests__/**/*.spec.ts`],
+  timeout: 50 * 1000,
 }

@@ -6,6 +6,7 @@ export type Config = {
   token: string
   namespace: string
   dockerRegistryAddress: string
+  customLog: (...values: unknown[]) => void
 }
 
 export type Build = {

@@ -177,7 +177,7 @@ export const createRepo: CreateRepo = async (t, options) => {
     customLogLevel: logLevel,
     disabled: false,
     logFilePath: path.join(repoPath, 'era-ci-test.log'),
-  }).callInitializeLogger({ repoPath })
+  }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
 
   const getImageTags = async (packageName: string): Promise<string[]> => {
     return listTags({
@@ -225,10 +225,10 @@ export const createRepo: CreateRepo = async (t, options) => {
 }
 
 function beforeAfterCleanups(test: TestWithContext) {
-  test.beforeEach(async t => {
+  test.serial.beforeEach(async t => {
     t.context.cleanups = []
   })
-  test.afterEach(async t => {
+  test.serial.afterEach(async t => {
     await Promise.allSettled(t.context.cleanups.map(f => f()))
   })
 }
@@ -246,7 +246,8 @@ export const sleep = (cleanups: Cleanup[]) => (ms: number): Promise<void> => {
 export function createTest(test: TestWithContext): void {
   resourcesBeforeAfterAll(test)
   beforeAfterCleanups(test)
-  test.beforeEach(t => {
+  test.serial.beforeEach(t => {
+    t.timeout(50 * 1000)
     t.context.sleep = sleep(t.context.cleanups)
     t.context.createRepo = createRepo
   })

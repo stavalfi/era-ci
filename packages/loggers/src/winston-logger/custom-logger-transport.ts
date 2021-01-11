@@ -5,8 +5,33 @@ export class CustomLogTransport extends Transport {
     super(options)
   }
 
-  log(info: string, next: () => void) {
-    this.options.customLog(info)
+  log(
+    options: {
+      level: string
+      message: string
+      module?: string
+      timestamp: string
+    },
+    next: () => void,
+  ) {
+    let log = ''
+    if (options.timestamp) {
+      log += options.timestamp
+      if (options.module) {
+        log += ` [${options.module}]`
+      }
+      if (options.level) {
+        log += ` ${options.level}`
+      }
+      if (options.message) {
+        log += ` ${options.message}`
+      }
+    } else {
+      if (options.message) {
+        log += options.message
+      }
+    }
+    this.options.customLog(log)
     next()
   }
 }

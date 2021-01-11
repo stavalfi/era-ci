@@ -2,6 +2,7 @@ import { toTaskEvent$ } from '@era-ci/core'
 import { distructPackageJsonName } from '@era-ci/utils'
 import { merge } from 'rxjs'
 import { beforeAfterEach, test } from '../utils'
+import expect from 'expect'
 
 beforeAfterEach(test, {
   quayMockService: {
@@ -36,8 +37,8 @@ test('multiple tasks', async t => {
     .toPromise()
     .catch(error => {
       // eslint-disable-next-line no-console
-      console.log(
-        'manually printing error because the error-properties are not shown by jest: ',
+      t.log(
+        'manually printing error because the error-properties are not shown by test-runner: ',
         JSON.stringify(error, null, 2),
       )
       throw error

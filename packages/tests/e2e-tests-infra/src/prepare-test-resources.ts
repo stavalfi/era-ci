@@ -2,11 +2,11 @@ import { startQuayHelperService } from '@era-ci/quay-helper-service'
 import { startQuayMockService } from '@era-ci/quay-mock-service'
 import { TestInterface } from 'ava'
 import chance from 'chance'
-import { TestResources } from '../dist/src'
 import { starGittServer } from './git-server-testkit'
+import { TestResources } from './types'
 
 export function resourcesBeforeAfterAll(test: TestInterface<{ resources: TestResources }>): void {
-  test.beforeEach(async t => {
+  test.serial.beforeEach(async t => {
     const dockerRegistry = `http://localhost:35000`
     const redisServerUrl = `redis://localhost:36379/0`
     const quayNamespace = `org-${chance().hash().slice(0, 8)}`
@@ -14,7 +14,6 @@ export function resourcesBeforeAfterAll(test: TestInterface<{ resources: TestRes
     const quayBuildStatusChangedRedisTopic = `redis-topic-${chance().hash().slice(0, 8)}`
     // eslint-disable-next-line no-process-env
     // process.env.QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC = quayBuildStatusChangedRedisTopic
-
     t.context.resources = {
       npmRegistry: {
         address: `http://localhost:34873`,
@@ -39,6 +38,7 @@ export function resourcesBeforeAfterAll(test: TestInterface<{ resources: TestRes
           timeWindowMs: 1000,
         },
         token: quayToken,
+        customLog: t.log.bind(t),
       }),
       quayBuildStatusChangedRedisTopic,
       quayHelperService: await startQuayHelperService({
@@ -49,7 +49,7 @@ export function resourcesBeforeAfterAll(test: TestInterface<{ resources: TestRes
       }),
     }
   })
-  test.afterEach(async t => {
+  test.serial.afterEach(async t => {
     await Promise.allSettled(
       [
         t.context.resources.gitServer?.close(),

@@ -14,13 +14,6 @@ import path from 'path'
 
 createTest(test)
 
-const cleanups: (() => Promise<unknown>)[] = []
-
-afterEach(async () => {
-  await Promise.allSettled(cleanups.map(f => f()))
-  cleanups.splice(0, cleanups.length)
-})
-
 async function createQueue(t: ExecutionContext<TestWithContextType>, queueName: string): Promise<Queue<WorkerTask>> {
   const queue = new Queue<WorkerTask>(queueName, {
     redis: { host: t.context.resources.redisServerHost, port: t.context.resources.redisServerPort },
@@ -29,7 +22,7 @@ async function createQueue(t: ExecutionContext<TestWithContextType>, queueName: 
   })
 
   await queue.ready()
-  cleanups.push(() => queue.close())
+  t.context.cleanups.push(() => queue.close())
 
   return queue
 }
@@ -44,6 +37,7 @@ test('no tasks - manual close worker', async t => {
     redis: {
       url: t.context.resources.redisServerUrl,
     },
+    customLog: t.log.bind(t),
   })
 
   await cleanup()
@@ -62,10 +56,11 @@ test('single worker - amount of workers === 1', async t => {
     redis: {
       url: t.context.resources.redisServerUrl,
     },
+    customLog: t.log.bind(t),
   })
 
   const redisConnection = new Redis(t.context.resources.redisServerUrl)
-  cleanups.push(async () => redisConnection.disconnect())
+  t.context.cleanups.push(async () => redisConnection.disconnect())
 
   await expect(redisConnection.get(amountOfWrokersKey(queueName))).resolves.toEqual('1')
 
@@ -84,6 +79,7 @@ test('manual close worker multiple times', async t => {
     redis: {
       url: t.context.resources.redisServerUrl,
     },
+    customLog: t.log.bind(t),
   })
 
   await cleanup()
@@ -102,8 +98,9 @@ test('single task - success', async t => {
     redis: {
       url: t.context.resources.redisServerUrl,
     },
+    customLog: t.log.bind(t),
   })
-  cleanups.push(cleanup)
+  t.context.cleanups.push(cleanup)
 
   const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
@@ -119,7 +116,7 @@ test('single task - success', async t => {
   })
 
   expect(
-    isDeepSubset(result, {
+    isDeepSubset(t,result, {
       executionStatus: ExecutionStatus.done,
       status: Status.passed,
       notes: [],
@@ -143,8 +140,9 @@ test('multiple tasks - all success', async t => {
     redis: {
       url: t.context.resources.redisServerUrl,
     },
+    customLog: t.log.bind(t),
   })
-  cleanups.push(cleanup)
+  t.context.cleanups.push(cleanup)
 
   const queue = await createQueue(t, queueName)
 
@@ -185,8 +183,9 @@ test('single empty task - expect to fail', async t => {
     redis: {
       url: t.context.resources.redisServerUrl,
     },
+    customLog: t.log.bind(t),
   })
-  cleanups.push(cleanup)
+  t.context.cleanups.push(cleanup)
 
   const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
@@ -199,7 +198,7 @@ test('single empty task - expect to fail', async t => {
   })
 
   expect(
-    isDeepSubset(result, {
+    isDeepSubset(t,result, {
       executionStatus: ExecutionStatus.done,
       status: Status.failed,
       notes: [],
@@ -220,8 +219,9 @@ test('single task - expect to fail', async t => {
     redis: {
       url: t.context.resources.redisServerUrl,
     },
+    customLog: t.log.bind(t),
   })
-  cleanups.push(cleanup)
+  t.context.cleanups.push(cleanup)
 
   const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
@@ -234,7 +234,7 @@ test('single task - expect to fail', async t => {
   })
 
   expect(
-    isDeepSubset(result, {
+    isDeepSubset(t,result, {
       executionStatus: ExecutionStatus.done,
       status: Status.failed,
       notes: [],
@@ -259,8 +259,9 @@ test('multiple tasks - all fail', async t => {
     redis: {
       url: t.context.resources.redisServerUrl,
     },
+    customLog: t.log.bind(t),
   })
-  cleanups.push(cleanup)
+  t.context.cleanups.push(cleanup)
 
   const queue = await createQueue(t, queueName)
 
@@ -375,8 +376,9 @@ test('single task - success - override processEnv', async t => {
     redis: {
       url: t.context.resources.redisServerUrl,
     },
+    customLog: t.log.bind(t),
   })
-  cleanups.push(cleanup)
+  t.context.cleanups.push(cleanup)
 
   const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
@@ -395,7 +397,7 @@ test('single task - success - override processEnv', async t => {
   })
 
   expect(
-    isDeepSubset(result, {
+    isDeepSubset(t,result, {
       executionStatus: ExecutionStatus.done,
       status: Status.passed,
       notes: [],
@@ -419,8 +421,9 @@ test('single task - success - part of a group', async t => {
     redis: {
       url: t.context.resources.redisServerUrl,
     },
+    customLog: t.log.bind(t),
   })
-  cleanups.push(cleanup)
+  t.context.cleanups.push(cleanup)
 
   const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
@@ -443,7 +446,7 @@ test('single task - success - part of a group', async t => {
   })
 
   expect(
-    isDeepSubset(result, {
+    isDeepSubset(t,result, {
       executionStatus: ExecutionStatus.done,
       status: Status.passed,
       notes: [],
@@ -470,8 +473,9 @@ test('single task - success - part of a group - override process-env', async t =
     redis: {
       url: t.context.resources.redisServerUrl,
     },
+    customLog: t.log.bind(t),
   })
-  cleanups.push(cleanup)
+  t.context.cleanups.push(cleanup)
 
   const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
@@ -497,7 +501,7 @@ test('single task - success - part of a group - override process-env', async t =
   })
 
   expect(
-    isDeepSubset(result, {
+    isDeepSubset(t,result, {
       executionStatus: ExecutionStatus.done,
       status: Status.passed,
       notes: [],
@@ -524,8 +528,9 @@ test('multiple tasks - before-all is called once', async t => {
     redis: {
       url: t.context.resources.redisServerUrl,
     },
+    customLog: t.log.bind(t),
   })
-  cleanups.push(cleanup)
+  t.context.cleanups.push(cleanup)
 
   const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({

@@ -8,6 +8,7 @@ import { merge } from 'rxjs'
 import { first, map, toArray } from 'rxjs/operators'
 import sinon from 'sinon'
 import { beforeAfterEach, test } from '../utils'
+import expect from 'expect'
 
 beforeAfterEach(test)
 
@@ -184,7 +185,7 @@ test('events schema is valid', async t => {
     .toPromise()
 
   expect(
-    isDeepSubset(scheduled, {
+    isDeepSubset(t, scheduled, {
       taskExecutionStatus: ExecutionStatus.scheduled,
       taskResult: {
         executionStatus: ExecutionStatus.scheduled,
@@ -193,7 +194,7 @@ test('events schema is valid', async t => {
   ).toBeTruthy()
 
   expect(
-    isDeepSubset(running, {
+    isDeepSubset(t, running, {
       taskExecutionStatus: ExecutionStatus.running,
       taskResult: {
         executionStatus: ExecutionStatus.running,
@@ -202,7 +203,7 @@ test('events schema is valid', async t => {
   ).toBeTruthy()
 
   expect(
-    isDeepSubset(done, {
+    isDeepSubset(t, done, {
       taskExecutionStatus: ExecutionStatus.done,
       taskResult: {
         executionStatus: ExecutionStatus.done,
@@ -246,7 +247,7 @@ RUN exit 1
     .toPromise()
 
   expect(
-    isDeepSubset(done, {
+    isDeepSubset(t, done, {
       taskExecutionStatus: ExecutionStatus.done,
       taskResult: {
         executionStatus: ExecutionStatus.done,
@@ -380,7 +381,7 @@ RUN sleep 10000 # make sure that this task will not end
     .toPromise()
 
   expect(
-    isDeepSubset(abort, {
+    isDeepSubset(t, abort, {
       taskExecutionStatus: ExecutionStatus.aborted,
       taskResult: {
         executionStatus: ExecutionStatus.aborted,

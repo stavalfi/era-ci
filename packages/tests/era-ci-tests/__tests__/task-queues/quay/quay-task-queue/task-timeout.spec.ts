@@ -3,6 +3,7 @@ import { QuayBuildsTaskPayload } from '@era-ci/task-queues'
 import { distructPackageJsonName, ExecutionStatus } from '@era-ci/utils'
 import fs from 'fs'
 import path from 'path'
+import expect from 'expect'
 import { first, map } from 'rxjs/operators'
 import { beforeAfterEach, test } from '../utils'
 

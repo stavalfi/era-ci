@@ -56,7 +56,7 @@ export function beforeAfterEach(
 ) {
   createTest(test)
 
-  test.beforeEach(async t => {
+  test.serial.beforeEach(async t => {
     t.context.taskQueuesResources = await createTestDependencies(t, createRepo, options)
     t.context.getImageTags = getImageTags(t)
     t.context.packages = Object.fromEntries(
@@ -80,7 +80,7 @@ export function beforeAfterEach(
     )
   })
 
-  test.afterEach(async t => {
+  test.serial.afterEach(async t => {
     await Promise.all([
       t.context.taskQueuesResources.quayMockService.cleanup(),
       t.context.taskQueuesResources.quayServiceHelper.cleanup(),
@@ -115,6 +115,7 @@ async function createTestDependencies(
     namespace: quayNamespace,
     token: quayToken,
     rateLimit: options?.quayMockService?.rateLimit || { max: 1000, timeWindowMs: 1000 * 1000 },
+    customLog: t.log.bind(t),
   })
 
   const { repoPath, toActualName } = await createRepo(t, {
@@ -136,7 +137,7 @@ async function createTestDependencies(
     customLogLevel: LogLevel.trace,
     disabled: false,
     logFilePath: './era-ci.log',
-  }).callInitializeLogger({ repoPath })
+  }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
 
   // eslint-disable-next-line no-process-env
   process.env.QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC = redisTopic

@@ -53,7 +53,7 @@ export async function startQuayHelperService(
 
   const address = await app.listen(config.port)
   // eslint-disable-next-line no-console
-  console.log(`quay-helper-service: "${address}"`)
+  // console.log(`quay-helper-service: "${address}"`)
 
   let closed = false
   return {

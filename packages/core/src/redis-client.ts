@@ -85,7 +85,7 @@ export const connectToRedis = async (config: RedisConfiguration): Promise<RedisC
   }
 
   const cleanup = async () => {
-    await connection.quit()
+    connection.disconnect()
   }
 
   return {

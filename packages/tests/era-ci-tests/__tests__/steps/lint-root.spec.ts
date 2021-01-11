@@ -74,7 +74,7 @@ test('ensure lint-root pass successfully', async t => {
   const { jsonReport } = await runCi()
 
   expect(
-    isDeepSubset(jsonReport, {
+    isDeepSubset(t,jsonReport, {
       flowResult: {
         executionStatus: ExecutionStatus.done,
         status: Status.passed,
@@ -136,7 +136,7 @@ test('ensure lint-root skipped-as-passed in second run (when there are no change
   const { jsonReport } = await runCi()
 
   expect(
-    isDeepSubset(jsonReport, {
+    isDeepSubset(t,jsonReport, {
       flowResult: {
         executionStatus: ExecutionStatus.aborted,
         status: Status.skippedAsPassed,
@@ -205,7 +205,7 @@ test('reproduce bug - lint-root should run if hash of one of the packages change
   const { jsonReport } = await runCi() // should run because the hash of one of the packages changed.
 
   expect(
-    isDeepSubset(jsonReport, {
+    isDeepSubset(t,jsonReport, {
       flowResult: {
         executionStatus: ExecutionStatus.done,
         status: Status.passed,
