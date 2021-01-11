@@ -1,5 +1,6 @@
-import winston from 'winston'
 import { LogLevel } from '@era-ci/core'
+import winston from 'winston'
+import { CustomLogTransport } from './custom-logger-transport'
 import { randomModuleColor } from './modules-color'
 
 export const defaultFormat = winston.format.combine(
@@ -40,6 +41,15 @@ export const createConsoleTransport = (format: winston.Logform.Format): winston.
   new winston.transports.Console({
     stderrLevels: ['error'],
     format: format,
+  })
+
+export const createCustomLogTransport = (
+  format: winston.Logform.Format,
+  customLog: (str: string) => void,
+): CustomLogTransport =>
+  new CustomLogTransport({
+    format: format,
+    customLog,
   })
 
 export const createFileTransport = (

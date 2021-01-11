@@ -1,14 +1,15 @@
 import { createStepExperimental } from '@era-ci/core'
-import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { createRepo, createTest, DeepPartial, isDeepSubset, test } from '@era-ci/e2e-tests-infra'
 import { JsonReport } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
+import expect from 'expect'
 
-const { createRepo } = createTest()
+createTest(test)
 
-test('step should pass in json-report', async () => {
-  const { runCi, toActualName } = await createRepo({
+test('step should pass in json-report', async t => {
+  const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -110,8 +111,8 @@ test('step should pass in json-report', async () => {
   expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('flow should fail because step failed (without throwing error from the step)', async () => {
-  const { runCi, toActualName } = await createRepo({
+test('flow should fail because step failed (without throwing error from the step)', async t => {
+  const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -216,8 +217,8 @@ test('flow should fail because step failed (without throwing error from the step
   expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('flow should fail because step failed (while throwing error from the step)', async () => {
-  const { runCi, toActualName } = await createRepo({
+test('flow should fail because step failed (while throwing error from the step)', async t => {
+  const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
         {

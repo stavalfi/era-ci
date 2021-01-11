@@ -3,8 +3,8 @@ import { TargetType } from './prepare-test/types'
 
 const { createRepo } = newEnv()
 
-test('disable npm targets', async () => {
-  const { runCi, gitHeadCommit } = await createRepo({
+test('disable npm targets', async t => {
+  const { runCi, gitHeadCommit } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -31,8 +31,8 @@ test('disable npm targets', async () => {
   expect(master1.published.get('b')?.docker?.tags).toEqual(expect.arrayContaining([await gitHeadCommit()]))
 })
 
-test('disable docker targets', async () => {
-  const { runCi, gitHeadCommit } = await createRepo({
+test('disable docker targets', async t => {
+  const { runCi, gitHeadCommit } = await createRepo(t, {
     packages: [
       {
         name: 'a',

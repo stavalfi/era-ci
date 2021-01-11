@@ -4,8 +4,8 @@ import { TargetType } from './prepare-test/types'
 const { createRepo } = newEnv()
 
 describe('@era-ci/core --print-flow <flow-id>', () => {
-  test('ensure we can print old flow logs', async () => {
-    const { runCi, getFlowLogs } = await createRepo({
+  test('ensure we can print old flow logs', async t => {
+    const { runCi, getFlowLogs } = await createRepo(t, {
       packages: [
         {
           name: 'a',
@@ -31,8 +31,8 @@ describe('@era-ci/core --print-flow <flow-id>', () => {
     expect(flowLogsResult.stdout).toMatch(result1.flowId!)
   })
 
-  test('fail when we try to print logs of flow-id that does not exists', async () => {
-    const { getFlowLogs } = await createRepo({
+  test('fail when we try to print logs of flow-id that does not exists', async t => {
+    const { getFlowLogs } = await createRepo(t, {
       packages: [
         {
           name: 'a',

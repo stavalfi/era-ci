@@ -19,11 +19,11 @@ export type ImmutableCache = {
         }
       | undefined
     >
-    setArtifactStepResult: (options: {
+    setArtifactStepResultResipe: (options: {
       stepId: string
       artifactHash: string
       artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
-    }) => Promise<void>
+    }) => ['set', string, string, 'ex', string, 'nx']
     getStepResult: (options: {
       stepId: string
     }) => Promise<
@@ -34,16 +34,17 @@ export type ImmutableCache = {
         }
       | undefined
     >
-    setStepResult: (options: {
+    setStepResultResipe: (options: {
       stepId: string
       stepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
-    }) => Promise<void>
+    }) => ['set', string, string, 'ex', string, 'nx']
   }
-  get: <T>(
-    key: string,
-    mapper: (result: unknown) => T,
-  ) => Promise<{ flowId: string; repoHash: string; value: T } | undefined>
-  set: (options: { key: string; value: string; ttl: number }) => Promise<void>
+  get: <T>(options: {
+    key: string
+    isBuffer: boolean
+    mapper: (result: unknown) => T
+  }) => Promise<{ flowId: string; repoHash: string; value: T } | undefined>
+  set: (options: { key: string; value: string; asBuffer: boolean; ttl: number }) => Promise<void>
   has: (key: string) => Promise<boolean>
   ttls: {
     ArtifactStepResult: number
@@ -68,26 +69,19 @@ export async function createImmutableCache({
 }): Promise<ImmutableCache> {
   const nodeCache = new NodeCache()
 
-  async function set(options: { key: string; value: string; ttl: number }): Promise<void> {
+  async function set(options: { key: string; value: string; asBuffer: boolean; ttl: number }): Promise<void> {
     const stirgifiedValue = JSON.stringify({
       flowId,
       repoHash,
       value: options.value,
     })
 
-    if (await redisClient.has(options.key)) {
-      log.trace(`immutable-cache can't override values in redis`, {
-        key: options.key,
-        'ignored-new-value': options.value,
-        'exiting-value': await redisClient.get(options.key, r => JSON.parse(r as string).value),
-      })
-      return
-    }
     await redisClient.set({
       allowOverride: false,
       key: options.key,
       ttl: options.ttl,
       value: stirgifiedValue,
+      asBuffer: options.asBuffer,
     })
     nodeCache.set(options.key, stirgifiedValue)
   }
@@ -98,11 +92,16 @@ export async function createImmutableCache({
     value: string(),
   })
 
-  async function get<T>(
-    key: string,
-    mapper: (result: string) => T,
-  ): Promise<{ flowId: string; repoHash: string; value: T } | undefined> {
-    const strigifiedJson = nodeCache.get<string>(key) ?? (await redisClient.get(key, _.identity))
+  async function get<T>({
+    key,
+    isBuffer,
+    mapper,
+  }: {
+    key: string
+    isBuffer: boolean
+    mapper: (result: string) => T
+  }): Promise<{ flowId: string; repoHash: string; value: T } | undefined> {
+    const strigifiedJson = nodeCache.get<string>(key) ?? (await redisClient.get({ key, isBuffer, mapper: _.identity }))
     if (strigifiedJson === undefined) {
       return undefined
     }
@@ -151,21 +150,25 @@ export async function createImmutableCache({
   const step: ImmutableCache['step'] = {
     didStepRun: options => has(toArtifactStepResultKey({ stepId: options.stepId, artifactHash: options.artifactHash })),
     getArtifactStepResult: async ({ stepId, artifactHash }) => {
-      const artifactStepResult = await get(toArtifactStepResultKey({ stepId, artifactHash }), r => {
-        if (typeof r !== 'string') {
-          throw new Error(
-            `(2) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
-          )
-        }
+      const artifactStepResult = await get({
+        key: toArtifactStepResultKey({ stepId, artifactHash }),
+        isBuffer: false,
+        mapper: r => {
+          if (typeof r !== 'string') {
+            throw new Error(
+              `(2) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
+            )
+          }
 
-        const [error, parsedResult] = validate(JSON.parse(r), resultSchema)
-        if (parsedResult) {
-          return parsedResult
-        } else {
-          throw new Error(
-            `(3) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
-          )
-        }
+          const [error, parsedResult] = validate(JSON.parse(r), resultSchema)
+          if (parsedResult) {
+            return parsedResult
+          } else {
+            throw new Error(
+              `(3) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
+            )
+          }
+        },
       })
       if (!artifactStepResult) {
         return undefined
@@ -179,32 +182,43 @@ export async function createImmutableCache({
           | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>,
       }
     },
-    setArtifactStepResult: async ({ artifactHash, stepId, artifactStepResult }) => {
-      await set({
-        key: toArtifactStepResultKey({
-          stepId,
-          artifactHash,
+    setArtifactStepResultResipe: ({ artifactHash, stepId, artifactStepResult }) => {
+      return [
+        'set',
+        JSON.stringify({
+          flowId,
+          repoHash,
+          value: toArtifactStepResultKey({
+            stepId,
+            artifactHash,
+          }),
         }),
-        value: JSON.stringify(artifactStepResult),
-        ttl: ttls.ArtifactStepResult,
-      })
+        JSON.stringify(artifactStepResult),
+        'ex',
+        ttls.ArtifactStepResult.toString(),
+        'nx',
+      ]
     },
     getStepResult: async ({ stepId }) => {
-      const stepResult = await get(toStepResultKey({ stepId, repoHash }), r => {
-        if (typeof r !== 'string') {
-          throw new Error(
-            `(2) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
-          )
-        }
+      const stepResult = await get({
+        key: toStepResultKey({ stepId, repoHash }),
+        isBuffer: false,
+        mapper: r => {
+          if (typeof r !== 'string') {
+            throw new Error(
+              `(2) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
+            )
+          }
 
-        const [error, parsedResult] = validate(JSON.parse(r), resultSchema)
-        if (parsedResult) {
-          return parsedResult
-        } else {
-          throw new Error(
-            `(3) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
-          )
-        }
+          const [error, parsedResult] = validate(JSON.parse(r), resultSchema)
+          if (parsedResult) {
+            return parsedResult
+          } else {
+            throw new Error(
+              `(3) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
+            )
+          }
+        },
       })
       if (!stepResult) {
         return undefined
@@ -218,15 +232,22 @@ export async function createImmutableCache({
           | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>,
       }
     },
-    setStepResult: async ({ stepId, stepResult }) => {
-      await set({
-        key: toStepResultKey({
-          stepId,
+    setStepResultResipe: ({ stepId, stepResult }) => {
+      return [
+        'set',
+        JSON.stringify({
+          flowId,
           repoHash,
+          value: toStepResultKey({
+            stepId,
+            repoHash,
+          }),
         }),
-        value: JSON.stringify(stepResult),
-        ttl: ttls.ArtifactStepResult,
-      })
+        JSON.stringify(stepResult),
+        'ex',
+        ttls.ArtifactStepResult.toString(),
+        'nx',
+      ]
     },
   }
 

@@ -1,18 +1,27 @@
 import { createStepExperimental } from '@era-ci/core'
-import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
-import { buildRoot, installRoot, JsonReport, npmPublish, NpmScopeAccess, validatePackages, test } from '@era-ci/steps'
+import { createRepo, createTest, DeepPartial, isDeepSubset, test } from '@era-ci/e2e-tests-infra'
+import {
+  buildRoot,
+  installRoot,
+  JsonReport,
+  npmPublish,
+  NpmScopeAccess,
+  test as testStep,
+  validatePackages,
+} from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue, taskWorkerTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, PackageJson, Status, TargetType } from '@era-ci/utils'
 import chance from 'chance'
 import execa from 'execa'
+import expect from 'expect'
 import fse from 'fs-extra'
 import path from 'path'
 
-const { createRepo, getResources } = createTest()
+createTest(test)
 
-it(`happy-flow - should pass`, async () => {
-  const { runCi } = await createRepo({
+test(`happy-flow - should pass`, async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -27,8 +36,8 @@ it(`happy-flow - should pass`, async () => {
         npmPublish({
           isStepEnabled: true,
           npmScopeAccess: NpmScopeAccess.public,
-          registry: getResources().npmRegistry.address,
-          publishAuth: getResources().npmRegistry.auth,
+          registry: t.context.resources.npmRegistry.address,
+          publishAuth: t.context.resources.npmRegistry.auth,
         }),
       ]),
     },
@@ -38,8 +47,8 @@ it(`happy-flow - should pass`, async () => {
   expect(published.get('a')?.npm.versions).toEqual(['1.0.0'])
 })
 
-it('reproduce bug - wrong step statuses', async () => {
-  const { runCi, toActualName } = await createRepo({
+test('reproduce bug - wrong step statuses', async t => {
+  const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -139,8 +148,8 @@ it('reproduce bug - wrong step statuses', async () => {
   expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-it('reproduce bug - step is invoked multiple times', async () => {
-  const { runCi } = await createRepo({
+test('reproduce bug - step is invoked multiple times', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -155,7 +164,7 @@ it('reproduce bug - step is invoked multiple times', async () => {
         taskWorkerTaskQueue({
           queueName: `queue-${chance().hash().slice(0, 8)}`,
           redis: {
-            url: getResources().redisServerUrl,
+            url: t.context.resources.redisServerUrl,
           },
         }),
       ],
@@ -163,12 +172,12 @@ it('reproduce bug - step is invoked multiple times', async () => {
         validatePackages(),
         installRoot(),
         buildRoot({ scriptName: 'build' }),
-        test({ scriptName: 'test' }),
+        testStep({ scriptName: 'test' }),
         npmPublish({
           isStepEnabled: true,
           npmScopeAccess: NpmScopeAccess.public,
-          registry: getResources().npmRegistry.address,
-          publishAuth: getResources().npmRegistry.auth,
+          registry: t.context.resources.npmRegistry.address,
+          publishAuth: t.context.resources.npmRegistry.auth,
         }),
       ]),
     },
@@ -185,8 +194,8 @@ it('reproduce bug - step is invoked multiple times', async () => {
   expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-it(`single run - if a depends on b, a.package.json.dep.b.version should be the version of b which is published rigth now`, async () => {
-  const { runCi, repoPath, toActualName } = await createRepo({
+test(`single run - if a depends on b, a.package.json.dep.b.version should be the version of b which is published rigth now`, async t => {
+  const { runCi, repoPath, toActualName } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -209,8 +218,8 @@ it(`single run - if a depends on b, a.package.json.dep.b.version should be the v
         npmPublish({
           isStepEnabled: true,
           npmScopeAccess: NpmScopeAccess.public,
-          registry: getResources().npmRegistry.address,
-          publishAuth: getResources().npmRegistry.auth,
+          registry: t.context.resources.npmRegistry.address,
+          publishAuth: t.context.resources.npmRegistry.auth,
         }),
       ]),
     },
@@ -222,7 +231,7 @@ it(`single run - if a depends on b, a.package.json.dep.b.version should be the v
   expect(flow1.published.get('b')?.npm.versions).toEqual(['1.0.0'])
 
   const result1 = await execa.command(
-    `npm view ${toActualName('a')} --json --registry ${getResources().npmRegistry.address}`,
+    `npm view ${toActualName('a')} --json --registry ${t.context.resources.npmRegistry.address}`,
     {
       cwd: repoPath,
     },
@@ -233,8 +242,8 @@ it(`single run - if a depends on b, a.package.json.dep.b.version should be the v
   expect(aDeps1[toActualName('b')]).toEqual('1.0.0')
 })
 
-it.skip(`two runs - if a depends on b, a.package.json.dep.b.version should be the version of b which is published rigth now`, async () => {
-  const { runCi, repoPath, toActualName } = await createRepo({
+test.skip(`two runs - if a depends on b, a.package.json.dep.b.version should be the version of b which is published rigth now`, async t => {
+  const { runCi, repoPath, toActualName } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -257,8 +266,8 @@ it.skip(`two runs - if a depends on b, a.package.json.dep.b.version should be th
         npmPublish({
           isStepEnabled: true,
           npmScopeAccess: NpmScopeAccess.public,
-          registry: getResources().npmRegistry.address,
-          publishAuth: getResources().npmRegistry.auth,
+          registry: t.context.resources.npmRegistry.address,
+          publishAuth: t.context.resources.npmRegistry.auth,
         }),
       ]),
     },
@@ -274,7 +283,7 @@ it.skip(`two runs - if a depends on b, a.package.json.dep.b.version should be th
   expect(flow2.published.get('b')?.npm.versions).toEqual(['1.0.0', '1.0.1'])
 
   const result2 = await execa.command(
-    `npm view ${toActualName('a')} --json --registry ${getResources().npmRegistry.address}`,
+    `npm view ${toActualName('a')} --json --registry ${t.context.resources.npmRegistry.address}`,
     {
       cwd: repoPath,
     },

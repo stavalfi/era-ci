@@ -1,22 +1,23 @@
 import { ConstrainResultBase, ConstrainResultType, createConstrain, createStepExperimental } from '@era-ci/core'
-import { createTest } from '@era-ci/e2e-tests-infra'
+import { createRepo, createTest, test } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph, createTreeStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
+import expect from 'expect'
+import sinon from 'sinon'
 
-const { createRepo, sleep } = createTest()
+createTest(test)
 
-test('ensure constrain is called at most once', async () => {
-  const constrain = jest.fn(
-    async (): Promise<ConstrainResultBase> => ({
-      resultType: ConstrainResultType.ignoreThisConstrain,
-      result: {
-        errors: [],
-        notes: [],
-      },
-    }),
-  )
+test.only('ensure constrain is called at most once', async t => {
+  t.log('stav1')
+  const constrain = sinon.fake.resolves({
+    resultType: ConstrainResultType.ignoreThisConstrain,
+    result: {
+      errors: [],
+      notes: [],
+    },
+  })
 
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -48,27 +49,26 @@ test('ensure constrain is called at most once', async () => {
   const { passed } = await runCi()
 
   expect(passed).toBeTruthy()
-  expect(constrain).toHaveBeenCalledTimes(1)
+  expect(constrain.calledOnce).toBeTruthy()
 })
 
-test('reproduce bug: ensure constrain is called at most once', async () => {
+test('reproduce bug: ensure constrain is called at most once', async t => {
   const sleepMs = 3_000
-  const impl = async (): Promise<ConstrainResultBase> => {
-    await sleep(sleepMs)
-    return {
-      resultType: ConstrainResultType.ignoreThisConstrain,
-      result: {
-        errors: [],
-        notes: [],
-      },
-    }
-  }
-  const constrain = jest
-    .fn()
-    .mockImplementationOnce(impl)
-    .mockRejectedValueOnce(new Error(`function has been called too many times`))
 
-  const { runCi } = await createRepo({
+  const constrain = sinon.fake(
+    async (): Promise<ConstrainResultBase> => {
+      await t.context.sleep(sleepMs)
+      return {
+        resultType: ConstrainResultType.ignoreThisConstrain,
+        result: {
+          errors: [],
+          notes: [],
+        },
+      }
+    },
+  )
+
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -85,7 +85,7 @@ test('reproduce bug: ensure constrain is called at most once', async () => {
             stepGroup: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
             run: () => ({
-              onArtifact: () => sleep(sleepMs / 2),
+              onArtifact: () => t.context.sleep(sleepMs / 2),
             }),
           })(),
           children: [],
@@ -125,5 +125,5 @@ test('reproduce bug: ensure constrain is called at most once', async () => {
   const { passed } = await runCi()
 
   expect(passed).toBeTruthy()
-  expect(constrain).toHaveBeenCalledTimes(1)
+  expect(constrain.calledOnce).toBeTruthy()
 })

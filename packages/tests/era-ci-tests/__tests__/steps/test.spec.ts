@@ -1,17 +1,18 @@
-import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
-import { test } from '@era-ci/steps'
+import { createRepo, createTest, isDeepSubset, test } from '@era-ci/e2e-tests-infra'
+import { test as testStep } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
+import { taskWorkerTaskQueue } from '@era-ci/task-queues'
 import { startWorker } from '@era-ci/task-worker'
 import { ExecutionStatus, Status } from '@era-ci/utils'
-import { taskWorkerTaskQueue } from '@era-ci/task-queues'
 import chance from 'chance'
+import expect from 'expect'
 import fs from 'fs'
 
-const { createRepo, getResources } = createTest()
+createTest(test)
 
-it('single worker - no packages', async () => {
+test('single worker - no packages', async t => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [],
     },
@@ -20,12 +21,12 @@ it('single worker - no packages', async () => {
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: getResources().redisServerUrl,
+            url: t.context.resources.redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
-        test({
+        testStep({
           scriptName: 'test',
         }),
       ]),
@@ -37,9 +38,9 @@ it('single worker - no packages', async () => {
   expect(passed).toBeTruthy()
 })
 
-it('single worker - no tasks', async () => {
+test('single worker - no tasks', async t => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -53,12 +54,12 @@ it('single worker - no tasks', async () => {
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: getResources().redisServerUrl,
+            url: t.context.resources.redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
-        test({
+        testStep({
           scriptName: 'test',
         }),
       ]),
@@ -70,10 +71,10 @@ it('single worker - no tasks', async () => {
   expect(passed).toBeTruthy()
 })
 
-it('single worker - single task', async () => {
+test('single worker - single task', async t => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message = `hi-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -90,12 +91,12 @@ it('single worker - single task', async () => {
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: getResources().redisServerUrl,
+            url: t.context.resources.redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
-        test({
+        testStep({
           scriptName: 'test',
         }),
       ]),
@@ -108,11 +109,11 @@ it('single worker - single task', async () => {
   expect(flowLogs.split(message)).toHaveLength(3) // ensure the message was printed two times (printing the command and then the result of the command)
 })
 
-it('single worker - two tasks', async () => {
+test('single worker - two tasks', async t => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message1 = `hi-${chance().hash().slice(0, 8)}`
   const message2 = `hi-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -136,12 +137,12 @@ it('single worker - two tasks', async () => {
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: getResources().redisServerUrl,
+            url: t.context.resources.redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
-        test({
+        testStep({
           scriptName: 'test',
         }),
       ]),
@@ -157,10 +158,10 @@ it('single worker - two tasks', async () => {
   expect(flowLogs.split(message2)).toHaveLength(3) // ensure the message was printed two times (printing the command and then the result of the command)
 })
 
-it('two workers - single task - only one worker should execute the task', async () => {
+test('two workers - single task - only one worker should execute the task', async t => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message = `hi-${chance().hash().slice(0, 8)}`
-  const { runCi, repoPath } = await createRepo({
+  const { runCi, repoPath } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -177,12 +178,12 @@ it('two workers - single task - only one worker should execute the task', async 
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: getResources().redisServerUrl,
+            url: t.context.resources.redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
-        test({
+        testStep({
           scriptName: 'test',
         }),
       ]),
@@ -192,7 +193,7 @@ it('two workers - single task - only one worker should execute the task', async 
   const worker2 = await startWorker({
     queueName,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
     repoPath,
     maxWaitMsUntilFirstTask: 3_000,
@@ -208,11 +209,11 @@ it('two workers - single task - only one worker should execute the task', async 
   await worker2.cleanup() // we don't have to do it but it ends the test 1-2 seconds faster.
 })
 
-it('two workers - one task for each worker', async () => {
+test('two workers - one task for each worker', async t => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message1 = `hi-${chance().hash().slice(0, 8)}`
   const message2 = `hi-${chance().hash().slice(0, 8)}`
-  const { runCi, repoPath } = await createRepo({
+  const { runCi, repoPath } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -236,12 +237,12 @@ it('two workers - one task for each worker', async () => {
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: getResources().redisServerUrl,
+            url: t.context.resources.redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
-        test({
+        testStep({
           scriptName: 'test',
         }),
       ]),
@@ -251,7 +252,7 @@ it('two workers - one task for each worker', async () => {
   const worker2 = await startWorker({
     queueName,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
     repoPath,
     maxWaitMsUntilFirstTask: 3_000,
@@ -271,10 +272,10 @@ it('two workers - one task for each worker', async () => {
   await worker2.cleanup() // we don't have to do it but it ends the test 1-2 seconds faster.
 })
 
-it('reproduce bug - single worker - single task - test should be skipped-as-passed in second run', async () => {
+test('reproduce bug - single worker - single task - test should be skipped-as-passed in second run', async t => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message = `hi-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -291,12 +292,12 @@ it('reproduce bug - single worker - single task - test should be skipped-as-pass
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: getResources().redisServerUrl,
+            url: t.context.resources.redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
-        test({
+        testStep({
           scriptName: 'test',
         }),
       ]),

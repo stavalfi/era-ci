@@ -52,18 +52,22 @@ export async function chooseTagAndPublish<
     }
   } else {
     const cacheKey = `${options.artifact.data.artifact.packageHash}-next-tag`
-    const newTagFromCache = await options.immutableCache.get(cacheKey, r => {
-      if (typeof r !== 'string') {
-        throw new Error(
-          `bad value returned from redis-immutable-cache. expected image-tag, received: "${JSON.stringify(
-            r,
-            null,
-            2,
-          )}"`,
-        )
-      } else {
-        return r
-      }
+    const newTagFromCache = await options.immutableCache.get({
+      key: cacheKey,
+      isBuffer: true,
+      mapper: r => {
+        if (typeof r !== 'string') {
+          throw new Error(
+            `bad value returned from redis-immutable-cache. expected image-tag, received: "${JSON.stringify(
+              r,
+              null,
+              2,
+            )}"`,
+          )
+        } else {
+          return r
+        }
+      },
     })
 
     if (newTagFromCache && tags.includes(newTagFromCache.value)) {
@@ -105,6 +109,7 @@ export async function chooseTagAndPublish<
       await options.immutableCache.set({
         key: cacheKey,
         value: newTag,
+        asBuffer: true,
         ttl: options.immutableCache.ttls.ArtifactStepResult,
       })
     }

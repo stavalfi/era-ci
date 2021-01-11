@@ -66,7 +66,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void, LocalSequent
             executionStatus: ExecutionStatus.scheduled,
           },
         })
-        this.taskQueue.push<ProccessedTask, unknown>({
+        this.taskQueue.push<ProccessedTask>({
           taskInfo: tasks[i],
           func: taskOptions.func,
           startMs: Date.now(),

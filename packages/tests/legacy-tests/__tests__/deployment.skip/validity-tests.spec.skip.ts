@@ -4,8 +4,8 @@ import chance from 'chance'
 
 const { createRepo } = newEnv()
 
-test('1 package - make sure that app dont crush when we skip deployment', async () => {
-  const { runCi } = await createRepo({
+test('1 package - make sure that app dont crush when we skip deployment', async t => {
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -27,8 +27,8 @@ test('1 package - make sure that app dont crush when we skip deployment', async 
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0'])
 })
 
-test('1 package - make sure we skip deployment', async () => {
-  const { runCi } = await createRepo({
+test('1 package - make sure we skip deployment', async t => {
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -56,8 +56,8 @@ test('1 package - make sure we skip deployment', async () => {
   ).resolves.toBeTruthy()
 })
 
-test('1 package - ensure deploymentClient is passed to other functions', async () => {
-  const { runCi } = await createRepo({
+test('1 package - ensure deploymentClient is passed to other functions', async t => {
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: 'a',

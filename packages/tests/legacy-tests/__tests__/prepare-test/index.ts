@@ -39,7 +39,7 @@ export const newEnv: NewEnv = () => {
 
     const { dockerRegistry, npmRegistry, gitServer, redisServer } = testResources.get()
 
-    const { repoPath, repoName, repoOrg, subPackagesFolderPath } = await createRepo({
+    const { repoPath, repoName, repoOrg, subPackagesFolderPath } = await createRepo(t, {
       repo,
       gitServer,
       toActualName,

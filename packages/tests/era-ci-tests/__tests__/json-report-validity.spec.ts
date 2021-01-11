@@ -1,14 +1,15 @@
 import { createStepExperimental } from '@era-ci/core'
-import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { createRepo, createTest, DeepPartial, isDeepSubset, test } from '@era-ci/e2e-tests-infra'
 import { JsonReport } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
+import expect from 'expect'
 
-const { createRepo } = createTest()
+createTest(test)
 
-test('ensure ci dont fail when there are no steps and no artifacts', async () => {
-  const { runCi } = await createRepo({
+test('ensure ci dont fail when there are no steps and no artifacts', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [],
     },
@@ -21,8 +22,8 @@ test('ensure ci dont fail when there are no steps and no artifacts', async () =>
   expect(passed).toBeTruthy()
 })
 
-test('ensure ci dont fail when there are no artifacts', async () => {
-  const { runCi } = await createRepo({
+test('ensure ci dont fail when there are no artifacts', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [],
     },
@@ -41,8 +42,8 @@ test('ensure ci dont fail when there are no artifacts', async () => {
   expect(passed).toBeTruthy()
 })
 
-test('ensure ci dont fail when there is a single-step but no artifacts', async () => {
-  const { runCi } = await createRepo({
+test('ensure ci dont fail when there is a single-step but no artifacts', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [],
     },
@@ -54,8 +55,8 @@ test('ensure ci dont fail when there is a single-step but no artifacts', async (
   expect(passed).toBeTruthy()
 })
 
-test('ensure ci dont fail when there are no steps', async () => {
-  const { runCi } = await createRepo({
+test('ensure ci dont fail when there are no steps', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -73,8 +74,8 @@ test('ensure ci dont fail when there are no steps', async () => {
   expect(passed).toBeTruthy()
 })
 
-test('ensure json-report contains the corrent flow-id', async () => {
-  const { runCi } = await createRepo({
+test('ensure json-report contains the corrent flow-id', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -90,8 +91,8 @@ test('ensure json-report contains the corrent flow-id', async () => {
   expect(jsonReport.flow.flowId).toEqual(flowId)
 })
 
-test('ensure json-report contains the all the steps until it (not included)', async () => {
-  const { runCi } = await createRepo({
+test('ensure json-report contains the all the steps until it (not included)', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -108,8 +109,8 @@ test('ensure json-report contains the all the steps until it (not included)', as
   expect(jsonReport.steps).toEqual(expect.arrayContaining(jsonReport.steps))
 })
 
-test('flow should be skippedAsPassed because there are no steps', async () => {
-  const { runCi } = await createRepo({
+test('flow should be skippedAsPassed because there are no steps', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -134,8 +135,8 @@ test('flow should be skippedAsPassed because there are no steps', async () => {
   expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('verify artifact in json-report', async () => {
-  const { runCi, toActualName } = await createRepo({
+test('verify artifact in json-report', async t => {
+  const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -164,8 +165,8 @@ test('verify artifact in json-report', async () => {
   expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-it('reproduce bug - no packages hangs the flow', async () => {
-  const { runCi } = await createRepo({
+test('reproduce bug - no packages hangs the flow', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [],
     },

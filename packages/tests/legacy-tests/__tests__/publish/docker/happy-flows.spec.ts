@@ -6,8 +6,8 @@ import execa from 'execa'
 
 const { createRepo, getTestResources } = newEnv()
 
-test('1 package', async () => {
-  const { runCi, gitHeadCommit } = await createRepo({
+test('1 package', async t => {
+  const { runCi, gitHeadCommit } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -28,9 +28,9 @@ test('1 package', async () => {
   expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([await gitHeadCommit()]))
 })
 
-test('ensure the image is working', async () => {
+test('ensure the image is working', async t => {
   const hash = chance().hash().slice(0, 8)
-  const { runCi, dockerOrganizationName, toActualName, gitHeadCommit } = await createRepo({
+  const { runCi, dockerOrganizationName, toActualName, gitHeadCommit } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -66,9 +66,9 @@ test('ensure the image is working', async () => {
   )
 })
 
-test('ensure image is deleted after docker-push', async () => {
+test('ensure image is deleted after docker-push', async t => {
   const hash = chance().hash().slice(0, 8)
-  const { runCi, getFullImageName, gitHeadCommit } = await createRepo({
+  const { runCi, getFullImageName, gitHeadCommit } = await createRepo(t, {
     packages: [
       {
         name: 'a',

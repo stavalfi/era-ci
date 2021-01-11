@@ -1,108 +1,109 @@
-import { isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { AbortedTask, DoneTask, RunningTask, ScheduledTask, toTaskEvent$ } from '@era-ci/core'
+import { isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { QuayBuildsTaskPayload } from '@era-ci/task-queues'
 import { distructPackageJsonName, ExecutionStatus, Status } from '@era-ci/utils'
-import { QuayBuildsTaskPayload, QuayBuildsTaskQueue } from '@era-ci/task-queues'
 import fs from 'fs'
 import path from 'path'
-import { first, map, toArray } from 'rxjs/operators'
-import { beforeAfterEach } from '../utils'
 import { merge } from 'rxjs'
+import { first, map, toArray } from 'rxjs/operators'
+import sinon from 'sinon'
+import { beforeAfterEach, test } from '../utils'
 
-const { getResources, getImageTags } = beforeAfterEach()
+beforeAfterEach(test)
 
-let taskQueue: QuayBuildsTaskQueue
-
-beforeEach(() => {
-  taskQueue = getResources().queue
-})
-
-test('cleanup dont throw when queue is empty', async () => {
+test('cleanup dont throw when queue is empty', async t => {
   // ensure even if we don't use the queue, it won't throw errors.
 })
 
-test('can add zero length array', async () => {
-  taskQueue.addTasksToQueue([])
+test('can add zero length array', async t => {
+  t.context.taskQueuesResources.queue.addTasksToQueue([])
 })
 
-test('cleanup can be called multiple times', async () => {
-  await taskQueue.cleanup()
-  await taskQueue.cleanup()
+test('cleanup can be called multiple times', async t => {
+  await t.context.taskQueuesResources.queue.cleanup()
+  await t.context.taskQueuesResources.queue.cleanup()
 })
 
-test('cant add tasks after cleanup', async () => {
-  await taskQueue.cleanup()
-  expect(() => taskQueue.addTasksToQueue([])).toThrow()
+test('cant add tasks after cleanup', async t => {
+  await t.context.taskQueuesResources.queue.cleanup()
+  expect(() => t.context.taskQueuesResources.queue.addTasksToQueue([])).toThrow()
 })
 
-test('cleanup can be called multiple times concurrenctly', async () => {
-  await Promise.all([taskQueue.cleanup(), taskQueue.cleanup()])
+test('cleanup can be called multiple times concurrenctly', async t => {
+  await Promise.all([t.context.taskQueuesResources.queue.cleanup(), t.context.taskQueuesResources.queue.cleanup()])
 })
 
-test('task is executed and we expect the docker-image to be presentin the registry', async () => {
-  const [{ taskId }] = taskQueue.addTasksToQueue([
+test('task is executed and we expect the docker-image to be presentin the registry', async t => {
+  const [{ taskId }] = t.context.taskQueuesResources.queue.addTasksToQueue([
     {
-      packageName: getResources().packages.package1.name,
-      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
+      packageName: t.context.packages.package1.name,
+      repoName: distructPackageJsonName(t.context.packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
 
-  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: true }).toPromise()
+  await toTaskEvent$(taskId, {
+    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+    throwOnTaskNotPassed: true,
+  }).toPromise()
 
-  await expect(getImageTags(getResources().packages.package1.name)).resolves.toEqual(['1.0.0'])
+  await expect(t.context.getImageTags(t.context.packages.package1.name)).resolves.toEqual(['1.0.0'])
 })
 
-test('scheduled and running events are fired', async () => {
-  const scheduled = jest.fn()
-  const running = jest.fn()
+test('scheduled and running events are fired', async t => {
+  const scheduled = sinon.fake()
+  const running = sinon.fake()
 
-  taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
-  taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
+  t.context.taskQueuesResources.queue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
+  t.context.taskQueuesResources.queue.eventEmitter.addListener(ExecutionStatus.running, running)
 
-  const [{ taskId }] = taskQueue.addTasksToQueue([
+  const [{ taskId }] = t.context.taskQueuesResources.queue.addTasksToQueue([
     {
-      packageName: getResources().packages.package1.name,
-      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
+      packageName: t.context.packages.package1.name,
+      repoName: distructPackageJsonName(t.context.packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
 
-  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: true }).toPromise()
+  await toTaskEvent$(taskId, {
+    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+    throwOnTaskNotPassed: true,
+  }).toPromise()
 
-  expect(scheduled).toHaveBeenCalledTimes(1)
-  expect(running).toHaveBeenCalledTimes(1)
+  expect(scheduled.calledOnce).toBeTruthy()
+  expect(running.calledOnce).toBeTruthy()
 })
 
-test('illegal parameter - relativeContextPath', async () => {
+test('illegal parameter - relativeContextPath', async t => {
   expect(() =>
-    taskQueue.addTasksToQueue([
+    t.context.taskQueuesResources.queue.addTasksToQueue([
       {
-        packageName: getResources().packages.package1.name,
-        repoName: distructPackageJsonName(getResources().packages.package1.name).name,
+        packageName: t.context.packages.package1.name,
+        repoName: distructPackageJsonName(t.context.packages.package1.name).name,
         visibility: 'public',
         imageTags: ['1.0.0'],
         relativeContextPath: '/invalid-path-to-context',
-        relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
+        relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
         taskTimeoutMs: 10000,
       },
     ]),
   ).toThrow()
 })
 
-test('illegal parameter - relativeDockerfilePath', async () => {
+test('illegal parameter - relativeDockerfilePath', async t => {
   expect(() =>
-    taskQueue.addTasksToQueue([
+    t.context.taskQueuesResources.queue.addTasksToQueue([
       {
-        packageName: getResources().packages.package1.name,
-        repoName: distructPackageJsonName(getResources().packages.package1.name).name,
+        packageName: t.context.packages.package1.name,
+        repoName: distructPackageJsonName(t.context.packages.package1.name).name,
         visibility: 'public',
         imageTags: ['1.0.0'],
         relativeContextPath: '/',
@@ -113,60 +114,63 @@ test('illegal parameter - relativeDockerfilePath', async () => {
   ).toThrow()
 })
 
-test('events are fired even when task failed', async () => {
-  const scheduled = jest.fn()
-  const running = jest.fn()
+test('events are fired even when task failed', async t => {
+  const scheduled = sinon.fake()
+  const running = sinon.fake()
 
-  taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
-  taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
+  t.context.taskQueuesResources.queue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
+  t.context.taskQueuesResources.queue.eventEmitter.addListener(ExecutionStatus.running, running)
 
   await fs.promises.writeFile(
-    path.join(getResources().repoPath, getResources().packages.package1.relativeDockerFilePath),
+    path.join(t.context.taskQueuesResources.repoPath, t.context.packages.package1.relativeDockerFilePath),
     `
 FROM alpine
 RUN exit 1
   `,
   )
 
-  const [{ taskId }] = taskQueue.addTasksToQueue([
+  const [{ taskId }] = t.context.taskQueuesResources.queue.addTasksToQueue([
     {
-      packageName: getResources().packages.package1.name,
-      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
+      packageName: t.context.packages.package1.name,
+      repoName: distructPackageJsonName(t.context.packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
 
-  const doneEvent = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
+  const doneEvent = await toTaskEvent$(taskId, {
+    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+    throwOnTaskNotPassed: false,
+  })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.done),
       map(e => e as DoneTask<QuayBuildsTaskPayload>),
     )
     .toPromise()
 
-  expect(scheduled).toHaveBeenCalledTimes(1)
-  expect(running).toHaveBeenCalledTimes(1)
+  expect(scheduled.calledOnce).toBeTruthy()
+  expect(running.calledOnce).toBeTruthy()
   expect(doneEvent.taskResult.status).toEqual(Status.failed)
 })
 
-test('events schema is valid', async () => {
-  const [{ taskId }] = taskQueue.addTasksToQueue([
+test('events schema is valid', async t => {
+  const [{ taskId }] = t.context.taskQueuesResources.queue.addTasksToQueue([
     {
-      packageName: getResources().packages.package1.name,
-      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
+      packageName: t.context.packages.package1.name,
+      repoName: distructPackageJsonName(t.context.packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
 
   const [scheduled, running, done] = await toTaskEvent$(taskId, {
-    eventEmitter: taskQueue.eventEmitter,
+    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
     throwOnTaskNotPassed: true,
   })
     .pipe(
@@ -210,28 +214,31 @@ test('events schema is valid', async () => {
   ).toBeTruthy()
 })
 
-test('done events schema is valid when task fail', async () => {
+test('done events schema is valid when task fail', async t => {
   await fs.promises.writeFile(
-    path.join(getResources().repoPath, getResources().packages.package1.relativeDockerFilePath),
+    path.join(t.context.taskQueuesResources.repoPath, t.context.packages.package1.relativeDockerFilePath),
     `
 FROM alpine
 RUN exit 1
   `,
   )
 
-  const [{ taskId }] = taskQueue.addTasksToQueue([
+  const [{ taskId }] = t.context.taskQueuesResources.queue.addTasksToQueue([
     {
-      packageName: getResources().packages.package1.name,
-      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
+      packageName: t.context.packages.package1.name,
+      repoName: distructPackageJsonName(t.context.packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
 
-  const done = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
+  const done = await toTaskEvent$(taskId, {
+    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+    throwOnTaskNotPassed: false,
+  })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.done),
       map(e => e as DoneTask<QuayBuildsTaskPayload>),
@@ -251,112 +258,121 @@ RUN exit 1
   expect(done.taskResult.notes[0]).toMatch('build-logs:')
 })
 
-test('abort event is fired for all tasks when queue is cleaned (before the tasks are executed)', async () => {
-  const scheduled = jest.fn()
-  const running = jest.fn()
-  const aborted = jest.fn()
+test('abort event is fired for all tasks when queue is cleaned (before the tasks are executed)', async t => {
+  const scheduled = sinon.fake()
+  const running = sinon.fake()
+  const aborted = sinon.fake()
 
-  taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
-  taskQueue.eventEmitter.addListener(ExecutionStatus.running, running)
-  taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
+  t.context.taskQueuesResources.queue.eventEmitter.addListener(ExecutionStatus.scheduled, scheduled)
+  t.context.taskQueuesResources.queue.eventEmitter.addListener(ExecutionStatus.running, running)
+  t.context.taskQueuesResources.queue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
 
-  taskQueue.addTasksToQueue([
+  t.context.taskQueuesResources.queue.addTasksToQueue([
     {
-      packageName: getResources().packages.package1.name,
-      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
+      packageName: t.context.packages.package1.name,
+      repoName: distructPackageJsonName(t.context.packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
     {
-      packageName: getResources().packages.package2.name,
-      repoName: getResources().packages.package2.name,
+      packageName: t.context.packages.package2.name,
+      repoName: t.context.packages.package2.name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResources().packages.package2.relativeDockerFilePath,
+      relativeDockerfilePath: t.context.packages.package2.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
 
-  await taskQueue.cleanup()
+  await t.context.taskQueuesResources.queue.cleanup()
 
-  expect(scheduled).toHaveBeenCalledTimes(2)
-  expect(running).toHaveBeenCalledTimes(0)
-  expect(aborted).toHaveBeenCalledTimes(2)
+  expect(scheduled.calledTwice).toBeTruthy()
+  expect(running.notCalled).toBeTruthy()
+  expect(aborted.calledTwice).toBeTruthy()
 
-  await expect(getImageTags(getResources().packages.package1.name)).resolves.toEqual([])
-  await expect(getImageTags(getResources().packages.package2.name)).resolves.toEqual([])
+  await expect(t.context.getImageTags(t.context.packages.package1.name)).resolves.toEqual([])
+  await expect(t.context.getImageTags(t.context.packages.package2.name)).resolves.toEqual([])
 })
 
-test('abort event is fired for running tasks - while dockerfile is built', async () => {
-  const aborted = jest.fn()
+test('abort event is fired for running tasks - while dockerfile is built', async t => {
+  const aborted = sinon.fake()
 
-  taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
+  t.context.taskQueuesResources.queue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
 
   await fs.promises.writeFile(
-    path.join(getResources().repoPath, getResources().packages.package1.relativeDockerFilePath),
+    path.join(t.context.taskQueuesResources.repoPath, t.context.packages.package1.relativeDockerFilePath),
     `
 FROM alpine
 RUN sleep 10000 # make sure that this task will not end
   `,
   )
 
-  const [{ taskId }] = taskQueue.addTasksToQueue([
+  const [{ taskId }] = t.context.taskQueuesResources.queue.addTasksToQueue([
     {
-      packageName: getResources().packages.package1.name,
-      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
+      packageName: t.context.packages.package1.name,
+      repoName: distructPackageJsonName(t.context.packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
 
-  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
+  await toTaskEvent$(taskId, {
+    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+    throwOnTaskNotPassed: false,
+  })
     .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running))
     .toPromise()
 
   // wait until the docker-build will start in quay-mock-service (we don't have event for that)
   await new Promise(res => setTimeout(res, 3000))
 
-  await taskQueue.cleanup()
+  await t.context.taskQueuesResources.queue.cleanup()
 
-  expect(aborted).toHaveBeenCalledTimes(1)
+  expect(aborted.calledOnce).toBeTruthy()
 })
 
-test('abort events schema is valid', async () => {
+test('abort events schema is valid', async t => {
   await fs.promises.writeFile(
-    path.join(getResources().repoPath, getResources().packages.package1.relativeDockerFilePath),
+    path.join(t.context.taskQueuesResources.repoPath, t.context.packages.package1.relativeDockerFilePath),
     `
 FROM alpine
 RUN sleep 10000 # make sure that this task will not end
   `,
   )
 
-  const [{ taskId }] = taskQueue.addTasksToQueue([
+  const [{ taskId }] = t.context.taskQueuesResources.queue.addTasksToQueue([
     {
-      packageName: getResources().packages.package1.name,
-      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
+      packageName: t.context.packages.package1.name,
+      repoName: distructPackageJsonName(t.context.packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 10000,
     },
   ])
 
-  await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
+  await toTaskEvent$(taskId, {
+    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+    throwOnTaskNotPassed: false,
+  })
     .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running))
     .toPromise()
 
   // I'm not awaiting because i don't want to miss the abored-event
-  taskQueue.cleanup()
+  t.context.taskQueuesResources.queue.cleanup()
 
-  const abort = await toTaskEvent$(taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: false })
+  const abort = await toTaskEvent$(taskId, {
+    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+    throwOnTaskNotPassed: false,
+  })
     .pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.aborted),
       map(e => e as AbortedTask<QuayBuildsTaskPayload>),
@@ -376,9 +392,9 @@ RUN sleep 10000 # make sure that this task will not end
   ).toBeTruthy()
 })
 
-test('multiple tasks', async () => {
-  const tasks = taskQueue.addTasksToQueue(
-    Object.values(getResources().packages).map((packageInfo, i) => ({
+test('multiple tasks', async t => {
+  const tasks = t.context.taskQueuesResources.queue.addTasksToQueue(
+    Object.values(t.context.packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,
       repoName: distructPackageJsonName(packageInfo.name).name,
       visibility: 'public',
@@ -391,11 +407,14 @@ test('multiple tasks', async () => {
 
   await merge(
     ...tasks.map(task =>
-      toTaskEvent$(task.taskId, { eventEmitter: taskQueue.eventEmitter, throwOnTaskNotPassed: true }),
+      toTaskEvent$(task.taskId, {
+        eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+        throwOnTaskNotPassed: true,
+      }),
     ),
   ).toPromise()
 
-  for (const [i, packageInfo] of Object.values(getResources().packages).entries()) {
-    await expect(getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])
+  for (const [i, packageInfo] of Object.values(t.context.packages).entries()) {
+    await expect(t.context.getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])
   }
 })

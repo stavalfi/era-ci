@@ -1,14 +1,15 @@
 import { createStepExperimental } from '@era-ci/core'
-import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { createRepo, createTest, DeepPartial, isDeepSubset, test } from '@era-ci/e2e-tests-infra'
 import { JsonReport } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
+import expect from 'expect'
 
-const { createRepo } = createTest()
+createTest(test)
 
-test('passed,passed => passed', async () => {
-  const { runCi, toActualName } = await createRepo({
+test('passed,passed => passed', async t => {
+  const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
         {

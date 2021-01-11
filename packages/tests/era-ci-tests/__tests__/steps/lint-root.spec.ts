@@ -1,16 +1,17 @@
-import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { createRepo, createTest, isDeepSubset, test } from '@era-ci/e2e-tests-infra'
 import { lintRoot } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
-import { ExecutionStatus, Status } from '@era-ci/utils'
 import { taskWorkerTaskQueue } from '@era-ci/task-queues'
+import { ExecutionStatus, Status } from '@era-ci/utils'
+import chance from 'chance'
+import expect from 'expect'
 import fs from 'fs'
 import path from 'path'
-import chance from 'chance'
 
-const { createRepo, getResources } = createTest()
+createTest(test)
 
-it('ensure lint-root runs', async () => {
-  const { runCi } = await createRepo({
+test('ensure lint-root runs', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       rootPackageJson: {
         scripts: {
@@ -29,7 +30,7 @@ it('ensure lint-root runs', async () => {
         taskWorkerTaskQueue({
           queueName: `queue-${chance().hash().slice(0, 8)}`,
           redis: {
-            url: getResources().redisServerUrl,
+            url: t.context.resources.redisServerUrl,
           },
         }),
       ],
@@ -42,8 +43,8 @@ it('ensure lint-root runs', async () => {
   expect(flowLogs).toEqual(expect.stringContaining('hi123'))
 })
 
-it('ensure lint-root pass successfully', async () => {
-  const { runCi } = await createRepo({
+test('ensure lint-root pass successfully', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       rootPackageJson: {
         scripts: {
@@ -62,7 +63,7 @@ it('ensure lint-root pass successfully', async () => {
         taskWorkerTaskQueue({
           queueName: `queue-${chance().hash().slice(0, 8)}`,
           redis: {
-            url: getResources().redisServerUrl,
+            url: t.context.resources.redisServerUrl,
           },
         }),
       ],
@@ -102,8 +103,8 @@ it('ensure lint-root pass successfully', async () => {
   ).toBeTruthy()
 })
 
-it('ensure lint-root skipped-as-passed in second run (when there are no changes in the repo)', async () => {
-  const { runCi } = await createRepo({
+test('ensure lint-root skipped-as-passed in second run (when there are no changes in the repo)', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       rootPackageJson: {
         scripts: {
@@ -122,7 +123,7 @@ it('ensure lint-root skipped-as-passed in second run (when there are no changes 
         taskWorkerTaskQueue({
           queueName: `queue-${chance().hash().slice(0, 8)}`,
           redis: {
-            url: getResources().redisServerUrl,
+            url: t.context.resources.redisServerUrl,
           },
         }),
       ],
@@ -164,8 +165,8 @@ it('ensure lint-root skipped-as-passed in second run (when there are no changes 
   ).toBeTruthy()
 })
 
-it('reproduce bug - lint-root should run if hash of one of the packages change', async () => {
-  const { runCi, repoPath, toActualName } = await createRepo({
+test('reproduce bug - lint-root should run if hash of one of the packages change', async t => {
+  const { runCi, repoPath, toActualName } = await createRepo(t, {
     repo: {
       rootPackageJson: {
         scripts: {
@@ -187,7 +188,7 @@ it('reproduce bug - lint-root should run if hash of one of the packages change',
         taskWorkerTaskQueue({
           queueName: `queue-${chance().hash().slice(0, 8)}`,
           redis: {
-            url: getResources().redisServerUrl,
+            url: t.context.resources.redisServerUrl,
           },
         }),
       ],

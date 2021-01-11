@@ -1,13 +1,14 @@
 import { createStepExperimental, TaskQueueBase } from '@era-ci/core'
-import { createTest } from '@era-ci/e2e-tests-infra'
+import { createRepo, createTest, test } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import { EventEmitter } from 'events'
+import expect from 'expect'
 
-const { createRepo } = createTest()
+createTest(test)
 
-test('no steps and no task-queues in config is considered as valid', async () => {
-  const { runCi } = await createRepo({
+test('no steps and no task-queues in config is considered as valid', async t => {
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {
@@ -28,7 +29,7 @@ test('no steps and no task-queues in config is considered as valid', async () =>
   expect(passed).toBeTruthy()
 })
 
-test('should throw error if user forgot to declare a task-queue which one of the steps needs', async () => {
+test('should throw error if user forgot to declare a task-queue which one of the steps needs', async t => {
   class MissingTaskQueue implements TaskQueueBase<void, void> {
     public readonly eventEmitter = new EventEmitter()
     async cleanup() {
@@ -36,7 +37,7 @@ test('should throw error if user forgot to declare a task-queue which one of the
     }
   }
 
-  const { runCi } = await createRepo({
+  const { runCi } = await createRepo(t, {
     repo: {
       packages: [
         {

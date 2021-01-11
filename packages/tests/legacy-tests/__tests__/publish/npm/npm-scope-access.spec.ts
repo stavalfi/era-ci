@@ -4,8 +4,8 @@ import { TargetType } from '../../prepare-test/types'
 
 const { createRepo } = newEnv()
 
-test('npm package with scope.access=public', async () => {
-  const { runCi } = await createRepo({
+test('npm package with scope.access=public', async t => {
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: '@scope1/a',
@@ -27,8 +27,8 @@ test('npm package with scope.access=public', async () => {
   expect(master.published.get('@scope1/a')?.npm?.versions).toEqual(['1.0.0'])
 })
 
-test('npm package with scope.access=private', async () => {
-  const { runCi } = await createRepo({
+test('npm package with scope.access=private', async t => {
+  const { runCi } = await createRepo(t, {
     packages: [
       {
         name: '@scope1/a',

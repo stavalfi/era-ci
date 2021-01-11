@@ -1,16 +1,18 @@
-import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { createTest, isDeepSubset, test, TestWithContextType } from '@era-ci/e2e-tests-infra'
 import { amountOfWrokersKey, startWorker, WorkerConfig, WorkerTask } from '@era-ci/task-worker'
 import { DoneResult, ExecutionStatus, Status } from '@era-ci/utils'
+import { ExecutionContext } from 'ava'
 import Queue from 'bee-queue'
 import chance from 'chance'
 import { createFolder } from 'create-folder-structure'
 import execa from 'execa'
+import expect from 'expect'
 import fs from 'fs'
 import Redis from 'ioredis'
 import _ from 'lodash'
 import path from 'path'
 
-const { getResources } = createTest()
+createTest(test)
 
 const cleanups: (() => Promise<unknown>)[] = []
 
@@ -19,9 +21,9 @@ afterEach(async () => {
   cleanups.splice(0, cleanups.length)
 })
 
-async function createQueue(queueName: string): Promise<Queue<WorkerTask>> {
+async function createQueue(t: ExecutionContext<TestWithContextType>, queueName: string): Promise<Queue<WorkerTask>> {
   const queue = new Queue<WorkerTask>(queueName, {
-    redis: { host: getResources().redisServerHost, port: getResources().redisServerPort },
+    redis: { host: t.context.resources.redisServerHost, port: t.context.resources.redisServerPort },
     removeOnSuccess: true,
     removeOnFailure: true,
   })
@@ -32,7 +34,7 @@ async function createQueue(queueName: string): Promise<Queue<WorkerTask>> {
   return queue
 }
 
-test('no tasks - manual close worker', async () => {
+test('no tasks - manual close worker', async t => {
   const repoPath = await createFolder()
   const { cleanup } = await startWorker({
     queueName: `queue-${chance().hash().slice(0, 8)}`,
@@ -40,14 +42,14 @@ test('no tasks - manual close worker', async () => {
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   })
 
   await cleanup()
 })
 
-test('single worker - amount of workers === 1', async () => {
+test('single worker - amount of workers === 1', async t => {
   const repoPath = await createFolder()
 
   const queueName = `queue-${chance().hash().slice(0, 8)}`
@@ -58,11 +60,11 @@ test('single worker - amount of workers === 1', async () => {
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   })
 
-  const redisConnection = new Redis(getResources().redisServerUrl)
+  const redisConnection = new Redis(t.context.resources.redisServerUrl)
   cleanups.push(async () => redisConnection.disconnect())
 
   await expect(redisConnection.get(amountOfWrokersKey(queueName))).resolves.toEqual('1')
@@ -72,7 +74,7 @@ test('single worker - amount of workers === 1', async () => {
   await expect(redisConnection.get(amountOfWrokersKey(queueName))).resolves.toEqual('0')
 })
 
-test('manual close worker multiple times', async () => {
+test('manual close worker multiple times', async t => {
   const repoPath = await createFolder()
   const { cleanup } = await startWorker({
     queueName: `queue-${chance().hash().slice(0, 8)}`,
@@ -80,7 +82,7 @@ test('manual close worker multiple times', async () => {
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   })
 
@@ -89,7 +91,7 @@ test('manual close worker multiple times', async () => {
   await cleanup()
 })
 
-test('single task - success', async () => {
+test('single task - success', async t => {
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -98,12 +100,12 @@ test('single task - success', async () => {
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   })
   cleanups.push(cleanup)
 
-  const queue = await createQueue(queueName)
+  const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
     task: {
       shellCommand: 'echo hi > file1.txt',
@@ -130,7 +132,7 @@ test('single task - success', async () => {
   expect(content).toEqual('hi\n')
 })
 
-test('multiple tasks - all success', async () => {
+test('multiple tasks - all success', async t => {
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -139,12 +141,12 @@ test('multiple tasks - all success', async () => {
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   })
   cleanups.push(cleanup)
 
-  const queue = await createQueue(queueName)
+  const queue = await createQueue(t, queueName)
 
   const results = await Promise.all(
     _.range(0, 3).map(i => {
@@ -172,7 +174,7 @@ test('multiple tasks - all success', async () => {
   }
 })
 
-test('single empty task - expect to fail', async () => {
+test('single empty task - expect to fail', async t => {
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -181,12 +183,12 @@ test('single empty task - expect to fail', async () => {
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   })
   cleanups.push(cleanup)
 
-  const queue = await createQueue(queueName)
+  const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
     task: { shellCommand: '', cwd: repoPath },
   })
@@ -207,7 +209,7 @@ test('single empty task - expect to fail', async () => {
   ).toBeTruthy()
 })
 
-test('single task - expect to fail', async () => {
+test('single task - expect to fail', async t => {
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -216,12 +218,12 @@ test('single task - expect to fail', async () => {
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   })
   cleanups.push(cleanup)
 
-  const queue = await createQueue(queueName)
+  const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
     task: { shellCommand: 'exit 1', cwd: repoPath },
   })
@@ -246,7 +248,7 @@ test('single task - expect to fail', async () => {
   ).toBeTruthy()
 })
 
-test('multiple tasks - all fail', async () => {
+test('multiple tasks - all fail', async t => {
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -255,12 +257,12 @@ test('multiple tasks - all fail', async () => {
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   })
   cleanups.push(cleanup)
 
-  const queue = await createQueue(queueName)
+  const queue = await createQueue(t, queueName)
 
   const results = await Promise.all(
     _.range(0, 3).map(i => {
@@ -292,7 +294,7 @@ test('multiple tasks - all fail', async () => {
   }
 })
 
-test('no tasks so the worker is closing automaticaly', async () => {
+test('no tasks so the worker is closing automaticaly', async t => {
   const repoPath = await createFolder()
 
   const workerConfig: WorkerConfig = {
@@ -300,7 +302,7 @@ test('no tasks so the worker is closing automaticaly', async () => {
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 1_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   }
 
@@ -320,7 +322,7 @@ test('no tasks so the worker is closing automaticaly', async () => {
   expect(stdout).toEqual(expect.stringContaining('no tasks at all - shuting down worker'))
 })
 
-test('single task -> no tasks so the worker is closing automaticaly', async () => {
+test('single task -> no tasks so the worker is closing automaticaly', async t => {
   const repoPath = await createFolder()
 
   const queueName = `queue-${chance().hash().slice(0, 8)}`
@@ -330,11 +332,11 @@ test('single task -> no tasks so the worker is closing automaticaly', async () =
     maxWaitMsWithoutTasks: 3_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   }
 
-  const queue = await createQueue(queueName)
+  const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
     task: { shellCommand: 'echo hi', cwd: repoPath },
   })
@@ -362,7 +364,7 @@ test('single task -> no tasks so the worker is closing automaticaly', async () =
   expect(stdout).toEqual(expect.stringContaining('no more tasks - shuting down worker'))
 })
 
-test('single task - success - override processEnv', async () => {
+test('single task - success - override processEnv', async t => {
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -371,12 +373,12 @@ test('single task - success - override processEnv', async () => {
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   })
   cleanups.push(cleanup)
 
-  const queue = await createQueue(queueName)
+  const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
     task: {
       shellCommand: 'echo $X > file1.txt',
@@ -406,7 +408,7 @@ test('single task - success - override processEnv', async () => {
   expect(content).toEqual('hi\n')
 })
 
-test('single task - success - part of a group', async () => {
+test('single task - success - part of a group', async t => {
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -415,12 +417,12 @@ test('single task - success - part of a group', async () => {
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   })
   cleanups.push(cleanup)
 
-  const queue = await createQueue(queueName)
+  const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
     group: {
       groupId: '1',
@@ -457,7 +459,7 @@ test('single task - success - part of a group', async () => {
   expect(content2).toEqual('hi2\n')
 })
 
-test('single task - success - part of a group - override process-env', async () => {
+test('single task - success - part of a group - override process-env', async t => {
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -466,12 +468,12 @@ test('single task - success - part of a group - override process-env', async () 
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   })
   cleanups.push(cleanup)
 
-  const queue = await createQueue(queueName)
+  const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
     group: {
       groupId: '1',
@@ -511,7 +513,7 @@ test('single task - success - part of a group - override process-env', async () 
   expect(content2).toEqual('hi2\n')
 })
 
-test('multiple tasks - before-all is called once', async () => {
+test('multiple tasks - before-all is called once', async t => {
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -520,12 +522,12 @@ test('multiple tasks - before-all is called once', async () => {
     maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 100_000,
     redis: {
-      url: getResources().redisServerUrl,
+      url: t.context.resources.redisServerUrl,
     },
   })
   cleanups.push(cleanup)
 
-  const queue = await createQueue(queueName)
+  const queue = await createQueue(t, queueName)
   const task1 = queue.createJob({
     group: {
       groupId: '1',

@@ -53,7 +53,7 @@ export const starGittServer = async (): Promise<GitServer> => {
     },
   })
 
-  await new Promise((res, rej) => server.listen(0, err => (err ? rej(err) : res())))
+  await new Promise<void>((res, rej) => server.listen(0, err => (err ? rej(err) : res())))
 
   const port = getPort(server.server)
   const connectionType = 'http'
@@ -66,7 +66,7 @@ export const starGittServer = async (): Promise<GitServer> => {
       `${connectionType}://${username}:${token}@${ip}:${port}/${scope}/${name}.git`,
     close: () => server.close(),
     createRepository: async (scope, name) => {
-      await new Promise(res => server.create(`${scope}/${name}`, res))
+      await new Promise<void>(res => server.create(`${scope}/${name}`, res))
     },
     getServerInfo: () => ({
       port,

@@ -1,5 +1,11 @@
 import { createLogger, Log, LogLevel } from '@era-ci/core'
-import { createConsoleTransport, createFileTransport, defaultFormat, noFormat } from './transports'
+import {
+  createConsoleTransport,
+  createCustomLogTransport,
+  createFileTransport,
+  defaultFormat,
+  noFormat,
+} from './transports'
 import winston from 'winston'
 import path from 'path'
 import fse from 'fs-extra'
@@ -46,12 +52,12 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
       }
     }
   },
-  initializeLogger: async ({ loggerConfigurations }) => {
+  initializeLogger: async ({ loggerConfigurations, customLog }) => {
     await fse.remove(loggerConfigurations.logFilePath)
     const mainLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [
-        createConsoleTransport(defaultFormat),
+        customLog ? createCustomLogTransport(defaultFormat, customLog) : createConsoleTransport(defaultFormat),
         createFileTransport(loggerConfigurations.logFilePath, loggerConfigurations.disableFileOutput, defaultFormat),
       ],
       silent: loggerConfigurations.disabled,
@@ -59,7 +65,7 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
     const noFormattingLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [
-        createConsoleTransport(noFormat),
+        customLog ? createCustomLogTransport(noFormat, customLog) : createConsoleTransport(noFormat),
         createFileTransport(loggerConfigurations.logFilePath, loggerConfigurations.disableFileOutput, noFormat),
       ],
       silent: loggerConfigurations.disabled,
@@ -75,45 +81,79 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
 
     const createLog = (module: string, options?: { disable?: boolean }): Log => {
       const log = mainLogger.child({ module })
+      if (options?.disable) {
+        return {
+          logLevel: loggerConfigurations.customLogLevel,
+          debug: () => {
+            //
+          },
+          error: () => {
+            //
+          },
+          errorFromStream: () => {
+            //
+          },
+          info: () => {
+            //
+          },
+          infoFromStream: () => {
+            //
+          },
+          noFormattingError: () => {
+            //
+          },
+          noFormattingInfo: () => {
+            //
+          },
+          trace: () => {
+            //
+          },
+          verbose: () => {
+            //
+          },
+        }
+      }
       const base: Omit<Log, 'infoFromStream' | 'errorFromStream'> = {
         logLevel: loggerConfigurations.customLogLevel,
         error: (message, error, json) => {
-          if (!options?.disable) {
-            if (error === null || undefined) {
-              log.error(message)
+          if (error === null || undefined) {
+            if (customLog) {
+              customLog(message, json)
+            } else {
+              log.error(message, { json })
+            }
+          } else {
+            if (customLog) {
+              customLog(message, error, json)
             } else {
               log.error(message, error instanceof Error ? error : { unknownErrorType: error }, { json })
             }
           }
         },
-        info: (message, json) => !options?.disable && log.info(message, { json }),
-        verbose: (message, json) => !options?.disable && log.verbose(message, { json }),
-        debug: (message, json) => !options?.disable && log.debug(message, { json }),
-        trace: (message, json) => !options?.disable && log.silly(message, { json }),
-        noFormattingInfo: message => !options?.disable && noFormattingLogger.info(message),
-        noFormattingError: message => !options?.disable && noFormattingLogger.error(message),
+        info: (message, json) => log.info(message, { json }),
+        verbose: (message, json) => log.verbose(message, { json }),
+        debug: (message, json) => log.debug(message, { json }),
+        trace: (message, json) => log.silly(message, { json }),
+        noFormattingInfo: message => noFormattingLogger.info(message),
+        noFormattingError: message => noFormattingLogger.error(message),
       }
       return {
         ...base,
         infoFromStream: (stream: NodeJS.ReadableStream) => {
-          if (!options?.disable) {
-            stream.pipe(process.stdout)
-            stream.on('data', chunk => {
-              const asString = chunk.toString()
-              const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString
-              noFormattingOnlyFileLogger.info(final)
-            })
-          }
+          stream.pipe(process.stdout)
+          stream.on('data', chunk => {
+            const asString = chunk.toString()
+            const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString
+            noFormattingOnlyFileLogger.info(final)
+          })
         },
         errorFromStream: (stream: NodeJS.ReadableStream) => {
-          if (!options?.disable) {
-            stream.pipe(process.stderr)
-            stream.on('data', chunk => {
-              const asString = chunk.toString()
-              const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString
-              noFormattingOnlyFileLogger.error(final)
-            })
-          }
+          stream.pipe(process.stderr)
+          stream.on('data', chunk => {
+            const asString = chunk.toString()
+            const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString
+            noFormattingOnlyFileLogger.error(final)
+          })
         },
       }
     }

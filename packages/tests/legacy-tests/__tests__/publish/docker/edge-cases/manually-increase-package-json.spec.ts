@@ -6,8 +6,8 @@ const { createRepo } = newEnv()
 // NOTE: this tests are legacy and can be removed if needed
 
 describe('run ci -> increase packageJson.version -> run ci', () => {
-  test('run ci -> increase packageJson.version in major -> run ci', async () => {
-    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo({
+  test('run ci -> increase packageJson.version in major -> run ci', async t => {
+    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo(t, {
       packages: [
         {
           name: 'a',
@@ -44,8 +44,8 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([head1, head2]))
   })
 
-  test('run ci -> increase packageJson.version in minor -> run ci', async () => {
-    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo({
+  test('run ci -> increase packageJson.version in minor -> run ci', async t => {
+    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo(t, {
       packages: [
         {
           name: 'a',
@@ -80,8 +80,8 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([head1, head2]))
   })
 
-  test('run ci -> increase packageJson.version in patch (should be next version anyway) -> run ci', async () => {
-    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo({
+  test('run ci -> increase packageJson.version in patch (should be next version anyway) -> run ci', async t => {
+    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo(t, {
       packages: [
         {
           name: 'a',
@@ -116,8 +116,8 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([head1, head2]))
   })
 
-  test('run ci -> increase packageJson.version in patch -> run ci', async () => {
-    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo({
+  test('run ci -> increase packageJson.version in patch -> run ci', async t => {
+    const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo(t, {
       packages: [
         {
           name: 'a',

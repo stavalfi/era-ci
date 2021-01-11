@@ -5,8 +5,8 @@ import { manageStepResult } from './prepare-test/test-helpers'
 const { createRepo } = newEnv()
 
 describe('skip publish of package that did not change from the last publish', () => {
-  test('npm - publish passed so there is no need to publish again', async () => {
-    const { runCi } = await createRepo({
+  test('npm - publish passed so there is no need to publish again', async t => {
+    const { runCi } = await createRepo(t, {
       packages: [
         {
           name: 'a',
@@ -37,8 +37,8 @@ describe('skip publish of package that did not change from the last publish', ()
     expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
   })
 
-  test('docker - publish passed so there is no need to publish again', async () => {
-    const { runCi, gitHeadCommit } = await createRepo({
+  test('docker - publish passed so there is no need to publish again', async t => {
+    const { runCi, gitHeadCommit } = await createRepo(t, {
       packages: [
         {
           name: 'a',
@@ -67,9 +67,9 @@ describe('skip publish of package that did not change from the last publish', ()
     expect(master2.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([await gitHeadCommit()]))
   })
 
-  test('publish failed we will try to publish again in the nest flow even when the package-hash did not change', async () => {
+  test('publish failed we will try to publish again in the nest flow even when the package-hash did not change', async t => {
     const aPublish = await manageStepResult()
-    const { runCi } = await createRepo({
+    const { runCi } = await createRepo(t, {
       packages: [
         {
           name: 'a',
@@ -114,8 +114,8 @@ describe('skip publish of package that did not change from the last publish', ()
   })
 })
 
-test('multiple packages - publish again changed package', async () => {
-  const { runCi, addRandomFileToPackage } = await createRepo({
+test('multiple packages - publish again changed package', async t => {
+  const { runCi, addRandomFileToPackage } = await createRepo(t, {
     packages: [
       {
         name: 'a',
@@ -158,8 +158,8 @@ test('multiple packages - publish again changed package', async () => {
   expect(master2.published.get('b')?.npm?.versions).toEqual(['2.0.0'])
 })
 
-test('no addtional publish of the same package with the exact same content', async () => {
-  const { runCi, modifyPackageJson } = await createRepo({
+test('no addtional publish of the same package with the exact same content', async t => {
+  const { runCi, modifyPackageJson } = await createRepo(t, {
     packages: [
       {
         name: 'a',
