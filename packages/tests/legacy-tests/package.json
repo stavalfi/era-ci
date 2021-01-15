@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "test": "#jest - legacy-tests"
+    "test": "ava --verbose --timeout 60s"
   },
   "dependencies": {
     "@era-ci/core": "^2.0.0",
