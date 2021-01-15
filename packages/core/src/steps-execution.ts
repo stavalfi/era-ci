@@ -10,8 +10,8 @@ import {
   StepRedisEvent,
 } from '@era-ci/utils'
 import _ from 'lodash'
-import { from, merge, Observable, Subject } from 'rxjs'
-import { concatMap, filter, map, tap } from 'rxjs/operators'
+import { from, merge, Observable, Subject, lastValueFrom } from 'rxjs'
+import { concatMap, defaultIfEmpty, filter, ignoreElements, map, tap } from 'rxjs/operators'
 import { deserializeError } from 'serialize-error'
 import { Log, Logger, LogLevel } from './create-logger'
 import { StepExperimental, toStepsResultOfArtifactsByArtifact } from './create-step'
@@ -83,7 +83,7 @@ function runStep(
   )
 }
 
-export function runAllSteps(options: Options, state: Omit<State, 'getResult' | 'getReturnValue'>) {
+export async function runAllSteps(options: Options, state: Omit<State, 'getResult' | 'getReturnValue'>): Promise<void> {
   options.log.verbose(`starting to execute steps`)
 
   const getResult: State['getResult'] = opt => {
@@ -232,9 +232,7 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
         return [{ event, redisCommands }]
       }),
       // bufferTime(500),
-      filter(array => {
-        return array.length > 0
-      }),
+      filter(array => array.length > 0),
       concatMap(async array => {
         const commands = _.flatten(array.map(({ redisCommands }) => redisCommands))
         const results: Array<[Error | null, unknown]> = await options.redisClient.connection.multi(commands).exec()
@@ -300,5 +298,5 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
     allStepsEvents$.complete()
   }
 
-  return allStepsEvents$
+  await lastValueFrom(allStepsEvents$.pipe(ignoreElements(), defaultIfEmpty()))
 }

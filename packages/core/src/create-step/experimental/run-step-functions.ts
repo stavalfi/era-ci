@@ -1,5 +1,5 @@
 import { ExecutionStatus, Status, StepOutputEvents, StepOutputEventType } from '@era-ci/utils'
-import { from, Observable } from 'rxjs'
+import { from, Observable, firstValueFrom } from 'rxjs'
 import { first } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'
 import { ConstrainResultType, runConstrains } from '../../create-constrain'
@@ -26,16 +26,16 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<any, any>
   startStepMs: number
   userRunStepOptions: UserRunStepOptions<TaskQueue, StepConfigurations>
 } & StepFunctions<StepConfigurations>): Promise<Observable<StepOutputEvents[StepOutputEventType]>> {
-  await allStepsEventsRecorded$
-    .pipe(
+  await firstValueFrom(
+    allStepsEventsRecorded$.pipe(
       first(() =>
         areRecursiveParentStepsFinished({
           stepsResultOfArtifactsByStep: userRunStepOptions.getState().stepsResultOfArtifactsByStep,
           stepIndex: userRunStepOptions.currentStepInfo.index,
         }),
       ),
-    )
-    .toPromise()
+    ),
+  )
 
   const stepConstrainsResult = await runConstrains({
     ...userRunStepOptions,

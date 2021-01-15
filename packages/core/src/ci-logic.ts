@@ -106,7 +106,7 @@ export async function ci<TaskQueue>(options: {
 
     const state = getStepsResultOfArtifactsByStepAndArtifact({ artifacts, steps })
 
-    const allStepsEvents$ = await runAllSteps(
+    await runAllSteps(
       {
         log,
         gitRepoInfo,
@@ -126,8 +126,6 @@ export async function ci<TaskQueue>(options: {
       },
       state,
     )
-
-    await allStepsEvents$.toPromise()
 
     processExitCode = getExitCode(state.stepsResultOfArtifactsByStep)
     fatalError = false

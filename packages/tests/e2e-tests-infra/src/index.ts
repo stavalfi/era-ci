@@ -252,8 +252,14 @@ export const sleep = (cleanups: Cleanup[]) => (ms: number): Promise<void> => {
   })
 }
 
-export function createTest(test: TestWithContext): void {
-  resourcesBeforeAfterAll(test)
+export function createTest(
+  test: TestWithContext,
+  options?: {
+    startQuayHelperService?: boolean
+    startQuayMockService?: boolean
+  },
+): void {
+  resourcesBeforeAfterAll(test, options)
   beforeAfterCleanups(test)
   test.serial.beforeEach(t => {
     t.timeout(50 * 1000)

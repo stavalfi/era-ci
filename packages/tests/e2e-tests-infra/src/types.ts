@@ -5,8 +5,8 @@ import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap } from 'package-json-type'
 import { DeepPartial } from 'ts-essentials'
 import { GitServer } from './git-server-testkit'
-import { ExecutionContext, TestInterface } from 'ava'
 
+import { ExecutionContext, TestInterface } from 'ava'
 export type TestWithContextType = {
   resources: TestResources
   sleep: (ms: number) => Promise<void>
