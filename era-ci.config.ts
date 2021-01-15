@@ -91,7 +91,7 @@ export default config({
           username: DOCKER_HUB_USERNAME!,
           token: DOCKER_HUB_TOKEN!,
         },
-        buildAndPushOnlyTempVersion: CI === 'true',
+        buildAndPushOnlyTempVersion: false,
       }),
       children: [5],
     },
