@@ -2,7 +2,6 @@ import { LogLevel } from '@era-ci/core'
 import { winstonLogger } from '@era-ci/loggers'
 import { distructPackageJsonName, execaCommand } from '@era-ci/utils'
 import { ExecutionContext } from 'ava'
-import ciInfo from 'ci-info'
 import execa, { StdioOption } from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
@@ -54,20 +53,21 @@ export async function runNcExecutable({
   t: ExecutionContext<TestWithContextType>
 }): Promise<execa.ExecaReturnValue<string>> {
   const testLogger = await winstonLogger({
-    disabled: true,
+    disabled: true, // change to false if you need to see logs
     customLogLevel: LogLevel.trace,
     logFilePath: path.join(repoPath, 'test-logs.log'),
     disableFileOutput: true,
   }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
 
   let stdio: 'pipe' | 'ignore' | 'inherit' | Array<StdioOption>
-  if (ciInfo.isCI || printFlowId) {
+  // eslint-disable-next-line no-process-env
+  if (process.env.GITHUB_RUN_NUMBER || printFlowId) {
     stdio = 'pipe'
   } else {
     if (testOptions?.execaOptions?.stdio) {
       stdio = testOptions.execaOptions.stdio
     } else {
-      stdio = 'pipe' // winston is too slow. if you need to see logs, change to: 'inherit'
+      stdio = 'inherit'
     }
   }
   const configFilePath = require.resolve('./test-era-ci.config.ts')
