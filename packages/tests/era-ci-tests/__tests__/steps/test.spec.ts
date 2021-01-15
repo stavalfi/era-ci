@@ -309,7 +309,7 @@ test('reproduce bug - single worker - single task - test should be skipped-as-pa
   const { jsonReport } = await runCi()
 
   expect(
-    isDeepSubset(t,jsonReport, {
+    isDeepSubset(t, jsonReport, {
       stepsResultOfArtifactsByStep: [
         {
           data: {

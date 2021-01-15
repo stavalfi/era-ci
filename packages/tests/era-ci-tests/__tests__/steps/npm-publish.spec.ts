@@ -145,7 +145,7 @@ test('reproduce bug - wrong step statuses', async t => {
     ],
   }
 
-  expect(isDeepSubset(t,jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
 test('reproduce bug - step is invoked multiple times', async t => {
@@ -191,7 +191,7 @@ test('reproduce bug - step is invoked multiple times', async t => {
     },
   }
 
-  expect(isDeepSubset(t,jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
 test(`single run - if a depends on b, a.package.json.dep.b.version should be the version of b which is published rigth now`, async t => {

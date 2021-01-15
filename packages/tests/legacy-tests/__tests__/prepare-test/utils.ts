@@ -1,10 +1,13 @@
+import { LogLevel } from '@era-ci/core'
+import { winstonLogger } from '@era-ci/loggers'
+import { distructPackageJsonName, execaCommand } from '@era-ci/utils'
+import { ExecutionContext } from 'ava'
 import ciInfo from 'ci-info'
-import { distructPackageJsonName } from '@era-ci/utils'
 import execa, { StdioOption } from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
 import { latestNpmPackageVersion, publishedDockerImageTags, publishedNpmPackageVersions } from './seach-targets'
-import { CiResults, ResultingArtifact, TestOptions, ToActualName } from './types'
+import { CiResults, ResultingArtifact, TestOptions, TestWithContextType, ToActualName } from './types'
 
 export async function getPackages(repoPath: string): Promise<Array<string>> {
   const result = await execa.command('yarn workspaces --json info', {
@@ -39,6 +42,7 @@ export async function runNcExecutable({
   dockerRegistry,
   redisServer,
   npmRegistry,
+  t,
 }: {
   repoPath: string
   testOptions?: TestOptions
@@ -47,7 +51,15 @@ export async function runNcExecutable({
   npmRegistry: { address: string; auth: { username: string; token: string; email: string } }
   dockerRegistry: string
   dockerOrganizationName: string
+  t: ExecutionContext<TestWithContextType>
 }): Promise<execa.ExecaReturnValue<string>> {
+  const testLogger = await winstonLogger({
+    disabled: false,
+    customLogLevel: LogLevel.trace,
+    logFilePath: path.join(repoPath, 'test-logs.log'),
+    disableFileOutput: true,
+  }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
+
   let stdio: 'pipe' | 'ignore' | 'inherit' | Array<StdioOption>
   if (ciInfo.isCI || printFlowId) {
     stdio = 'pipe'
@@ -62,7 +74,9 @@ export async function runNcExecutable({
   const eraCi = require.resolve('@era-ci/core/dist/src/index.js')
   const withFlowId = printFlowId ? `--print-flow ${printFlowId}` : ''
   const command = `node --unhandled-rejections=strict ${eraCi} --config-file ${configFilePath} --repo-path ${repoPath} ${withFlowId}`
-  return execa.command(command, {
+
+  return execaCommand(command, {
+    log: testLogger.createLog(''),
     stdio,
     reject: testOptions?.execaOptions?.reject !== undefined ? testOptions.execaOptions?.reject : true,
     env: {
@@ -92,6 +106,7 @@ export async function runCiUsingConfigFile({
   toOriginalName,
   redisServer,
   printFlowId,
+  t,
 }: {
   repoPath: string
   testOptions?: TestOptions
@@ -101,8 +116,10 @@ export async function runCiUsingConfigFile({
   toOriginalName: (packageName: string) => string
   redisServer: string
   printFlowId?: string
+  t: ExecutionContext<TestWithContextType>
 }): Promise<CiResults> {
   const ciProcessResult = await runNcExecutable({
+    t,
     repoPath,
     testOptions,
     dockerOrganizationName,

@@ -61,6 +61,7 @@ export const newEnv: NewEnv = test => {
 
     const getFlowLogs: GetFlowLogs = async ({ flowId, execaOptions }) => {
       return runNcExecutable({
+        t,
         repoPath,
         testOptions: {
           execaOptions,
@@ -75,6 +76,7 @@ export const newEnv: NewEnv = test => {
 
     const runCi: RunCi = async ({ targetsInfo, execaOptions } = {}) => {
       return runCiUsingConfigFile({
+        t,
         repoPath,
         testOptions: {
           targetsInfo,
