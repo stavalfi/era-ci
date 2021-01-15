@@ -79,9 +79,6 @@ export async function execaCommand<Options extends SupportedExecaCommandOptions>
     ..._.omit(options, ['logLevel', 'log']),
     stdio: options.stdio === 'inherit' ? 'pipe' : options.stdio,
   }
-  options.log.trace(
-    `running command: ${JSON.stringify(command, null, 2)} with options: ${JSON.stringify(execaOptions, null, 2)}`,
-  )
   const subprocess = Array.isArray(command)
     ? execa(command[0], command.slice(1), execaOptions)
     : execa.command(command, execaOptions)
