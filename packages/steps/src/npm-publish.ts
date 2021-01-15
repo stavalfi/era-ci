@@ -1,4 +1,7 @@
-import { skipIfStepIsDisabledConstrain } from '@era-ci/constrains'
+import {
+  skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
+  skipIfStepIsDisabledConstrain,
+} from '@era-ci/constrains'
 import { ConstrainResultType, createConstrain, createStepExperimental, Log } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import {
@@ -13,10 +16,8 @@ import {
   Status,
   TargetType,
 } from '@era-ci/utils'
-import { skipIfArtifactStepResultMissingOrFailedInCacheConstrain } from '@era-ci/constrains'
 import fse from 'fs-extra'
 import _ from 'lodash'
-import npmLogin from 'npm-login-noninteractive'
 import os from 'os'
 import path from 'path'
 
@@ -141,7 +142,9 @@ export async function npmRegistryLogin({
   npmRegistryToken,
   npmRegistryUsername,
   log,
+  repoPath,
 }: {
+  repoPath: string
   npmRegistry: string
   npmRegistryUsername: string
   npmRegistryToken: string
@@ -153,7 +156,17 @@ export async function npmRegistryLogin({
   // it's an ugly why to check if we are in a test but at least,
   // it doesn't use env-var (that the user can use by mistake) or addtional ci-parameter.
   if (npmRegistryEmail === 'root@root.root') {
-    npmLogin(npmRegistryUsername, npmRegistryToken, npmRegistryEmail, npmRegistry)
+    await execaCommand(require.resolve(`.bin/npm-login-noninteractive`), {
+      log,
+      stdio: 'ignore',
+      cwd: repoPath,
+      env: {
+        NPM_USER: npmRegistryUsername,
+        NPM_PASS: npmRegistryToken,
+        NPM_EMAIL: npmRegistryEmail,
+        NPM_REGISTRY: npmRegistry,
+      },
+    })
   } else {
     await fse.writeFile(path.join(os.homedir(), '.npmrc'), `//${npmRegistry}/:_authToken=${npmRegistryToken}`)
   }
@@ -269,6 +282,7 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
     ],
     onBeforeArtifacts: async () =>
       npmRegistryLogin({
+        repoPath,
         npmRegistry: stepConfigurations.registry,
         npmRegistryEmail: stepConfigurations.publishAuth.email,
         npmRegistryToken: stepConfigurations.publishAuth.token,

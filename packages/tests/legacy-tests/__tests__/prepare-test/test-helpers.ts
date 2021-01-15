@@ -75,6 +75,7 @@ export async function publishNpmPackageWithoutCi({
 }): Promise<void> {
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
   await npmRegistryLogin({
+    repoPath,
     npmRegistry: npmRegistry.address,
     npmRegistryEmail: npmRegistry.auth.email,
     npmRegistryToken: npmRegistry.auth.token,
@@ -147,6 +148,7 @@ export async function unpublishNpmPackage({
   log: Log
 }): Promise<void> {
   await npmRegistryLogin({
+    repoPath,
     npmRegistry: npmRegistry.address,
     npmRegistryEmail: npmRegistry.auth.email,
     npmRegistryToken: npmRegistry.auth.token,

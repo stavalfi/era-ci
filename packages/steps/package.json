@@ -26,7 +26,7 @@
     "lodash": "4.17.20",
     "npm-login-noninteractive": "^0.1.4",
     "pretty-ms": "^7.0.0",
-    "rxjs": "^6.6.3",
+    "rxjs": "^7.0.0-beta.9",
     "semver": "^7.3.2",
     "serialize-error": "^7.0.1"
   }

@@ -54,7 +54,7 @@ export async function runNcExecutable({
   t: ExecutionContext<TestWithContextType>
 }): Promise<execa.ExecaReturnValue<string>> {
   const testLogger = await winstonLogger({
-    disabled: false,
+    disabled: true,
     customLogLevel: LogLevel.trace,
     logFilePath: path.join(repoPath, 'test-logs.log'),
     disableFileOutput: true,
@@ -67,7 +67,7 @@ export async function runNcExecutable({
     if (testOptions?.execaOptions?.stdio) {
       stdio = testOptions.execaOptions.stdio
     } else {
-      stdio = 'inherit'
+      stdio = 'pipe' // winston is too slow. if you need to see logs, change to: 'inherit'
     }
   }
   const configFilePath = require.resolve('./test-era-ci.config.ts')

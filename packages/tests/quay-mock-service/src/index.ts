@@ -256,10 +256,9 @@ export async function startQuayMockService(
         return
       }
       closed = true
+      app.log.debug(`closing quay-mock-service: "${address}"`)
       await app.close()
       await Promise.allSettled(cleanups.map(f => f()))
-      // eslint-disable-next-line no-console
-      console.log(`closed quay-mock-service: "${address}"`)
     },
   }
 }
