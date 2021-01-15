@@ -71,14 +71,6 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
       silent: loggerConfigurations.disabled,
     })
 
-    const noFormattingOnlyFileLogger = winston.createLogger({
-      level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
-      transports: [
-        createFileTransport(loggerConfigurations.logFilePath, loggerConfigurations.disableFileOutput, noFormat),
-      ],
-      silent: loggerConfigurations.disabled,
-    })
-
     const createLog = (module: string, options?: { disable?: boolean }): Log => {
       const log = mainLogger.child({ module })
       if (options?.disable) {
@@ -132,19 +124,20 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
       return {
         ...base,
         infoFromStream: (stream: NodeJS.ReadableStream) => {
-          stream.pipe(process.stdout)
+          // stream.pipe(process.stdout)
           stream.on('data', chunk => {
             const asString = chunk.toString()
             const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString
-            noFormattingOnlyFileLogger.info(final)
+
+            noFormattingLogger.info(final)
           })
         },
         errorFromStream: (stream: NodeJS.ReadableStream) => {
-          stream.pipe(process.stderr)
+          // stream.pipe(process.stderr)
           stream.on('data', chunk => {
             const asString = chunk.toString()
             const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString
-            noFormattingOnlyFileLogger.error(final)
+            noFormattingLogger.error(final)
           })
         },
       }

@@ -22,7 +22,7 @@ export class CustomLogTransport extends Transport {
         log += ` [${options.module}]`
       }
       if (options.level) {
-        log += ` ${options.level}`
+        log += ` ${options.level === 'silly' ? 'trace' : options.level}`
       }
       if (options.message) {
         log += ` ${options.message}`
