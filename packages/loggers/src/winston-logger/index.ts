@@ -117,17 +117,9 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
         logLevel: loggerConfigurations.customLogLevel,
         error: (message, error, json) => {
           if (error === null || undefined) {
-            if (customLog) {
-              customLog(message, json)
-            } else {
-              log.error(message, { json })
-            }
+            log.error(message, { json })
           } else {
-            if (customLog) {
-              customLog(message, error, json)
-            } else {
-              log.error(message, error instanceof Error ? error : { unknownErrorType: error }, { json })
-            }
+            log.error(message, error instanceof Error ? error : { unknownErrorType: error }, { json })
           }
         },
         info: (message, json) => log.info(message, { json }),

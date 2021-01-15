@@ -185,15 +185,12 @@ export async function createImmutableCache({
     setArtifactStepResultResipe: ({ artifactHash, stepId, artifactStepResult }) => {
       return [
         'set',
+        toArtifactStepResultKey({ stepId, artifactHash }),
         JSON.stringify({
           flowId,
           repoHash,
-          value: toArtifactStepResultKey({
-            stepId,
-            artifactHash,
-          }),
+          value: JSON.stringify(artifactStepResult),
         }),
-        JSON.stringify(artifactStepResult),
         'ex',
         ttls.ArtifactStepResult.toString(),
         'nx',
@@ -235,15 +232,12 @@ export async function createImmutableCache({
     setStepResultResipe: ({ stepId, stepResult }) => {
       return [
         'set',
+        toStepResultKey({ stepId, repoHash }),
         JSON.stringify({
           flowId,
           repoHash,
-          value: toStepResultKey({
-            stepId,
-            repoHash,
-          }),
+          value: JSON.stringify(stepResult),
         }),
-        JSON.stringify(stepResult),
         'ex',
         ttls.ArtifactStepResult.toString(),
         'nx',

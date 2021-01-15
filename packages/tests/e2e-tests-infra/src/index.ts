@@ -89,12 +89,16 @@ const runCi = <TaskQueue extends TaskQueueBase<any, any>>({
   t: ExecutionContext<TestWithContextType>
   testLogger: Logger
 }) => async (options?: { processEnv?: NodeJS.ProcessEnv }): Promise<RunCiResult> => {
+  const processEnv: NodeJS.ProcessEnv = {
+    NC_TEST_MODE: 'true',
+    SKIP_EXIT_CODE_1: 'true',
+    QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: t.context.resources.quayBuildStatusChangedRedisTopic,
+    ...options?.processEnv,
+  }
   const { flowId, repoHash, steps, passed, fatalError } = await ci({
     repoPath,
     config: configurations,
-    // DO NOT CHANGE THE DEFAULT VALUE! we don't want the tests to depend on the real "process.env"!!!
-    // if we will depend on it, we can't parallelize any test in AVA!!
-    processEnv: options?.processEnv ?? {},
+    processEnv,
     customLog: t.log.bind(t),
   })
 

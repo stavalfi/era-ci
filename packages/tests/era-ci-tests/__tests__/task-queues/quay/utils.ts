@@ -139,9 +139,6 @@ async function createTestDependencies(
     logFilePath: './era-ci.log',
   }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
 
-  // eslint-disable-next-line no-process-env
-  process.env.QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC = redisTopic
-
   const queue = await quayBuildsTaskQueue({
     getCommitTarGzPublicAddress: () =>
       `${quayServiceHelper.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
@@ -157,6 +154,9 @@ async function createTestDependencies(
     gitRepoInfo: await getGitRepoInfo(repoPath, logger.createLog('--')),
     logger,
     repoPath,
+    processEnv: {
+      QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: redisTopic,
+    },
   })
 
   return {

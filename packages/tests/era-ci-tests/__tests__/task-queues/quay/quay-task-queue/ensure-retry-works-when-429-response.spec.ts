@@ -36,7 +36,6 @@ test('multiple tasks', async t => {
   )
     .toPromise()
     .catch(error => {
-      // eslint-disable-next-line no-console
       t.log(
         'manually printing error because the error-properties are not shown by test-runner: ',
         JSON.stringify(error, null, 2),

@@ -41,7 +41,7 @@ export function createTaskQueue<
 }): ConfigureTaskQueue<TaskQueueConfigurations, TaskQueue, WorkerTask> {
   return (taskQueueConfigurations: TaskQueueConfigurations) => ({
     taskQueueName: createTaskQueueOptions.taskQueueName,
-    createFunc: async ({ logger, log, gitRepoInfo, repoPath }) => {
+    createFunc: async ({ logger, log, gitRepoInfo, repoPath, processEnv }) => {
       // @ts-ignore - we need to find a way to ensure that if NormalizedTaskQueueConfigurations is defined, also normalizedTaskQueueConfigurations is defined.
       const normalizedTaskQueueConfigurations: NormalizedTaskQueueConfigurations = createTaskQueueOptions.normalizeTaskQueueConfigurations
         ? await createTaskQueueOptions.normalizeTaskQueueConfigurations({ taskQueueConfigurations })
@@ -52,6 +52,7 @@ export function createTaskQueue<
         logger,
         gitRepoInfo,
         repoPath,
+        processEnv,
       })
     },
   })

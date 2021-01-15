@@ -15,6 +15,7 @@
   },
   "types": "dist/src/index.d.ts",
   "dependencies": {
+    "@swc/register": "^0.1.7",
     "@swc/cli": "0.1.27",
     "@swc/core": "1.2.43",
     "@era-ci/utils": "^2.0.0",

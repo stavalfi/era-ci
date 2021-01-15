@@ -108,7 +108,7 @@ test('step should pass in json-report', async t => {
     ],
   }
 
-  expect(isDeepSubset(t,jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
 test('flow should fail because step failed (without throwing error from the step)', async t => {
@@ -214,7 +214,7 @@ test('flow should fail because step failed (without throwing error from the step
     ],
   }
 
-  expect(isDeepSubset(t,jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
 test('flow should fail because step failed (while throwing error from the step)', async t => {
@@ -329,5 +329,5 @@ test('flow should fail because step failed (while throwing error from the step)'
     ],
   }
 
-  expect(isDeepSubset(t,jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })

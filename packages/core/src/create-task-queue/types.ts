@@ -69,7 +69,13 @@ export type CreateTaskQueue<
   TaskQueueConfigurations,
   TaskQueue extends TaskQueueBase<TaskQueueConfigurations, TaskPayload>,
   TaskPayload
-> = (options: { log: Log; logger: Logger; gitRepoInfo: GitRepoInfo; repoPath: string }) => Promise<TaskQueue>
+> = (options: {
+  log: Log
+  logger: Logger
+  gitRepoInfo: GitRepoInfo
+  repoPath: string
+  processEnv: NodeJS.ProcessEnv
+}) => Promise<TaskQueue>
 
 export type ConfigureTaskQueue<
   TaskQueueConfigurations,
@@ -88,4 +94,5 @@ export type TaskQueueOptions<TaskQueueConfigurations = void> = {
   logger: Logger
   repoPath: string
   gitRepoInfo: GitRepoInfo
+  processEnv: NodeJS.ProcessEnv
 }

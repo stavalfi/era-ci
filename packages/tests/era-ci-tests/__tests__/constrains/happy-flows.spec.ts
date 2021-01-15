@@ -7,7 +7,7 @@ import sinon from 'sinon'
 
 createTest(test)
 
-test.only('ensure constrain is called at most once', async t => {
+test('ensure constrain is called at most once', async t => {
   const constrain = sinon.fake.resolves({
     resultType: ConstrainResultType.ignoreThisConstrain,
     result: {

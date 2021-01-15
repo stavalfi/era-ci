@@ -111,6 +111,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       options.taskQueueConfigurations.quayToken,
       options.taskQueueConfigurations.quayNamespace,
       options.log,
+      options.processEnv,
     )
     this.taskTimeoutEventEmitter.on('timeout', async taskId => {
       const task = this.tasks.get(taskId)
@@ -153,7 +154,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       this.internalTaskQueue.push(() => this.onQuayBuildStatusChanged(topic, eventString)),
     )
 
-    options.log.verbose(`initialized ${QuayBuildsTaskQueue.name}`)
+    options.log.trace(`initialized ${QuayBuildsTaskQueue.name} with options: ${JSON.stringify(options, null, 2)}`)
   }
 
   private isTaskTimeout(
@@ -535,8 +536,7 @@ export const quayBuildsTaskQueue = createTaskQueue<
     })
     await redisConnection.connect()
     await redisConnection.subscribe(
-      // eslint-disable-next-line no-process-env
-      process.env.QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC || QUAY_BUILD_STATUS_CHANED_REDIS_TOPIC,
+      options.processEnv.QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC || QUAY_BUILD_STATUS_CHANED_REDIS_TOPIC,
     )
     return new QuayBuildsTaskQueue(options, redisConnection)
   },
