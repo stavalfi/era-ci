@@ -4,7 +4,7 @@ import { QuayBuildsTaskPayload } from '@era-ci/task-queues'
 import { distructPackageJsonName, ExecutionStatus, Status } from '@era-ci/utils'
 import fs from 'fs'
 import path from 'path'
-import { merge } from 'rxjs'
+import { merge, firstValueFrom, lastValueFrom } from 'rxjs'
 import { first, map, toArray } from 'rxjs/operators'
 import sinon from 'sinon'
 import { beforeAfterEach, test } from '../utils'
@@ -48,10 +48,12 @@ test('task is executed and we expect the docker-image to be presentin the regist
     },
   ])
 
-  await toTaskEvent$(taskId, {
-    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
-    throwOnTaskNotPassed: true,
-  }).toPromise()
+  await lastValueFrom(
+    toTaskEvent$(taskId, {
+      eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+      throwOnTaskNotPassed: true,
+    }),
+  )
 
   await expect(t.context.getImageTags(t.context.packages.package1.name)).resolves.toEqual(['1.0.0'])
 })
@@ -75,10 +77,12 @@ test('scheduled and running events are fired', async t => {
     },
   ])
 
-  await toTaskEvent$(taskId, {
-    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
-    throwOnTaskNotPassed: true,
-  }).toPromise()
+  await lastValueFrom(
+    toTaskEvent$(taskId, {
+      eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+      throwOnTaskNotPassed: true,
+    }),
+  )
 
   expect(scheduled.calledOnce).toBeTruthy()
   expect(running.calledOnce).toBeTruthy()
@@ -143,15 +147,15 @@ RUN exit 1
     },
   ])
 
-  const doneEvent = await toTaskEvent$(taskId, {
-    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
-    throwOnTaskNotPassed: false,
-  })
-    .pipe(
+  const doneEvent = await firstValueFrom(
+    toTaskEvent$(taskId, {
+      eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+      throwOnTaskNotPassed: false,
+    }).pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.done),
       map(e => e as DoneTask<QuayBuildsTaskPayload>),
-    )
-    .toPromise()
+    ),
+  )
 
   expect(scheduled.calledOnce).toBeTruthy()
   expect(running.calledOnce).toBeTruthy()
@@ -171,19 +175,19 @@ test('events schema is valid', async t => {
     },
   ])
 
-  const [scheduled, running, done] = await toTaskEvent$(taskId, {
-    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
-    throwOnTaskNotPassed: true,
-  })
-    .pipe(
+  const [scheduled, running, done] = await lastValueFrom(
+    toTaskEvent$(taskId, {
+      eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+      throwOnTaskNotPassed: true,
+    }).pipe(
       toArray(),
       map(array => [
         array[0] as ScheduledTask<QuayBuildsTaskPayload>,
         array[1] as RunningTask<QuayBuildsTaskPayload>,
         array[2] as DoneTask<QuayBuildsTaskPayload>,
       ]),
-    )
-    .toPromise()
+    ),
+  )
 
   expect(
     isDeepSubset(t, scheduled, {
@@ -237,15 +241,15 @@ RUN exit 1
     },
   ])
 
-  const done = await toTaskEvent$(taskId, {
-    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
-    throwOnTaskNotPassed: false,
-  })
-    .pipe(
+  const done = await firstValueFrom(
+    toTaskEvent$(taskId, {
+      eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+      throwOnTaskNotPassed: false,
+    }).pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.done),
       map(e => e as DoneTask<QuayBuildsTaskPayload>),
-    )
-    .toPromise()
+    ),
+  )
 
   expect(
     isDeepSubset(t, done, {
@@ -325,12 +329,12 @@ RUN sleep 10000 # make sure that this task will not end
     },
   ])
 
-  await toTaskEvent$(taskId, {
-    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
-    throwOnTaskNotPassed: false,
-  })
-    .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running))
-    .toPromise()
+  await firstValueFrom(
+    toTaskEvent$(taskId, {
+      eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+      throwOnTaskNotPassed: false,
+    }).pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running)),
+  )
 
   // wait until the docker-build will start in quay-mock-service (we don't have event for that)
   await new Promise(res => setTimeout(res, 3000))
@@ -361,25 +365,25 @@ RUN sleep 10000 # make sure that this task will not end
     },
   ])
 
-  await toTaskEvent$(taskId, {
-    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
-    throwOnTaskNotPassed: false,
-  })
-    .pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running))
-    .toPromise()
+  await firstValueFrom(
+    toTaskEvent$(taskId, {
+      eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+      throwOnTaskNotPassed: false,
+    }).pipe(first(e => e.taskExecutionStatus === ExecutionStatus.running)),
+  )
 
   // I'm not awaiting because i don't want to miss the abored-event
   t.context.taskQueuesResources.queue.cleanup()
 
-  const abort = await toTaskEvent$(taskId, {
-    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
-    throwOnTaskNotPassed: false,
-  })
-    .pipe(
+  const abort = await firstValueFrom(
+    toTaskEvent$(taskId, {
+      eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+      throwOnTaskNotPassed: false,
+    }).pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.aborted),
       map(e => e as AbortedTask<QuayBuildsTaskPayload>),
-    )
-    .toPromise()
+    ),
+  )
 
   expect(
     isDeepSubset(t, abort, {
@@ -407,14 +411,16 @@ test('multiple tasks', async t => {
     })),
   )
 
-  await merge(
-    ...tasks.map(task =>
-      toTaskEvent$(task.taskId, {
-        eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
-        throwOnTaskNotPassed: true,
-      }),
+  await lastValueFrom(
+    merge(
+      ...tasks.map(task =>
+        toTaskEvent$(task.taskId, {
+          eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+          throwOnTaskNotPassed: true,
+        }),
+      ),
     ),
-  ).toPromise()
+  )
 
   for (const [i, packageInfo] of Object.values(t.context.packages).entries()) {
     await expect(t.context.getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])

@@ -5,7 +5,10 @@ import { quayBuildsTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status, TargetType } from '@era-ci/utils'
 import expect from 'expect'
 
-createTest(test)
+createTest(test, {
+  startQuayHelperService: true,
+  startQuayMockService: true,
+})
 
 test('single package - no problems - step should pass', async t => {
   const { runCi, gitHeadCommit, repoPath } = await createRepo(t, {

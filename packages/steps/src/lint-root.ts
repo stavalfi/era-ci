@@ -6,7 +6,7 @@ import {
 import { createStepExperimental, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus } from '@era-ci/utils'
-import { last } from 'rxjs/operators'
+import { lastValueFrom } from 'rxjs'
 
 export const lintRoot = createStepExperimental<TaskWorkerTaskQueue, { scriptName: string }>({
   stepName: 'lint-root',
@@ -36,12 +36,12 @@ export const lintRoot = createStepExperimental<TaskWorkerTaskQueue, { scriptName
           },
         },
       ])
-      const taskResult = await toTaskEvent$(task.taskId, {
-        eventEmitter: taskQueue.eventEmitter,
-        throwOnTaskNotPassed: false,
-      })
-        .pipe(last())
-        .toPromise()
+      const taskResult = await lastValueFrom(
+        toTaskEvent$(task.taskId, {
+          eventEmitter: taskQueue.eventEmitter,
+          throwOnTaskNotPassed: false,
+        }),
+      )
 
       switch (taskResult.taskExecutionStatus) {
         case ExecutionStatus.scheduled:

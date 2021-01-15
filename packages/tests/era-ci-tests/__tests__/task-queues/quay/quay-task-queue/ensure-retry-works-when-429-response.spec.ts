@@ -1,6 +1,6 @@
 import { toTaskEvent$ } from '@era-ci/core'
 import { distructPackageJsonName } from '@era-ci/utils'
-import { merge } from 'rxjs'
+import { merge, lastValueFrom } from 'rxjs'
 import { beforeAfterEach, test } from '../utils'
 import expect from 'expect'
 
@@ -26,22 +26,22 @@ test('multiple tasks', async t => {
     })),
   )
 
-  await merge(
-    ...tasks.map(task =>
-      toTaskEvent$(task.taskId, {
-        eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
-        throwOnTaskNotPassed: true,
-      }),
+  await lastValueFrom(
+    merge(
+      ...tasks.map(task =>
+        toTaskEvent$(task.taskId, {
+          eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+          throwOnTaskNotPassed: true,
+        }),
+      ),
     ),
-  )
-    .toPromise()
-    .catch(error => {
-      t.log(
-        'manually printing error because the error-properties are not shown by test-runner: ',
-        JSON.stringify(error, null, 2),
-      )
-      throw error
-    })
+  ).catch(error => {
+    t.log(
+      'manually printing error because the error-properties are not shown by test-runner: ',
+      JSON.stringify(error, null, 2),
+    )
+    throw error
+  })
 
   for (const [i, packageInfo] of Object.values(t.context.packages).entries()) {
     await expect(t.context.getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])

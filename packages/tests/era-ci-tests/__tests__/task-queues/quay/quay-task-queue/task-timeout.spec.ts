@@ -1,9 +1,10 @@
 import { AbortedTask, toTaskEvent$ } from '@era-ci/core'
 import { QuayBuildsTaskPayload } from '@era-ci/task-queues'
 import { distructPackageJsonName, ExecutionStatus } from '@era-ci/utils'
+import expect from 'expect'
 import fs from 'fs'
 import path from 'path'
-import expect from 'expect'
+import { firstValueFrom } from 'rxjs'
 import { first, map } from 'rxjs/operators'
 import { beforeAfterEach, test } from '../utils'
 
@@ -29,15 +30,15 @@ test('ensure task is aborted when it reaches timeout (while the retry mechanism 
     },
   ])
 
-  const aborted = await toTaskEvent$(taskId, {
-    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
-    throwOnTaskNotPassed: false,
-  })
-    .pipe(
+  const aborted = await firstValueFrom(
+    toTaskEvent$(taskId, {
+      eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+      throwOnTaskNotPassed: false,
+    }).pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.aborted),
       map(e => e as AbortedTask<QuayBuildsTaskPayload>),
-    )
-    .toPromise()
+    ),
+  )
 
   expect(aborted.taskResult.notes).toEqual(['task-timeout'])
 })
@@ -63,15 +64,15 @@ RUN sleep 10000 # make sure that this task will not end
     },
   ])
 
-  const aborted = await toTaskEvent$(taskId, {
-    eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
-    throwOnTaskNotPassed: false,
-  })
-    .pipe(
+  const aborted = await firstValueFrom(
+    toTaskEvent$(taskId, {
+      eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+      throwOnTaskNotPassed: false,
+    }).pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.aborted),
       map(e => e as AbortedTask<QuayBuildsTaskPayload>),
-    )
-    .toPromise()
+    ),
+  )
 
   expect(aborted.taskResult.notes).toEqual(['task-timeout'])
 })

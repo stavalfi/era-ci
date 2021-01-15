@@ -15,7 +15,7 @@ import {
   TargetType,
 } from '@era-ci/utils'
 import path from 'path'
-import { last } from 'rxjs/operators'
+import { lastValueFrom } from 'rxjs'
 import { QuayDockerPublishConfiguration } from './types'
 import { chooseTagAndPublish } from './utils'
 
@@ -44,12 +44,12 @@ async function buildAndPublishArtifact({
     },
   ])
 
-  const taskResult = await toTaskEvent$(task.taskId, {
-    eventEmitter: taskQueue.eventEmitter,
-    throwOnTaskNotPassed: false,
-  })
-    .pipe(last())
-    .toPromise()
+  const taskResult = await lastValueFrom(
+    toTaskEvent$(task.taskId, {
+      eventEmitter: taskQueue.eventEmitter,
+      throwOnTaskNotPassed: false,
+    }),
+  )
 
   switch (taskResult.taskExecutionStatus) {
     case ExecutionStatus.scheduled:
