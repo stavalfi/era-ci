@@ -1,7 +1,8 @@
-import { newEnv } from '../../../prepare-test'
+import expect from 'expect'
+import { newEnv, test } from '../../../prepare-test'
 import { TargetType } from '../../../prepare-test/types'
 
-const { createRepo } = newEnv()
+const { createRepo } = newEnv(test)
 
 test(`run ci as the first time after there is already an npm publish`, async t => {
   const { runCi, publishNpmPackageWithoutCi } = await createRepo(t, {

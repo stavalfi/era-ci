@@ -48,7 +48,8 @@ test.serial.afterEach(async t => {
   await Promise.allSettled(t.context.cleanups.map(f => f()))
 })
 
-test('cleanup dont throw when queue is empty', async t => {
+test('cleanup dont throw when queue is empty', async () => {
+  // NOTE: this is the test. it's not a mistake!
   // ensure even if we don't use the queue, it won't throw errors.
 })
 

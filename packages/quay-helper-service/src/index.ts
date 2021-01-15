@@ -69,8 +69,7 @@ export async function startQuayHelperService(
   )
 
   const address = await app.listen(config.port)
-  // eslint-disable-next-line no-console
-  console.log(`quay-helper-service: "${address}"`)
+  app.log.info(`quay-helper-service: "${address}"`)
 
   let closed = false
   return {
@@ -82,6 +81,8 @@ export async function startQuayHelperService(
       closed = true
       await app.close()
       await redisConnection.disconnect()
+      // eslint-disable-next-line no-console
+      console.log(`closed quay-helper-service: "${address}"`)
     },
   }
 }

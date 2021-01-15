@@ -28,7 +28,7 @@ export async function printFlowLogs<TaskQueue>(options: {
       log: logger.createLog('calculate-hashes'),
     })
 
-    const redisClient = await connectToRedis(options.config.redis)
+    const redisClient = await connectToRedis({ config: options.config.redis, logger })
     cleanups.push(redisClient.cleanup)
 
     const immutableCache = await createImmutableCache({

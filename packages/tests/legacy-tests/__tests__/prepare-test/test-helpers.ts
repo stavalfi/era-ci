@@ -1,15 +1,16 @@
+import { Log } from '@era-ci/core'
+import { npmRegistryLogin } from '@era-ci/steps'
+import { buildFullDockerImageName } from '@era-ci/utils'
+import { ExecutionContext } from 'ava'
 import chance from 'chance'
+import { createFile } from 'create-folder-structure'
 import execa from 'execa'
 import fse from 'fs-extra'
 import Redis from 'ioredis'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
-import { Log } from '@era-ci/core'
-import { npmRegistryLogin } from '@era-ci/steps'
-import { buildFullDockerImageName } from '@era-ci/utils'
-import { CreateAndManageRepo, MinimalNpmPackage, ToActualName } from './types'
+import { CreateAndManageRepo, MinimalNpmPackage, TestWithContextType, ToActualName } from './types'
 import { getPackagePath, getPackages, ignore } from './utils'
-import { createFile } from 'create-folder-structure'
 
 export async function manageStepResult() {
   const assertionFilePath = await createFile()
@@ -190,7 +191,9 @@ export const installAndRunNpmDependency = async ({
   createRepo,
   npmRegistry,
   dependencyName,
+  t,
 }: {
+  t: ExecutionContext<TestWithContextType>
   toActualName: ToActualName
   npmRegistry: {
     address: string

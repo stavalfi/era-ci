@@ -65,7 +65,10 @@ export async function ci<TaskQueue>(options: {
 
     repoHash = rh
 
-    const redisClient = await connectToRedis(options.config.redis)
+    const redisClient = await connectToRedis({
+      config: options.config.redis,
+      logger,
+    })
     cleanups.push(redisClient.cleanup)
 
     immutableCache = await createImmutableCache({

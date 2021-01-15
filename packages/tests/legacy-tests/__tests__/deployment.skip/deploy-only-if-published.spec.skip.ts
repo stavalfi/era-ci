@@ -1,8 +1,10 @@
+import expect from 'expect'
 import { newEnv } from '../prepare-test'
 import { manageStepResult } from '../prepare-test/test-helpers'
 import { TargetType, TestOptions } from '../prepare-test/types'
+import { test } from '../prepare-test'
 
-const { createRepo } = newEnv()
+const { createRepo } = newEnv(test)
 
 test('packages with failed tests wont deploy', async t => {
   const bTest = await manageStepResult()

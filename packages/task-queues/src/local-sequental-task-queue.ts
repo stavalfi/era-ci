@@ -126,7 +126,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void, LocalSequent
       return
     }
 
-    this.options.log.verbose(`closing local-sequental task-queue and aborting scheduled tasks`)
+    this.options.log.debug(`closing local-sequental task-queue and aborting scheduled tasks`)
     // ensure we don't send events of any processing or pending tasks
     this.queueState.isQueueKilled = true
     this.taskQueue.pause()
@@ -154,7 +154,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void, LocalSequent
     }
     this.taskQueue.kill()
     this.eventEmitter.removeAllListeners()
-    this.options.log.verbose(`closed local-sequental task-queue and aborted scheduled tasks`)
+    this.options.log.debug(`closed local-sequental task-queue and aborted scheduled tasks`)
   }
 }
 

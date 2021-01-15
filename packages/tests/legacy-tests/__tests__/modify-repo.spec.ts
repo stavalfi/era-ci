@@ -1,7 +1,8 @@
-import { newEnv } from './prepare-test'
+import expect from 'expect'
+import { newEnv, test } from './prepare-test'
 import { TargetType } from './prepare-test/types'
 
-const { createRepo } = newEnv()
+const { createRepo } = newEnv(test)
 
 test('multiple packages - all publish again because of modification in root files', async t => {
   const { runCi, addRandomFileToRoot } = await createRepo(t, {

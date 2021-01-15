@@ -1,8 +1,9 @@
-import { newEnv } from './prepare-test'
-import { TargetType } from './prepare-test/types'
+import expect from 'expect'
+import { describe, newEnv, test } from './prepare-test'
 import { manageStepResult } from './prepare-test/test-helpers'
+import { TargetType } from './prepare-test/types'
 
-const { createRepo } = newEnv()
+const { createRepo } = newEnv(test)
 
 describe('skip publish of package that did not change from the last publish', () => {
   test('npm - publish passed so there is no need to publish again', async t => {

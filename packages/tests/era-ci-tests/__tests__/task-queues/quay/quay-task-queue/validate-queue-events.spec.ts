@@ -13,6 +13,7 @@ import expect from 'expect'
 beforeAfterEach(test)
 
 test('cleanup dont throw when queue is empty', async t => {
+  // NOTE: this is the test. it's not a mistake!
   // ensure even if we don't use the queue, it won't throw errors.
 })
 

@@ -247,6 +247,7 @@ export async function createImmutableCache({
 
   const cleanup = async () => {
     await nodeCache.close()
+    log.debug(`closed node-cache`)
   }
 
   return {

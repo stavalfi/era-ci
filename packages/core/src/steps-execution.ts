@@ -11,7 +11,7 @@ import {
 } from '@era-ci/utils'
 import _ from 'lodash'
 import { from, merge, Observable, Subject } from 'rxjs'
-import { bufferTime, concatMap, filter, tap, map } from 'rxjs/operators'
+import { concatMap, filter, map, tap } from 'rxjs/operators'
 import { deserializeError } from 'serialize-error'
 import { Log, Logger, LogLevel } from './create-logger'
 import { StepExperimental, toStepsResultOfArtifactsByArtifact } from './create-step'
@@ -191,7 +191,7 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
       tap(logEvent),
       map<
         StepOutputEvents[StepOutputEventType],
-        { event: StepOutputEvents[StepOutputEventType]; redisCommands: string[][] }
+        [{ event: StepOutputEvents[StepOutputEventType]; redisCommands: string[][] }]
       >(event => {
         const redisCommands: string[][] = []
         if (
@@ -229,10 +229,12 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
           ),
         ])
 
-        return { event, redisCommands }
+        return [{ event, redisCommands }]
       }),
-      bufferTime(500),
-      filter(array => array.length > 0),
+      // bufferTime(500),
+      filter(array => {
+        return array.length > 0
+      }),
       concatMap(async array => {
         const commands = _.flatten(array.map(({ redisCommands }) => redisCommands))
         const results: Array<[Error | null, unknown]> = await options.redisClient.connection.multi(commands).exec()
@@ -264,6 +266,7 @@ export function runAllSteps(options: Options, state: Omit<State, 'getResult' | '
         const isFlowFinished = fullState.stepsResultOfArtifactsByStep.every(step =>
           [ExecutionStatus.aborted, ExecutionStatus.done].includes(step.data.stepExecutionStatus),
         )
+
         if (isFlowFinished) {
           allStepsEvents$.complete()
         }

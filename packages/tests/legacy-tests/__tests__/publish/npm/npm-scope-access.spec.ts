@@ -1,8 +1,9 @@
 import { NpmScopeAccess } from '@era-ci/steps'
-import { newEnv } from '../../prepare-test'
+import expect from 'expect'
+import { newEnv, test } from '../../prepare-test'
 import { TargetType } from '../../prepare-test/types'
 
-const { createRepo } = newEnv()
+const { createRepo } = newEnv(test)
 
 test('npm package with scope.access=public', async t => {
   const { runCi } = await createRepo(t, {
