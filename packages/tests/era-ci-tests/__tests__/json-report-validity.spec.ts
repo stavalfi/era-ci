@@ -132,7 +132,7 @@ test('flow should be skippedAsPassed because there are no steps', async t => {
     },
   }
 
-  expect(isDeepSubset(t,jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
 test('verify artifact in json-report', async t => {
@@ -162,7 +162,7 @@ test('verify artifact in json-report', async t => {
     ],
   }
 
-  expect(isDeepSubset(t,jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
 test('reproduce bug - no packages hangs the flow', async t => {
@@ -190,5 +190,5 @@ test('reproduce bug - no packages hangs the flow', async t => {
     },
   }
 
-  expect(isDeepSubset(t,jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })

@@ -248,7 +248,7 @@ export async function startQuayMockService(
 
   const address = await app.listen(0)
   // eslint-disable-next-line no-console
-  // console.log(`quay-mock-service: "${address}"`)
+  console.log(`quay-mock-service: "${address}"`)
   let closed = false
   return {
     address,

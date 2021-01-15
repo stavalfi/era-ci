@@ -281,7 +281,7 @@ test('do not run step again if step succeed (image built and pushed to registry)
   }
 })
 
-test.only('publish with semver-tag', async t => {
+test('publish with semver-tag', async t => {
   const { runCi, gitHeadCommit, repoPath } = await createRepo(t, {
     repo: {
       packages: [

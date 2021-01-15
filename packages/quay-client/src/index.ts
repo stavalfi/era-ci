@@ -76,6 +76,7 @@ export class QuayClient {
     private readonly quayToken: string,
     private readonly quayNamespace: string,
     private readonly log: Log,
+    private readonly processEnv: NodeJS.ProcessEnv,
   ) {}
 
   private async request<ResponseBody, RequestBody = unknown>(options: {
@@ -229,9 +230,8 @@ export class QuayClient {
       quayBuildStatus: buildInfo.phase,
     }
     this.log.info(
-      `start image-build for package: "${packageName}": "${result.quayBuildAddress}" for image: "${
-        // eslint-disable-next-line no-process-env
-        process.env.NC_TEST_MODE
+      `started image-build for package: "${packageName}": "${result.quayBuildAddress}" for image: "${
+        this.processEnv.NC_TEST_MODE
           ? // in tests, docker-registry is not quay-server.
             `localhost:35000/${buildInfo.repository.namespace}/${buildInfo.repository.name}`
           : buildFullDockerImageName({

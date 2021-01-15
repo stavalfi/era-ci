@@ -7,8 +7,32 @@ import { downloadTarGz, quayNotificationEventToBuildStatus } from './utils'
 
 export async function startQuayHelperService(
   env: Record<string, string | undefined>,
+  customLog?: (...values: unknown[]) => void,
 ): Promise<{ address: string; cleanup: () => Promise<unknown> }> {
   const config = getConfig(env)
+
+  const logger = {
+    debug: (log: unknown) => customLog && customLog(log),
+    info: (log: unknown) => customLog && customLog(log),
+    trace: (log: unknown) => customLog && customLog(log),
+    error: (log: unknown) => customLog && customLog(log),
+    warn: (log: unknown) => customLog && customLog(log),
+    fatal: (log: unknown) => customLog && customLog(log),
+    child: () => logger,
+  }
+
+  const app = fastify({
+    logger: customLog
+      ? logger
+      : {
+          prettyPrint: true,
+          level: env.NC_TEST_MODE ? 'error' : 'info',
+        },
+  })
+
+  app.log[env.NC_TEST_MODE ? 'trace' : 'info'](
+    `starting quay-helper-service with config: ${JSON.stringify(config, null, 2)}`,
+  )
 
   const redisConnection = new Redis(config.redisAddress, {
     lazyConnect: true,
@@ -16,13 +40,6 @@ export async function startQuayHelperService(
     password: config.redisAuth?.password,
   })
   await redisConnection.connect()
-
-  const app = fastify({
-    logger: {
-      prettyPrint: true,
-      level: env.NC_TEST_MODE ? 'error' : 'info',
-    },
-  })
 
   app.get('/', async (_req, res) => res.send('alive'))
 
@@ -53,7 +70,7 @@ export async function startQuayHelperService(
 
   const address = await app.listen(config.port)
   // eslint-disable-next-line no-console
-  // console.log(`quay-helper-service: "${address}"`)
+  console.log(`quay-helper-service: "${address}"`)
 
   let closed = false
   return {

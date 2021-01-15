@@ -116,7 +116,7 @@ test('single task - success', async t => {
   })
 
   expect(
-    isDeepSubset(t,result, {
+    isDeepSubset(t, result, {
       executionStatus: ExecutionStatus.done,
       status: Status.passed,
       notes: [],
@@ -161,7 +161,7 @@ test('multiple tasks - all success', async t => {
 
   for (const result of results) {
     expect(
-      isDeepSubset(result, {
+      isDeepSubset(t, result, {
         executionStatus: ExecutionStatus.done,
         status: Status.passed,
         notes: [],
@@ -198,7 +198,7 @@ test('single empty task - expect to fail', async t => {
   })
 
   expect(
-    isDeepSubset(t,result, {
+    isDeepSubset(t, result, {
       executionStatus: ExecutionStatus.done,
       status: Status.failed,
       notes: [],
@@ -234,7 +234,7 @@ test('single task - expect to fail', async t => {
   })
 
   expect(
-    isDeepSubset(t,result, {
+    isDeepSubset(t, result, {
       executionStatus: ExecutionStatus.done,
       status: Status.failed,
       notes: [],
@@ -280,7 +280,7 @@ test('multiple tasks - all fail', async t => {
 
   for (const result of results) {
     expect(
-      isDeepSubset(result, {
+      isDeepSubset(t, result, {
         executionStatus: ExecutionStatus.done,
         status: Status.failed,
         notes: [],
@@ -323,7 +323,7 @@ test('no tasks so the worker is closing automaticaly', async t => {
   expect(stdout).toEqual(expect.stringContaining('no tasks at all - shuting down worker'))
 })
 
-test('single task -> no tasks so the worker is closing automaticaly', async t => {
+test('single task -> after that, no tasks so the worker is closing automaticaly', async t => {
   const repoPath = await createFolder()
 
   const queueName = `queue-${chance().hash().slice(0, 8)}`
@@ -397,7 +397,7 @@ test('single task - success - override processEnv', async t => {
   })
 
   expect(
-    isDeepSubset(t,result, {
+    isDeepSubset(t, result, {
       executionStatus: ExecutionStatus.done,
       status: Status.passed,
       notes: [],
@@ -446,7 +446,7 @@ test('single task - success - part of a group', async t => {
   })
 
   expect(
-    isDeepSubset(t,result, {
+    isDeepSubset(t, result, {
       executionStatus: ExecutionStatus.done,
       status: Status.passed,
       notes: [],
@@ -501,7 +501,7 @@ test('single task - success - part of a group - override process-env', async t =
   })
 
   expect(
-    isDeepSubset(t,result, {
+    isDeepSubset(t, result, {
       executionStatus: ExecutionStatus.done,
       status: Status.passed,
       notes: [],

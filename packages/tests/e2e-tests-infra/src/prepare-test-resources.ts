@@ -12,8 +12,6 @@ export function resourcesBeforeAfterAll(test: TestInterface<{ resources: TestRes
     const quayNamespace = `org-${chance().hash().slice(0, 8)}`
     const quayToken = `quay-token-${chance().hash().slice(0, 8)}`
     const quayBuildStatusChangedRedisTopic = `redis-topic-${chance().hash().slice(0, 8)}`
-    // eslint-disable-next-line no-process-env
-    // process.env.QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC = quayBuildStatusChangedRedisTopic
     t.context.resources = {
       npmRegistry: {
         address: `http://localhost:34873`,
@@ -41,12 +39,15 @@ export function resourcesBeforeAfterAll(test: TestInterface<{ resources: TestRes
         customLog: t.log.bind(t),
       }),
       quayBuildStatusChangedRedisTopic,
-      quayHelperService: await startQuayHelperService({
-        PORT: '0',
-        REDIS_ADDRESS: redisServerUrl,
-        QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: quayBuildStatusChangedRedisTopic,
-        NC_TEST_MODE: 'true',
-      }),
+      quayHelperService: await startQuayHelperService(
+        {
+          PORT: '0',
+          REDIS_ADDRESS: redisServerUrl,
+          QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: quayBuildStatusChangedRedisTopic,
+          NC_TEST_MODE: 'true',
+        },
+        t.log.bind(t),
+      ),
     }
   })
   test.serial.afterEach(async t => {

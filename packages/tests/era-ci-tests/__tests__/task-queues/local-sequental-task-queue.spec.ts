@@ -39,6 +39,7 @@ test.serial.beforeEach(async t => {
     },
     logger,
     repoPath,
+    processEnv: {},
   })
 })
 
@@ -192,7 +193,7 @@ test('done events schema is valid when task fail', async t => {
   )
 })
 
-test.only('abort event is fired for all tasks when queue is cleaned (before the tasks are executed)', async t => {
+test('abort event is fired for all tasks when queue is cleaned (before the tasks are executed)', async t => {
   const scheduled = sinon.fake()
   const running = sinon.fake()
   const aborted = sinon.fake()

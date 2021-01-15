@@ -33,6 +33,7 @@ export async function ci<TaskQueue>(options: {
   let log: Log | undefined
   let logger: Logger | undefined
   let steps: Graph<{ stepInfo: StepInfo }> | undefined
+  let processExitCode = 0
   try {
     const startFlowMs = Date.now()
     logger = await options.config.logger.callInitializeLogger({
@@ -90,6 +91,7 @@ export async function ci<TaskQueue>(options: {
           gitRepoInfo,
           logger,
           repoPath: options.repoPath,
+          processEnv: options.processEnv,
         })
       }),
     )
@@ -124,29 +126,43 @@ export async function ci<TaskQueue>(options: {
 
     await allStepsEvents$.toPromise()
 
-    process.exitCode = getExitCode(state.stepsResultOfArtifactsByStep)
+    processExitCode = getExitCode(state.stepsResultOfArtifactsByStep)
     fatalError = false
   } catch (error: unknown) {
     fatalError = true
-    process.exitCode = 1
-    log?.error(`CI failed unexpectedly`, error)
-  } finally {
-    if (immutableCache && logger) {
-      await immutableCache.set({
-        key: toFlowLogsContentKey(flowId),
-        value: await fse.readFile(logger.logFilePath, 'utf-8'),
-        asBuffer: true,
-        ttl: immutableCache.ttls.flowLogs,
-      })
+    processExitCode = 1
+    if (log) {
+      log?.error(`CI failed unexpectedly`, error)
+    } else {
+      if (options.customLog) {
+        options.customLog(`CI failed unexpectedly - ${error}`)
+      } else {
+        // eslint-disable-next-line no-console
+        console.error(`CI failed unexpectedly`, error)
+      }
     }
-    await Promise.all(cleanups.map(f => f().catch(e => log?.error(`cleanup function failed to run`, e))))
+  }
+
+  if (immutableCache && logger) {
+    await immutableCache.set({
+      key: toFlowLogsContentKey(flowId),
+      value: await fse.readFile(logger.logFilePath, 'utf-8'),
+      asBuffer: true,
+      ttl: immutableCache.ttls.flowLogs,
+    })
+  }
+  await Promise.all(cleanups.map(f => f().catch(e => log?.error(`cleanup function failed to run`, e))))
+
+  // 'SKIP_EXIT_CODE_1' is for test purposes
+  if (!options.processEnv['SKIP_EXIT_CODE_1']) {
+    process.exitCode = processExitCode
   }
 
   return {
     flowId,
     repoHash,
     steps,
-    passed: process.exitCode === 0 ? true : false,
+    passed: processExitCode === 0,
     fatalError,
   }
 }

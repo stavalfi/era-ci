@@ -11,6 +11,7 @@ export class CustomLogTransport extends Transport {
       message: string
       module?: string
       timestamp: string
+      json: Record<string, unknown>
     },
     next: () => void,
   ) {
@@ -25,6 +26,9 @@ export class CustomLogTransport extends Transport {
       }
       if (options.message) {
         log += ` ${options.message}`
+      }
+      if (options.json && Object.keys(options.json).length > 0) {
+        log += '\n' + JSON.stringify(options.json, null, 2)
       }
     } else {
       if (options.message) {
