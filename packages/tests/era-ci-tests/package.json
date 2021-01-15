@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "test": "#ava --verbose --timeout 60s"
+    "test": "ava --verbose --timeout 60s"
   },
   "devDependencies": {
     "@era-ci/constrains": "^2.0.0",
