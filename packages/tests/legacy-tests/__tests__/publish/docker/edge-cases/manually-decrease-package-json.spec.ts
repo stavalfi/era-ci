@@ -1,7 +1,9 @@
+import expect from 'expect'
 import { newEnv } from '../../../prepare-test'
 import { TargetType } from '../../../prepare-test/types'
+import { describe, test } from '../../../prepare-test'
 
-const { createRepo } = newEnv()
+const { createRepo } = newEnv(test)
 
 // NOTE: this tests are legacy and can be removed if needed
 

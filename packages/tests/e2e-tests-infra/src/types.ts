@@ -1,11 +1,11 @@
 import { Config, LogLevel, TaskQueueBase } from '@era-ci/core'
 import { JsonReport } from '@era-ci/steps'
 import { Graph, PackageJson, StepInfo, TargetType } from '@era-ci/utils'
-import { ExecutionContext, TestInterface } from 'ava'
 import { FolderStructure } from 'create-folder-structure'
 import { IDependencyMap } from 'package-json-type'
 import { DeepPartial } from 'ts-essentials'
 import { GitServer } from './git-server-testkit'
+import { ExecutionContext, TestInterface } from 'ava'
 
 export type TestWithContextType = {
   resources: TestResources

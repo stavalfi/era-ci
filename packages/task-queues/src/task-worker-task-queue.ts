@@ -120,7 +120,7 @@ export class TaskWorkerTaskQueue implements TaskQueueBase<TaskWorkerTaskQueueCon
     }
 
     this.isQueueActive = false
-    this.options.log.verbose(`closing quay-builds task-queue and aborting scheduled and running tasks`)
+    this.options.log.debug(`closing quay-builds task-queue and aborting scheduled and running tasks`)
 
     if (!this.internalTaskQueue.idle()) {
       // drain will not resolve if the queue is empty so we drain if it's not empty
@@ -136,7 +136,7 @@ export class TaskWorkerTaskQueue implements TaskQueueBase<TaskWorkerTaskQueueCon
     await this.queue.close()
     this.eventEmitter.removeAllListeners()
 
-    this.options.log.verbose(`closed quay-builds task-queue and aborted scheduled and running tasks`)
+    this.options.log.debug(`closed quay-builds task-queue and aborted scheduled and running tasks`)
   }
 }
 

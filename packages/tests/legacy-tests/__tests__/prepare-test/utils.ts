@@ -78,6 +78,7 @@ export async function runNcExecutable({
       DOCKER_HUB_TOKEN: '',
       REDIS_ENDPOINT: redisServer,
       TEST_SCRIPT_NAME: 'test',
+      NC_TEST_MODE: 'true',
     },
   })
 }

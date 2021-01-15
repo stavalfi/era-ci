@@ -35,7 +35,12 @@ const getJsonReport = async ({
   testLogger: Logger
   t: ExecutionContext<TestWithContextType>
 }): Promise<JsonReport> => {
-  const redisClient = await connectToRedis({ url: t.context.resources.redisServerUrl })
+  const redisClient = await connectToRedis({
+    config: {
+      url: t.context.resources.redisServerUrl,
+    },
+    logger: testLogger,
+  })
   const immutableCache = await createImmutableCache({
     artifacts: [],
     flowId,

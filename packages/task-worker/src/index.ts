@@ -88,14 +88,14 @@ export async function startWorker(
       if (timePassedUntilNowMs < config.maxWaitMsUntilFirstTask) {
         return
       } else {
-        await cleanup()
         workerLog.info(`no tasks at all - shuting down worker`)
+        await cleanup()
         return
       }
     }
     if (!state.isRunningTaskNow && timePassedUntilNowMs >= config.maxWaitMsWithoutTasks) {
-      await cleanup()
       workerLog.info(`no more tasks - shuting down worker`)
+      await cleanup()
       return
     }
   }, 500)
@@ -106,6 +106,7 @@ export async function startWorker(
     if (!closed) {
       closed = true
       await Promise.allSettled(cleanups.map(f => f()))
+      workerLog.debug(`closed worker`)
     }
   }
 

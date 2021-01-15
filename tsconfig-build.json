@@ -43,6 +43,9 @@
       "path": "packages/tests/e2e-tests-infra/tsconfig-build.json"
     },
     {
+      "path": "packages/tests/legacy-tests/tsconfig-build.json"
+    },
+    {
       "path": "packages/tests/era-ci-tests/tsconfig-build.json"
     },
     {

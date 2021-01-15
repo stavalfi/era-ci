@@ -1,10 +1,11 @@
 import chance from 'chance'
-import { newEnv } from '../../prepare-test'
-import { TargetType } from '../../prepare-test/types'
-import { runDockerImage } from '../../prepare-test/test-helpers'
 import execa from 'execa'
+import expect from 'expect'
+import { newEnv, test } from '../../prepare-test'
+import { runDockerImage } from '../../prepare-test/test-helpers'
+import { TargetType } from '../../prepare-test/types'
 
-const { createRepo, getTestResources } = newEnv()
+const { createRepo } = newEnv(test)
 
 test('1 package', async t => {
   const { runCi, gitHeadCommit } = await createRepo(t, {
@@ -55,7 +56,7 @@ test('ensure the image is working', async t => {
 
   await expect(
     runDockerImage(
-      `${getTestResources().dockerRegistry.replace('http://', '')}/${dockerOrganizationName}/${toActualName(
+      `${t.context.resources.dockerRegistry.replace('http://', '')}/${dockerOrganizationName}/${toActualName(
         'a',
       )}:${await gitHeadCommit()}`,
     ),

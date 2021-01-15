@@ -1,55 +1,24 @@
-import { GitServer, starGittServer } from './git-server-testkit'
+import { TestInterface } from 'ava'
+import { starGittServer } from './git-server-testkit'
+import { TestResources } from './types'
 
-type Deployment = { address: string; cleanup: () => Promise<unknown> }
-
-export function prepareTestResources() {
-  let dockerRegistry: Deployment
-  let npmRegistryDeployment: Deployment
-  let redisDeployment: Deployment
-  let gitServer: GitServer
-
-  // verdaccio allow us to login as any user & password & email
-  const verdaccioCardentials = {
-    username: 'root',
-    token: 'root',
-    email: 'root@root.root',
-  }
-
-  beforeAll(async () => {
-    gitServer = await starGittServer()
-    npmRegistryDeployment = {
-      cleanup: () => Promise.resolve(),
-      address: `http://localhost:34873`,
-    }
-    redisDeployment = {
-      cleanup: () => Promise.resolve(),
-      address: `redis://localhost:36379`,
-    }
-    dockerRegistry = {
-      cleanup: () => Promise.resolve(),
-      address: `http://localhost:35000`,
-    }
-  })
-  afterAll(async () => {
-    await Promise.all(
-      [
-        gitServer && gitServer.close(),
-        npmRegistryDeployment && npmRegistryDeployment.cleanup(),
-        redisDeployment && redisDeployment.cleanup(),
-        dockerRegistry && dockerRegistry.cleanup(),
-      ].filter(Boolean),
-    ).catch(() => Promise.resolve())
-  })
-
-  return {
-    get: () => ({
+export function prepareTestResources(test: TestInterface<{ resources: TestResources }>): void {
+  test.beforeEach(async t => {
+    t.context.resources = {
+      gitServer: await starGittServer(),
+      dockerRegistry: `http://localhost:35000`,
       npmRegistry: {
-        address: npmRegistryDeployment.address,
-        auth: verdaccioCardentials,
+        address: `http://localhost:34873`,
+        auth: {
+          username: 'root',
+          token: 'root',
+          email: 'root@root.root',
+        },
       },
-      dockerRegistry: dockerRegistry.address,
-      redisServer: redisDeployment.address,
-      gitServer,
-    }),
-  }
+      redisServer: `redis://localhost:36379`,
+    }
+  })
+  test.afterEach(async t => {
+    await t.context.resources.gitServer.close()
+  })
 }

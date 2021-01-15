@@ -479,7 +479,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       return
     }
 
-    this.options.log.verbose(`closing quay-builds task-queue and aborting scheduled and running tasks`)
+    this.options.log.debug(`closing quay-builds task-queue and aborting scheduled and running tasks`)
     await Promise.allSettled(this.cleanups.map(f => f()))
     // ensure we don't send events of any processing or pending tasks
     this.isQueueActive = false
@@ -518,7 +518,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
 
     // all tasks will end now and each running task will send "aborted" event.
 
-    this.options.log.verbose(`closed quay-builds task-queue and aborted scheduled and running tasks`)
+    this.options.log.debug(`closed quay-builds task-queue and aborted scheduled and running tasks`)
   }
 }
 

@@ -247,8 +247,7 @@ export async function startQuayMockService(
   })
 
   const address = await app.listen(0)
-  // eslint-disable-next-line no-console
-  console.log(`quay-mock-service: "${address}"`)
+  app.log.info(`quay-mock-service: "${address}"`)
   let closed = false
   return {
     address,
@@ -259,6 +258,8 @@ export async function startQuayMockService(
       closed = true
       await app.close()
       await Promise.allSettled(cleanups.map(f => f()))
+      // eslint-disable-next-line no-console
+      console.log(`closed quay-mock-service: "${address}"`)
     },
   }
 }

@@ -6,6 +6,14 @@ import { TargetType } from '@era-ci/utils'
 
 export { TargetType }
 
+import { ExecutionContext, TestInterface } from 'ava'
+import { GitServer } from './git-server-testkit'
+
+export type TestWithContextType = {
+  resources: TestResources
+}
+export type TestWithContext = TestInterface<TestWithContextType>
+
 export enum Resource {
   dockerRegistry = 'docker-registry',
   npmRegistry = 'npm-registry',
@@ -79,11 +87,7 @@ export type TestResources = {
     }
   }
   dockerRegistry: string
-  gitServer: {
-    port: number
-    host: string
-    protocol: string
-  }
+  gitServer: GitServer
   redisServer: string
 }
 
@@ -134,9 +138,10 @@ export type ManageRepoResult = {
   getFlowLogs: GetFlowLogs
 }
 
-export type CreateAndManageRepo = (repo?: Repo) => Promise<ManageRepoResult>
+export type CreateAndManageRepo = (t: ExecutionContext<TestWithContextType>, repo?: Repo) => Promise<ManageRepoResult>
 
-export type NewEnv = () => {
+export type NewEnv = (
+  test: TestInterface<{ resources: TestResources }>,
+) => {
   createRepo: CreateAndManageRepo
-  getTestResources: () => TestResources
 }

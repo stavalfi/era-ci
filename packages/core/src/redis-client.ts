@@ -1,6 +1,7 @@
 import Redis from 'ioredis'
 import zlib from 'zlib'
 import { promisify } from 'util'
+import { Logger } from './create-logger'
 
 export type RedisConfiguration = {
   url: string
@@ -33,7 +34,15 @@ async function unzip(buffer: Buffer): Promise<string> {
   return result.toString()
 }
 
-export const connectToRedis = async (config: RedisConfiguration): Promise<RedisClient> => {
+export const connectToRedis = async ({
+  config,
+  logger,
+}: {
+  config: RedisConfiguration
+  logger: Logger
+}): Promise<RedisClient> => {
+  const log = logger.createLog('redis-client')
+
   const connection = new Redis(config.url, {
     username: config.auth?.username,
     password: config.auth?.password,
@@ -86,6 +95,7 @@ export const connectToRedis = async (config: RedisConfiguration): Promise<RedisC
 
   const cleanup = async () => {
     connection.disconnect()
+    log.debug(`closed redis-client to redis`)
   }
 
   return {

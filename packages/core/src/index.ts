@@ -18,16 +18,7 @@ export * from './create-constrain'
 export * from './create-task-queue'
 export * from './immutable-cache'
 
-async function main() {
-  try {
-    // eslint-disable-next-line no-process-env
-    await startCli(process.argv, process.env)
-  } catch (error: unknown) {
-    console.error(`CI failed unexpectedly`, error)
-    throw error
-  }
-}
-
 if (require.main === module) {
-  main()
+  // eslint-disable-next-line no-process-env
+  startCli(process.argv, process.env)
 }

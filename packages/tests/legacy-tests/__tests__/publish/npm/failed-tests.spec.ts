@@ -1,8 +1,9 @@
-import { newEnv } from '../../prepare-test'
-import { TargetType } from '../../prepare-test/types'
+import expect from 'expect'
+import { describe, newEnv, test } from '../../prepare-test'
 import { manageStepResult } from '../../prepare-test/test-helpers'
+import { TargetType } from '../../prepare-test/types'
 
-const { createRepo } = newEnv()
+const { createRepo } = newEnv(test)
 
 describe('publish only packages without failing tests', () => {
   test('tests failed so there is no publish', async t => {
