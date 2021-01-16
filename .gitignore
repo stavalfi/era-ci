@@ -24,3 +24,4 @@ compiled-task-worker.config.js
 *.log
 .eslintcache
 compiled-era-ci-*
+.clinic
