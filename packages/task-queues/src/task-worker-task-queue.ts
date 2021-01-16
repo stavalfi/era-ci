@@ -143,16 +143,17 @@ export class TaskWorkerTaskQueue implements TaskQueueBase<TaskWorkerTaskQueueCon
 export const taskWorkerTaskQueue = createTaskQueue<TaskWorkerTaskQueue, WorkerTask, TaskWorkerTaskQueueConfigurations>({
   taskQueueName: 'task-worker-task-queue',
   initializeTaskQueue: async options => {
-    const worker = await startWorker(
-      {
+    const worker = await startWorker({
+      config: {
         queueName: options.taskQueueConfigurations.queueName,
         repoPath: options.repoPath,
         maxWaitMsWithoutTasks: 1_000_000_000,
         maxWaitMsUntilFirstTask: 1_000_000_000,
         redis: options.taskQueueConfigurations.redis,
       },
-      options.logger,
-    )
+      logger: options.logger,
+      processEnv: options.processEnv,
+    })
     return new TaskWorkerTaskQueue(options, worker)
   },
 })

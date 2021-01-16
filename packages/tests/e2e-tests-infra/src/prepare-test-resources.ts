@@ -6,7 +6,7 @@ import { starGittServer } from './git-server-testkit'
 import { TestResources } from './types'
 
 export function resourcesBeforeAfterAll(
-  test: TestInterface<{ resources: TestResources }>,
+  test: TestInterface<{ resources: TestResources; processEnv: NodeJS.ProcessEnv }>,
   options?: {
     startQuayHelperService?: boolean
     startQuayMockService?: boolean
@@ -26,6 +26,11 @@ export function resourcesBeforeAfterAll(
     const quayNamespace = `org-${chance().hash().slice(0, 8)}`
     const quayToken = `quay-token-${chance().hash().slice(0, 8)}`
     const quayBuildStatusChangedRedisTopic = `redis-topic-${chance().hash().slice(0, 8)}`
+    t.context.processEnv = {
+      NC_TEST_MODE: 'true',
+      SKIP_EXIT_CODE_1: 'true',
+      QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: t.context.resources.quayBuildStatusChangedRedisTopic,
+    }
     t.context.resources = {
       npmRegistry: {
         address: `http://localhost:34873`,
@@ -60,8 +65,7 @@ export function resourcesBeforeAfterAll(
             {
               PORT: '0',
               REDIS_ADDRESS: redisServerUrl,
-              QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: quayBuildStatusChangedRedisTopic,
-              NC_TEST_MODE: 'true',
+              ...t.context.processEnv,
             },
             t.log.bind(t),
           )

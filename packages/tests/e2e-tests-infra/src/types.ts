@@ -12,6 +12,7 @@ export type TestWithContextType = {
   sleep: (ms: number) => Promise<void>
   createRepo: CreateRepo
   cleanups: Cleanup[]
+  processEnv: NodeJS.ProcessEnv
 }
 export type TestWithContext = TestInterface<TestWithContextType>
 
