@@ -18,7 +18,7 @@ export function config(config: WorkerConfig): WorkerConfig {
 
 export const amountOfWrokersKey = (queueName: string) => `${queueName}--amount-of-workers`
 
-export async function main(): Promise<void> {
+export async function main(processEnv: NodeJS.ProcessEnv): Promise<void> {
   const argv = yargsParser(process.argv.slice(2), {
     string: ['repo-path'],
     default: {
@@ -30,7 +30,7 @@ export async function main(): Promise<void> {
   const configFilePath = path.join(repoPath, 'task-worker.config.ts')
   const config = await parseConfig(configFilePath)
 
-  await startWorker({ ...config, repoPath })
+  await startWorker({ config: { ...config, repoPath }, processEnv })
 }
 
 export type Worker = {
@@ -38,10 +38,15 @@ export type Worker = {
   cleanup: () => Promise<void>
 }
 
-export async function startWorker(
-  config: WorkerConfig & { repoPath: string; customLog?: (...values: unknown[]) => void },
-  logger?: Logger,
-): Promise<Worker> {
+export async function startWorker({
+  config,
+  processEnv,
+  logger,
+}: {
+  config: WorkerConfig & { repoPath: string; customLog?: (...values: unknown[]) => void }
+  processEnv: NodeJS.ProcessEnv
+  logger?: Logger
+}): Promise<Worker> {
   const workerName = `${config.queueName}-worker-${chance().hash().slice(0, 8)}`
   const logFilePath = logger?.logFilePath ?? path.join(config.repoPath, `${workerName}.log`)
 
@@ -77,6 +82,7 @@ export async function startWorker(
   const state = {
     receivedFirstTask: false,
     isRunningTaskNow: false,
+    allTasksSucceed: true,
     lastTaskEndedMs: Date.now(),
   }
 
@@ -106,6 +112,12 @@ export async function startWorker(
     if (!closed) {
       closed = true
       await Promise.allSettled(cleanups.map(f => f()))
+      if (!state.allTasksSucceed) {
+        // 'SKIP_EXIT_CODE_1' is for test purposes
+        if (!processEnv['SKIP_EXIT_CODE_1']) {
+          process.exitCode = 1
+        }
+      }
       workerLog.debug(`closed worker`)
     }
   }
@@ -162,6 +174,7 @@ export async function startWorker(
         })
 
         if (result.failed) {
+          state.allTasksSucceed = false
           taskLog.info('----------------------------------')
           taskLog.info(`skipping task: "${job.data.task.shellCommand}" because the before-all failed on this worker.`)
           taskLog.info('----------------------------------')
@@ -235,5 +248,6 @@ export async function startWorker(
 }
 
 if (require.main === module) {
-  main()
+  // eslint-disable-next-line no-process-env
+  main(process.env)
 }

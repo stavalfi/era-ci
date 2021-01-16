@@ -191,13 +191,16 @@ test('two workers - single task - only one worker should execute the task', asyn
   })
 
   const worker2 = await startWorker({
-    queueName,
-    redis: {
-      url: t.context.resources.redisServerUrl,
+    config: {
+      queueName,
+      redis: {
+        url: t.context.resources.redisServerUrl,
+      },
+      repoPath,
+      maxWaitMsUntilFirstTask: 3_000,
+      maxWaitMsWithoutTasks: 3_000,
     },
-    repoPath,
-    maxWaitMsUntilFirstTask: 3_000,
-    maxWaitMsWithoutTasks: 3_000,
+    processEnv: t.context.processEnv,
   })
 
   const { flowLogs } = await runCi()
@@ -246,13 +249,16 @@ test('two workers - one task for each worker', async t => {
   })
 
   const worker2 = await startWorker({
-    queueName,
-    redis: {
-      url: t.context.resources.redisServerUrl,
+    config: {
+      queueName,
+      redis: {
+        url: t.context.resources.redisServerUrl,
+      },
+      repoPath,
+      maxWaitMsUntilFirstTask: 3_000,
+      maxWaitMsWithoutTasks: 3_000,
     },
-    repoPath,
-    maxWaitMsUntilFirstTask: 3_000,
-    maxWaitMsWithoutTasks: 3_000,
+    processEnv: t.context.processEnv,
   })
 
   const { flowLogs } = await runCi()

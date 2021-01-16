@@ -95,9 +95,7 @@ const runCi = <TaskQueue extends TaskQueueBase<any, any>>({
   testLogger: Logger
 }) => async (options?: { processEnv?: NodeJS.ProcessEnv }): Promise<RunCiResult> => {
   const processEnv: NodeJS.ProcessEnv = {
-    NC_TEST_MODE: 'true',
-    SKIP_EXIT_CODE_1: 'true',
-    QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: t.context.resources.quayBuildStatusChangedRedisTopic,
+    ...t.context.processEnv,
     ...options?.processEnv,
   }
   const { flowId, repoHash, steps, passed, fatalError } = await ci({

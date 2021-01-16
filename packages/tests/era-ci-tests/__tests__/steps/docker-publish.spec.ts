@@ -9,7 +9,8 @@ createTest(test)
 
 test('docker-artifact depends on published npm-artifact during docker-build', async t => {
   // eslint-disable-next-line no-process-env
-  const hostIp = process.env.GITHUB_RUN_NUMBER ? `172.17.0.1` : 'host.docker.internal'
+  // const hostIp = process.env.GITHUB_RUN_NUMBER ? `172.17.0.1` : 'host.docker.internal' // it seems that 'host.docker.internal' stopped working for mac and now, `172.17.0.1` is working for mac.
+  const hostIp = `172.17.0.1`
   const { runCi, gitHeadCommit } = await createRepo(t, toActualName => ({
     repo: {
       packages: [
