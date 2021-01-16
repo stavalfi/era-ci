@@ -39,14 +39,12 @@ jobs:
       - name: Execute ERA CI
         env:
           CI_NODE_INDEX: ${{ matrix.ci_node_index }}
-          REDIS_ENDPOINT: ${{ secrets.REDIS_ENDPOINT }}
-          REDIS_ACL_USERNAME: ${{ secrets.REDIS_ACL_USERNAME }}
-          REDIS_ACL_PASSWORD: ${{ secrets.REDIS_ACL_PASSWORD }}
-          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          SECRETHUB_CREDENTIAL: ${{ secrets.SECRETHUB_CREDENTIAL }}
+          FULL_RUN: true
         run: |
           if [ "$CI_NODE_INDEX" -eq "0" ]
           then
-            yarn run-era-ci
+            yarn run-era-ci:secrethub
           else
-            yarn run-task-worker
+            yarn run-task-worker:secrethub
           fi

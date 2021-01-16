@@ -170,9 +170,9 @@ test('reproduce bug - step is invoked multiple times', async t => {
       ],
       steps: createLinearStepsGraph([
         validatePackages(),
-        installRoot(),
-        buildRoot({ scriptName: 'build' }),
-        testStep({ scriptName: 'test' }),
+        installRoot({ isStepEnabled: true }),
+        buildRoot({ isStepEnabled: true, scriptName: 'build' }),
+        testStep({ scriptName: 'test', isStepEnabled: true }),
         npmPublish({
           isStepEnabled: true,
           npmScopeAccess: NpmScopeAccess.public,

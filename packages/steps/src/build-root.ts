@@ -1,5 +1,6 @@
 import {
   skipIfRootPackageJsonMissingScriptConstrain,
+  skipIfStepIsDisabledConstrain,
   skipIfStepResultMissingOrFailedInCacheConstrain,
 } from '@era-ci/constrains'
 import { createStepExperimental, toTaskEvent$ } from '@era-ci/core'
@@ -7,11 +8,12 @@ import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus } from '@era-ci/utils'
 import { lastValueFrom } from 'rxjs'
 
-export const buildRoot = createStepExperimental<TaskWorkerTaskQueue, { scriptName: string }>({
+export const buildRoot = createStepExperimental<TaskWorkerTaskQueue, { isStepEnabled: boolean; scriptName: string }>({
   stepName: 'build-root',
   stepGroup: 'build',
   taskQueueClass: TaskWorkerTaskQueue,
   run: ({ stepConfigurations, repoPath, taskQueue }) => ({
+    globalConstrains: [skipIfStepIsDisabledConstrain()],
     stepConstrains: [
       skipIfStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'install-root',

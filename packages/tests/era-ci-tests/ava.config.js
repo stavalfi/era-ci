@@ -3,5 +3,4 @@ export default {
   extensions: ['ts'],
   require: ['@swc/register'],
   files: [`__tests__/**/*.spec.ts`],
-  timeout: 50 * 1000,
 }

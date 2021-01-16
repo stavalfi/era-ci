@@ -63,7 +63,7 @@ test(`reproduce bug - steps are triggered in the wrong time when using waitUntil
     configurations: {
       steps: createLinearStepsGraph([
         validatePackages(),
-        installRoot(),
+        installRoot({ isStepEnabled: true }),
         npmPublish({
           isStepEnabled: true,
           npmScopeAccess: NpmScopeAccess.public,

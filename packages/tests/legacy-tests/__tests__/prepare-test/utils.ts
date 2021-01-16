@@ -53,15 +53,14 @@ export async function runNcExecutable({
   t: ExecutionContext<TestWithContextType>
 }): Promise<execa.ExecaReturnValue<string>> {
   const testLogger = await winstonLogger({
-    disabled: true, // change to false if you need to see logs
+    disabled: false,
     customLogLevel: LogLevel.trace,
     logFilePath: path.join(repoPath, 'test-logs.log'),
     disableFileOutput: true,
   }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
 
   let stdio: 'pipe' | 'ignore' | 'inherit' | Array<StdioOption>
-  // eslint-disable-next-line no-process-env
-  if (process.env.GITHUB_RUN_NUMBER || printFlowId) {
+  if (printFlowId) {
     stdio = 'pipe'
   } else {
     if (testOptions?.execaOptions?.stdio) {

@@ -1,6 +1,4 @@
 import { config, LogLevel } from '@era-ci/core'
-import { createLinearStepsGraph } from '@era-ci/steps-graph'
-import { localSequentalTaskQueue, taskWorkerTaskQueue } from '@era-ci/task-queues'
 import { winstonLogger } from '@era-ci/loggers'
 import {
   buildRoot,
@@ -10,9 +8,11 @@ import {
   jsonReporter,
   npmPublish,
   NpmScopeAccess,
-  validatePackages,
   test,
+  validatePackages,
 } from '@era-ci/steps'
+import { createLinearStepsGraph } from '@era-ci/steps-graph'
+import { localSequentalTaskQueue, taskWorkerTaskQueue } from '@era-ci/task-queues'
 import chance from 'chance'
 
 const {
@@ -39,9 +39,10 @@ const logger = winstonLogger({
 
 const steps = createLinearStepsGraph([
   validatePackages(),
-  installRoot(),
-  buildRoot({ scriptName: 'build' }),
+  installRoot({ isStepEnabled: true }),
+  buildRoot({ isStepEnabled: true, scriptName: 'build' }),
   test({
+    isStepEnabled: true,
     scriptName: TEST_SCRIPT_NAME!,
   }),
   npmPublish({

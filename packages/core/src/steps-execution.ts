@@ -10,8 +10,8 @@ import {
   StepRedisEvent,
 } from '@era-ci/utils'
 import _ from 'lodash'
-import { from, merge, Observable, Subject, lastValueFrom } from 'rxjs'
-import { concatMap, defaultIfEmpty, filter, ignoreElements, map, tap } from 'rxjs/operators'
+import { from, lastValueFrom, merge, Observable, Subject } from 'rxjs'
+import { defaultIfEmpty, filter, ignoreElements, map, mergeMap, tap } from 'rxjs/operators'
 import { deserializeError } from 'serialize-error'
 import { Log, Logger, LogLevel } from './create-logger'
 import { StepExperimental, toStepsResultOfArtifactsByArtifact } from './create-step'
@@ -233,7 +233,7 @@ export async function runAllSteps(options: Options, state: Omit<State, 'getResul
       }),
       // bufferTime(500),
       filter(array => array.length > 0),
-      concatMap(async array => {
+      mergeMap(async array => {
         const commands = _.flatten(array.map(({ redisCommands }) => redisCommands))
         const results: Array<[Error | null, unknown]> = await options.redisClient.connection.multi(commands).exec()
         if (results.some(([error]) => error)) {
@@ -241,7 +241,7 @@ export async function runAllSteps(options: Options, state: Omit<State, 'getResul
         }
         return array.map(({ event }) => event)
       }),
-      concatMap(events => from(events)),
+      mergeMap(events => from(events)),
       tap(e => {
         const stepResult = fullState.stepsResultOfArtifactsByStep[e.step.index].data
         switch (e.type) {
