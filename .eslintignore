@@ -9,3 +9,4 @@ compiled-task-worker.config.js
 *.log
 .eslintcaches
 compiled-era-ci-*
+.clinic
