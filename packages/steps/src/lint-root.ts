@@ -1,5 +1,6 @@
 import {
   skipIfRootPackageJsonMissingScriptConstrain,
+  skipIfStepIsDisabledConstrain,
   skipIfStepResultMissingOrFailedInCacheConstrain,
   skipIfStepResultMissingOrPassedInCacheConstrain,
 } from '@era-ci/constrains'
@@ -8,11 +9,12 @@ import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus } from '@era-ci/utils'
 import { lastValueFrom } from 'rxjs'
 
-export const lintRoot = createStepExperimental<TaskWorkerTaskQueue, { scriptName: string }>({
+export const lintRoot = createStepExperimental<TaskWorkerTaskQueue, { isStepEnabled: boolean; scriptName: string }>({
   stepName: 'lint-root',
   stepGroup: 'lint',
   taskQueueClass: TaskWorkerTaskQueue,
   run: ({ repoPath, taskQueue, stepConfigurations }) => ({
+    globalConstrains: [skipIfStepIsDisabledConstrain()],
     stepConstrains: [
       skipIfRootPackageJsonMissingScriptConstrain({
         scriptName: stepConfigurations.scriptName,

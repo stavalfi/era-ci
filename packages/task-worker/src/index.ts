@@ -224,6 +224,10 @@ export async function startWorker(
     }
   })
 
+  workerLog.info('----------------------------------')
+  workerLog.info(`starting listen for tasks`)
+  workerLog.info('----------------------------------')
+
   return {
     logFilePath,
     cleanup,

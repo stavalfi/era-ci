@@ -5,7 +5,6 @@ WORKDIR /usr/git-tar-gz-proxy
 COPY yarn.lock package.json remove-all-dev-deps-from-all-package-jsons.js ./
 
 ARG package_path=packages/quay-helper-service
-ARG task_queue_package_path=packages/task-queues
 
 COPY ${package_path}/package.json ./${package_path}/package.json
 

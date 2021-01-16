@@ -2,6 +2,7 @@ import { config, LogLevel } from './packages/core/dist/src/index'
 import { winstonLogger } from './packages/loggers/dist/src/index'
 import { createTreeStepsGraph } from './packages/steps-graph/dist/src/index'
 import {
+  installRoot,
   buildRoot,
   cliTableReporter,
   dockerPublish,
@@ -26,9 +27,12 @@ const {
   REDIS_ENDPOINT = 'redis://localhost:36379',
   REDIS_PASSWORD,
   GITHUB_RUN_NUMBER = 'local-run',
-  CI = 'false',
+  CI,
+  FULL_RUN,
   // eslint-disable-next-line no-process-env
 } = process.env
+
+console.log('stav1', FULL_RUN)
 
 export default config({
   taskQueues: [
@@ -58,33 +62,39 @@ export default config({
     {
       // 0
       step: validatePackages(),
-      children: [5],
+      children: [6],
     },
     {
       // 1
-      step: lintRoot({ scriptName: 'lint:code' }),
-      children: [5],
+      step: installRoot({ isStepEnabled: Boolean(FULL_RUN) }),
+      children: [6],
     },
     {
       // 2
-      step: buildRoot({ scriptName: 'build' }),
-      children: [5],
+      step: lintRoot({ isStepEnabled: Boolean(FULL_RUN), scriptName: 'lint:code' }),
+      children: [6],
     },
     {
       // 3
+      step: buildRoot({ isStepEnabled: Boolean(FULL_RUN), scriptName: 'build' }),
+      children: [6],
+    },
+    {
+      // 4
       step: test({
+        isStepEnabled: Boolean(FULL_RUN),
         scriptName: 'test',
         workerBeforeAll: {
           shellCommand: 'yarn test-resources:up',
           cwd: __dirname,
         },
       }),
-      children: [5],
+      children: [6],
     },
     {
-      // 4
+      // 5
       step: dockerPublish({
-        isStepEnabled: CI === 'false',
+        isStepEnabled: Boolean(FULL_RUN) && !CI,
         dockerOrganizationName: DOCKER_ORG,
         registry: DOCKER_REGISTRY,
         registryAuth: {
@@ -93,12 +103,12 @@ export default config({
         },
         buildAndPushOnlyTempVersion: false,
       }),
-      children: [5],
+      children: [6],
     },
     {
-      // 5
+      // 6
       step: npmPublish({
-        isStepEnabled: CI === 'false',
+        isStepEnabled: Boolean(FULL_RUN) && !CI,
         npmScopeAccess: NpmScopeAccess.public,
         registry: NPM_REGISTRY,
         publishAuth: {
@@ -107,15 +117,15 @@ export default config({
           token: NPM_TOKEN!,
         },
       }),
-      children: [6],
-    },
-    {
-      // 6
-      step: jsonReporter(),
       children: [7],
     },
     {
       // 7
+      step: jsonReporter(),
+      children: [8],
+    },
+    {
+      // 8
       step: cliTableReporter(),
       children: [],
     },

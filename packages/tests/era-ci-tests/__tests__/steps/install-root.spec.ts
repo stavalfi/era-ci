@@ -17,7 +17,7 @@ test('install-step should pass', async t => {
       ],
     },
     configurations: {
-      steps: createLinearStepsGraph([validatePackages(), installRoot()]),
+      steps: createLinearStepsGraph([validatePackages(), installRoot({ isStepEnabled: true })]),
     },
   })
   const { jsonReport } = await runCi()
@@ -43,7 +43,7 @@ test('install-step should abort-as-failed because it depends on other step which
       ],
     },
     configurations: {
-      steps: createLinearStepsGraph([installRoot()]),
+      steps: createLinearStepsGraph([installRoot({ isStepEnabled: true })]),
     },
   })
   const { jsonReport } = await runCi()

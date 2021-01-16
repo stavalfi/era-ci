@@ -27,6 +27,7 @@ test('single worker - no packages', async t => {
       ],
       steps: createLinearStepsGraph([
         testStep({
+          isStepEnabled: true,
           scriptName: 'test',
         }),
       ]),
@@ -60,6 +61,7 @@ test('single worker - no tasks', async t => {
       ],
       steps: createLinearStepsGraph([
         testStep({
+          isStepEnabled: true,
           scriptName: 'test',
         }),
       ]),
@@ -97,6 +99,7 @@ test('single worker - single task', async t => {
       ],
       steps: createLinearStepsGraph([
         testStep({
+          isStepEnabled: true,
           scriptName: 'test',
         }),
       ]),
@@ -143,6 +146,7 @@ test('single worker - two tasks', async t => {
       ],
       steps: createLinearStepsGraph([
         testStep({
+          isStepEnabled: true,
           scriptName: 'test',
         }),
       ]),
@@ -182,11 +186,7 @@ test('two workers - single task - only one worker should execute the task', asyn
           },
         }),
       ],
-      steps: createLinearStepsGraph([
-        testStep({
-          scriptName: 'test',
-        }),
-      ]),
+      steps: createLinearStepsGraph([testStep({ isStepEnabled: true, scriptName: 'test' })]),
     },
   })
 
@@ -241,11 +241,7 @@ test('two workers - one task for each worker', async t => {
           },
         }),
       ],
-      steps: createLinearStepsGraph([
-        testStep({
-          scriptName: 'test',
-        }),
-      ]),
+      steps: createLinearStepsGraph([testStep({ isStepEnabled: true, scriptName: 'test' })]),
     },
   })
 
@@ -296,11 +292,7 @@ test('reproduce bug - single worker - single task - test should be skipped-as-pa
           },
         }),
       ],
-      steps: createLinearStepsGraph([
-        testStep({
-          scriptName: 'test',
-        }),
-      ]),
+      steps: createLinearStepsGraph([testStep({ isStepEnabled: true, scriptName: 'test' })]),
     },
   })
 

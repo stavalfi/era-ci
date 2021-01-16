@@ -34,7 +34,7 @@ test('ensure lint-root runs', async t => {
           },
         }),
       ],
-      steps: createLinearStepsGraph([lintRoot({ scriptName: 'lint' })]),
+      steps: createLinearStepsGraph([lintRoot({ isStepEnabled: true, scriptName: 'lint' })]),
     },
   })
 
@@ -67,7 +67,7 @@ test('ensure lint-root pass successfully', async t => {
           },
         }),
       ],
-      steps: createLinearStepsGraph([lintRoot({ scriptName: 'lint' })]),
+      steps: createLinearStepsGraph([lintRoot({ isStepEnabled: true, scriptName: 'lint' })]),
     },
   })
 
@@ -127,7 +127,7 @@ test('ensure lint-root skipped-as-passed in second run (when there are no change
           },
         }),
       ],
-      steps: createLinearStepsGraph([lintRoot({ scriptName: 'lint' })]),
+      steps: createLinearStepsGraph([lintRoot({ isStepEnabled: true, scriptName: 'lint' })]),
     },
   })
 
@@ -192,7 +192,7 @@ test('reproduce bug - lint-root should run if hash of one of the packages change
           },
         }),
       ],
-      steps: createLinearStepsGraph([lintRoot({ scriptName: 'lint' })]),
+      steps: createLinearStepsGraph([lintRoot({ isStepEnabled: true, scriptName: 'lint' })]),
     },
   })
 
