@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "declaration": true,
+    "inlineSourceMap": true,
     "allowSyntheticDefaultImports": true,
-    "sourceMap": true,
     "strict": true,
     "module": "commonjs",
     "moduleResolution": "node",

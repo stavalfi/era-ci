@@ -20,6 +20,7 @@ import { Constrain } from '../create-constrain'
 import { Log, Logger } from '../create-logger'
 import { TaskQueueBase, TaskQueueOptions } from '../create-task-queue'
 import { ImmutableCache } from '../immutable-cache'
+import { RedisClient } from '../redis-client'
 import { GetState } from '../types'
 
 export type DoneStepResultOfArtifacts = {
@@ -143,6 +144,7 @@ export type RunStepOptions<TaskQueue extends TaskQueueBase<any, any>> = {
   taskQueue: TaskQueue
   processEnv: NodeJS.ProcessEnv
   gitRepoInfo: GitRepoInfo
+  redisClient: RedisClient
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

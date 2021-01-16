@@ -7,6 +7,7 @@ import { ExecutionStatus, Status } from '@era-ci/utils'
 import chance from 'chance'
 import expect from 'expect'
 import fs from 'fs'
+import _ from 'lodash'
 
 createTest(test)
 
@@ -112,6 +113,372 @@ test('single worker - single task', async t => {
   expect(flowLogs.split(message)).toHaveLength(3) // ensure the message was printed two times (printing the command and then the result of the command)
 })
 
+test('splitTestsToMultipleVms=false - single worker - single task', async t => {
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { runCi } = await createRepo(t, {
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          scripts: {
+            test: `echo "total=$TOTAL_KEY_NAME, index=$INDEX_KEY_NAME"`,
+          },
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: t.context.resources.redisServerUrl,
+          },
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        testStep({
+          isStepEnabled: true,
+          scriptName: 'test',
+          splitTestsToMultipleVms: false,
+        }),
+      ]),
+    },
+  })
+
+  const { flowLogs } = await runCi()
+  expect(flowLogs).toEqual(expect.stringContaining(`total=, index=`))
+})
+
+test('splitTestsToMultipleVms=undefined - single worker - single task', async t => {
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { runCi } = await createRepo(t, {
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          scripts: {
+            test: `echo "total=$TOTAL_KEY_NAME, index=$INDEX_KEY_NAME"`,
+          },
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: t.context.resources.redisServerUrl,
+          },
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        testStep({
+          isStepEnabled: true,
+          scriptName: 'test',
+          splitTestsToMultipleVms: undefined,
+        }),
+      ]),
+    },
+  })
+
+  const { flowLogs } = await runCi()
+  expect(flowLogs).toEqual(expect.stringContaining(`total=, index=`))
+})
+
+test('splitTestsToMultipleVms - single worker - single task', async t => {
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { runCi } = await createRepo(t, {
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          scripts: {
+            test: `echo "total=$TOTAL_KEY_NAME, index=$INDEX_KEY_NAME"`,
+          },
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: t.context.resources.redisServerUrl,
+          },
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        testStep({
+          isStepEnabled: true,
+          scriptName: 'test',
+          splitTestsToMultipleVms: {
+            startIndexingFromZero: true,
+            env: {
+              indexKeyEnvName: 'INDEX_KEY_NAME',
+              totalVmsEnvKeyName: 'TOTAL_KEY_NAME',
+            },
+          },
+        }),
+      ]),
+    },
+  })
+
+  const { flowLogs } = await runCi()
+
+  expect(flowLogs).toEqual(expect.stringContaining(`total=1, index=0`))
+})
+
+test('splitTestsToMultipleVms.startIndexingFromZero=false - single worker - single task', async t => {
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { runCi } = await createRepo(t, {
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          scripts: {
+            test: `echo "total=$TOTAL_KEY_NAME, index=$INDEX_KEY_NAME"`,
+          },
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: t.context.resources.redisServerUrl,
+          },
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        testStep({
+          isStepEnabled: true,
+          scriptName: 'test',
+          splitTestsToMultipleVms: {
+            startIndexingFromZero: false,
+            env: {
+              indexKeyEnvName: 'INDEX_KEY_NAME',
+              totalVmsEnvKeyName: 'TOTAL_KEY_NAME',
+            },
+          },
+        }),
+      ]),
+    },
+  })
+
+  const { flowLogs } = await runCi()
+
+  expect(flowLogs).toEqual(expect.stringContaining(`total=1, index=1`))
+})
+
+test('splitTestsToMultipleVms - two workers - single task - two workers should execute the task but with different enviroment variables', async t => {
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { runCi, repoPath } = await createRepo(t, {
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          scripts: {
+            test: `echo "total=$TOTAL_KEY_NAME, index=$INDEX_KEY_NAME"`,
+          },
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: t.context.resources.redisServerUrl,
+          },
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        testStep({
+          isStepEnabled: true,
+          scriptName: 'test',
+          splitTestsToMultipleVms: {
+            startIndexingFromZero: true,
+            env: {
+              indexKeyEnvName: 'INDEX_KEY_NAME',
+              totalVmsEnvKeyName: 'TOTAL_KEY_NAME',
+            },
+          },
+        }),
+      ]),
+    },
+  })
+
+  const worker2 = await startWorker({
+    config: {
+      queueName,
+      redis: {
+        url: t.context.resources.redisServerUrl,
+      },
+      repoPath,
+      maxWaitMsUntilFirstTask: 3_000,
+      maxWaitMsWithoutTasks: 3_000,
+    },
+    processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
+  })
+
+  const { flowLogs } = await runCi()
+  const workerLogs = await fs.promises.readFile(worker2.logFilePath, 'utf-8')
+  const combinedLogs = `${flowLogs}${workerLogs}`
+
+  expect(combinedLogs).toEqual(expect.stringContaining(`total=2, index=0`))
+  expect(combinedLogs).toEqual(expect.stringContaining(`total=2, index=1`))
+
+  await worker2.cleanup() // we don't have to do it but it ends the test 1-2 seconds faster.
+})
+
+test('splitTestsToMultipleVms - 5 workers - single task - 5 workers should execute the task but with different enviroment variables', async t => {
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { runCi, repoPath } = await createRepo(t, {
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          scripts: {
+            test: `echo "total=$TOTAL_KEY_NAME, index=$INDEX_KEY_NAME"`,
+          },
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: t.context.resources.redisServerUrl,
+          },
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        testStep({
+          isStepEnabled: true,
+          scriptName: 'test',
+          splitTestsToMultipleVms: {
+            startIndexingFromZero: true,
+            env: {
+              indexKeyEnvName: 'INDEX_KEY_NAME',
+              totalVmsEnvKeyName: 'TOTAL_KEY_NAME',
+            },
+          },
+        }),
+      ]),
+    },
+  })
+
+  const workers = await Promise.all(
+    _.range(0, 5).map(() =>
+      startWorker({
+        config: {
+          queueName,
+          redis: {
+            url: t.context.resources.redisServerUrl,
+          },
+          repoPath,
+          maxWaitMsUntilFirstTask: 3_000,
+          maxWaitMsWithoutTasks: 300_000,
+        },
+        processEnv: t.context.processEnv,
+        logger: t.context.testLogger,
+      }),
+    ),
+  )
+  t.context.cleanups.push(() => Promise.all(workers.map(worker => worker.cleanup())))
+
+  const { flowLogs } = await runCi()
+  const workersLogs = await Promise.all(workers.map(worker => fs.promises.readFile(worker.logFilePath, 'utf-8')))
+  const combinedLogs = `${flowLogs}${workersLogs.join('')}`
+
+  for (let i = 0; i < workers.length + 1; i++) {
+    expect(combinedLogs).toEqual(expect.stringContaining(`total=${workers.length + 1}, index=${i}`))
+  }
+})
+
+test('splitTestsToMultipleVms - 5 workers - long single task - all workers are expected to run a sub-task', async t => {
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { runCi, repoPath } = await createRepo(t, {
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          scripts: {
+            test: `sleep 3 && echo "total=$TOTAL_KEY_NAME, index=$INDEX_KEY_NAME"`,
+          },
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: t.context.resources.redisServerUrl,
+          },
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        testStep({
+          isStepEnabled: true,
+          scriptName: 'test',
+          splitTestsToMultipleVms: {
+            startIndexingFromZero: true,
+            env: {
+              indexKeyEnvName: 'INDEX_KEY_NAME',
+              totalVmsEnvKeyName: 'TOTAL_KEY_NAME',
+            },
+          },
+        }),
+      ]),
+    },
+  })
+
+  const workers = await Promise.all(
+    _.range(0, 5).map(() =>
+      startWorker({
+        config: {
+          queueName,
+          redis: {
+            url: t.context.resources.redisServerUrl,
+          },
+          repoPath,
+          maxWaitMsUntilFirstTask: 3_000,
+          maxWaitMsWithoutTasks: 300_000,
+        },
+        processEnv: t.context.processEnv,
+        logger: t.context.testLogger,
+      }),
+    ),
+  )
+  t.context.cleanups.push(() => Promise.all(workers.map(worker => worker.cleanup())))
+
+  const { flowLogs } = await runCi()
+  const workersLogs = [
+    flowLogs,
+    ...(await Promise.all(workers.map(worker => fs.promises.readFile(worker.logFilePath, 'utf-8')))),
+  ]
+
+  const amountOfSubTasks = workersLogs.length
+
+  for (const workerLog of workersLogs) {
+    const isExecutedAnySubTask = _.range(0, amountOfSubTasks).some(i =>
+      workerLog.includes(`total=${workers.length + 1}, index=${i}`),
+    )
+    expect(isExecutedAnySubTask).toBeTruthy()
+  }
+})
+
 test('single worker - two tasks', async t => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message1 = `hi-${chance().hash().slice(0, 8)}`
@@ -201,6 +568,7 @@ test('two workers - single task - only one worker should execute the task', asyn
       maxWaitMsWithoutTasks: 3_000,
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
 
   const { flowLogs } = await runCi()
@@ -259,6 +627,7 @@ test('two workers - one task for each worker', async t => {
       maxWaitMsWithoutTasks: 3_000,
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
 
   const { flowLogs } = await runCi()

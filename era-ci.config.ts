@@ -32,8 +32,6 @@ const {
   // eslint-disable-next-line no-process-env
 } = process.env
 
-console.log('stav1', FULL_RUN)
-
 export default config({
   taskQueues: [
     localSequentalTaskQueue(),
@@ -87,6 +85,13 @@ export default config({
         workerBeforeAll: {
           shellCommand: 'yarn test-resources:up',
           cwd: __dirname,
+        },
+        splitTestsToMultipleVms: {
+          startIndexingFromZero: true, // ava assume that the indexing starts from zero
+          env: {
+            indexKeyEnvName: 'CI_NODE_INDEX',
+            totalVmsEnvKeyName: 'CI_NODE_TOTAL',
+          },
         },
       }),
       children: [6],

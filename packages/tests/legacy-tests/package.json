@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "test": "ava --verbose --timeout 60s"
+    "test": "ava --verbose --timeout 200s"
   },
   "dependencies": {
     "@era-ci/core": "^2.0.0",
@@ -13,8 +13,8 @@
     "@era-ci/utils": "^2.0.0",
     "@era-ci/loggers": "^2.0.0",
     "@era-ci/steps-graph": "^2.0.0",
-    "@swc/register": "^0.1.7",
-    "@swc/core": "1.2.43",
+    "esbuild": "^0.8.32",
+    "esbuild-register": "^1.2.1",
     "ava": "git://github.com/stavalfi/ava.git#c805d5654aab82ad92363708fd5ed2453ef189a9",
     "chance": "^1.1.5",
     "create-folder-structure": "^3.0.5",

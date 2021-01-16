@@ -78,8 +78,8 @@ export async function ci<TaskQueue>(options: {
       log: logger.createLog('cache'),
       redisClient,
       ttls: {
-        ArtifactStepResult: 1000 * 60 * 60 * 24 * 7,
-        flowLogs: 1000 * 60 * 60 * 24 * 7,
+        ArtifactStepResult: 1000 * 60 * 60 * 24 * 7, // 1w
+        flowLogs: 1000 * 60 * 30, // 30m
       },
     })
     cleanups.push(immutableCache.cleanup)
