@@ -180,8 +180,8 @@ export const createRepo: CreateRepo = async (t, options) => {
     gitIgnoreFiles: ['era-ci.log', 'era-ci-test.log'],
   })
 
-  const testLogger = await winstonLogger({
-    customLogLevel: logLevel,
+  t.context.testLogger = await winstonLogger({
+    customLogLevel: LogLevel.trace,
     disabled: false,
     logFilePath: path.join(repoPath, 'era-ci-test.log'),
   }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
@@ -221,7 +221,7 @@ export const createRepo: CreateRepo = async (t, options) => {
     getImageTags,
     runCi: runCi({
       t,
-      testLogger,
+      testLogger: t.context.testLogger,
       repoPath,
       toOriginalName,
       configurations: finalConfigurations,
@@ -259,7 +259,7 @@ export function createTest(
 ): void {
   resourcesBeforeAfterAll(test, options)
   beforeAfterCleanups(test)
-  test.serial.beforeEach(t => {
+  test.serial.beforeEach(async t => {
     t.timeout(50 * 1000)
     t.context.sleep = sleep(t.context.cleanups)
     t.context.createRepo = createRepo

@@ -50,6 +50,10 @@ export class TaskWorkerTaskQueue implements TaskQueueBase<TaskWorkerTaskQueueCon
     options.log.verbose(`initialized ${TaskWorkerTaskQueue.name}`)
   }
 
+  public getQueueName(): string {
+    return this.options.taskQueueConfigurations.queueName
+  }
+
   public addTasksToQueue(tasksOptions: (WorkerTask & { taskName: string })[]): TaskInfo<WorkerTask>[] {
     if (!this.isQueueActive) {
       throw new Error(`task-queue was destroyed so you can not add new tasks to it`)

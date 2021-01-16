@@ -44,7 +44,7 @@ test('task is executed and we expect the docker-image to be presentin the regist
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10000,
+      taskTimeoutMs: 100_000,
     },
   ])
 
@@ -73,7 +73,7 @@ test('scheduled and running events are fired', async t => {
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10000,
+      taskTimeoutMs: 100_000,
     },
   ])
 
@@ -98,7 +98,7 @@ test('illegal parameter - relativeContextPath', async t => {
         imageTags: ['1.0.0'],
         relativeContextPath: '/invalid-path-to-context',
         relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
-        taskTimeoutMs: 10000,
+        taskTimeoutMs: 100_000,
       },
     ]),
   ).toThrow()
@@ -114,7 +114,7 @@ test('illegal parameter - relativeDockerfilePath', async t => {
         imageTags: ['1.0.0'],
         relativeContextPath: '/',
         relativeDockerfilePath: '/invalid-path-to-context',
-        taskTimeoutMs: 10000,
+        taskTimeoutMs: 100_000,
       },
     ]),
   ).toThrow()
@@ -143,7 +143,7 @@ RUN exit 1
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10000,
+      taskTimeoutMs: 100_000,
     },
   ])
 
@@ -171,7 +171,7 @@ test('events schema is valid', async t => {
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10000,
+      taskTimeoutMs: 100_000,
     },
   ])
 
@@ -237,7 +237,7 @@ RUN exit 1
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10000,
+      taskTimeoutMs: 100_000,
     },
   ])
 
@@ -281,7 +281,7 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10000,
+      taskTimeoutMs: 100_000,
     },
     {
       packageName: t.context.packages.package2.name,
@@ -290,7 +290,7 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: t.context.packages.package2.relativeDockerFilePath,
-      taskTimeoutMs: 10000,
+      taskTimeoutMs: 100_000,
     },
   ])
 
@@ -313,7 +313,7 @@ test('abort event is fired for running tasks - while dockerfile is built', async
     path.join(t.context.taskQueuesResources.repoPath, t.context.packages.package1.relativeDockerFilePath),
     `
 FROM alpine
-RUN sleep 10000 # make sure that this task will not end
+RUN sleep 1000 # make sure that this task will not end
   `,
   )
 
@@ -325,7 +325,7 @@ RUN sleep 10000 # make sure that this task will not end
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10000,
+      taskTimeoutMs: 100_000,
     },
   ])
 
@@ -349,7 +349,7 @@ test('abort events schema is valid', async t => {
     path.join(t.context.taskQueuesResources.repoPath, t.context.packages.package1.relativeDockerFilePath),
     `
 FROM alpine
-RUN sleep 10000 # make sure that this task will not end
+RUN sleep 100_000 # make sure that this task will not end
   `,
   )
 
@@ -361,7 +361,7 @@ RUN sleep 10000 # make sure that this task will not end
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10000,
+      taskTimeoutMs: 100_000,
     },
   ])
 

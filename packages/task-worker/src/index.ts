@@ -18,8 +18,8 @@ export function config(config: WorkerConfig): WorkerConfig {
 
 export const amountOfWrokersKey = (queueName: string) => `${queueName}--amount-of-workers`
 
-export async function main(processEnv: NodeJS.ProcessEnv): Promise<void> {
-  const argv = yargsParser(process.argv.slice(2), {
+export async function main(processEnv: NodeJS.ProcessEnv, processArgv: string[]): Promise<void> {
+  const argv = yargsParser(processArgv, {
     string: ['repo-path'],
     default: {
       'repo-path': process.cwd(),
@@ -79,6 +79,8 @@ export async function startWorker({
     redisConnection.disconnect()
   })
 
+  const workerStarteTimedMs = Date.now()
+
   const state = {
     receivedFirstTask: false,
     isRunningTaskNow: false,
@@ -89,20 +91,20 @@ export async function startWorker({
   const workerLog = finalLogger.createLog(workerName)
 
   const intervalId = setInterval(async () => {
-    const timePassedUntilNowMs = Date.now() - state.lastTaskEndedMs
-    if (!state.receivedFirstTask) {
-      if (timePassedUntilNowMs < config.maxWaitMsUntilFirstTask) {
+    if (state.receivedFirstTask) {
+      const timePassedAfterLastTaskMs = Date.now() - state.lastTaskEndedMs
+      if (!state.isRunningTaskNow && timePassedAfterLastTaskMs >= config.maxWaitMsWithoutTasks) {
+        workerLog.info(`no more tasks - shuting down worker`)
+        await cleanup()
         return
-      } else {
+      }
+    } else {
+      const timePassedWithoutTasksMs = Date.now() - workerStarteTimedMs
+      if (timePassedWithoutTasksMs >= config.maxWaitMsUntilFirstTask) {
         workerLog.info(`no tasks at all - shuting down worker`)
         await cleanup()
         return
       }
-    }
-    if (!state.isRunningTaskNow && timePassedUntilNowMs >= config.maxWaitMsWithoutTasks) {
-      workerLog.info(`no more tasks - shuting down worker`)
-      await cleanup()
-      return
     }
   }, 500)
   cleanups.push(async () => clearInterval(intervalId))
@@ -112,6 +114,7 @@ export async function startWorker({
     if (!closed) {
       closed = true
       await Promise.allSettled(cleanups.map(f => f()))
+
       if (!state.allTasksSucceed) {
         // 'SKIP_EXIT_CODE_1' is for test purposes
         if (!processEnv['SKIP_EXIT_CODE_1']) {
@@ -133,10 +136,8 @@ export async function startWorker({
   queue.process<DoneResult>(1, async job => {
     const startMs = Date.now()
     state.isRunningTaskNow = true
-    if (!state.receivedFirstTask) {
-      state.receivedFirstTask = true
-      state.lastTaskEndedMs = Date.now()
-    }
+    state.receivedFirstTask = true
+    state.lastTaskEndedMs = Date.now()
 
     job.reportProgress(1) // it's to nofity that we started to process this task
 
@@ -148,7 +149,6 @@ export async function startWorker({
         taskLog.info('----------------------------------')
         taskLog.info(`executing before-all: "${group.beforeAll.shellCommand}"`)
         taskLog.info('----------------------------------')
-
         const result = await execaCommand(group.beforeAll.shellCommand, {
           stdio: 'inherit',
           cwd: group.beforeAll.cwd,
@@ -225,6 +225,10 @@ export async function startWorker({
     taskLog.info(`ended task: "${task.shellCommand}" - passed: ${!result.failed}`)
     taskLog.info('----------------------------------')
 
+    if (result.failed) {
+      state.allTasksSucceed = false
+    }
+
     state.lastTaskEndedMs = Date.now()
     state.isRunningTaskNow = false
 
@@ -249,5 +253,5 @@ export async function startWorker({
 
 if (require.main === module) {
   // eslint-disable-next-line no-process-env
-  main(process.env)
+  main(process.env, process.argv.slice(2))
 }

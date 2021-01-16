@@ -523,9 +523,11 @@ export const cliTableReporter = createStepExperimental({
         throw new Error(`can't find json-report in the cache. printing the report is aborted`)
       }
 
-      const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value)
+      options.log.info(`report:`)
+
       const packagesErrorsReport = generatePackagesErrorsReport(jsonReportResult.value)
       const stepsErrorsReport = generateStepsErrorsReport(jsonReportResult.value)
+      const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value)
       const summaryReport = generateSummaryReport(jsonReportResult.value)
 
       if (jsonReportResult.value.artifacts.length > 0 && jsonReportResult.value.steps.length > 0) {

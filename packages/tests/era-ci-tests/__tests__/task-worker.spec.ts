@@ -41,6 +41,7 @@ test('no tasks - manual close worker', async t => {
       customLog: t.log.bind(t),
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
 
   await cleanup()
@@ -63,6 +64,7 @@ test('single worker - amount of workers === 1', async t => {
       customLog: t.log.bind(t),
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
 
   const redisConnection = new Redis(t.context.resources.redisServerUrl)
@@ -89,6 +91,7 @@ test('manual close worker multiple times', async t => {
       customLog: t.log.bind(t),
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
 
   await cleanup()
@@ -111,6 +114,7 @@ test('single task - success', async t => {
       customLog: t.log.bind(t),
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
   t.context.cleanups.push(cleanup)
 
@@ -156,6 +160,7 @@ test('multiple tasks - all success', async t => {
       customLog: t.log.bind(t),
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
   t.context.cleanups.push(cleanup)
 
@@ -202,6 +207,7 @@ test('single empty task - expect to fail', async t => {
       customLog: t.log.bind(t),
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
   t.context.cleanups.push(cleanup)
 
@@ -241,6 +247,7 @@ test('single task - expect to fail', async t => {
       customLog: t.log.bind(t),
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
   t.context.cleanups.push(cleanup)
 
@@ -284,6 +291,7 @@ test('multiple tasks - all fail', async t => {
       customLog: t.log.bind(t),
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
   t.context.cleanups.push(cleanup)
 
@@ -319,13 +327,118 @@ test('multiple tasks - all fail', async t => {
   }
 })
 
+test('the worker runs a task which fails so when the worker exits, it will exit with exit-code !== 0', async t => {
+  const repoPath = await createFolder()
+
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+
+  const workerConfig: WorkerConfig = {
+    queueName,
+    maxWaitMsWithoutTasks: 3_000,
+    maxWaitMsUntilFirstTask: 100_000,
+    redis: {
+      url: t.context.resources.redisServerUrl,
+    },
+  }
+
+  const queue = await createQueue(t, queueName)
+  const task1 = queue.createJob({
+    task: { shellCommand: 'exit 1', cwd: repoPath },
+  })
+
+  await fs.promises.writeFile(
+    path.join(repoPath, 'task-worker.config.ts'),
+    `export default ${JSON.stringify(workerConfig, null, 2)}`,
+    'utf-8',
+  )
+  const workerProcess = execa.command(
+    `yarn node -r esbuild-register --trace-warnings --unhandled-rejections=strict ${require.resolve(
+      '@era-ci/task-worker',
+    )} --repo-path ${repoPath}`,
+    {
+      stdio: 'pipe',
+      cwd: __dirname, // helping yarn to find "esbuild-register",
+      reject: false,
+    },
+  )
+
+  await new Promise<DoneResult>(res => {
+    task1.once('succeeded', res)
+    task1.save()
+  })
+
+  const { exitCode } = await workerProcess
+
+  expect(exitCode).not.toEqual(0)
+})
+
+test('the worker runs multiple tasks which one of them fail. so when the worker exits, it will exit with exit-code !== 0', async t => {
+  const repoPath = await createFolder()
+
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+
+  const workerConfig: WorkerConfig = {
+    queueName,
+    maxWaitMsWithoutTasks: 3_000,
+    maxWaitMsUntilFirstTask: 100_000,
+    redis: {
+      url: t.context.resources.redisServerUrl,
+    },
+  }
+
+  const queue = await createQueue(t, queueName)
+  const task1 = queue.createJob({
+    task: { shellCommand: 'exit 1', cwd: repoPath },
+  })
+  const task2 = queue.createJob({
+    task: { shellCommand: 'echo hi', cwd: repoPath },
+  })
+  const task3 = queue.createJob({
+    task: { shellCommand: 'echo hi', cwd: repoPath },
+  })
+
+  await fs.promises.writeFile(
+    path.join(repoPath, 'task-worker.config.ts'),
+    `export default ${JSON.stringify(workerConfig, null, 2)}`,
+    'utf-8',
+  )
+
+  const workerProcess = execa.command(
+    `yarn node -r esbuild-register --trace-warnings --unhandled-rejections=strict ${require.resolve(
+      '@era-ci/task-worker',
+    )} --repo-path ${repoPath}`,
+    {
+      stdio: 'pipe',
+      cwd: __dirname,
+      reject: false,
+    },
+  )
+
+  await new Promise<DoneResult>(res => {
+    task1.once('succeeded', res)
+    task1.save()
+  })
+  await new Promise<DoneResult>(res => {
+    task2.once('succeeded', res)
+    task2.save()
+  })
+  await new Promise<DoneResult>(res => {
+    task3.once('succeeded', res)
+    task3.save()
+  })
+
+  const { exitCode } = await workerProcess
+
+  expect(exitCode).not.toEqual(0)
+})
+
 test('no tasks so the worker is closing automaticaly', async t => {
   const repoPath = await createFolder()
 
   const workerConfig: WorkerConfig = {
     queueName: `queue-${chance().hash().slice(0, 8)}`,
-    maxWaitMsWithoutTasks: 100_000,
     maxWaitMsUntilFirstTask: 1_000,
+    maxWaitMsWithoutTasks: 100_000,
     redis: {
       url: t.context.resources.redisServerUrl,
     },
@@ -338,9 +451,13 @@ test('no tasks so the worker is closing automaticaly', async t => {
   )
 
   const { stdout } = await execa.command(
-    `${require.resolve('.bin/swc-node')} ${require.resolve('@era-ci/task-worker')} --repo-path ${repoPath}`,
+    `yarn node -r esbuild-register --trace-warnings --unhandled-rejections=strict ${require.resolve(
+      '@era-ci/task-worker',
+    )} --repo-path ${repoPath}`,
     {
       stdio: 'pipe',
+      cwd: __dirname,
+      reject: false,
     },
   )
 
@@ -373,9 +490,12 @@ test('single task -> after that, no tasks so the worker is closing automaticaly'
   )
 
   const workerProcess = execa.command(
-    `${require.resolve('.bin/swc-node')} ${require.resolve('@era-ci/task-worker')} --repo-path ${repoPath}`,
+    `yarn node -r esbuild-register --trace-warnings --unhandled-rejections=strict ${require.resolve(
+      '@era-ci/task-worker',
+    )} --repo-path ${repoPath}`,
     {
       stdio: 'pipe',
+      cwd: __dirname,
     },
   )
 
@@ -404,6 +524,7 @@ test('single task - success - override processEnv', async t => {
       customLog: t.log.bind(t),
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
   t.context.cleanups.push(cleanup)
 
@@ -452,6 +573,7 @@ test('single task - success - part of a group', async t => {
       customLog: t.log.bind(t),
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
   t.context.cleanups.push(cleanup)
 
@@ -507,6 +629,7 @@ test('single task - success - part of a group - override process-env', async t =
       customLog: t.log.bind(t),
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
   t.context.cleanups.push(cleanup)
 
@@ -565,6 +688,7 @@ test('multiple tasks - before-all is called once', async t => {
       customLog: t.log.bind(t),
     },
     processEnv: t.context.processEnv,
+    logger: t.context.testLogger,
   })
   t.context.cleanups.push(cleanup)
 

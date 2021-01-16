@@ -1,4 +1,4 @@
-import { Config, LogLevel, TaskQueueBase } from '@era-ci/core'
+import { Config, Logger, LogLevel, TaskQueueBase } from '@era-ci/core'
 import { JsonReport } from '@era-ci/steps'
 import { Graph, PackageJson, StepInfo, TargetType } from '@era-ci/utils'
 import { FolderStructure } from 'create-folder-structure'
@@ -13,6 +13,7 @@ export type TestWithContextType = {
   createRepo: CreateRepo
   cleanups: Cleanup[]
   processEnv: NodeJS.ProcessEnv
+  testLogger: Logger
 }
 export type TestWithContext = TestInterface<TestWithContextType>
 
