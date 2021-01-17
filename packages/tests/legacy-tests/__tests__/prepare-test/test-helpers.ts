@@ -120,6 +120,9 @@ export async function publishDockerPackageWithoutCi({
   await execa.command(`docker build ${labelsJoined} -f Dockerfile -t ${fullImageNameNewVersion} ${repoPath}`, {
     stdio: 'pipe',
     cwd: packagePath,
+    env: {
+      DOCKER_BUILDKIT: '1',
+    },
   })
   await execa.command(`docker push ${fullImageNameNewVersion}`, { stdio: 'pipe' })
   await execa.command(`docker rmi ${fullImageNameNewVersion}`, { stdio: 'pipe' })

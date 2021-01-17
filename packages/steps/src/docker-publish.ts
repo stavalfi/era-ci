@@ -75,6 +75,7 @@ async function publishPackage({
       stdio: 'inherit',
       env: {
         ...(stepConfigurations.remoteSshDockerHost && { DOCKER_HOST: stepConfigurations.remoteSshDockerHost }),
+        DOCKER_BUILDKIT: '1',
       },
       log,
     },
