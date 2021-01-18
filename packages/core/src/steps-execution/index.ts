@@ -10,6 +10,7 @@ export { Actions, ChangeArtifactStatusAction, ChangeStepStatusAction } from './a
 export { State } from './state'
 
 export async function runAllSteps(options: Options): Promise<State> {
+  console.log('stav1')
   const reduxStore = createReduxStore({
     epics: [createCombinedEpic(options)],
     reducer: createReducer(options),

@@ -103,7 +103,9 @@ export async function ci<TaskQueue>(options: {
     steps = options.config.steps.map(s => ({ ...s, data: { stepInfo: s.data.stepInfo } }))
 
     const rootPackageJson: PackageJson = await fse.readJson(path.join(options.repoPath, 'package.json'))
+    debugger
 
+    console.log('stav0')
     const state = await runAllSteps({
       log,
       gitRepoInfo,
@@ -121,14 +123,14 @@ export async function ci<TaskQueue>(options: {
       processEnv: options.processEnv,
       redisClient,
     })
-
+    debugger
     processExitCode = getExitCode(state.stepsResultOfArtifactsByStep)
     fatalError = false
   } catch (error: unknown) {
     fatalError = true
     processExitCode = 1
     if (log) {
-      log?.error(`CI failed unexpectedly`, error)
+      log.error(`CI failed unexpectedly: `, error)
     } else {
       if (options.customLog) {
         options.customLog(`CI failed unexpectedly - ${error}`)

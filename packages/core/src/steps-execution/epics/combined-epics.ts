@@ -2,7 +2,7 @@ import { ExecutionStatus, GitRepoInfo, StepOutputEventType, StepRedisEvent } fro
 import _ from 'lodash'
 import { Epic } from 'redux-observable'
 import { from, merge } from 'rxjs'
-import { concatMap, filter, map, tap } from 'rxjs/operators'
+import { concatMap, filter, map, takeUntil, tap } from 'rxjs/operators'
 import { deserializeError } from 'serialize-error'
 import { Log, LogLevel } from '../../create-logger'
 import { ImmutableCache } from '../../immutable-cache'
