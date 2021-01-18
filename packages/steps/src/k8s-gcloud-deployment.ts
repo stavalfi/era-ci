@@ -2,7 +2,7 @@ import {
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
   skipIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
-import { ConstrainResultType, createConstrain, createStepExperimental } from '@era-ci/core'
+import { ConstrainResultType, createConstrain, createStepExperimental, getReturnValue } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { Artifact, execaCommand, ExecutionStatus, getPackageTargetTypes, Node, Status, TargetType } from '@era-ci/utils'
 import { createFile } from 'create-folder-structure'
@@ -52,7 +52,7 @@ export const k8sGcloudDeployment = createStepExperimental<LocalSequentalTaskQueu
   stepName: 'k8s-gcloud-deployment',
   stepGroup: 'k8s-gcloud-deployment',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: ({ stepConfigurations, repoPath, log, getState, steps }) => ({
+  run: ({ stepConfigurations, repoPath, log, getState, steps, artifacts }) => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact =>
@@ -99,7 +99,10 @@ export const k8sGcloudDeployment = createStepExperimental<LocalSequentalTaskQueu
       const deploymentName = stepConfigurations.artifactNameToDeploymentName({ artifactName })
       const containerName = stepConfigurations.artifactNameToContainerName({ artifactName })
 
-      const fullImageName = getState().getReturnValue({
+      const fullImageName = getReturnValue({
+        state: getState(),
+        artifacts,
+        steps,
         artifactName: artifact.data.artifact.packageJson.name,
         stepGroup: 'docker-publish',
         mapper: _.identity,

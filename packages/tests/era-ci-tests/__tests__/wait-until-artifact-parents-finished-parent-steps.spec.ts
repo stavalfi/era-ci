@@ -1,4 +1,4 @@
-import { createStepExperimental } from '@era-ci/core'
+import { createStepExperimental, getResult } from '@era-ci/core'
 import { createRepo, createTest, test } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
@@ -183,12 +183,15 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async 
           stepName: 'child-step',
           stepGroup: 'child-step',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: ({ getState, steps }) => ({
+          run: ({ getState, steps, artifacts }) => ({
             waitUntilArtifactParentsFinishedParentSteps: true,
             onArtifact: async ({ artifact }) => {
               if (artifact.data.artifact.packageJson.name === toActualName('child-artifact')) {
                 expect(
-                  getState().getResult({
+                  getResult({
+                    state: getState(),
+                    steps,
+                    artifacts,
                     artifactName: toActualName('parent-artifact'),
                     stepId: steps.find(s => s.data.stepInfo.stepName === 'parent-step')?.data.stepInfo.stepId!,
                   }).executionStatus,
@@ -243,12 +246,15 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait'
           stepName: 'child-step',
           stepGroup: 'child-step',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: ({ getState, steps }) => ({
+          run: ({ getState, steps, artifacts }) => ({
             waitUntilArtifactParentsFinishedParentSteps: false,
             onArtifact: async ({ artifact }) => {
               if (artifact.data.artifact.packageJson.name === toActualName('child-artifact')) {
                 expect(
-                  getState().getResult({
+                  getResult({
+                    state: getState(),
+                    steps,
+                    artifacts,
                     artifactName: toActualName('parent-artifact'),
                     stepId: steps.find(s => s.data.stepInfo.stepName === 'parent-step')?.data.stepInfo.stepId!,
                   }).executionStatus,

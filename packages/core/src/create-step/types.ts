@@ -11,8 +11,6 @@ import {
   ScheduledResult,
   Status,
   StepInfo,
-  StepOutputEvents,
-  StepOutputEventType,
 } from '@era-ci/utils'
 import { Observable } from 'rxjs'
 import { ErrorObject } from 'serialize-error'
@@ -21,7 +19,7 @@ import { Log, Logger } from '../create-logger'
 import { TaskQueueBase, TaskQueueOptions } from '../create-task-queue'
 import { ImmutableCache } from '../immutable-cache'
 import { RedisClient } from '../redis-client'
-import { GetState } from '../types'
+import { Actions, State } from '../steps-execution'
 
 export type DoneStepResultOfArtifacts = {
   stepExecutionStatus: ExecutionStatus.done // this property is not needed but it is a workaround for: https://github.com/microsoft/TypeScript/issues/7294
@@ -138,13 +136,13 @@ export type RunStepOptions<TaskQueue extends TaskQueueBase<any, any>> = {
   artifacts: Graph<{ artifact: Artifact }>
   steps: Graph<{ stepInfo: StepInfo }>
   currentStepInfo: Node<{ stepInfo: StepInfo }>
-  getState: GetState
   immutableCache: ImmutableCache
   logger: Logger
   taskQueue: TaskQueue
   processEnv: NodeJS.ProcessEnv
   gitRepoInfo: GitRepoInfo
   redisClient: RedisClient
+  getState: () => State
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -236,10 +234,7 @@ export type StepExperimental<TaskQueue extends TaskQueueBase<any, any>> = {
   stepName: string
   stepGroup: string
   taskQueueClass: { new (options: TaskQueueOptions<unknown>): TaskQueue }
-  runStep: (
-    runStepOptions: RunStepOptions<TaskQueue>,
-    stepsEvents$: Observable<StepOutputEvents[StepOutputEventType]>,
-  ) => Observable<StepOutputEvents[StepOutputEventType]>
+  runStep: (runStepOptions: RunStepOptions<TaskQueue>, actions$: Observable<Actions>) => Observable<Actions>
 }
 
 export enum RunStrategy {

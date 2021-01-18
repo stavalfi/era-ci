@@ -1,8 +1,9 @@
-import { StepOutputEvents, StepOutputEventType } from '@era-ci/utils'
+import { StepOutputEventType } from '@era-ci/utils'
 import { ConnectableObservable, defer, from, identity, Observable } from 'rxjs'
 import { concatMap, publishReplay } from 'rxjs/operators'
 import { ConstrainResultType, runConstrains } from '../../create-constrain'
 import { TaskQueueBase } from '../../create-task-queue'
+import { Actions } from '../../steps-execution'
 import { CreateStepOptionsExperimental, RunStepExperimental, StepExperimental, UserRunStepOptions } from '../types'
 import { runArtifactFunctions } from './run-artifact-functions'
 import { runStepFunctions } from './run-step-functions'
@@ -14,10 +15,10 @@ function runStep<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations>(
   userRunStepOptions,
   run,
 }: {
-  allStepsEventsRecorded$: Observable<StepOutputEvents[StepOutputEventType]>
+  allStepsEventsRecorded$: Observable<Actions>
   run: RunStepExperimental<TaskQueue, StepConfigurations>
   userRunStepOptions: UserRunStepOptions<TaskQueue, StepConfigurations>
-}): Observable<StepOutputEvents[StepOutputEventType]> {
+}): Observable<Actions> {
   return defer(async () => {
     const prepareResult = run(userRunStepOptions) || { stepLogic: () => Promise.resolve() }
 
@@ -37,10 +38,7 @@ function runStep<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations>(
   }).pipe(
     concatMap(({ globalConstrainsResult, prepareResult }) => {
       if (globalConstrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-        const events: (
-          | StepOutputEvents[StepOutputEventType.artifactStep]
-          | StepOutputEvents[StepOutputEventType.step]
-        )[] = [
+        const events: Actions[] = [
           ...artifactsEventsAbort({
             step: userRunStepOptions.currentStepInfo,
             artifacts: userRunStepOptions.artifacts,
@@ -49,10 +47,13 @@ function runStep<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations>(
           }),
           {
             type: StepOutputEventType.step,
-            step: userRunStepOptions.currentStepInfo,
-            stepResult: {
-              durationMs: Date.now() - userRunStepOptions.startStepMs,
-              ...globalConstrainsResult.combinedResult,
+            payload: {
+              type: StepOutputEventType.step,
+              step: userRunStepOptions.currentStepInfo,
+              stepResult: {
+                durationMs: Date.now() - userRunStepOptions.startStepMs,
+                ...globalConstrainsResult.combinedResult,
+              },
             },
           },
         ]
@@ -91,10 +92,8 @@ export function createStepExperimental<
       stepName: createStepOptions.stepName,
       stepGroup: createStepOptions.stepGroup,
       taskQueueClass: createStepOptions.taskQueueClass,
-      runStep: (runStepOptions, stepsEvents$) => {
-        const allStepsEventsRecorded$ = stepsEvents$.pipe(publishReplay()) as ConnectableObservable<
-          StepOutputEvents[StepOutputEventType]
-        >
+      runStep: (runStepOptions, action$) => {
+        const allStepsEventsRecorded$ = action$.pipe(publishReplay()) as ConnectableObservable<Actions>
 
         allStepsEventsRecorded$.connect()
 

@@ -8,7 +8,7 @@ import { Log, Logger } from './create-logger'
 import { createImmutableCache, ImmutableCache } from './immutable-cache'
 import { connectToRedis } from './redis-client'
 import { runAllSteps } from './steps-execution'
-import { getExitCode, getStepsResultOfArtifactsByStepAndArtifact } from './utils'
+import { getExitCode } from './utils'
 
 export async function ci<TaskQueue>(options: {
   repoPath: string
@@ -104,28 +104,23 @@ export async function ci<TaskQueue>(options: {
 
     const rootPackageJson: PackageJson = await fse.readJson(path.join(options.repoPath, 'package.json'))
 
-    const state = getStepsResultOfArtifactsByStepAndArtifact({ artifacts, steps })
-
-    await runAllSteps(
-      {
-        log,
-        gitRepoInfo,
-        rootPackageJson,
-        stepsToRun: options.config.steps,
-        immutableCache,
-        logger,
-        flowId,
-        repoHash,
-        repoPath: options.repoPath,
-        startFlowMs,
-        artifacts,
-        steps,
-        taskQueues,
-        processEnv: options.processEnv,
-        redisClient,
-      },
-      state,
-    )
+    const state = await runAllSteps({
+      log,
+      gitRepoInfo,
+      rootPackageJson,
+      stepsToRun: options.config.steps,
+      immutableCache,
+      logger,
+      flowId,
+      repoHash,
+      repoPath: options.repoPath,
+      startFlowMs,
+      artifacts,
+      steps,
+      taskQueues,
+      processEnv: options.processEnv,
+      redisClient,
+    })
 
     processExitCode = getExitCode(state.stepsResultOfArtifactsByStep)
     fatalError = false
