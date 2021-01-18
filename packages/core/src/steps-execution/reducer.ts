@@ -6,7 +6,7 @@ import { State } from './state'
 import { Actions } from './actions'
 import { StepsResultOfArtifactsByArtifact, StepsResultOfArtifactsByStep } from '../create-step'
 
-export function getStepsResultOfArtifactsByStepAndArtifact({
+export function getInitialState({
   artifacts,
   steps,
 }: {
@@ -48,7 +48,7 @@ export function getStepsResultOfArtifactsByStepAndArtifact({
 export const createReducer = (options: {
   artifacts: Graph<{ artifact: Artifact }>
   steps: Graph<{ stepInfo: StepInfo }>
-}): Reducer<State, Actions> => (state = getStepsResultOfArtifactsByStepAndArtifact(options), action) => {
+}): Reducer<State, Actions> => (state = getInitialState(options), action) => {
   const newState = _.cloneDeep(state)
   const stepResult = newState.stepsResultOfArtifactsByStep[action.payload.step.index].data
   switch (action.type) {

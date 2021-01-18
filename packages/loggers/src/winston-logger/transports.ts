@@ -1,37 +1,11 @@
-import { LogLevel } from '@era-ci/core'
 import winston from 'winston'
 import { CustomLogTransport } from './custom-logger-transport'
-import { randomModuleColor } from './modules-color'
+import { formatLog } from './formatter'
 
 export const defaultFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.colorize(),
-  winston.format.printf(log => {
-    const logLevel = log.level.replace('silly', LogLevel.trace)
-    const withModule = log.module ? ` [${randomModuleColor(log.module)}] ` : ' '
-    const base = `${log.timestamp}${withModule}${logLevel}`
-    let final = ''
-    if (log.stack) {
-      // workaround to print error with stacktrace: https://github.com/winstonjs/winston/issues/1338#issuecomment-643473267
-      let returnLog = `${base}: ${log.message.replace(log.stack.split('\n')[0].substr(7), '')}`
-      returnLog += '\n'
-      returnLog += '[' + logLevel + '] '
-      returnLog += log.stack.replace(/\n/g, `\n[${logLevel}]\t`)
-      final = `${returnLog}: `
-    } else {
-      if (log.unknownErrorType) {
-        final = `${base}: ${log.message} - ${log.unknownErrorType}`
-      } else {
-        final = `${base}: ${log.message}`
-      }
-    }
-    if (log.json && Object.keys(log.json).length > 0) {
-      final += '\n'
-      final += '[' + logLevel + '] '
-      final += JSON.stringify(log.json, null, 2).replace(/\n/g, `\n[${logLevel}]\t`)
-    }
-    return final
-  }),
+  winston.format.printf(formatLog),
   winston.format.errors({ stack: true }), // <-- use errors format
 )
 

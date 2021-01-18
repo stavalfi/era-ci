@@ -1,6 +1,6 @@
 export default {
   failWithoutAssertions: false,
   extensions: ['ts'],
-  require: ['esbuild-register'],
+  require: ['ts-node/register'],
   files: [`packages/**/*.spec.ts`],
 }
