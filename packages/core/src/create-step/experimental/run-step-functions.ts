@@ -1,9 +1,10 @@
-import { ExecutionStatus, Status, StepOutputEvents, StepOutputEventType } from '@era-ci/utils'
-import { from, Observable, firstValueFrom } from 'rxjs'
+import { ExecutionStatus, Status, StepOutputEventType } from '@era-ci/utils'
+import { firstValueFrom, from, Observable } from 'rxjs'
 import { first } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'
 import { ConstrainResultType, runConstrains } from '../../create-constrain'
 import { TaskQueueBase } from '../../create-task-queue'
+import { Actions, ChangeArtifactStatusAction, ChangeStepStatusAction } from '../../steps-execution'
 import { StepFunctions, UserRunStepOptions } from '../types'
 import {
   areRecursiveParentStepsFinished,
@@ -22,10 +23,10 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<any, any>
   stepConstrains = [],
   stepLogic = () => Promise.resolve(),
 }: {
-  allStepsEventsRecorded$: Observable<StepOutputEvents[StepOutputEventType]>
+  allStepsEventsRecorded$: Observable<Actions>
   startStepMs: number
   userRunStepOptions: UserRunStepOptions<TaskQueue, StepConfigurations>
-} & StepFunctions<StepConfigurations>): Promise<Observable<StepOutputEvents[StepOutputEventType]>> {
+} & StepFunctions<StepConfigurations>): Promise<Observable<Actions>> {
   await firstValueFrom(
     allStepsEventsRecorded$.pipe(
       first(() =>
@@ -44,10 +45,7 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<any, any>
   })
 
   if (stepConstrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-    const events: (
-      | StepOutputEvents[StepOutputEventType.artifactStep]
-      | StepOutputEvents[StepOutputEventType.step]
-    )[] = [
+    const events: (ChangeArtifactStatusAction | ChangeStepStatusAction)[] = [
       ...artifactsEventsAbort({
         artifacts: userRunStepOptions.artifacts,
         startStepMs: userRunStepOptions.startStepMs,
@@ -56,10 +54,13 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<any, any>
       }),
       {
         type: StepOutputEventType.step,
-        step: userRunStepOptions.currentStepInfo,
-        stepResult: {
-          durationMs: Date.now() - startStepMs,
-          ...stepConstrainsResult.combinedResult,
+        payload: {
+          type: StepOutputEventType.step,
+          step: userRunStepOptions.currentStepInfo,
+          stepResult: {
+            durationMs: Date.now() - startStepMs,
+            ...stepConstrainsResult.combinedResult,
+          },
         },
       },
     ]
@@ -75,40 +76,46 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<any, any>
 
     const logic = stepLogic ? stepLogic() : Promise.resolve()
     logic
-      .then<StepOutputEvents[StepOutputEventType.step], StepOutputEvents[StepOutputEventType.step]>(
+      .then<ChangeStepStatusAction, ChangeStepStatusAction>(
         r =>
           r
             ? {
                 type: StepOutputEventType.step,
-                step: userRunStepOptions.currentStepInfo,
-                stepResult: {
-                  durationMs: Date.now() - startStepMs,
-                  errors: [],
-                  notes: [],
-                  ...r,
+                payload: {
+                  type: StepOutputEventType.step,
+                  step: userRunStepOptions.currentStepInfo,
+                  stepResult: {
+                    durationMs: Date.now() - startStepMs,
+                    errors: [],
+                    notes: [],
+                    ...r,
+                  },
                 },
               }
             : stepEventDone({ step: userRunStepOptions.currentStepInfo, startStepMs: userRunStepOptions.startStepMs }),
         error => ({
           type: StepOutputEventType.step,
-          step: userRunStepOptions.currentStepInfo,
-          stepResult: {
-            durationMs: Date.now() - startStepMs,
-            executionStatus: ExecutionStatus.done,
-            status: Status.failed,
-            errors: [serializeError(error)],
-            notes: [],
+          payload: {
+            type: StepOutputEventType.step,
+            step: userRunStepOptions.currentStepInfo,
+            stepResult: {
+              durationMs: Date.now() - startStepMs,
+              executionStatus: ExecutionStatus.done,
+              status: Status.failed,
+              errors: [serializeError(error)],
+              notes: [],
+            },
           },
         }),
       )
       .then(event => {
-        switch (event.stepResult.executionStatus) {
+        switch (event.payload.stepResult.executionStatus) {
           case ExecutionStatus.done:
             artifactsEventsDone({
               step: userRunStepOptions.currentStepInfo,
               artifacts: userRunStepOptions.artifacts,
               startStepMs: userRunStepOptions.startStepMs,
-              status: event.stepResult.status,
+              status: event.payload.stepResult.status,
             }).forEach(e => observer.next(e))
             observer.next(event)
             break
@@ -117,7 +124,7 @@ export async function runStepFunctions<TaskQueue extends TaskQueueBase<any, any>
               step: userRunStepOptions.currentStepInfo,
               artifacts: userRunStepOptions.artifacts,
               startStepMs: userRunStepOptions.startStepMs,
-              status: event.stepResult.status,
+              status: event.payload.stepResult.status,
             }).forEach(e => observer.next(e))
             observer.next(event)
             break

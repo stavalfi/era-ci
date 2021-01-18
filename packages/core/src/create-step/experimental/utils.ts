@@ -6,10 +6,10 @@ import {
   Node,
   Status,
   StepInfo,
-  StepOutputEvents,
   StepOutputEventType,
 } from '@era-ci/utils'
 import _ from 'lodash'
+import { ChangeArtifactStatusAction, ChangeStepStatusAction } from '../../steps-execution'
 import { StepResultOfArtifacts, StepsResultOfArtifact, StepsResultOfArtifactsByStep } from '../types'
 
 export const artifactsEventsRunning = ({
@@ -22,13 +22,16 @@ export const artifactsEventsRunning = ({
   step: Node<{
     stepInfo: StepInfo
   }>
-}): StepOutputEvents[StepOutputEventType.artifactStep][] =>
-  artifacts.map<StepOutputEvents[StepOutputEventType.artifactStep]>(artifact => ({
+}): ChangeArtifactStatusAction[] =>
+  artifacts.map<ChangeArtifactStatusAction>(artifact => ({
     type: StepOutputEventType.artifactStep,
-    artifact,
-    step,
-    artifactStepResult: {
-      executionStatus: ExecutionStatus.running,
+    payload: {
+      type: StepOutputEventType.artifactStep,
+      artifact,
+      step,
+      artifactStepResult: {
+        executionStatus: ExecutionStatus.running,
+      },
     },
   }))
 
@@ -46,17 +49,20 @@ export const artifactsEventsDone = ({
     stepInfo: StepInfo
   }>
   startStepMs: number
-}): StepOutputEvents[StepOutputEventType.artifactStep][] =>
-  artifacts.map<StepOutputEvents[StepOutputEventType.artifactStep]>(artifact => ({
+}): ChangeArtifactStatusAction[] =>
+  artifacts.map<ChangeArtifactStatusAction>(artifact => ({
     type: StepOutputEventType.artifactStep,
-    artifact,
-    step,
-    artifactStepResult: {
-      durationMs: Date.now() - startStepMs,
-      executionStatus: ExecutionStatus.done,
-      status,
-      errors: [],
-      notes: [],
+    payload: {
+      type: StepOutputEventType.artifactStep,
+      artifact,
+      step,
+      artifactStepResult: {
+        durationMs: Date.now() - startStepMs,
+        executionStatus: ExecutionStatus.done,
+        status,
+        errors: [],
+        notes: [],
+      },
     },
   }))
 
@@ -74,17 +80,20 @@ export const artifactsEventsAbort = ({
     stepInfo: StepInfo
   }>
   startStepMs: number
-}): StepOutputEvents[StepOutputEventType.artifactStep][] =>
-  artifacts.map<StepOutputEvents[StepOutputEventType.artifactStep]>(artifact => ({
+}): ChangeArtifactStatusAction[] =>
+  artifacts.map<ChangeArtifactStatusAction>(artifact => ({
     type: StepOutputEventType.artifactStep,
-    artifact,
-    step,
-    artifactStepResult: {
-      durationMs: Date.now() - startStepMs,
-      executionStatus: ExecutionStatus.aborted,
-      status,
-      errors: [],
-      notes: [],
+    payload: {
+      type: StepOutputEventType.artifactStep,
+      artifact,
+      step,
+      artifactStepResult: {
+        durationMs: Date.now() - startStepMs,
+        executionStatus: ExecutionStatus.aborted,
+        status,
+        errors: [],
+        notes: [],
+      },
     },
   }))
 
@@ -94,11 +103,14 @@ export const stepEventRunning = ({
   step: Node<{
     stepInfo: StepInfo
   }>
-}): StepOutputEvents[StepOutputEventType.step] => ({
+}): ChangeStepStatusAction => ({
   type: StepOutputEventType.step,
-  step,
-  stepResult: {
-    executionStatus: ExecutionStatus.running,
+  payload: {
+    type: StepOutputEventType.step,
+    step,
+    stepResult: {
+      executionStatus: ExecutionStatus.running,
+    },
   },
 })
 
@@ -110,27 +122,30 @@ export const stepEventDone = ({
   step: Node<{
     stepInfo: StepInfo
   }>
-}): StepOutputEvents[StepOutputEventType.step] => ({
+}): ChangeStepStatusAction => ({
   type: StepOutputEventType.step,
-  step,
-  stepResult: {
-    durationMs: Date.now() - startStepMs,
-    executionStatus: ExecutionStatus.done,
-    status: Status.passed,
-    errors: [],
-    notes: [],
+  payload: {
+    type: StepOutputEventType.step,
+    step,
+    stepResult: {
+      durationMs: Date.now() - startStepMs,
+      executionStatus: ExecutionStatus.done,
+      status: Status.passed,
+      errors: [],
+      notes: [],
+    },
   },
 })
 
 export function calculateCombinedStatusOfCurrentStep(
-  artifactResultsOnCurrentStep: StepOutputEvents[StepOutputEventType.artifactStep][],
+  artifactResultsOnCurrentStep: ChangeArtifactStatusAction[],
 ): Status {
   return calculateCombinedStatus(
     _.flatMapDeep(
       artifactResultsOnCurrentStep.map(a =>
-        a.artifactStepResult.executionStatus === ExecutionStatus.done ||
-        a.artifactStepResult.executionStatus === ExecutionStatus.aborted
-          ? [a.artifactStepResult.status]
+        a.payload.artifactStepResult.executionStatus === ExecutionStatus.done ||
+        a.payload.artifactStepResult.executionStatus === ExecutionStatus.aborted
+          ? [a.payload.artifactStepResult.status]
           : [],
       ),
     ),
