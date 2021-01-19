@@ -12,7 +12,6 @@ import {
   StepInfo,
 } from '@era-ci/utils'
 import _ from 'lodash'
-import { StepsResultOfArtifactsByStep } from './create-step'
 import { State } from './steps-execution'
 
 export function getEventsTopicName(env: NodeJS.ProcessEnv): string {
@@ -25,10 +24,10 @@ export function getEventsTopicName(env: NodeJS.ProcessEnv): string {
   }
 }
 
-export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep): number {
+export function getExitCode(state: State): number {
   const finalStepsStatus = calculateCombinedStatus(
     _.flatMapDeep(
-      stepsResultOfArtifactsByStep.map(s => {
+      state.stepsResultOfArtifactsByStep.map(s => {
         switch (s.data.stepExecutionStatus) {
           case ExecutionStatus.done:
             return s.data.artifactsResult.map(y => y.data.artifactStepResult.status)
@@ -42,7 +41,7 @@ export function getExitCode(stepsResultOfArtifactsByStep: StepsResultOfArtifacts
       }),
     ),
   )
-  if (didPassOrSkippedAsPassed(finalStepsStatus)) {
+  if (didPassOrSkippedAsPassed(finalStepsStatus) || state.flowErrors.length > 0) {
     return 0
   } else {
     return 1

@@ -74,7 +74,6 @@ export type ResultingArtifact = {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type CreateRepoOptions<TaskQueue extends TaskQueueBase<any, any>> = {
   repo: Repo
   configurations?: Partial<Config<TaskQueue>>
@@ -82,10 +81,11 @@ export type CreateRepoOptions<TaskQueue extends TaskQueueBase<any, any>> = {
   logLevel?: LogLevel
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type CreateRepo = <TaskQueue extends TaskQueueBase<any, any>>(
+export type CreateRepo = (
   t: ExecutionContext<TestWithContextType>,
-  options: CreateRepoOptions<TaskQueue> | ((toActualName: ToActualName) => CreateRepoOptions<TaskQueue>),
+  options:
+    | CreateRepoOptions<TaskQueueBase<any, any>>
+    | ((toActualName: ToActualName) => CreateRepoOptions<TaskQueueBase<any, any>>),
 ) => Promise<{
   repoPath: string
   gitHeadCommit: () => Promise<string>

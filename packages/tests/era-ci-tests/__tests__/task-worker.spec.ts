@@ -352,12 +352,12 @@ test('the worker runs a task which fails so when the worker exits, it will exit 
     'utf-8',
   )
   const workerProcess = execa.command(
-    `yarn node -r esbuild-register --trace-warnings --unhandled-rejections=strict ${require.resolve(
+    `yarn node -r ts-node/register --trace-warnings --unhandled-rejections=strict ${require.resolve(
       '@era-ci/task-worker',
     )} --repo-path ${repoPath}`,
     {
       stdio: 'pipe',
-      cwd: __dirname, // helping yarn to find "esbuild-register",
+      cwd: __dirname, // helping yarn to find "ts-node/register",
       reject: false,
     },
   )
@@ -404,7 +404,7 @@ test('the worker runs multiple tasks which one of them fail. so when the worker 
   )
 
   const workerProcess = execa.command(
-    `yarn node -r esbuild-register --trace-warnings --unhandled-rejections=strict ${require.resolve(
+    `yarn node -r ts-node/register --trace-warnings --unhandled-rejections=strict ${require.resolve(
       '@era-ci/task-worker',
     )} --repo-path ${repoPath}`,
     {
@@ -451,7 +451,7 @@ test('no tasks so the worker is closing automaticaly', async t => {
   )
 
   const { stdout } = await execa.command(
-    `yarn node -r esbuild-register --trace-warnings --unhandled-rejections=strict ${require.resolve(
+    `yarn node -r ts-node/register --trace-warnings --unhandled-rejections=strict ${require.resolve(
       '@era-ci/task-worker',
     )} --repo-path ${repoPath}`,
     {
@@ -490,7 +490,7 @@ test('single task -> after that, no tasks so the worker is closing automaticaly'
   )
 
   const workerProcess = execa.command(
-    `yarn node -r esbuild-register --trace-warnings --unhandled-rejections=strict ${require.resolve(
+    `yarn node -r ts-node/register --trace-warnings --unhandled-rejections=strict ${require.resolve(
       '@era-ci/task-worker',
     )} --repo-path ${repoPath}`,
     {

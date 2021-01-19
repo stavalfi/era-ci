@@ -5,14 +5,15 @@ import path from 'path'
 import { calculateArtifactsHash } from './artifacts-hash'
 import { Config } from './configuration'
 import { Log, Logger } from './create-logger'
+import { TaskQueueBase } from './create-task-queue'
 import { createImmutableCache, ImmutableCache } from './immutable-cache'
 import { connectToRedis } from './redis-client'
 import { runAllSteps } from './steps-execution'
 import { getExitCode } from './utils'
 
-export async function ci<TaskQueue>(options: {
+export async function ci(options: {
   repoPath: string
-  config: Config<TaskQueue>
+  config: Config<TaskQueueBase<any, any>>
   processEnv: NodeJS.ProcessEnv
   customLog?: (...values: unknown[]) => void
 }): Promise<{
@@ -103,9 +104,7 @@ export async function ci<TaskQueue>(options: {
     steps = options.config.steps.map(s => ({ ...s, data: { stepInfo: s.data.stepInfo } }))
 
     const rootPackageJson: PackageJson = await fse.readJson(path.join(options.repoPath, 'package.json'))
-    debugger
 
-    console.log('stav0')
     const state = await runAllSteps({
       log,
       gitRepoInfo,
@@ -123,8 +122,8 @@ export async function ci<TaskQueue>(options: {
       processEnv: options.processEnv,
       redisClient,
     })
-    debugger
-    processExitCode = getExitCode(state.stepsResultOfArtifactsByStep)
+
+    processExitCode = getExitCode(state)
     fatalError = false
   } catch (error: unknown) {
     fatalError = true

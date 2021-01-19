@@ -4,7 +4,7 @@ import { Graph } from '@era-ci/utils'
 
 export type Steps<TaskQueueConfigurations, TaskPayload> = Graph<{
   stepInfo: StepInfo
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   taskQueueClass: { new (options: TaskQueueOptions<TaskQueueConfigurations>): any }
   runStep: StepExperimental<TaskQueueBase<TaskQueueConfigurations, TaskPayload>>['runStep']
 }>

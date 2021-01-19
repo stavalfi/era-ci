@@ -22,6 +22,7 @@ export type RedisClient = {
     ttl: number
   }) => Promise<void>
   has: (key: string) => Promise<boolean>
+  multi: (commands: string[][]) => Promise<unknown[]>
   cleanup: () => Promise<unknown>
 }
 
@@ -93,6 +94,16 @@ export const connectToRedis = async ({
     return connection.exists(key).then(result => result === 1)
   }
 
+  async function multi(commands: string[][]): Promise<unknown[]> {
+    const results: Array<[Error | null, unknown]> = await connection.multi(commands).exec()
+
+    if (results.some(([error]) => error)) {
+      throw results
+    }
+
+    return results.map(([_error, result]) => result)
+  }
+
   const cleanup = async () => {
     connection.disconnect()
     log.debug(`closed redis-client to redis`)
@@ -103,6 +114,7 @@ export const connectToRedis = async ({
     get,
     has,
     set,
+    multi,
     cleanup,
   }
 }

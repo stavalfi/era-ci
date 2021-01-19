@@ -18,6 +18,8 @@ export * from './create-constrain'
 export * from './create-task-queue'
 export * from './immutable-cache'
 export * from './utils'
+export * from './types'
+export * from './steps-execution'
 
 if (require.main === module) {
   // eslint-disable-next-line no-process-env

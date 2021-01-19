@@ -76,8 +76,7 @@ const getJsonReport = async ({
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const runCi = <TaskQueue extends TaskQueueBase<any, any>>({
+const runCi = ({
   repoPath,
   configurations,
   logFilePath,
@@ -87,7 +86,7 @@ const runCi = <TaskQueue extends TaskQueueBase<any, any>>({
   testLogger,
 }: {
   repoPath: string
-  configurations: Config<TaskQueue>
+  configurations: Config<TaskQueueBase<any, any>>
   logFilePath: string
   stepsDontContainReport: boolean
   toOriginalName: (artifactName: string) => string

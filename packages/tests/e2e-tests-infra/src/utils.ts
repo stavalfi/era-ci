@@ -123,10 +123,9 @@ export function isDeepSubset<T>(t: ExecutionContext, fullObj: T, subset: DeepPar
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function addReportToStepsAsLastNodes<TaskQueue extends TaskQueueBase<any, any>>(
-  steps: Config<TaskQueue>['steps'] = [],
-): Config<TaskQueue>['steps'] {
+export function addReportToStepsAsLastNodes(
+  steps: Config<TaskQueueBase<any, any>>['steps'] = [],
+): Config<TaskQueueBase<any, any>>['steps'] {
   const stepsCopy = _.cloneDeep(steps)
 
   const additionalSteps = createLinearStepsGraph([jsonReporter(), cliTableReporter()])

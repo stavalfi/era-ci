@@ -10,7 +10,7 @@ import fse from 'fs-extra'
  * ensures type safty of task-queues by only allowing steps thats uses task-queues which are declared in `task-queues` array.
  * @param options era-ci options
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export function config<TaskQueue extends TaskQueueBase<any, any>>(options: Config<TaskQueue>): Config<TaskQueue> {
   return options
 }

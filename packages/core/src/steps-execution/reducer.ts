@@ -1,10 +1,14 @@
-import { Artifact, ExecutionStatus, Graph, StepInfo, StepOutputEventType } from '@era-ci/utils'
+import { Artifact, ExecutionStatus, Graph, StepInfo } from '@era-ci/utils'
 import _ from 'lodash'
 import { Reducer } from 'redux'
-import { toStepsResultOfArtifactsByArtifact } from '../create-step'
+import { StepsResultOfArtifactsByStep, toStepsResultOfArtifactsByArtifact } from '../create-step'
+import { Actions, ExecutionActionTypes } from './actions'
 import { State } from './state'
-import { Actions } from './actions'
-import { StepsResultOfArtifactsByArtifact, StepsResultOfArtifactsByStep } from '../create-step'
+
+export const areAllStepsFinished = (stepsResultOfArtifactsByStep: State['stepsResultOfArtifactsByStep']) =>
+  stepsResultOfArtifactsByStep.every(step =>
+    [ExecutionStatus.aborted, ExecutionStatus.done].includes(step.data.stepExecutionStatus),
+  )
 
 export function getInitialState({
   artifacts,
@@ -12,10 +16,7 @@ export function getInitialState({
 }: {
   artifacts: Graph<{ artifact: Artifact }>
   steps: Graph<{ stepInfo: StepInfo }>
-}): {
-  stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep
-  stepsResultOfArtifactsByArtifact: StepsResultOfArtifactsByArtifact
-} {
+}): State {
   const stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep = steps.map(s => ({
     ...s,
     data: {
@@ -36,34 +37,65 @@ export function getInitialState({
     },
   }))
 
-  return {
+  const state: State = {
+    flowFinished: false,
+    flowErrors: [],
     stepsResultOfArtifactsByStep,
     stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
       artifacts: artifacts,
       stepsResultOfArtifactsByStep,
     }),
   }
+
+  if (areAllStepsFinished(state.stepsResultOfArtifactsByStep)) {
+    state.flowFinished = true
+  }
+
+  return state
 }
 
 export const createReducer = (options: {
   artifacts: Graph<{ artifact: Artifact }>
   steps: Graph<{ stepInfo: StepInfo }>
 }): Reducer<State, Actions> => (state = getInitialState(options), action) => {
+  if (action.type.toLocaleLowerCase().includes('@@redux/init')) {
+    return state
+  }
+
   const newState = _.cloneDeep(state)
-  const stepResult = newState.stepsResultOfArtifactsByStep[action.payload.step.index].data
   switch (action.type) {
-    case StepOutputEventType.step:
+    case ExecutionActionTypes.flowFinished: {
+      newState.flowFinished = true
+      break
+    }
+    case ExecutionActionTypes.step: {
+      if (state.flowFinished) {
+        throw new Error(`we can't be here`)
+      }
+      const stepResult = newState.stepsResultOfArtifactsByStep[action.payload.step.index].data
       stepResult.stepExecutionStatus = action.payload.stepResult.executionStatus
       stepResult.stepResult = action.payload.stepResult
       break
-    case StepOutputEventType.artifactStep:
+    }
+    case ExecutionActionTypes.artifactStep: {
+      if (state.flowFinished) {
+        throw new Error(`we can't be here`)
+      }
+      const stepResult = newState.stepsResultOfArtifactsByStep[action.payload.step.index].data
       stepResult.artifactsResult[action.payload.artifact.index].data.artifactStepResult =
         action.payload.artifactStepResult
       break
+    }
   }
+
   newState.stepsResultOfArtifactsByArtifact = toStepsResultOfArtifactsByArtifact({
     artifacts: options.artifacts,
     stepsResultOfArtifactsByStep: newState.stepsResultOfArtifactsByStep,
   })
+
+  if (areAllStepsFinished(newState.stepsResultOfArtifactsByStep)) {
+    newState.flowFinished = true
+  }
+
   return newState
 }

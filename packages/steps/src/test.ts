@@ -8,9 +8,8 @@ import {
 import { createStepExperimental, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
 import { amountOfWrokersKey } from '@era-ci/task-worker'
-import { calculateCombinedStatus, calculateExecutionStatus, ExecutionStatus } from '@era-ci/utils'
+import { calculateCombinedStatus, calculateExecutionStatus, ExecutionStatus, lastValueFrom } from '@era-ci/utils'
 import _ from 'lodash'
-import { lastValueFrom } from 'rxjs'
 
 export type TestConfigurations = {
   isStepEnabled: boolean

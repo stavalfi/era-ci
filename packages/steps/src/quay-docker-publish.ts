@@ -13,9 +13,9 @@ import {
   Node,
   Status,
   TargetType,
+  lastValueFrom,
 } from '@era-ci/utils'
 import path from 'path'
-import { lastValueFrom } from 'rxjs'
 import { QuayDockerPublishConfiguration } from './types'
 import { chooseTagAndPublish } from './utils'
 
