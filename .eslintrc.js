@@ -14,6 +14,7 @@ module.exports = {
     globalThis: false, // it means that it is not writeable
   },
   rules: {
+    '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/no-extra-semi': 'off',
     'no-process-exit': 'error',
     'no-process-env': 'error',

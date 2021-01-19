@@ -1,15 +1,7 @@
-import {
-  Artifact,
-  calculateCombinedStatus,
-  ExecutionStatus,
-  Graph,
-  Node,
-  Status,
-  StepInfo,
-  StepOutputEventType,
-} from '@era-ci/utils'
+import { Artifact, calculateCombinedStatus, ExecutionStatus, Graph, Node, Status, StepInfo } from '@era-ci/utils'
 import _ from 'lodash'
 import { ChangeArtifactStatusAction, ChangeStepStatusAction } from '../../steps-execution'
+import { ExecutionActionTypes } from '../../steps-execution/actions'
 import { StepResultOfArtifacts, StepsResultOfArtifact, StepsResultOfArtifactsByStep } from '../types'
 
 export const artifactsEventsRunning = ({
@@ -24,9 +16,8 @@ export const artifactsEventsRunning = ({
   }>
 }): ChangeArtifactStatusAction[] =>
   artifacts.map<ChangeArtifactStatusAction>(artifact => ({
-    type: StepOutputEventType.artifactStep,
+    type: ExecutionActionTypes.artifactStep,
     payload: {
-      type: StepOutputEventType.artifactStep,
       artifact,
       step,
       artifactStepResult: {
@@ -51,9 +42,8 @@ export const artifactsEventsDone = ({
   startStepMs: number
 }): ChangeArtifactStatusAction[] =>
   artifacts.map<ChangeArtifactStatusAction>(artifact => ({
-    type: StepOutputEventType.artifactStep,
+    type: ExecutionActionTypes.artifactStep,
     payload: {
-      type: StepOutputEventType.artifactStep,
       artifact,
       step,
       artifactStepResult: {
@@ -82,9 +72,8 @@ export const artifactsEventsAbort = ({
   startStepMs: number
 }): ChangeArtifactStatusAction[] =>
   artifacts.map<ChangeArtifactStatusAction>(artifact => ({
-    type: StepOutputEventType.artifactStep,
+    type: ExecutionActionTypes.artifactStep,
     payload: {
-      type: StepOutputEventType.artifactStep,
       artifact,
       step,
       artifactStepResult: {
@@ -104,9 +93,8 @@ export const stepEventRunning = ({
     stepInfo: StepInfo
   }>
 }): ChangeStepStatusAction => ({
-  type: StepOutputEventType.step,
+  type: ExecutionActionTypes.step,
   payload: {
-    type: StepOutputEventType.step,
     step,
     stepResult: {
       executionStatus: ExecutionStatus.running,
@@ -123,9 +111,8 @@ export const stepEventDone = ({
     stepInfo: StepInfo
   }>
 }): ChangeStepStatusAction => ({
-  type: StepOutputEventType.step,
+  type: ExecutionActionTypes.step,
   payload: {
-    type: StepOutputEventType.step,
     step,
     stepResult: {
       durationMs: Date.now() - startStepMs,

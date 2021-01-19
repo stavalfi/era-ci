@@ -5,8 +5,7 @@ import {
 } from '@era-ci/constrains'
 import { createStepExperimental, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
-import { ExecutionStatus } from '@era-ci/utils'
-import { lastValueFrom } from 'rxjs'
+import { ExecutionStatus, lastValueFrom } from '@era-ci/utils'
 
 export const buildRoot = createStepExperimental<TaskWorkerTaskQueue, { isStepEnabled: boolean; scriptName: string }>({
   stepName: 'build-root',

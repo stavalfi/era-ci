@@ -8,7 +8,7 @@ import expect from 'expect'
 
 createTest(test)
 
-test.only('ensure ci dont fail when there are no steps and no artifacts', async t => {
+test('ensure ci dont fail when there are no steps and no artifacts', async t => {
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [],

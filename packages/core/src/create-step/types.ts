@@ -126,7 +126,6 @@ export type StepsResultOfArtifactsByArtifact = Graph<StepsResultOfArtifact>
 
 // ------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RunStepOptions<TaskQueue extends TaskQueueBase<any, any>> = {
   flowId: string
   repoHash: string
@@ -142,13 +141,12 @@ export type RunStepOptions<TaskQueue extends TaskQueueBase<any, any>> = {
   processEnv: NodeJS.ProcessEnv
   gitRepoInfo: GitRepoInfo
   redisClient: RedisClient
-  getState: () => State
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type UserRunStepOptions<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = RunStepOptions<
   TaskQueue
 > & {
+  getState: () => State
   log: Log
   stepConfigurations: StepConfigurations
   startStepMs: number
@@ -183,12 +181,10 @@ export type UserStepResult = {
   artifactsResult: Array<UserArtifactResult>
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RunStepOnArtifacts<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations>,
 ) => Promise<UserStepResult>
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RunStepOnArtifact<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations> & {
     currentArtifact: Node<{ artifact: Artifact }>
@@ -198,7 +194,6 @@ export type RunStepOnArtifact<TaskQueue extends TaskQueueBase<any, any>, StepCon
   | Omit<AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>, 'durationMs'>
 >
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RunStepOnRoot<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations>,
 ) => Promise<
@@ -219,7 +214,6 @@ export type ArtifactFunctions<StepConfigurations> = {
   onAfterArtifacts?: () => Promise<void>
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RunStepExperimental<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations>,
 ) =>
@@ -229,12 +223,13 @@ export type RunStepExperimental<TaskQueue extends TaskQueueBase<any, any>, StepC
   | undefined
   | void
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type StepExperimental<TaskQueue extends TaskQueueBase<any, any>> = {
   stepName: string
   stepGroup: string
   taskQueueClass: { new (options: TaskQueueOptions<unknown>): TaskQueue }
-  runStep: (runStepOptions: RunStepOptions<TaskQueue>, actions$: Observable<Actions>) => Observable<Actions>
+  runStep: (
+    runStepOptions: RunStepOptions<TaskQueue>,
+  ) => Promise<(action: Actions, getState: () => State) => Observable<Actions>>
 }
 
 export enum RunStrategy {
@@ -244,7 +239,6 @@ export enum RunStrategy {
   experimental = 'experimental',
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Run<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = {
   onStepDone?: (options: UserRunStepOptions<TaskQueue, StepConfigurations>) => Promise<void>
 } & (
@@ -269,7 +263,6 @@ export type Run<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> =
 )
 
 export type CreateStepOptionsExperimental<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TaskQueue extends TaskQueueBase<any, any>,
   StepConfigurations = void,
   NormalizedStepConfigurations = StepConfigurations
@@ -280,7 +273,7 @@ export type CreateStepOptionsExperimental<
     stepConfigurations: StepConfigurations,
     options: RunStepOptions<TaskQueue>,
   ) => Promise<NormalizedStepConfigurations>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   taskQueueClass: { new (options: TaskQueueOptions<any>, ...params: any[]): TaskQueue }
   run: RunStepExperimental<TaskQueue, NormalizedStepConfigurations>
 }

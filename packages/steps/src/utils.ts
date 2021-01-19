@@ -11,7 +11,6 @@ import {
 import { DockerPublishConfiguration } from './types'
 
 export async function chooseTagAndPublish<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TaskQueue extends TaskQueueBase<any, any>,
   StepConfigurations extends DockerPublishConfiguration
 >(

@@ -4,14 +4,14 @@ import { Actions } from './actions'
 import { State } from './state'
 
 export function createReduxStore(options: {
-  reducer: Reducer<State, Actions>
   epics: Epic<Actions, Actions, State>[]
+  reducer: Reducer<State, Actions>
 }): Store<State, Actions> {
-  const rootEpic = combineEpics(...options.epics)
-
   const epicMiddleware = createEpicMiddleware<Actions, Actions, State>()
 
   const store = createStore(options.reducer, applyMiddleware(epicMiddleware))
+
+  const rootEpic = combineEpics(...options.epics)
 
   epicMiddleware.run(rootEpic)
 

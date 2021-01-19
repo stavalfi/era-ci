@@ -11,6 +11,7 @@
   ],
   "types": "dist/src/index.d.ts",
   "dependencies": {
+    "rxjs": "^6.6.3",
     "lodash": "4.17.20",
     "execa": "^4.0.1",
     "git-remote-origin-url": "^3.1.0",

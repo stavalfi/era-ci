@@ -1,36 +1,26 @@
-import { ExecutionStatus, GitRepoInfo, StepOutputEventType, StepRedisEvent } from '@era-ci/utils'
+import { ExecutionStatus, GitRepoInfo } from '@era-ci/utils'
 import _ from 'lodash'
 import { Epic } from 'redux-observable'
-import { from, merge } from 'rxjs'
-import { concatMap, filter, map, takeUntil, tap } from 'rxjs/operators'
+import { merge, Observable } from 'rxjs'
+import { concatMap, tap } from 'rxjs/operators'
 import { deserializeError } from 'serialize-error'
 import { Log, LogLevel } from '../../create-logger'
 import { ImmutableCache } from '../../immutable-cache'
+import { StepRedisEvent } from '../../types'
 import { getEventsTopicName } from '../../utils'
-import { Actions } from '../actions'
+import { Actions, ExecutionActionTypes } from '../actions'
 import { State } from '../state'
 import { Options } from '../types'
-import { createStepEpic } from './run-step'
 
-export const createCombinedEpic = (options: Options): Epic<Actions, Actions, State> => (action$, state$, dep) =>
-  merge(
-    ...options.steps
-      .map(s => createStepEpic({ ...options, currentStepInfo: s, getState: () => state$.value }))
-      .map(runStepEpic => runStepEpic(action$, state$, dep)),
-  ).pipe(
+export const createCombinedEpic = (
+  options: Options & { runActionInSteps: ((action: Actions, getState: () => State) => Observable<Actions>)[] },
+): Epic<Actions, Actions, State> => (action$, state$) => {
+  return action$.pipe(
     tap(action => logAction({ log: options.log, action })),
-    map(action => [{ action, redisCommands: buildRedisCommands({ ...options, action }) }]),
-    filter(array => array.length > 0),
-    concatMap(async array => {
-      const commands = _.flatten(array.map(({ redisCommands }) => redisCommands))
-      const results: Array<[Error | null, unknown]> = await options.redisClient.connection.multi(commands).exec()
-      if (results.some(([error]) => error)) {
-        throw results
-      }
-      return array.map(({ action }) => action)
-    }),
-    concatMap(actions => from(actions)),
+    concatMap(action => options.redisClient.multi(buildRedisCommands({ ...options, action })).then(() => action)),
+    concatMap(action => merge(...options.runActionInSteps.map(runStep => runStep(action, () => state$.value)))),
   )
+}
 
 function buildRedisCommands(options: {
   gitRepoInfo: GitRepoInfo
@@ -43,7 +33,7 @@ function buildRedisCommands(options: {
 }): string[][] {
   const redisCommands: string[][] = []
   if (
-    options.action.type === StepOutputEventType.artifactStep &&
+    options.action.type === ExecutionActionTypes.artifactStep &&
     options.action.payload.artifactStepResult.executionStatus === ExecutionStatus.done
   ) {
     redisCommands.push(
@@ -55,7 +45,7 @@ function buildRedisCommands(options: {
     )
   }
   if (
-    options.action.type === StepOutputEventType.step &&
+    options.action.type === ExecutionActionTypes.step &&
     options.action.payload.stepResult.executionStatus === ExecutionStatus.done
   ) {
     redisCommands.push(
@@ -75,7 +65,7 @@ function buildRedisCommands(options: {
         repoName: options.gitRepoInfo.repoName,
         repoHash: options.repoHash,
         startFlowMs: options.startFlowMs,
-        event: options.action.payload,
+        event: options.action,
       }),
     ),
   ])
@@ -84,8 +74,8 @@ function buildRedisCommands(options: {
 }
 
 const logAction = ({ log, action }: { log: Log; action: Actions }): void => {
-  switch (action.payload.type) {
-    case StepOutputEventType.step: {
+  switch (action.type) {
+    case ExecutionActionTypes.step: {
       const base = `step: "${action.payload.step.data.stepInfo.displayName}" - execution-status: "${action.payload.stepResult.executionStatus}"`
       switch (action.payload.stepResult.executionStatus) {
         case ExecutionStatus.scheduled:
@@ -108,7 +98,7 @@ const logAction = ({ log, action }: { log: Log; action: Actions }): void => {
       }
       break
     }
-    case StepOutputEventType.artifactStep: {
+    case ExecutionActionTypes.artifactStep: {
       const base = `step: "${action.payload.step.data.stepInfo.displayName}", artifact: "${action.payload.artifact.data.artifact.packageJson.name}" - execution-status: "${action.payload.artifactStepResult.executionStatus}"`
       switch (action.payload.artifactStepResult.executionStatus) {
         case ExecutionStatus.scheduled:

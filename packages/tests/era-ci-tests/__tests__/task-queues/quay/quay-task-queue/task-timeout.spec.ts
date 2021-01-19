@@ -1,10 +1,9 @@
 import { AbortedTask, toTaskEvent$ } from '@era-ci/core'
 import { QuayBuildsTaskPayload } from '@era-ci/task-queues'
-import { distructPackageJsonName, ExecutionStatus } from '@era-ci/utils'
+import { distructPackageJsonName, ExecutionStatus, firstValueFrom } from '@era-ci/utils'
 import expect from 'expect'
 import fs from 'fs'
 import path from 'path'
-import { firstValueFrom } from 'rxjs'
 import { first, map } from 'rxjs/operators'
 import { beforeAfterEach, test } from '../utils'
 

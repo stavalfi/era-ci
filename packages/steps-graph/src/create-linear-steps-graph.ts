@@ -2,7 +2,6 @@ import { StepExperimental } from '@era-ci/core'
 import { Steps } from './types'
 
 export function createLinearStepsGraph<TaskQueueConfigurations, TaskPayload>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   steps: Array<StepExperimental<any>>,
 ): Steps<TaskQueueConfigurations, TaskPayload> {
   return steps.map((step, i, array) => {

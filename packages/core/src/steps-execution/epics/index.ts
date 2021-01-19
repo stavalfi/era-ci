@@ -1,1 +1,1 @@
-export * from './combined-epics'
+export * from './combined-epic'

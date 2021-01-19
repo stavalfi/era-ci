@@ -6,6 +6,7 @@ import {
   DoneStepsResultOfArtifact,
   ScheduledStepResultOfArtifacts,
   ScheduledStepsResultOfArtifact,
+  State,
   StepResultOfArtifacts,
   StepsResultOfArtifact,
   toStepsResultOfArtifactsByArtifact,
@@ -119,8 +120,7 @@ function removeNodeFromGraph<T>({
 
 function getJsonReport({
   flowId,
-  stepsResultOfArtifactsByArtifact,
-  stepsResultOfArtifactsByStep,
+  state,
   startFlowMs,
   steps,
   repoHash,
@@ -135,11 +135,10 @@ function getJsonReport({
   flowId: string
   repoHash: string
   startFlowMs: number
-  stepsResultOfArtifactsByStep: Graph<StepResultOfArtifacts>
-  stepsResultOfArtifactsByArtifact: Graph<StepsResultOfArtifact>
+  state: Omit<State, 'flowFinished'>
 }): JsonReport {
   const flowExecutionStatus = calculateExecutionStatus(
-    stepsResultOfArtifactsByStep.map(s => s.data.stepResult.executionStatus),
+    state.stepsResultOfArtifactsByStep.map(s => s.data.stepResult.executionStatus),
   )
 
   switch (flowExecutionStatus) {
@@ -154,10 +153,10 @@ function getJsonReport({
         },
         flowExecutionStatus: ExecutionStatus.done,
         flowResult: {
-          errors: [],
+          errors: state.flowErrors,
           executionStatus: ExecutionStatus.done,
           notes: _.flatMapDeep(
-            stepsResultOfArtifactsByStep.map(s => {
+            state.stepsResultOfArtifactsByStep.map(s => {
               if (
                 s.data.stepResult.executionStatus !== ExecutionStatus.done &&
                 s.data.stepResult.executionStatus !== ExecutionStatus.aborted
@@ -168,7 +167,7 @@ function getJsonReport({
             }),
           ),
           durationMs: _.sum(
-            stepsResultOfArtifactsByStep.map(s => {
+            state.stepsResultOfArtifactsByStep.map(s => {
               if (
                 s.data.stepResult.executionStatus !== ExecutionStatus.done &&
                 s.data.stepResult.executionStatus !== ExecutionStatus.aborted
@@ -179,7 +178,7 @@ function getJsonReport({
             }),
           ),
           status: calculateCombinedStatus(
-            stepsResultOfArtifactsByStep.map(s => {
+            state.stepsResultOfArtifactsByStep.map(s => {
               if (
                 s.data.stepResult.executionStatus !== ExecutionStatus.done &&
                 s.data.stepResult.executionStatus !== ExecutionStatus.aborted
@@ -190,10 +189,10 @@ function getJsonReport({
             }),
           ) as Status.passed | Status.failed,
         },
-        stepsResultOfArtifactsByStep: stepsResultOfArtifactsByStep as Graph<
+        stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep as Graph<
           DoneStepResultOfArtifacts | AbortStepResultOfArtifacts
         >,
-        stepsResultOfArtifactsByArtifact: stepsResultOfArtifactsByArtifact as Graph<
+        stepsResultOfArtifactsByArtifact: state.stepsResultOfArtifactsByArtifact as Graph<
           DoneStepsResultOfArtifact | AbortStepsResultOfArtifact
         >,
       }
@@ -208,10 +207,10 @@ function getJsonReport({
         },
         flowExecutionStatus: ExecutionStatus.aborted,
         flowResult: {
-          errors: [],
+          errors: state.flowErrors,
           executionStatus: ExecutionStatus.aborted,
           notes: _.flatMapDeep(
-            stepsResultOfArtifactsByStep.map(s => {
+            state.stepsResultOfArtifactsByStep.map(s => {
               if (s.data.stepResult.executionStatus !== ExecutionStatus.aborted) {
                 throw new Error(`we can't be here14`)
               }
@@ -219,7 +218,7 @@ function getJsonReport({
             }),
           ),
           durationMs: _.sum(
-            stepsResultOfArtifactsByStep.map(s => {
+            state.stepsResultOfArtifactsByStep.map(s => {
               if (
                 s.data.stepResult.executionStatus !== ExecutionStatus.done &&
                 s.data.stepResult.executionStatus !== ExecutionStatus.aborted
@@ -230,7 +229,7 @@ function getJsonReport({
             }),
           ),
           status: calculateCombinedStatus(
-            stepsResultOfArtifactsByStep.map(s => {
+            state.stepsResultOfArtifactsByStep.map(s => {
               if (s.data.stepResult.executionStatus !== ExecutionStatus.aborted) {
                 throw new Error(`we can't be here15`)
               }
@@ -238,8 +237,8 @@ function getJsonReport({
             }),
           ) as Status.skippedAsPassed | Status.skippedAsFailed | Status.failed,
         },
-        stepsResultOfArtifactsByStep: stepsResultOfArtifactsByStep as Graph<AbortStepResultOfArtifacts>,
-        stepsResultOfArtifactsByArtifact: stepsResultOfArtifactsByArtifact as Graph<AbortStepsResultOfArtifact>,
+        stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep as Graph<AbortStepResultOfArtifacts>,
+        stepsResultOfArtifactsByArtifact: state.stepsResultOfArtifactsByArtifact as Graph<AbortStepsResultOfArtifact>,
       }
     case ExecutionStatus.running:
       return {
@@ -254,8 +253,8 @@ function getJsonReport({
         flowResult: {
           executionStatus: ExecutionStatus.running,
         },
-        stepsResultOfArtifactsByStep: stepsResultOfArtifactsByStep as Graph<StepResultOfArtifacts>,
-        stepsResultOfArtifactsByArtifact: stepsResultOfArtifactsByArtifact as Graph<StepsResultOfArtifact>,
+        stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep as Graph<StepResultOfArtifacts>,
+        stepsResultOfArtifactsByArtifact: state.stepsResultOfArtifactsByArtifact as Graph<StepsResultOfArtifact>,
       }
     case ExecutionStatus.scheduled:
       return {
@@ -270,8 +269,10 @@ function getJsonReport({
         flowResult: {
           executionStatus: ExecutionStatus.scheduled,
         },
-        stepsResultOfArtifactsByStep: stepsResultOfArtifactsByStep as Graph<ScheduledStepResultOfArtifacts>,
-        stepsResultOfArtifactsByArtifact: stepsResultOfArtifactsByArtifact as Graph<ScheduledStepsResultOfArtifact>,
+        stepsResultOfArtifactsByStep: state.stepsResultOfArtifactsByStep as Graph<ScheduledStepResultOfArtifacts>,
+        stepsResultOfArtifactsByArtifact: state.stepsResultOfArtifactsByArtifact as Graph<
+          ScheduledStepsResultOfArtifact
+        >,
       }
   }
 }
@@ -298,11 +299,14 @@ export const jsonReporter = createStepExperimental({
         flowId,
         repoHash,
         steps: withoutThisStep.steps,
-        stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
-        stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
-          artifacts,
+        state: {
           stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
-        }),
+          stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
+            artifacts,
+            stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
+          }),
+          flowErrors: getState().flowErrors,
+        },
       })
 
       const jsonReportTtl = immutableCache.ttls.ArtifactStepResult

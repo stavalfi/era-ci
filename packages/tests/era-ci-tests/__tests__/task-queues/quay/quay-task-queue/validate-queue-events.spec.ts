@@ -1,14 +1,14 @@
 import { AbortedTask, DoneTask, RunningTask, ScheduledTask, toTaskEvent$ } from '@era-ci/core'
 import { isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { QuayBuildsTaskPayload } from '@era-ci/task-queues'
-import { distructPackageJsonName, ExecutionStatus, Status } from '@era-ci/utils'
+import { distructPackageJsonName, ExecutionStatus, firstValueFrom, lastValueFrom, Status } from '@era-ci/utils'
+import expect from 'expect'
 import fs from 'fs'
 import path from 'path'
-import { merge, firstValueFrom, lastValueFrom } from 'rxjs'
+import { merge } from 'rxjs'
 import { first, map, toArray } from 'rxjs/operators'
 import sinon from 'sinon'
 import { beforeAfterEach, test } from '../utils'
-import expect from 'expect'
 
 beforeAfterEach(test)
 
