@@ -2,11 +2,11 @@ import { ExecutionStatus, Status } from '@era-ci/utils'
 import { defer, EMPTY, from, Observable } from 'rxjs'
 import { concatMap } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'
-import { CombinedConstrainResult, ConstrainResultType, runConstrains } from '../../create-constrain'
-import { TaskQueueBase } from '../../create-task-queue'
-import { Actions, ChangeArtifactStatusAction, ChangeStepStatusAction, State } from '../../steps-execution'
-import { ExecutionActionTypes } from '../../steps-execution/actions'
-import { StepFunctions, UserRunStepOptions } from '../types'
+import { CombinedConstrainResult, ConstrainResultType, runConstrains } from '../create-constrain'
+import { TaskQueueBase } from '../create-task-queue'
+import { Actions, ChangeArtifactStatusAction, ChangeStepStatusAction, State } from '../steps-execution'
+import { ExecutionActionTypes } from '../steps-execution/actions'
+import { StepFunctions, UserRunStepOptions } from './types'
 import {
   areRecursiveParentStepsFinished,
   artifactsEventsAbort,
@@ -16,16 +16,21 @@ import {
   stepEventRunning,
 } from './utils'
 
+type Options<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = {
+  startStepMs: number
+  userRunStepOptions: UserRunStepOptions<TaskQueue, StepConfigurations>
+} & StepFunctions<StepConfigurations>
+
+type ReturnType = Promise<(action: Actions, getState: () => State) => Observable<Actions>>
+
 export async function setupStepCallback<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations>({
   startStepMs,
   userRunStepOptions,
   stepConstrains = [],
   stepLogic = () => Promise.resolve(),
-}: {
-  startStepMs: number
-  userRunStepOptions: UserRunStepOptions<TaskQueue, StepConfigurations>
-} & StepFunctions<StepConfigurations>): Promise<(action: Actions, getState: () => State) => Observable<Actions>> {
+}: Options<TaskQueue, StepConfigurations>): ReturnType {
   let didRun = false
+
   return (_action, getState) => {
     if (
       !areRecursiveParentStepsFinished({

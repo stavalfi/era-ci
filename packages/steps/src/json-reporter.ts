@@ -153,7 +153,7 @@ function getJsonReport({
         },
         flowExecutionStatus: ExecutionStatus.done,
         flowResult: {
-          errors: state.flowErrors,
+          errors: [],
           executionStatus: ExecutionStatus.done,
           notes: _.flatMapDeep(
             state.stepsResultOfArtifactsByStep.map(s => {
@@ -207,7 +207,7 @@ function getJsonReport({
         },
         flowExecutionStatus: ExecutionStatus.aborted,
         flowResult: {
-          errors: state.flowErrors,
+          errors: [],
           executionStatus: ExecutionStatus.aborted,
           notes: _.flatMapDeep(
             state.stepsResultOfArtifactsByStep.map(s => {
@@ -305,7 +305,6 @@ export const jsonReporter = createStepExperimental({
             artifacts,
             stepsResultOfArtifactsByStep: withoutThisStep.stepsResultOfArtifactsByStep,
           }),
-          flowErrors: getState().flowErrors,
         },
       })
 

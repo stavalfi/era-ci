@@ -3,11 +3,11 @@ import { queue } from 'async'
 import { Observable, of } from 'rxjs'
 import { mergeMap } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'
-import { CombinedConstrainResult, ConstrainResultType, runConstrains } from '../../create-constrain'
-import { TaskQueueBase } from '../../create-task-queue'
-import { Actions, ChangeArtifactStatusAction, State } from '../../steps-execution'
-import { ExecutionActionTypes } from '../../steps-execution/actions'
-import { ArtifactFunctions, UserRunStepOptions } from '../types'
+import { CombinedConstrainResult, ConstrainResultType, runConstrains } from '../create-constrain'
+import { TaskQueueBase } from '../create-task-queue'
+import { Actions, ChangeArtifactStatusAction, State } from '../steps-execution'
+import { ExecutionActionTypes } from '../steps-execution/actions'
+import { ArtifactFunctions, UserRunStepOptions } from './types'
 import {
   areArtifactParentsFinishedParentSteps,
   areRecursiveParentStepsFinishedOnArtifact,

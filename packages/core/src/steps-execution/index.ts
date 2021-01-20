@@ -1,10 +1,11 @@
-import { ExecutionStatus } from '@era-ci/utils'
+import { ExecutionStatus, lastValueFrom } from '@era-ci/utils'
+import { applyMiddleware, createStore, Dispatch, Middleware } from 'redux'
+import { merge, Subject } from 'rxjs'
+import { concatMap, tap } from 'rxjs/operators'
 import { TaskQueueBase } from '../create-task-queue'
-import { ExecutionActionTypes } from './actions'
-import { createCombinedEpic } from './epics'
+import { Actions, ExecutionActionTypes } from './actions'
 import { createReducer } from './reducer'
 import { State } from './state'
-import { createReduxStore } from './store'
 import { Options } from './types'
 
 export { Actions, ChangeArtifactStatusAction, ChangeStepStatusAction } from './actions'
@@ -28,25 +29,43 @@ function findTaskQueue(options: Options & { currentStepIndex: number }): TaskQue
 }
 
 export async function runAllSteps(options: Options): Promise<State> {
-  const runActionInSteps = await Promise.all(
+  const subject = new Subject<Actions>()
+
+  const middleware: Middleware<{}, State> = store => (next: Dispatch<Actions>) => (action: Actions) => {
+    const result = next(action)
+    subject.next(action)
+    if (store.getState().flowFinished) {
+      subject.complete()
+    }
+    return result
+  }
+
+  const store = createStore(createReducer(options), applyMiddleware(middleware))
+
+  const onActionArray = await Promise.all(
     options.steps.map(async s => {
       const taskQueue = findTaskQueue({ ...options, currentStepIndex: s.index })
-      const onAction = await options.stepsToRun[s.index].data.runStep({
-        ...options,
-        taskQueue,
-        currentStepInfo: options.steps[s.index],
-      })
+      const onAction = await options.stepsToRun[s.index].data.runStep(
+        {
+          ...options,
+          taskQueue,
+          currentStepInfo: options.steps[s.index],
+        },
+        store.getState.bind(store),
+      )
       return onAction
     }),
   )
 
-  const reduxStore = createReduxStore({
-    epics: [createCombinedEpic({ ...options, runActionInSteps })],
-    reducer: createReducer(options),
-  })
+  const flowFinishedPromise = lastValueFrom(
+    subject.pipe(
+      concatMap(action => merge(...onActionArray.map(onAction => onAction(action, store.getState)))),
+      tap(store.dispatch),
+    ),
+  )
 
-  for (const step of reduxStore.getState().stepsResultOfArtifactsByStep) {
-    reduxStore.dispatch({
+  for (const step of store.getState().stepsResultOfArtifactsByStep) {
+    store.dispatch({
       type: ExecutionActionTypes.step,
       payload: {
         type: ExecutionActionTypes.step,
@@ -57,7 +76,7 @@ export async function runAllSteps(options: Options): Promise<State> {
       },
     })
     for (const artifact of step.data.artifactsResult) {
-      reduxStore.dispatch({
+      store.dispatch({
         type: ExecutionActionTypes.artifactStep,
         payload: {
           type: ExecutionActionTypes.artifactStep,
@@ -71,17 +90,12 @@ export async function runAllSteps(options: Options): Promise<State> {
     }
   }
 
-  // when there are no steps, we need to exit manually:
-  if (reduxStore.getState().flowFinished) {
-    return reduxStore.getState()
-  }
+  await flowFinishedPromise
 
-  return new Promise(res => {
-    const unsubscribe = reduxStore.subscribe(() => {
-      if (reduxStore.getState().flowFinished) {
-        unsubscribe()
-        res(reduxStore.getState())
-      }
-    })
-  })
+  return store.getState()
+
+  // // when there are no steps, we need to exit manually:
+  // if (store.getState().flowFinished) {
+  //   return store.getState()
+  // }
 }

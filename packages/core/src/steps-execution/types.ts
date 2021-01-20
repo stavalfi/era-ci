@@ -14,6 +14,7 @@ export type Options = {
     taskQueueClass: { new (options: TaskQueueOptions<any>): any }
     runStep: (
       runStepOptions: RunStepOptions<TaskQueueBase<any, any>>,
+      getState: () => State,
     ) => Promise<(action: Actions, getState: () => State) => Observable<Actions>>
   }>
 } & Omit<RunStepOptions<TaskQueueBase<any, any>>, 'currentStepInfo' | 'taskQueue'>
