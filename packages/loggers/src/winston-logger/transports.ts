@@ -17,14 +17,11 @@ export const createConsoleTransport = (format: winston.Logform.Format): winston.
     format: format,
   })
 
-export const createCustomLogTransport = (
-  format: winston.Logform.Format,
-  customLog: (str: string) => void,
-): CustomLogTransport =>
-  new CustomLogTransport({
-    format: format,
-    customLog,
-  })
+export const createCustomLogTransport = (options: {
+  customLog: (str: string) => void
+  customFormat?: (logOptions: winston.Logform.TransformableInfo) => string
+  format?: winston.Logform.Format
+}): CustomLogTransport => new CustomLogTransport(options)
 
 export const createFileTransport = (
   ncLogFilePath: string,

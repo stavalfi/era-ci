@@ -1,24 +1,22 @@
 import { ExecutionStatus, GitRepoInfo } from '@era-ci/utils'
 import _ from 'lodash'
-import { Epic } from 'redux-observable'
-import { merge, Observable } from 'rxjs'
-import { concatMap, tap } from 'rxjs/operators'
+import { defer, merge, Observable } from 'rxjs'
+import { concatMap } from 'rxjs/operators'
 import { deserializeError } from 'serialize-error'
-import { Log, LogLevel } from '../../create-logger'
-import { ImmutableCache } from '../../immutable-cache'
-import { StepRedisEvent } from '../../types'
-import { getEventsTopicName } from '../../utils'
-import { Actions, ExecutionActionTypes } from '../actions'
-import { State } from '../state'
-import { Options } from '../types'
+import { Log, LogLevel } from '../create-logger'
+import { ImmutableCache } from '../immutable-cache'
+import { StepRedisEvent } from '../types'
+import { getEventsTopicName } from '../utils'
+import { Actions, ExecutionActionTypes } from './actions'
+import { State } from './state'
+import { Options } from './types'
 
 export const createCombinedEpic = (
   options: Options & { runActionInSteps: ((action: Actions, getState: () => State) => Observable<Actions>)[] },
-): Epic<Actions, Actions, State> => (action$, state$) => {
-  return action$.pipe(
-    tap(action => logAction({ log: options.log, action })),
-    concatMap(action => options.redisClient.multi(buildRedisCommands({ ...options, action })).then(() => action)),
-    concatMap(action => merge(...options.runActionInSteps.map(runStep => runStep(action, () => state$.value)))),
+) => (action: Actions, getState: () => State) => {
+  logAction({ log: options.log, action })
+  return defer(() => options.redisClient.multi(buildRedisCommands({ ...options, action }))).pipe(
+    concatMap(() => merge(...options.runActionInSteps.map(runStep => runStep(action, getState)))),
   )
 }
 

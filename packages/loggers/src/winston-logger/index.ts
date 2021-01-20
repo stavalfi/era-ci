@@ -9,6 +9,7 @@ import {
 import winston from 'winston'
 import path from 'path'
 import fse from 'fs-extra'
+import { formatLog } from './formatter'
 
 export type LoggerConfiguration =
   | {
@@ -57,7 +58,9 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
     const mainLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [
-        customLog ? createCustomLogTransport(defaultFormat, customLog) : createConsoleTransport(defaultFormat),
+        customLog
+          ? createCustomLogTransport({ customLog, customFormat: formatLog, format: defaultFormat })
+          : createConsoleTransport(defaultFormat),
         createFileTransport(loggerConfigurations.logFilePath, loggerConfigurations.disableFileOutput, defaultFormat),
       ],
       silent: loggerConfigurations.disabled,
@@ -65,7 +68,7 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
     const noFormattingLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [
-        customLog ? createCustomLogTransport(noFormat, customLog) : createConsoleTransport(noFormat),
+        customLog ? createCustomLogTransport({ customLog, format: noFormat }) : createConsoleTransport(noFormat),
         createFileTransport(loggerConfigurations.logFilePath, loggerConfigurations.disableFileOutput, noFormat),
       ],
       silent: loggerConfigurations.disabled,

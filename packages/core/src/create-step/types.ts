@@ -229,6 +229,7 @@ export type StepExperimental<TaskQueue extends TaskQueueBase<any, any>> = {
   taskQueueClass: { new (options: TaskQueueOptions<unknown>): TaskQueue }
   runStep: (
     runStepOptions: RunStepOptions<TaskQueue>,
+    getState: () => State,
   ) => Promise<(action: Actions, getState: () => State) => Observable<Actions>>
 }
 

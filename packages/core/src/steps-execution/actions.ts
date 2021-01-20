@@ -12,11 +12,6 @@ import {
 export enum ExecutionActionTypes {
   artifactStep = 'output-artifact-step',
   step = 'output-step',
-  flowFinished = 'flow-finished',
-}
-
-export type FlowFinsihedAction = {
-  type: ExecutionActionTypes.flowFinished
 }
 
 export type ChangeArtifactStatusAction = {
@@ -44,4 +39,4 @@ export type ChangeStepStatusAction = {
   }
 }
 
-export type Actions = FlowFinsihedAction | ChangeArtifactStatusAction | ChangeStepStatusAction
+export type Actions = ChangeArtifactStatusAction | ChangeStepStatusAction

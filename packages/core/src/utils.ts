@@ -41,7 +41,7 @@ export function getExitCode(state: State): number {
       }),
     ),
   )
-  if (didPassOrSkippedAsPassed(finalStepsStatus) || state.flowErrors.length > 0) {
+  if (didPassOrSkippedAsPassed(finalStepsStatus)) {
     return 0
   } else {
     return 1

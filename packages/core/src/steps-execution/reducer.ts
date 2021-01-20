@@ -39,7 +39,6 @@ export function getInitialState({
 
   const state: State = {
     flowFinished: false,
-    flowErrors: [],
     stepsResultOfArtifactsByStep,
     stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
       artifacts: artifacts,
@@ -64,10 +63,6 @@ export const createReducer = (options: {
 
   const newState = _.cloneDeep(state)
   switch (action.type) {
-    case ExecutionActionTypes.flowFinished: {
-      newState.flowFinished = true
-      break
-    }
     case ExecutionActionTypes.step: {
       if (state.flowFinished) {
         throw new Error(`we can't be here`)

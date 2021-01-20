@@ -18,6 +18,7 @@ export type Config<TaskQueueConfigurations> = {
     taskQueueClass: { new (options: TaskQueueOptions<TaskQueueConfigurations>): any }
     runStep: (
       runStepOptions: RunStepOptions<TaskQueueBase<any, any>>,
+      getState: () => State,
     ) => Promise<(action: Actions, getState: () => State) => Observable<Actions>>
   }>
 }
