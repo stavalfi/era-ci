@@ -81,8 +81,12 @@ export async function startQuayHelperService(
       closed = true
       await app.close()
       await redisConnection.disconnect()
-      // eslint-disable-next-line no-console
-      console.log(`closed quay-helper-service: "${address}"`)
+      if (customLog) {
+        customLog(`closed quay-helper-service: "${address}"`)
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(`closed quay-helper-service: "${address}"`)
+      }
     },
   }
 }
