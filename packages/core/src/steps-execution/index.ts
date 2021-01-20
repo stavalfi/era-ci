@@ -1,7 +1,7 @@
 import { ExecutionStatus, lastValueFrom } from '@era-ci/utils'
 import { applyMiddleware, createStore, Dispatch, Middleware } from 'redux'
 import { merge, Subject } from 'rxjs'
-import { concatMap, tap } from 'rxjs/operators'
+import { concatMap, defaultIfEmpty, tap } from 'rxjs/operators'
 import { TaskQueueBase } from '../create-task-queue'
 import { Actions, ExecutionActionTypes } from './actions'
 import { createReducer } from './reducer'
@@ -31,13 +31,18 @@ function findTaskQueue(options: Options & { currentStepIndex: number }): TaskQue
 export async function runAllSteps(options: Options): Promise<State> {
   const subject = new Subject<Actions>()
 
-  const middleware: Middleware<{}, State> = store => (next: Dispatch<Actions>) => (action: Actions) => {
-    const result = next(action)
-    subject.next(action)
+  const middleware: Middleware<{}, State> = store => (next: Dispatch<Actions>) => {
     if (store.getState().flowFinished) {
       subject.complete()
     }
-    return result
+    return (action: Actions) => {
+      const result = next(action)
+      subject.next(action)
+      if (store.getState().flowFinished) {
+        subject.complete()
+      }
+      return result
+    }
   }
 
   const store = createStore(createReducer(options), applyMiddleware(middleware))
@@ -61,6 +66,7 @@ export async function runAllSteps(options: Options): Promise<State> {
     subject.pipe(
       concatMap(action => merge(...onActionArray.map(onAction => onAction(action, store.getState)))),
       tap(store.dispatch),
+      defaultIfEmpty(),
     ),
   )
 
