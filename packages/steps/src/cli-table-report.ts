@@ -332,15 +332,32 @@ export const cliTableReporter = createStepExperimental({
       const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value)
       const summaryReport = generateSummaryReport(jsonReportResult.value)
 
+      if (packagesErrorsReport.split('\n').length > 15) {
+        if (packagesErrorsReport) {
+          options.log.noFormattingInfo(packagesErrorsReport)
+        }
+      }
+      if (stepsErrorsReport.split('\n').length > 15) {
+        if (stepsErrorsReport) {
+          options.log.noFormattingInfo(stepsErrorsReport)
+        }
+      }
+
       if (jsonReportResult.value.artifacts.length > 0 && jsonReportResult.value.steps.length > 0) {
         options.log.noFormattingInfo(packagesStatusReport)
       }
-      if (packagesErrorsReport) {
-        options.log.noFormattingInfo(packagesErrorsReport)
+
+      if (packagesErrorsReport.split('\n').length <= 15) {
+        if (packagesErrorsReport) {
+          options.log.noFormattingInfo(packagesErrorsReport)
+        }
       }
-      if (stepsErrorsReport) {
-        options.log.noFormattingInfo(stepsErrorsReport)
+      if (stepsErrorsReport.split('\n').length <= 15) {
+        if (stepsErrorsReport) {
+          options.log.noFormattingInfo(stepsErrorsReport)
+        }
       }
+
       options.log.noFormattingInfo(summaryReport)
     },
   }),

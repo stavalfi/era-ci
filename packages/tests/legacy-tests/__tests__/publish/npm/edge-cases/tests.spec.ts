@@ -124,5 +124,5 @@ test('run ci -> change packageJson.version to invalid version -> run ci', async 
       reject: false,
     },
   })
-  expect(result.ncLogfileContent).toEqual(expect.stringContaining('is invalid: lalalal'))
+  expect(result.ncLogfileContent).toEqual(expect.stringContaining('is invalid: "lalalal"'))
 })
