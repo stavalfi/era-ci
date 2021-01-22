@@ -95,6 +95,9 @@ export const connectToRedis = async ({
   }
 
   async function multi(commands: string[][]): Promise<unknown[]> {
+    if (commands.length === 0) {
+      return []
+    }
     const results: Array<[Error | null, unknown]> = await connection.multi(commands).exec()
 
     if (results.some(([error]) => error)) {

@@ -111,6 +111,7 @@ test(`run ci -> override all labels in registry with invalid values -> run ci an
   )
 })
 
+// NOTE: this test is legacy and can be removed if needed
 test(`run ci -> override latest-tag label in registry with empty value -> run ci`, async t => {
   const { runCi, gitHeadCommit, publishDockerPackageWithoutCi, addRandomFileToPackage } = await createRepo(t, {
     packages: [
@@ -152,6 +153,7 @@ test(`run ci -> override latest-tag label in registry with empty value -> run ci
   )
 })
 
+// NOTE: this test is legacy and can be removed if needed
 test('run ci -> change packageJson.version to invalid version -> run ci', async t => {
   const { runCi, modifyPackageJson } = await createRepo(t, {
     packages: [
@@ -173,10 +175,10 @@ test('run ci -> change packageJson.version to invalid version -> run ci', async 
       },
     },
     execaOptions: {
-      stdio: 'pipe',
+      stdio: 'inherit',
       reject: false,
     },
   })
 
-  expect(result.ciProcessResult.stdout).toEqual(expect.stringContaining('is invalid: "lalalal"'))
+  expect(result.ncLogfileContent).toEqual(expect.stringContaining('is invalid: "lalalal"'))
 })
