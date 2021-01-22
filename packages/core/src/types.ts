@@ -7,4 +7,5 @@ export type StepRedisEvent = {
   repoHash: string
   startFlowMs: number
   event: Actions
+  eventTs: number
 }

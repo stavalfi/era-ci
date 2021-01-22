@@ -1,7 +1,9 @@
+import { getEventsTopicName } from '@era-ci/core'
 import { startQuayHelperService } from '@era-ci/quay-helper-service'
 import { startQuayMockService } from '@era-ci/quay-mock-service'
 import { TestInterface } from 'ava'
 import chance from 'chance'
+import Redis from 'ioredis'
 import { starGittServer } from './git-server-testkit'
 import { TestResources } from './types'
 
@@ -30,7 +32,37 @@ export function resourcesBeforeAfterAll(
       NC_TEST_MODE: 'true',
       SKIP_EXIT_CODE_1: 'true',
       QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: t.context.resources.quayBuildStatusChangedRedisTopic,
+      ERA_CI_EVENTS_TOPIC_PREFIX: `redis-topic-${chance().hash().slice(0, 8)}`,
     }
+    const redisFlowEventsSubscriptionsConnection = new Redis('localhost:36379', { lazyConnect: true })
+
+    const [quayMockService, quayHelperService] = await Promise.all([
+      options?.startQuayMockService
+        ? await startQuayMockService({
+            dockerRegistryAddress: dockerRegistry,
+            namespace: quayNamespace,
+            rateLimit: {
+              max: 100000,
+              timeWindowMs: 1000,
+            },
+            token: quayToken,
+            customLog: t.log.bind(t),
+          })
+        : Promise.resolve({ address: '', cleanup: () => Promise.resolve() }),
+      options?.startQuayHelperService
+        ? await startQuayHelperService(
+            {
+              PORT: '0',
+              REDIS_ADDRESS: redisServerUrl,
+              ...t.context.processEnv,
+            },
+            t.log.bind(t),
+          )
+        : Promise.resolve({ address: '', cleanup: () => Promise.resolve() }),
+      redisFlowEventsSubscriptionsConnection
+        .connect()
+        .then(() => redisFlowEventsSubscriptionsConnection.subscribe(getEventsTopicName(t.context.processEnv))),
+    ])
     t.context.resources = {
       npmRegistry: {
         address: `http://localhost:34873`,
@@ -47,32 +79,14 @@ export function resourcesBeforeAfterAll(
       gitServer: t.context.resources.gitServer,
       quayNamespace,
       quayToken,
-      quayMockService: options?.startQuayMockService
-        ? await startQuayMockService({
-            dockerRegistryAddress: dockerRegistry,
-            namespace: quayNamespace,
-            rateLimit: {
-              max: 100000,
-              timeWindowMs: 1000,
-            },
-            token: quayToken,
-            customLog: t.log.bind(t),
-          })
-        : { address: '', cleanup: () => Promise.resolve() },
+      quayMockService,
       quayBuildStatusChangedRedisTopic,
-      quayHelperService: options?.startQuayHelperService
-        ? await startQuayHelperService(
-            {
-              PORT: '0',
-              REDIS_ADDRESS: redisServerUrl,
-              ...t.context.processEnv,
-            },
-            t.log.bind(t),
-          )
-        : { address: '', cleanup: () => Promise.resolve() },
+      quayHelperService,
+      redisFlowEventsSubscriptionsConnection,
     }
   })
   test.serial.afterEach(async t => {
+    t.context.resources.redisFlowEventsSubscriptionsConnection.disconnect()
     await Promise.allSettled(
       [t.context.resources.quayMockService.cleanup(), t.context.resources.quayHelperService.cleanup()].filter(Boolean),
     )

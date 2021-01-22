@@ -4,6 +4,7 @@ import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import expect from 'expect'
+import { ExecutionActionTypes } from '../../../core/dist/src/steps-execution/actions'
 
 createTest(test)
 
@@ -211,7 +212,7 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async 
 test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait', async t => {
   expect.assertions(2)
 
-  const { runCi } = await createRepo(t, toActualName => ({
+  const { runCi, toActualName } = await createRepo(t, toActualName => ({
     repo: {
       packages: [
         {
@@ -246,27 +247,43 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait'
           stepName: 'child-step',
           stepGroup: 'child-step',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: ({ getState, steps, artifacts }) => ({
+          run: () => ({
             waitUntilArtifactParentsFinishedParentSteps: false,
-            onArtifact: async ({ artifact }) => {
-              if (artifact.data.artifact.packageJson.name === toActualName('child-artifact')) {
-                expect(
-                  getResult({
-                    state: getState(),
-                    steps,
-                    artifacts,
-                    artifactName: toActualName('parent-artifact'),
-                    stepId: steps.find(s => s.data.stepInfo.stepName === 'parent-step')?.data.stepInfo.stepId!,
-                  }).executionStatus,
-                ).not.toEqual(ExecutionStatus.done)
-              }
-            },
+            onArtifact: () => Promise.resolve(),
           }),
         })(),
       ]),
     },
   }))
 
-  const { passed } = await runCi()
-  expect(passed).toBeTruthy()
+  const { flowEvents } = await runCi()
+
+  const mapped = flowEvents.map(e => {
+    if (e.event.type === ExecutionActionTypes.step) {
+      return `${e.event.type}--${e.event.payload.step.data.stepInfo.stepName}--${e.event.payload.stepResult.executionStatus}`
+    }
+    if (e.event.type === ExecutionActionTypes.artifactStep) {
+      return `${e.event.type}--${e.event.payload.step.data.stepInfo.stepName}--${e.event.payload.artifact.data.artifact.packageJson.name}--${e.event.payload.artifactStepResult.executionStatus}`
+    }
+    return ''
+  })
+
+  const indexes = [
+    mapped.findIndex(
+      e =>
+        e ===
+        `${ExecutionActionTypes.artifactStep}--child-step--${toActualName('child-artifact')}--${
+          ExecutionStatus.running
+        }`,
+    ),
+    mapped.findIndex(
+      e =>
+        e ===
+        `${ExecutionActionTypes.artifactStep}--parent-step--${toActualName('parent-artifact')}--${
+          ExecutionStatus.done
+        }`,
+    ),
+  ]
+
+  expect(indexes).toEqual(indexes.filter(i => i > -1).sort((a, b) => a - b))
 })

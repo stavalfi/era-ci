@@ -46,10 +46,6 @@ export function getInitialState({
     }),
   }
 
-  if (areAllStepsFinished(state.stepsResultOfArtifactsByStep)) {
-    state.flowFinished = true
-  }
-
   return state
 }
 

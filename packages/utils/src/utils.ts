@@ -4,17 +4,16 @@ import gitRemoteOriginUrl from 'git-remote-origin-url'
 import gitUrlParse from 'git-url-parse'
 import _ from 'lodash'
 import path from 'path'
-import { Observable } from 'rxjs'
-import { first, last } from 'rxjs/operators'
+import { firstValueFrom as first, lastValueFrom as last, Observable } from 'rxjs'
 import semver from 'semver'
 import { Artifact, ExecutionStatus, GitRepoInfo, PackageJson, Status, TargetType, UnionArrayValues } from './types'
 
 export function firstValueFrom<T>(source: Observable<T>): Promise<T> {
-  return source.pipe(first()).toPromise()
+  return first(source)
 }
 
 export function lastValueFrom<T>(source: Observable<T>): Promise<T> {
-  return source.pipe(last()).toPromise()
+  return last(source)
 }
 
 export const didPassOrSkippedAsPassed = (status: Status): boolean =>

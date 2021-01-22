@@ -19,6 +19,7 @@
     "fastify": "^3.8.0",
     "got": "^11.8.1",
     "execa": "^4.0.1",
+    "ioredis": "^4.19.4",
     "create-folder-structure": "^3.0.5",
     "pino-pretty": "^4.3.0"
   },
