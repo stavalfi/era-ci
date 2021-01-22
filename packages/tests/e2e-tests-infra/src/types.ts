@@ -1,4 +1,4 @@
-import { Config, Logger, LogLevel, TaskQueueBase } from '@era-ci/core'
+import { Config, Logger, LogLevel, StepRedisEvent, TaskQueueBase } from '@era-ci/core'
 import { JsonReport } from '@era-ci/steps'
 import { Graph, PackageJson, StepInfo, TargetType } from '@era-ci/utils'
 import { FolderStructure } from 'create-folder-structure'
@@ -7,6 +7,7 @@ import { DeepPartial } from 'ts-essentials'
 import { GitServer } from './git-server-testkit'
 
 import { ExecutionContext, TestInterface } from 'ava'
+import { Redis } from 'ioredis'
 export type TestWithContextType = {
   resources: TestResources
   sleep: (ms: number) => Promise<void>
@@ -60,6 +61,7 @@ export type TestResources = {
   quayNamespace: string
   quayToken: string
   quayBuildStatusChangedRedisTopic: string
+  redisFlowEventsSubscriptionsConnection: Redis
 }
 
 export type ToActualName = (name: string) => string
@@ -102,6 +104,7 @@ export type RunCiResult = {
   logFilePath: string
   flowLogs: string
   published: Map<string, ResultingArtifact>
+  flowEvents: StepRedisEvent[]
 }
 
 type Deployment = { address: string; cleanup: () => Promise<unknown> }

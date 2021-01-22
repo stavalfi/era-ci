@@ -1,6 +1,6 @@
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import { queue } from 'async'
-import { Observable, of } from 'rxjs'
+import { Observable, from } from 'rxjs'
 import { mergeMap } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'
 import { CombinedConstrainResult, ConstrainResultType, runConstrains } from '../create-constrain'
@@ -29,28 +29,26 @@ export async function setupArtifactCallback<TaskQueue extends TaskQueueBase<any,
   userRunStepOptions: UserRunStepOptions<TaskQueue, StepConfigurations>
 } & ArtifactFunctions<StepConfigurations>): Promise<(action: Actions, getState: () => State) => Observable<Actions>> {
   let didRunBeforeAll = false
-  const beforeAllQueue = queue<void>(async (_, done) => {
+  const beforeAllQueue = queue<void>(async () => {
     if (!didRunBeforeAll) {
       didRunBeforeAll = true
       await onBeforeArtifacts()
       userRunStepOptions.log.trace(`finished onBeforeArtifacts function`)
     }
-    done()
   }, 1)
 
   let didRunAfterAll = false
-  const afterAllQueue = queue<void>(async (_, done) => {
+  const afterAllQueue = queue<void>(async () => {
     if (!didRunAfterAll) {
       didRunAfterAll = true
       await onAfterArtifacts()
       userRunStepOptions.log.trace(`finished onAfterArtifacts function`)
     }
-    done()
   }, 1)
 
   if (userRunStepOptions.artifacts.length === 0) {
-    ;() =>
-      of<Actions>(
+    return () =>
+      from<Actions[]>([
         ...artifactsEventsAbort({
           startStepMs,
           artifacts: userRunStepOptions.artifacts,
@@ -70,11 +68,11 @@ export async function setupArtifactCallback<TaskQueue extends TaskQueueBase<any,
             },
           },
         },
-      )
+      ])
   }
 
   // each step needs to have an internal state because I can't count on
-  // `userRunStepOptions.stepsResultOfArtifactsByStep[userRunStepOptions.curentStep.index]`
+  // `getState().stepsResultOfArtifactsByStep[userRunStepOptions.curentStep.index]`
   // to be updated at all
   const artifactResultsOnCurrentStep: ChangeArtifactStatusAction[] = userRunStepOptions.artifacts.map(artifact => ({
     type: ExecutionActionTypes.artifactStep,
@@ -99,14 +97,12 @@ export async function setupArtifactCallback<TaskQueue extends TaskQueueBase<any,
   return (action, getState) =>
     new Observable<Actions>(observer => {
       if (action.type !== ExecutionActionTypes.artifactStep) {
-        observer.complete()
-        return
+        return observer.complete()
       }
 
       if (!waitUntilArtifactParentsFinishedParentSteps) {
         observer.next(action)
-        observer.complete()
-        return
+        return observer.complete()
       }
 
       const artifactParentsFinishedParentStep = areArtifactParentsFinishedParentSteps({
@@ -140,15 +136,14 @@ export async function setupArtifactCallback<TaskQueue extends TaskQueueBase<any,
           })
         }
       }
-      observer.complete()
+      return observer.complete()
     }).pipe(
       mergeMap<Actions, Observable<Actions>>(
         action =>
           new Observable<Actions>(observer => {
             Promise.resolve().then(async () => {
               if (action.type !== ExecutionActionTypes.artifactStep) {
-                observer.complete()
-                return
+                return observer.complete()
               }
               const artifactExecutionStatus =
                 artifactResultsOnCurrentStep[action.payload.artifact.index].payload.artifactStepResult.executionStatus
@@ -194,7 +189,7 @@ export async function setupArtifactCallback<TaskQueue extends TaskQueueBase<any,
                   if (isStepAborted) {
                     const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
                     if (status === Status.failed || status === Status.passed) {
-                      throw new Error(`we can't be here8`)
+                      return observer.error(`we can't be here8`)
                     }
                     observer.next({
                       type: ExecutionActionTypes.step,
@@ -218,7 +213,7 @@ export async function setupArtifactCallback<TaskQueue extends TaskQueueBase<any,
                     if (didStepDone) {
                       const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
                       if (status === Status.skippedAsFailed || status === Status.skippedAsPassed) {
-                        throw new Error(`we can't be here8`)
+                        return observer.error(`we can't be here8`)
                       }
                       observer.next({
                         type: ExecutionActionTypes.step,
@@ -235,7 +230,7 @@ export async function setupArtifactCallback<TaskQueue extends TaskQueueBase<any,
                       })
                     }
                   }
-                  return
+                  return observer.complete()
                 }
 
                 if (!didSendStepRunning) {
@@ -319,7 +314,7 @@ export async function setupArtifactCallback<TaskQueue extends TaskQueueBase<any,
                   if (isStepAborted) {
                     const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
                     if (status === Status.passed) {
-                      throw new Error(`we can't be here9`)
+                      return observer.error(`we can't be here9`)
                     }
                     observer.next({
                       type: ExecutionActionTypes.step,
@@ -334,11 +329,11 @@ export async function setupArtifactCallback<TaskQueue extends TaskQueueBase<any,
                         },
                       },
                     })
-                    return
+                    return observer.complete()
                   } else {
                     const status = calculateCombinedStatusOfCurrentStep(artifactResultsOnCurrentStep)
                     if (status === Status.skippedAsFailed || status === Status.skippedAsPassed) {
-                      throw new Error(`we can't be here10`)
+                      return observer.error(`we can't be here10`)
                     }
                     observer.next({
                       type: ExecutionActionTypes.step,
@@ -356,7 +351,7 @@ export async function setupArtifactCallback<TaskQueue extends TaskQueueBase<any,
                   }
                 }
               }
-              observer.complete()
+              return observer.complete()
             })
           }),
       ),

@@ -1,4 +1,14 @@
-import { ci, config, Config, connectToRedis, createImmutableCache, Logger, LogLevel, TaskQueueBase } from '@era-ci/core'
+import {
+  ci,
+  config,
+  Config,
+  connectToRedis,
+  createImmutableCache,
+  Logger,
+  LogLevel,
+  StepRedisEvent,
+  TaskQueueBase,
+} from '@era-ci/core'
 import { listTags } from '@era-ci/image-registry-client'
 import { winstonLogger } from '@era-ci/loggers'
 import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@era-ci/steps'
@@ -18,9 +28,9 @@ import { addReportToStepsAsLastNodes } from './utils'
 export const test = anyTest as TestWithContext
 
 export { createGitRepo } from './create-git-repo'
-export { DeepPartial, TestResources, TestWithContextType, CreateRepo } from './types'
-export { isDeepSubset } from './utils'
 export { resourcesBeforeAfterAll } from './prepare-test-resources'
+export { CreateRepo, DeepPartial, TestResources, TestWithContextType } from './types'
+export { isDeepSubset } from './utils'
 
 const getJsonReport = async ({
   flowId,
@@ -76,6 +86,16 @@ const getJsonReport = async ({
   }
 }
 
+type RunCiOptions = {
+  repoPath: string
+  configurations: Config<TaskQueueBase<any, any>>
+  logFilePath: string
+  stepsDontContainReport: boolean
+  toOriginalName: (artifactName: string) => string
+  t: ExecutionContext<TestWithContextType>
+  testLogger: Logger
+}
+
 const runCi = ({
   repoPath,
   configurations,
@@ -84,25 +104,23 @@ const runCi = ({
   toOriginalName,
   t,
   testLogger,
-}: {
-  repoPath: string
-  configurations: Config<TaskQueueBase<any, any>>
-  logFilePath: string
-  stepsDontContainReport: boolean
-  toOriginalName: (artifactName: string) => string
-  t: ExecutionContext<TestWithContextType>
-  testLogger: Logger
-}) => async (options?: { processEnv?: NodeJS.ProcessEnv }): Promise<RunCiResult> => {
-  const processEnv: NodeJS.ProcessEnv = {
-    ...t.context.processEnv,
-    ...options?.processEnv,
-  }
+}: RunCiOptions) => async (options?: { processEnv?: NodeJS.ProcessEnv }): Promise<RunCiResult> => {
+  const flowEvents: StepRedisEvent[] = []
+  t.context.resources.redisFlowEventsSubscriptionsConnection.on('message', (_topic: string, eventString: string) =>
+    flowEvents.push(JSON.parse(eventString)),
+  )
+
   const { flowId, repoHash, steps, passed, fatalError } = await ci({
     repoPath,
     config: configurations,
-    processEnv,
+    processEnv: {
+      ...t.context.processEnv,
+      ...options?.processEnv,
+    },
     customLog: t.log.bind(t),
   })
+
+  flowEvents.sort((e1, e2) => e1.eventTs - e2.eventTs) // [1,2,3]
 
   if (!repoHash) {
     throw new Error(`ci didn't return repo-hash. it looks like a bug`)
@@ -157,6 +175,7 @@ const runCi = ({
       stepsResultOfArtifactsByStep: [],
     },
     passed,
+    flowEvents,
   }
 }
 

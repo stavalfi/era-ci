@@ -32,12 +32,12 @@ export async function setupStepCallback<TaskQueue extends TaskQueueBase<any, any
   let didRun = false
 
   return (_action, getState) => {
-    if (
-      !areRecursiveParentStepsFinished({
-        stepsResultOfArtifactsByStep: getState().stepsResultOfArtifactsByStep,
-        stepIndex: userRunStepOptions.currentStepInfo.index,
-      })
-    ) {
+    const recursiveParentStepsFinished = areRecursiveParentStepsFinished({
+      stepsResultOfArtifactsByStep: getState().stepsResultOfArtifactsByStep,
+      stepIndex: userRunStepOptions.currentStepInfo.index,
+    })
+
+    if (!recursiveParentStepsFinished) {
       return EMPTY
     }
 
@@ -118,31 +118,34 @@ export async function setupStepCallback<TaskQueue extends TaskQueueBase<any, any
                   },
                 }),
               )
-              .then(event => {
-                switch (event.payload.stepResult.executionStatus) {
-                  case ExecutionStatus.done:
-                    artifactsEventsDone({
-                      step: userRunStepOptions.currentStepInfo,
-                      artifacts: userRunStepOptions.artifacts,
-                      startStepMs: userRunStepOptions.startStepMs,
-                      status: event.payload.stepResult.status,
-                    }).forEach(e => observer.next(e))
-                    observer.next(event)
-                    break
-                  case ExecutionStatus.aborted:
-                    artifactsEventsAbort({
-                      step: userRunStepOptions.currentStepInfo,
-                      artifacts: userRunStepOptions.artifacts,
-                      startStepMs: userRunStepOptions.startStepMs,
-                      status: event.payload.stepResult.status,
-                    }).forEach(e => observer.next(e))
-                    observer.next(event)
-                    break
-                  default:
-                    throw new Error(`we can't be here11`)
-                }
-                observer.complete()
-              })
+              .then(
+                event => {
+                  switch (event.payload.stepResult.executionStatus) {
+                    case ExecutionStatus.done:
+                      artifactsEventsDone({
+                        step: userRunStepOptions.currentStepInfo,
+                        artifacts: userRunStepOptions.artifacts,
+                        startStepMs: userRunStepOptions.startStepMs,
+                        status: event.payload.stepResult.status,
+                      }).forEach(e => observer.next(e))
+                      observer.next(event)
+                      break
+                    case ExecutionStatus.aborted:
+                      artifactsEventsAbort({
+                        step: userRunStepOptions.currentStepInfo,
+                        artifacts: userRunStepOptions.artifacts,
+                        startStepMs: userRunStepOptions.startStepMs,
+                        status: event.payload.stepResult.status,
+                      }).forEach(e => observer.next(e))
+                      observer.next(event)
+                      break
+                    default:
+                      throw new Error(`we can't be here11`)
+                  }
+                  observer.complete()
+                },
+                error => observer.error(error),
+              )
           })
         }
       }),

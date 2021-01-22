@@ -14,4 +14,4 @@ RUN yarn install --frozen-lockfile --production
 COPY ${package_path}/dist/src ./${package_path}/dist/src
 COPY ${package_path}/src ./${package_path}/src
 
-CMD node --unhandled-rejections=strict ./packages/quay/quay-helper-service/dist/src/index.js
+CMD node --unhandled-rejections=strict ./packages/quay-helper-service/dist/src/index.js
