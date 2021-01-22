@@ -22,12 +22,10 @@ export async function startQuayHelperService(
   }
 
   const app = fastify({
-    logger: customLog
-      ? logger
-      : {
-          prettyPrint: true,
-          level: env.NC_TEST_MODE ? 'error' : 'info',
-        },
+    logger: {
+      prettyPrint: true,
+      level: 'info',
+    },
   })
 
   app.log[env.NC_TEST_MODE ? 'trace' : 'info'](
