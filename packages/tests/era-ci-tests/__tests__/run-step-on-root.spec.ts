@@ -9,6 +9,8 @@ import expect from 'expect'
 createTest(test)
 
 test('flow should pass because step pass', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -48,6 +50,8 @@ test('flow should pass because step pass', async t => {
 })
 
 test('step should pass in json-report', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
@@ -115,6 +119,8 @@ test('step should pass in json-report', async t => {
 })
 
 test('flow should fail because step failed (without throwing error from the step)', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
@@ -189,6 +195,8 @@ test('flow should fail because step failed (without throwing error from the step
 })
 
 test('flow should fail because step failed (while throwing error from the step)', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [

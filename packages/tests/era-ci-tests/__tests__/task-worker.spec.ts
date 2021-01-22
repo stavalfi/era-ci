@@ -28,6 +28,8 @@ async function createQueue(t: ExecutionContext<TestWithContextType>, queueName: 
 }
 
 test('no tasks - manual close worker', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
   const { cleanup } = await startWorker({
     config: {
@@ -38,7 +40,10 @@ test('no tasks - manual close worker', async t => {
       redis: {
         url: t.context.resources.redisServerUrl,
       },
-      customLog: t.log.bind(t),
+      customLog: {
+        customLog: t.log.bind(t),
+        transformer: x => `${t.title} - ${x}`,
+      },
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,
@@ -48,6 +53,8 @@ test('no tasks - manual close worker', async t => {
 })
 
 test('single worker - amount of workers === 1', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
 
   const queueName = `queue-${chance().hash().slice(0, 8)}`
@@ -61,7 +68,10 @@ test('single worker - amount of workers === 1', async t => {
       redis: {
         url: t.context.resources.redisServerUrl,
       },
-      customLog: t.log.bind(t),
+      customLog: {
+        customLog: t.log.bind(t),
+        transformer: x => `${t.title} - ${x}`,
+      },
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,
@@ -78,6 +88,8 @@ test('single worker - amount of workers === 1', async t => {
 })
 
 test('manual close worker multiple times', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
   const { cleanup } = await startWorker({
     config: {
@@ -88,7 +100,10 @@ test('manual close worker multiple times', async t => {
       redis: {
         url: t.context.resources.redisServerUrl,
       },
-      customLog: t.log.bind(t),
+      customLog: {
+        customLog: t.log.bind(t),
+        transformer: x => `${t.title} - ${x}`,
+      },
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,
@@ -100,6 +115,8 @@ test('manual close worker multiple times', async t => {
 })
 
 test('single task - success', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -111,7 +128,10 @@ test('single task - success', async t => {
       redis: {
         url: t.context.resources.redisServerUrl,
       },
-      customLog: t.log.bind(t),
+      customLog: {
+        customLog: t.log.bind(t),
+        transformer: x => `${t.title} - ${x}`,
+      },
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,
@@ -146,6 +166,8 @@ test('single task - success', async t => {
 })
 
 test('multiple tasks - all success', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -157,7 +179,10 @@ test('multiple tasks - all success', async t => {
       redis: {
         url: t.context.resources.redisServerUrl,
       },
-      customLog: t.log.bind(t),
+      customLog: {
+        customLog: t.log.bind(t),
+        transformer: x => `${t.title} - ${x}`,
+      },
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,
@@ -193,6 +218,8 @@ test('multiple tasks - all success', async t => {
 })
 
 test('single empty task - expect to fail', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -204,7 +231,10 @@ test('single empty task - expect to fail', async t => {
       redis: {
         url: t.context.resources.redisServerUrl,
       },
-      customLog: t.log.bind(t),
+      customLog: {
+        customLog: t.log.bind(t),
+        transformer: x => `${t.title} - ${x}`,
+      },
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,
@@ -233,6 +263,8 @@ test('single empty task - expect to fail', async t => {
 })
 
 test('single task - expect to fail', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -244,7 +276,10 @@ test('single task - expect to fail', async t => {
       redis: {
         url: t.context.resources.redisServerUrl,
       },
-      customLog: t.log.bind(t),
+      customLog: {
+        customLog: t.log.bind(t),
+        transformer: x => `${t.title} - ${x}`,
+      },
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,
@@ -277,6 +312,8 @@ test('single task - expect to fail', async t => {
 })
 
 test('multiple tasks - all fail', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -288,7 +325,10 @@ test('multiple tasks - all fail', async t => {
       redis: {
         url: t.context.resources.redisServerUrl,
       },
-      customLog: t.log.bind(t),
+      customLog: {
+        customLog: t.log.bind(t),
+        transformer: x => `${t.title} - ${x}`,
+      },
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,
@@ -328,6 +368,8 @@ test('multiple tasks - all fail', async t => {
 })
 
 test('the worker runs a task which fails so when the worker exits, it will exit with exit-code !== 0', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
 
   const queueName = `queue-${chance().hash().slice(0, 8)}`
@@ -373,6 +415,8 @@ test('the worker runs a task which fails so when the worker exits, it will exit 
 })
 
 test('the worker runs multiple tasks which one of them fail. so when the worker exits, it will exit with exit-code !== 0', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
 
   const queueName = `queue-${chance().hash().slice(0, 8)}`
@@ -433,6 +477,8 @@ test('the worker runs multiple tasks which one of them fail. so when the worker 
 })
 
 test('no tasks so the worker is closing automaticaly', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
 
   const workerConfig: WorkerConfig = {
@@ -465,6 +511,8 @@ test('no tasks so the worker is closing automaticaly', async t => {
 })
 
 test('single task -> after that, no tasks so the worker is closing automaticaly', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
 
   const queueName = `queue-${chance().hash().slice(0, 8)}`
@@ -510,6 +558,8 @@ test('single task -> after that, no tasks so the worker is closing automaticaly'
 })
 
 test('single task - success - override processEnv', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -521,7 +571,10 @@ test('single task - success - override processEnv', async t => {
       redis: {
         url: t.context.resources.redisServerUrl,
       },
-      customLog: t.log.bind(t),
+      customLog: {
+        customLog: t.log.bind(t),
+        transformer: x => `${t.title} - ${x}`,
+      },
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,
@@ -559,6 +612,8 @@ test('single task - success - override processEnv', async t => {
 })
 
 test('single task - success - part of a group', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -570,7 +625,10 @@ test('single task - success - part of a group', async t => {
       redis: {
         url: t.context.resources.redisServerUrl,
       },
-      customLog: t.log.bind(t),
+      customLog: {
+        customLog: t.log.bind(t),
+        transformer: x => `${t.title} - ${x}`,
+      },
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,
@@ -615,6 +673,8 @@ test('single task - success - part of a group', async t => {
 })
 
 test('single task - success - part of a group - override process-env', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -626,7 +686,10 @@ test('single task - success - part of a group - override process-env', async t =
       redis: {
         url: t.context.resources.redisServerUrl,
       },
-      customLog: t.log.bind(t),
+      customLog: {
+        customLog: t.log.bind(t),
+        transformer: x => `${t.title} - ${x}`,
+      },
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,
@@ -674,6 +737,8 @@ test('single task - success - part of a group - override process-env', async t =
 })
 
 test('multiple tasks - before-all is called once', async t => {
+  t.timeout(50 * 1000)
+
   const repoPath = await createFolder()
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { cleanup } = await startWorker({
@@ -685,7 +750,10 @@ test('multiple tasks - before-all is called once', async t => {
       redis: {
         url: t.context.resources.redisServerUrl,
       },
-      customLog: t.log.bind(t),
+      customLog: {
+        customLog: t.log.bind(t),
+        transformer: x => `${t.title} - ${x}`,
+      },
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,

@@ -7,6 +7,8 @@ import { test } from '../prepare-test'
 const { createRepo } = newEnv(test)
 
 test('packages with failed tests wont deploy', async t => {
+  t.timeout(50 * 1000)
+
   const bTest = await manageStepResult()
 
   const { runCi, toActualName } = await createRepo(t, {
@@ -67,6 +69,8 @@ test('packages with failed tests wont deploy', async t => {
 
 // usecase: incase the developer revert a PR, we want to re-deploy the previous deployment again!
 test(`deployment succeed but there will be an addtional deployment in the next flow`, async t => {
+  t.timeout(50 * 1000)
+
   const aDeployment = await manageStepResult()
   const { runCi } = await createRepo(t, {
     packages: [
@@ -106,6 +110,8 @@ test(`deployment succeed but there will be an addtional deployment in the next f
 
 // usecase: i don't really have one. it's just the same behavior as if the deployment succeed -> we will redeploy anyway.
 test(`deployment failed but there will be an addtional deployment in the next flow`, async t => {
+  t.timeout(50 * 1000)
+
   const aDeployment = await manageStepResult()
   const { runCi } = await createRepo(t, {
     packages: [

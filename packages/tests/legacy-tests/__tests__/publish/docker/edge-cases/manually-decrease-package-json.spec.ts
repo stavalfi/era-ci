@@ -9,6 +9,8 @@ const { createRepo } = newEnv(test)
 
 describe('run ci -> decrease packageJson.version -> run ci', () => {
   test('decrease to unpublished version', async t => {
+    t.timeout(50 * 1000)
+
     const { runCi, modifyPackageJson, gitHeadCommit } = await createRepo(t, {
       packages: [
         {
@@ -45,6 +47,8 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
   })
 
   test('decrease to published version', async t => {
+    t.timeout(50 * 1000)
+
     const { runCi, modifyPackageJson, addRandomFileToPackage, gitHeadCommit } = await createRepo(t, {
       packages: [
         {

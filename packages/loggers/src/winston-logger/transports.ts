@@ -18,8 +18,10 @@ export const createConsoleTransport = (format: winston.Logform.Format): winston.
   })
 
 export const createCustomLogTransport = (options: {
-  customLog: (str: string) => void
-  customFormat?: (logOptions: winston.Logform.TransformableInfo) => string
+  customLog: {
+    customLog: (...values: unknown[]) => void
+    transformer: (log: string) => string
+  }
   format?: winston.Logform.Format
 }): CustomLogTransport => new CustomLogTransport(options)
 

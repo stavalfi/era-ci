@@ -8,6 +8,8 @@ import sinon from 'sinon'
 createTest(test)
 
 test('ensure constrain is called at most once', async t => {
+  t.timeout(50 * 1000)
+
   const constrain = sinon.fake.resolves({
     resultType: ConstrainResultType.ignoreThisConstrain,
     result: {
@@ -52,6 +54,8 @@ test('ensure constrain is called at most once', async t => {
 })
 
 test('reproduce bug: ensure constrain is called at most once', async t => {
+  t.timeout(50 * 1000)
+
   const sleepMs = 3_000
 
   const constrain = sinon.fake(

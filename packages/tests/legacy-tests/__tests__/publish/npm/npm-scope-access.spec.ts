@@ -6,6 +6,8 @@ import { TargetType } from '../../prepare-test/types'
 const { createRepo } = newEnv(test)
 
 test('npm package with scope.access=public', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {
@@ -29,6 +31,8 @@ test('npm package with scope.access=public', async t => {
 })
 
 test('npm package with scope.access=private', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {

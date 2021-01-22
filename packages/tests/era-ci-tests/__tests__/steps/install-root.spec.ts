@@ -7,6 +7,8 @@ import expect from 'expect'
 createTest(test)
 
 test('install-step should pass', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -33,6 +35,8 @@ test('install-step should pass', async t => {
 })
 
 test.only('install-step should skipped-as-passed because it depends on other step which is not defined: validatePackages', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [

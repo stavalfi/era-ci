@@ -117,7 +117,7 @@ const runCi = ({
       ...t.context.processEnv,
       ...options?.processEnv,
     },
-    customLog: t.log.bind(t),
+    customLog: { customLog: t.log.bind(t), transformer: x => `${t.title} - ${x}` },
   })
 
   flowEvents.sort((e1, e2) => e1.eventTs - e2.eventTs) // [1,2,3]
@@ -202,7 +202,10 @@ export const createRepo: CreateRepo = async (t, options) => {
     customLogLevel: LogLevel.trace,
     disabled: false,
     logFilePath: path.join(repoPath, 'era-ci-test.log'),
-  }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
+  }).callInitializeLogger({
+    repoPath,
+    customLog: { customLog: t.log.bind(t), transformer: x => `${t.title} - ${x}` },
+  })
 
   const getImageTags = async (packageName: string): Promise<string[]> => {
     return listTags({
@@ -278,7 +281,6 @@ export function createTest(
   resourcesBeforeAfterAll(test, options)
   beforeAfterCleanups(test)
   test.serial.beforeEach(async t => {
-    t.timeout(50 * 1000)
     t.context.sleep = sleep(t.context.cleanups)
     t.context.createRepo = createRepo
   })

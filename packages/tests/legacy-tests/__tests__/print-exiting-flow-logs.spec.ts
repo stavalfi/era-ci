@@ -6,6 +6,8 @@ const { createRepo } = newEnv(test)
 
 describe('@era-ci/core --print-flow <flow-id>', () => {
   test('ensure we can print old flow logs', async t => {
+    t.timeout(50 * 1000)
+
     const { runCi, getFlowLogs } = await createRepo(t, {
       packages: [
         {
@@ -33,6 +35,8 @@ describe('@era-ci/core --print-flow <flow-id>', () => {
   })
 
   test('fail when we try to print logs of flow-id that does not exists', async t => {
+    t.timeout(50 * 1000)
+
     const { getFlowLogs } = await createRepo(t, {
       packages: [
         {

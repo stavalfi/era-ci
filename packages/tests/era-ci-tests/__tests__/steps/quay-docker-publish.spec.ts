@@ -11,6 +11,8 @@ createTest(test, {
 })
 
 test('single package - no problems - step should pass', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit, repoPath } = await createRepo(t, {
     repo: {
       packages: [
@@ -61,6 +63,8 @@ test('single package - no problems - step should pass', async t => {
 })
 
 test('multiple packages - no problems - step should pass', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit, repoPath } = await createRepo(t, {
     repo: {
       packages: [
@@ -125,6 +129,8 @@ test('multiple packages - no problems - step should pass', async t => {
 })
 
 test('expect the step to be failed if the dockerfile has an error', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, repoPath } = await createRepo(t, {
     repo: {
       packages: [
@@ -177,6 +183,8 @@ test('expect the step to be failed if the dockerfile has an error', async t => {
 })
 
 test('run step again on failure and expect to abort-as-failed on second run', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, repoPath } = await createRepo(t, {
     repo: {
       packages: [
@@ -231,6 +239,8 @@ test('run step again on failure and expect to abort-as-failed on second run', as
 })
 
 test('do not run step again if step succeed (image built and pushed to registry)', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, repoPath } = await createRepo(t, {
     repo: {
       packages: [
@@ -285,6 +295,8 @@ test('do not run step again if step succeed (image built and pushed to registry)
 })
 
 test('publish with semver-tag', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit, repoPath } = await createRepo(t, {
     repo: {
       packages: [
@@ -330,6 +342,8 @@ test('publish with semver-tag', async t => {
 })
 
 test('publish with hash-tag', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, repoPath } = await createRepo(t, {
     repo: {
       packages: [
@@ -375,6 +389,8 @@ test('publish with hash-tag', async t => {
 })
 
 test('publish with hash-tag and then with semver-tag', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit, repoPath } = await createRepo(t, {
     repo: {
       packages: [
@@ -426,6 +442,8 @@ test('publish with hash-tag and then with semver-tag', async t => {
 })
 
 test('publish with hash-tag twice', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, repoPath } = await createRepo(t, {
     repo: {
       packages: [
@@ -473,6 +491,8 @@ test('publish with hash-tag twice', async t => {
 })
 
 test('publish with semver-tag twice', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit, repoPath } = await createRepo(t, {
     repo: {
       packages: [

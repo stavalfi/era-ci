@@ -5,6 +5,8 @@ import { TargetType } from '../../../prepare-test/types'
 const { createRepo } = newEnv(test)
 
 test(`run ci as the first time after there is already a docker publish`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit, publishDockerPackageWithoutCi } = await createRepo(t, {
     packages: [
       {
@@ -28,6 +30,8 @@ test(`run ci as the first time after there is already a docker publish`, async t
 })
 
 test(`run ci -> override all labels in registry with empty values -> run ci`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit, publishDockerPackageWithoutCi, addRandomFileToPackage } = await createRepo(t, {
     packages: [
       {
@@ -70,6 +74,8 @@ test(`run ci -> override all labels in registry with empty values -> run ci`, as
 })
 
 test(`run ci -> override all labels in registry with invalid values -> run ci and ensure we can recover from that`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit, publishDockerPackageWithoutCi, addRandomFileToPackage } = await createRepo(t, {
     packages: [
       {
@@ -113,6 +119,8 @@ test(`run ci -> override all labels in registry with invalid values -> run ci an
 
 // NOTE: this test is legacy and can be removed if needed
 test(`run ci -> override latest-tag label in registry with empty value -> run ci`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit, publishDockerPackageWithoutCi, addRandomFileToPackage } = await createRepo(t, {
     packages: [
       {
@@ -155,6 +163,8 @@ test(`run ci -> override latest-tag label in registry with empty value -> run ci
 
 // NOTE: this test is legacy and can be removed if needed
 test('run ci -> change packageJson.version to invalid version -> run ci', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, modifyPackageJson } = await createRepo(t, {
     packages: [
       {

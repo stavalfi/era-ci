@@ -7,6 +7,8 @@ const { createRepo } = newEnv(test)
 
 describe('publish only packages without failing tests', () => {
   test('tests failed so there is no publish', async t => {
+    t.timeout(50 * 1000)
+
     const aTests = await manageStepResult()
     const { runCi } = await createRepo(t, {
       packages: [
@@ -39,6 +41,8 @@ describe('publish only packages without failing tests', () => {
   })
 
   test('tests passed so there is a publish', async t => {
+    t.timeout(50 * 1000)
+
     const aTests = await manageStepResult()
     const { runCi } = await createRepo(t, {
       packages: [
@@ -69,6 +73,8 @@ describe('publish only packages without failing tests', () => {
   })
 
   test('multiple packages - publish only packages with passed tests', async t => {
+    t.timeout(50 * 1000)
+
     const aTests = await manageStepResult()
     const bTests = await manageStepResult()
     const { runCi } = await createRepo(t, {

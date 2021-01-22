@@ -5,6 +5,8 @@ import { TargetType } from '../../../prepare-test/types'
 const { createRepo } = newEnv(test)
 
 test(`run ci as the first time after there is already an npm publish`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, publishNpmPackageWithoutCi } = await createRepo(t, {
     packages: [
       {
@@ -31,6 +33,8 @@ test(`run ci as the first time after there is already an npm publish`, async t =
 
 test(`run ci -> unpublish npm while keeping hashes in redis that indicate that we dont need to\
  publish again - but we should because the package is not in the registry -> run ci`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, unpublishNpmPackage } = await createRepo(t, {
     packages: [
       {
@@ -66,6 +70,8 @@ test(`run ci -> unpublish npm while keeping hashes in redis that indicate that w
 })
 
 test(`run ci -> remove all npm hash tags -> run ci`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, removeAllNpmHashTags } = await createRepo(t, {
     packages: [
       {
@@ -101,6 +107,8 @@ test(`run ci -> remove all npm hash tags -> run ci`, async t => {
 })
 
 test('run ci -> change packageJson.version to invalid version -> run ci', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, modifyPackageJson } = await createRepo(t, {
     packages: [
       {

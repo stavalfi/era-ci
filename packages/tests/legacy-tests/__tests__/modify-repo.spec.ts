@@ -5,6 +5,8 @@ import { TargetType } from './prepare-test/types'
 const { createRepo } = newEnv(test)
 
 test('multiple packages - all publish again because of modification in root files', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, addRandomFileToRoot } = await createRepo(t, {
     packages: [
       {
@@ -50,6 +52,8 @@ test('multiple packages - all publish again because of modification in root file
 })
 
 test('multiple packages - all publish again because of modification in each package', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, addRandomFileToPackage } = await createRepo(t, {
     packages: [
       {
@@ -96,6 +100,8 @@ test('multiple packages - all publish again because of modification in each pack
 })
 
 test(`no publish if the package folder name has modified`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, renamePackageFolder } = await createRepo(t, {
     packages: [
       {
@@ -130,6 +136,8 @@ test(`no publish if the package folder name has modified`, async t => {
 })
 
 test(`no publish if the package folder moved`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, movePackageFolder } = await createRepo(t, {
     packages: [
       {
@@ -164,6 +172,8 @@ test(`no publish if the package folder moved`, async t => {
 })
 
 test(`no publish of other packages if a package was deleted`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, deletePackage } = await createRepo(t, {
     packages: [
       {
@@ -203,6 +213,8 @@ test(`no publish of other packages if a package was deleted`, async t => {
 })
 
 test(`no publish of other packages if addtional package was created`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, createNewPackage } = await createRepo(t, {
     packages: [
       {

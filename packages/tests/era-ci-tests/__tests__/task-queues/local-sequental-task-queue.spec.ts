@@ -24,7 +24,7 @@ test.serial.beforeEach(async t => {
     customLogLevel: LogLevel.trace,
     logFilePath: 'era-ci.log',
     disabled: false,
-  }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
+  }).callInitializeLogger({ repoPath, customLog: { customLog: t.log.bind(t), transformer: x => `${t.title} - ${x}` } })
 
   t.context.taskQueue = await localSequentalTaskQueue().createFunc({
     log: logger.createLog('task-queue'),
@@ -54,24 +54,34 @@ test('cleanup dont throw when queue is empty', async () => {
 })
 
 test('can add zero length array', async t => {
+  t.timeout(50 * 1000)
+
   t.context.taskQueue.addTasksToQueue([])
 })
 
 test('cleanup can be called multiple times', async t => {
+  t.timeout(50 * 1000)
+
   await t.context.taskQueue.cleanup()
   await t.context.taskQueue.cleanup()
 })
 
 test('cant add tasks after cleanup', async t => {
+  t.timeout(50 * 1000)
+
   await t.context.taskQueue.cleanup()
   expect(() => t.context.taskQueue.addTasksToQueue([])).toThrow()
 })
 
 test('cleanup can be called multiple times concurrenctly', async t => {
+  t.timeout(50 * 1000)
+
   await Promise.all([t.context.taskQueue.cleanup(), t.context.taskQueue.cleanup()])
 })
 
 test('task is executed', async t => {
+  t.timeout(50 * 1000)
+
   const func = sinon.fake.resolves(void 0)
   t.context.taskQueue.addTasksToQueue([{ taskName: 'task1', func }])
 
@@ -81,6 +91,8 @@ test('task is executed', async t => {
 })
 
 test('events are fired', async t => {
+  t.timeout(50 * 1000)
+
   const scheduled = sinon.fake()
   const running = sinon.fake()
 
@@ -96,6 +108,8 @@ test('events are fired', async t => {
 })
 
 test('events are fired even when task failed', async t => {
+  t.timeout(50 * 1000)
+
   const scheduled = sinon.fake()
   const running = sinon.fake()
 
@@ -111,6 +125,8 @@ test('events are fired even when task failed', async t => {
 })
 
 test('events schema is valid', async t => {
+  t.timeout(50 * 1000)
+
   expect.assertions(3)
 
   t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.scheduled, event => {
@@ -165,6 +181,8 @@ test('events schema is valid', async t => {
 })
 
 test('done events schema is valid when task fail', async t => {
+  t.timeout(50 * 1000)
+
   t.context.taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => Promise.reject(new Error('error1')) }])
 
   expect.hasAssertions()
@@ -195,6 +213,8 @@ test('done events schema is valid when task fail', async t => {
 })
 
 test('abort event is fired for all tasks when queue is cleaned (before the tasks are executed)', async t => {
+  t.timeout(50 * 1000)
+
   const scheduled = sinon.fake()
   const running = sinon.fake()
   const aborted = sinon.fake()
@@ -225,6 +245,8 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
 })
 
 test('abort event is fired for running tasks', async t => {
+  t.timeout(50 * 1000)
+
   const aborted = sinon.fake()
 
   t.context.taskQueue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
@@ -244,6 +266,8 @@ test('abort event is fired for running tasks', async t => {
 })
 
 test('abort events schema is valid', async t => {
+  t.timeout(50 * 1000)
+
   t.context.taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => t.context.sleep(300_000) }])
 
   expect.hasAssertions()

@@ -6,6 +6,8 @@ import { TargetType } from '../../prepare-test/types'
 const { createRepo } = newEnv(test)
 
 test('1 package', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {
@@ -27,7 +29,9 @@ test('1 package', async t => {
   expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
 })
 
-test('multiple publishes of the same package', async t => {
+test.only('multiple publishes of the same package', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, addRandomFileToPackage } = await createRepo(t, {
     packages: [
       {
@@ -77,6 +81,8 @@ test('multiple publishes of the same package', async t => {
 })
 
 test('multiple packages', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {
@@ -111,6 +117,8 @@ test('multiple packages', async t => {
 })
 
 test('1 package - validate publish content', async t => {
+  t.timeout(50 * 1000)
+
   const hash = chance().hash().slice(0, 8)
   const { runCi, installAndRunNpmDependency } = await createRepo(t, {
     packages: [
@@ -140,6 +148,8 @@ test('1 package - validate publish content', async t => {
 })
 
 test('reproduce bug in travelGraph function', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {

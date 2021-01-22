@@ -6,6 +6,8 @@ import { TargetType } from './prepare-test/types'
 const { createRepo } = newEnv(test)
 
 test('ensure log file is created', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {
@@ -28,6 +30,8 @@ test('ensure log file is created', async t => {
 })
 
 test('ensure log file is deleted when a new flow starts', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {
@@ -60,6 +64,8 @@ test('ensure log file is deleted when a new flow starts', async t => {
 })
 
 test('ensure any user-command that we run will be sent to the log file - user command passed', async t => {
+  t.timeout(50 * 1000)
+
   const test = await manageStepResult()
 
   const { runCi } = await createRepo(t, {
@@ -89,6 +95,8 @@ test('ensure any user-command that we run will be sent to the log file - user co
 })
 
 test('ensure any user-command that we run will be sent to the log file - user command failed', async t => {
+  t.timeout(50 * 1000)
+
   const test = await manageStepResult()
 
   const { runCi } = await createRepo(t, {

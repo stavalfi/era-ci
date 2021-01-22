@@ -6,6 +6,8 @@ import { TargetType } from '../prepare-test/types'
 const { createRepo } = newEnv(test)
 
 test('1 package - make sure that app dont crush when we skip deployment', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {
@@ -29,6 +31,8 @@ test('1 package - make sure that app dont crush when we skip deployment', async 
 })
 
 test('1 package - make sure we skip deployment', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {
@@ -58,6 +62,8 @@ test('1 package - make sure we skip deployment', async t => {
 })
 
 test('1 package - ensure deploymentClient is passed to other functions', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {
