@@ -1,22 +1,33 @@
 import { Artifact, ExecutionStatus, Graph, StepInfo } from '@era-ci/utils'
-import _ from 'lodash'
+import { produce } from 'immer'
 import { Reducer } from 'redux'
 import { StepsResultOfArtifactsByStep, toStepsResultOfArtifactsByArtifact } from '../create-step'
 import { Actions, ExecutionActionTypes } from './actions'
 import { State } from './state'
 
-export const areAllStepsFinished = (stepsResultOfArtifactsByStep: State['stepsResultOfArtifactsByStep']) =>
+const areAllStepsFinished = (stepsResultOfArtifactsByStep: State['stepsResultOfArtifactsByStep']) =>
   stepsResultOfArtifactsByStep.every(step =>
     [ExecutionStatus.aborted, ExecutionStatus.done].includes(step.data.stepExecutionStatus),
   )
 
-export function getInitialState({
+function getInitialState({
   artifacts,
   steps,
 }: {
   artifacts: Graph<{ artifact: Artifact }>
   steps: Graph<{ stepInfo: StepInfo }>
 }): State {
+  if (steps.length === 0) {
+    return {
+      flowFinished: true,
+      stepsResultOfArtifactsByStep: [],
+      stepsResultOfArtifactsByArtifact: toStepsResultOfArtifactsByArtifact({
+        artifacts: artifacts,
+        stepsResultOfArtifactsByStep: [],
+      }),
+    }
+  }
+
   const stepsResultOfArtifactsByStep: StepsResultOfArtifactsByStep = steps.map(s => ({
     ...s,
     data: {
@@ -49,6 +60,13 @@ export function getInitialState({
   return state
 }
 
+const numbericExecutionStatus: { [a in keyof typeof ExecutionStatus]: number } = {
+  scheduled: 0,
+  running: 1,
+  aborted: 2, // aboreted and done has the same numeric value because they both represents final execution status
+  done: 2,
+}
+
 export const createReducer = (options: {
   artifacts: Graph<{ artifact: Artifact }>
   steps: Graph<{ stepInfo: StepInfo }>
@@ -57,36 +75,50 @@ export const createReducer = (options: {
     return state
   }
 
-  const newState = _.cloneDeep(state)
-  switch (action.type) {
-    case ExecutionActionTypes.step: {
-      if (state.flowFinished) {
-        throw new Error(`we can't be here`)
+  const state1 = produce(state, draftState => {
+    switch (action.type) {
+      case ExecutionActionTypes.step: {
+        const stepResult = draftState.stepsResultOfArtifactsByStep[action.payload.step.index].data
+        if (
+          numbericExecutionStatus[stepResult.stepExecutionStatus] >=
+          numbericExecutionStatus[action.payload.stepResult.executionStatus]
+        ) {
+          // it means that this action came too late to the reducer and in the meanwhile, the state already changed.
+          return
+        }
+        stepResult.stepExecutionStatus = action.payload.stepResult.executionStatus
+        stepResult.stepResult = action.payload.stepResult
+        break
       }
-      const stepResult = newState.stepsResultOfArtifactsByStep[action.payload.step.index].data
-      stepResult.stepExecutionStatus = action.payload.stepResult.executionStatus
-      stepResult.stepResult = action.payload.stepResult
-      break
-    }
-    case ExecutionActionTypes.artifactStep: {
-      if (state.flowFinished) {
-        throw new Error(`we can't be here`)
+      case ExecutionActionTypes.artifactStep: {
+        const stepResult = draftState.stepsResultOfArtifactsByStep[action.payload.step.index].data
+        if (
+          numbericExecutionStatus[
+            stepResult.artifactsResult[action.payload.artifact.index].data.artifactStepResult.executionStatus
+          ] >= numbericExecutionStatus[action.payload.artifactStepResult.executionStatus]
+        ) {
+          // it means that this action came too late to the reducer and in the meanwhile, the state already changed.
+          return
+        }
+        stepResult.artifactsResult[action.payload.artifact.index].data.artifactStepResult =
+          action.payload.artifactStepResult
+        break
       }
-      const stepResult = newState.stepsResultOfArtifactsByStep[action.payload.step.index].data
-      stepResult.artifactsResult[action.payload.artifact.index].data.artifactStepResult =
-        action.payload.artifactStepResult
-      break
     }
-  }
-
-  newState.stepsResultOfArtifactsByArtifact = toStepsResultOfArtifactsByArtifact({
-    artifacts: options.artifacts,
-    stepsResultOfArtifactsByStep: newState.stepsResultOfArtifactsByStep,
   })
 
-  if (areAllStepsFinished(newState.stepsResultOfArtifactsByStep)) {
-    newState.flowFinished = true
-  }
+  const state2 = produce(state1, draftState => {
+    draftState.stepsResultOfArtifactsByArtifact = toStepsResultOfArtifactsByArtifact({
+      artifacts: options.artifacts,
+      stepsResultOfArtifactsByStep: state1.stepsResultOfArtifactsByStep,
+    })
+  })
 
-  return newState
+  const state3 = produce(state2, draftState => {
+    if (areAllStepsFinished(state2.stepsResultOfArtifactsByStep)) {
+      draftState.flowFinished = true
+    }
+  })
+
+  return state3
 }

@@ -49,14 +49,15 @@ export async function ci(options: {
     log.info(`directory: "${options.repoPath}"`)
 
     const gitRepoInfo = await getGitRepoInfo(options.repoPath, logger.createLog('ci-logic', { disable: true }))
+    const packagesPath = await getPackages({ repoPath: options.repoPath, log })
+
     log.info(`git-repo: "${gitRepoInfo.repoName}"`)
     log.info(`git-commit: "${gitRepoInfo.commit}"`)
     log.info(`log-level: "${logger.logLevel}"`)
+    log.info(`packages: ${packagesPath.length}`)
     log.info(`-----------------------------------------`)
 
     // in the legacy-tests, we extract the flowId using regex from this line (super ugly :S)
-
-    const packagesPath = await getPackages({ repoPath: options.repoPath, log })
 
     const { artifacts, repoHash: rh } = await calculateArtifactsHash({
       repoPath: options.repoPath,
