@@ -1,8 +1,8 @@
 import { ExecutionStatus, lastValueFrom } from '@era-ci/utils'
 import _ from 'lodash'
 import { applyMiddleware, createStore, Dispatch, Middleware } from 'redux'
-import { merge, Subject } from 'rxjs'
-import { bufferTime, concatMap, map, mergeMap, tap } from 'rxjs/operators'
+import { merge, Observable, Subject } from 'rxjs'
+import { bufferTime, map, mergeMap, tap } from 'rxjs/operators'
 import { Actions, ExecutionActionTypes } from './actions'
 import { createReducer } from './reducer'
 import { State } from './state'
@@ -51,18 +51,23 @@ export async function runAllSteps(options: Options): Promise<State> {
     }),
   )
 
+  const sendRedisCommands = () => (source: Observable<Actions>): Observable<Actions> =>
+    source.pipe(
+      map(action => ({ action, redisCommands: buildRedisCommands({ ...options, action }) })),
+      bufferTime(100),
+      mergeMap(async array => {
+        await options.redisClient.multi(_.flatten(array.map(({ redisCommands }) => redisCommands)))
+        return array.map(({ action }) => action)
+      }),
+      mergeMap(actions => actions),
+    )
+
   const flowFinishedPromise = lastValueFrom(
-    merge(
-      actions$.pipe(
-        tap(action => logAction({ log: options.log, action })),
-        map(action => buildRedisCommands({ ...options, action })),
-        bufferTime(100),
-        concatMap(redisCommands => options.redisClient.multi(_.flatten(redisCommands))),
-      ),
-      actions$.pipe(
-        mergeMap(action => merge(...onActionArray.map(onAction => onAction(action, store.getState)))),
-        tap(store.dispatch),
-      ),
+    actions$.pipe(
+      tap(action => logAction({ log: options.log, action })),
+      sendRedisCommands(),
+      mergeMap(action => merge(...onActionArray.map(onAction => onAction(action, store.getState)))),
+      tap(store.dispatch),
     ),
   )
 

@@ -72,8 +72,21 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
         node.data.artifactResult.executionStatus === ExecutionStatus.aborted
           ? RESULT_STATUS_COLORED[node.data.artifactResult.status]
           : EXECUTION_STATUS_COLORED[node.data.artifactResult.executionStatus],
-      duration: '-',
-      notes: 'notes' in node.data.artifactResult ? node.data.artifactResult.notes : [],
+      duration:
+        node.data.artifactResult.executionStatus === ExecutionStatus.done ||
+        node.data.artifactResult.executionStatus === ExecutionStatus.aborted
+          ? prettyMs(node.data.artifactResult.durationMs)
+          : undefined,
+      notes: _.flatMapDeep([
+        ...('notes' in node.data.artifactResult ? node.data.artifactResult.notes : []),
+        ...node.data.stepsResult
+          .slice()
+          .map(r =>
+            'notes' in r.data.artifactStepResult
+              ? r.data.artifactStepResult.notes.map(note => `${r.data.stepInfo.displayName} - ${note}`)
+              : [],
+          ),
+      ]),
     }))
   }
 
@@ -90,14 +103,16 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
   const rowsInTableFormat = rows.flatMap(row => {
     return [
       [
-        ...[row.packageName, ...row.stepsStatus, `${row.artifactStatus} (${row.duration})`].map<CellOptions>(
-          (content, i) => ({
-            rowSpan: Object.keys(row.notes).length || 1,
-            vAlign: 'center',
-            hAlign: i === 0 ? 'left' : 'center',
-            content,
-          }),
-        ),
+        ...[
+          row.packageName,
+          ...row.stepsStatus,
+          row.duration ? `${row.artifactStatus} (${row.duration})` : row.artifactStatus,
+        ].map<CellOptions>((content, i) => ({
+          rowSpan: Object.keys(row.notes).length || 1,
+          vAlign: 'center',
+          hAlign: i === 0 ? 'left' : 'center',
+          content,
+        })),
         ...row.notes.slice(0, 1).map(content => ({
           content,
           style: {},

@@ -278,6 +278,12 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
 
           skipAsPassedIfStepNotExists: true,
         }),
+      artifact =>
+        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          currentArtifact: artifact,
+          stepNameToSearchInCache: 'validate-packages',
+          skipAsPassedIfStepNotExists: true,
+        }),
       artifact => customConstrain({ currentArtifact: artifact }),
     ],
     onBeforeArtifacts: async () =>

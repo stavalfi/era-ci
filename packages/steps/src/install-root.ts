@@ -14,7 +14,7 @@ export const installRoot = createStepExperimental<LocalSequentalTaskQueue, { isS
     stepConstrains: [
       skipIfStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: 'validate-packages',
-        skipAsPassedIfStepNotExists: false,
+        skipAsPassedIfStepNotExists: true,
       }),
     ],
     stepLogic: async () => {

@@ -148,6 +148,12 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
           stepNameToSearchInCache: 'test',
           skipAsPassedIfStepNotExists: true,
         }),
+      artifact =>
+        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          currentArtifact: artifact,
+          stepNameToSearchInCache: 'validate-packages',
+          skipAsPassedIfStepNotExists: true,
+        }),
     ],
     onBeforeArtifacts: async () =>
       dockerRegistryLogin({
