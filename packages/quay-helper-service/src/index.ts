@@ -68,7 +68,7 @@ export async function startQuayHelperService(
     },
   )
 
-  const address = await app.listen(config.port)
+  const address = await app.listen(config.port, '0.0.0.0')
   app.log.info(`quay-helper-service: "${address}"`)
 
   let closed = false

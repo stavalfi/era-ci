@@ -210,8 +210,6 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async 
 })
 
 test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait', async t => {
-  expect.assertions(2)
-
   const { runCi, toActualName } = await createRepo(t, toActualName => ({
     repo: {
       packages: [
@@ -259,9 +257,6 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait'
   const { flowEvents } = await runCi()
 
   const mapped = flowEvents.map(e => {
-    if (e.event.type === ExecutionActionTypes.step) {
-      return `${e.event.type}--${e.event.payload.step.data.stepInfo.stepName}--${e.event.payload.stepResult.executionStatus}`
-    }
     if (e.event.type === ExecutionActionTypes.artifactStep) {
       return `${e.event.type}--${e.event.payload.step.data.stepInfo.stepName}--${e.event.payload.artifact.data.artifact.packageJson.name}--${e.event.payload.artifactStepResult.executionStatus}`
     }
