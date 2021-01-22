@@ -32,7 +32,7 @@ test('install-step should pass', async t => {
   expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('install-step should abort-as-passed because it depends on other step which is not defined: validatePackages', async t => {
+test.only('install-step should skipped-as-passed because it depends on other step which is not defined: validatePackages', async t => {
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
@@ -43,7 +43,7 @@ test('install-step should abort-as-passed because it depends on other step which
       ],
     },
     configurations: {
-      steps: createLinearStepsGraph([installRoot({ isStepEnabled: true })]),
+      steps: createLinearStepsGraph([installRoot({ isStepEnabled: false })]),
     },
   })
   const { jsonReport } = await runCi()
