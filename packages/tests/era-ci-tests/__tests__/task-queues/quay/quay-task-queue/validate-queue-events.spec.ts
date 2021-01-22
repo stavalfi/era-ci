@@ -13,29 +13,41 @@ import { beforeAfterEach, test } from '../utils'
 beforeAfterEach(test)
 
 test('cleanup dont throw when queue is empty', async t => {
+  t.timeout(50 * 1000)
+
   // NOTE: this is the test. it's not a mistake!
   // ensure even if we don't use the queue, it won't throw errors.
 })
 
 test('can add zero length array', async t => {
+  t.timeout(50 * 1000)
+
   t.context.taskQueuesResources.queue.addTasksToQueue([])
 })
 
 test('cleanup can be called multiple times', async t => {
+  t.timeout(50 * 1000)
+
   await t.context.taskQueuesResources.queue.cleanup()
   await t.context.taskQueuesResources.queue.cleanup()
 })
 
 test('cant add tasks after cleanup', async t => {
+  t.timeout(50 * 1000)
+
   await t.context.taskQueuesResources.queue.cleanup()
   expect(() => t.context.taskQueuesResources.queue.addTasksToQueue([])).toThrow()
 })
 
 test('cleanup can be called multiple times concurrenctly', async t => {
+  t.timeout(50 * 1000)
+
   await Promise.all([t.context.taskQueuesResources.queue.cleanup(), t.context.taskQueuesResources.queue.cleanup()])
 })
 
 test('task is executed and we expect the docker-image to be presentin the registry', async t => {
+  t.timeout(50 * 1000)
+
   const [{ taskId }] = t.context.taskQueuesResources.queue.addTasksToQueue([
     {
       packageName: t.context.packages.package1.name,
@@ -59,6 +71,8 @@ test('task is executed and we expect the docker-image to be presentin the regist
 })
 
 test('scheduled and running events are fired', async t => {
+  t.timeout(50 * 1000)
+
   const scheduled = sinon.fake()
   const running = sinon.fake()
 
@@ -89,6 +103,8 @@ test('scheduled and running events are fired', async t => {
 })
 
 test('illegal parameter - relativeContextPath', async t => {
+  t.timeout(50 * 1000)
+
   expect(() =>
     t.context.taskQueuesResources.queue.addTasksToQueue([
       {
@@ -105,6 +121,8 @@ test('illegal parameter - relativeContextPath', async t => {
 })
 
 test('illegal parameter - relativeDockerfilePath', async t => {
+  t.timeout(50 * 1000)
+
   expect(() =>
     t.context.taskQueuesResources.queue.addTasksToQueue([
       {
@@ -121,6 +139,8 @@ test('illegal parameter - relativeDockerfilePath', async t => {
 })
 
 test('events are fired even when task failed', async t => {
+  t.timeout(50 * 1000)
+
   const scheduled = sinon.fake()
   const running = sinon.fake()
 
@@ -163,6 +183,8 @@ RUN exit 1
 })
 
 test('events schema is valid', async t => {
+  t.timeout(50 * 1000)
+
   const [{ taskId }] = t.context.taskQueuesResources.queue.addTasksToQueue([
     {
       packageName: t.context.packages.package1.name,
@@ -221,6 +243,8 @@ test('events schema is valid', async t => {
 })
 
 test('done events schema is valid when task fail', async t => {
+  t.timeout(50 * 1000)
+
   await fs.promises.writeFile(
     path.join(t.context.taskQueuesResources.repoPath, t.context.packages.package1.relativeDockerFilePath),
     `
@@ -265,6 +289,8 @@ RUN exit 1
 })
 
 test('abort event is fired for all tasks when queue is cleaned (before the tasks are executed)', async t => {
+  t.timeout(50 * 1000)
+
   const scheduled = sinon.fake()
   const running = sinon.fake()
   const aborted = sinon.fake()
@@ -305,6 +331,8 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
 })
 
 test('abort event is fired for running tasks - while dockerfile is built', async t => {
+  t.timeout(50 * 1000)
+
   const aborted = sinon.fake()
 
   t.context.taskQueuesResources.queue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)
@@ -345,6 +373,8 @@ RUN sleep 1000 # make sure that this task will not end
 })
 
 test('abort events schema is valid', async t => {
+  t.timeout(50 * 1000)
+
   await fs.promises.writeFile(
     path.join(t.context.taskQueuesResources.repoPath, t.context.packages.package1.relativeDockerFilePath),
     `
@@ -399,6 +429,8 @@ RUN sleep 100_000 # make sure that this task will not end
 })
 
 test('multiple tasks', async t => {
+  t.timeout(50 * 1000)
+
   const tasks = t.context.taskQueuesResources.queue.addTasksToQueue(
     Object.values(t.context.packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,

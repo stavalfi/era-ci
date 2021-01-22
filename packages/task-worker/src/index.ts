@@ -43,7 +43,13 @@ export async function startWorker({
   processEnv,
   logger,
 }: {
-  config: WorkerConfig & { repoPath: string; customLog?: (...values: unknown[]) => void }
+  config: WorkerConfig & {
+    repoPath: string
+    customLog?: {
+      customLog: (...values: unknown[]) => void
+      transformer: (log: string) => string
+    }
+  }
   processEnv: NodeJS.ProcessEnv
   logger?: Logger
 }): Promise<Worker> {
@@ -57,7 +63,10 @@ export async function startWorker({
     (await winstonLogger({
       customLogLevel: LogLevel.trace,
       logFilePath,
-    }).callInitializeLogger({ repoPath: config.repoPath, customLog: config.customLog }))
+    }).callInitializeLogger({
+      repoPath: config.repoPath,
+      customLog: config.customLog,
+    }))
 
   const queue = new Queue<WorkerTask>(config.queueName, {
     redis: {

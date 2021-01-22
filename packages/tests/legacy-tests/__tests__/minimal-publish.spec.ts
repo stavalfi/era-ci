@@ -7,6 +7,8 @@ const { createRepo } = newEnv(test)
 
 describe('skip publish of package that did not change from the last publish', () => {
   test('npm - publish passed so there is no need to publish again', async t => {
+    t.timeout(50 * 1000)
+
     const { runCi } = await createRepo(t, {
       packages: [
         {
@@ -39,6 +41,8 @@ describe('skip publish of package that did not change from the last publish', ()
   })
 
   test('docker - publish passed so there is no need to publish again', async t => {
+    t.timeout(50 * 1000)
+
     const { runCi, gitHeadCommit } = await createRepo(t, {
       packages: [
         {
@@ -69,6 +73,8 @@ describe('skip publish of package that did not change from the last publish', ()
   })
 
   test('publish failed we will try to publish again in the nest flow even when the package-hash did not change', async t => {
+    t.timeout(50 * 1000)
+
     const aPublish = await manageStepResult()
     const { runCi } = await createRepo(t, {
       packages: [
@@ -116,6 +122,8 @@ describe('skip publish of package that did not change from the last publish', ()
 })
 
 test('multiple packages - publish again changed package', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, addRandomFileToPackage } = await createRepo(t, {
     packages: [
       {
@@ -160,6 +168,8 @@ test('multiple packages - publish again changed package', async t => {
 })
 
 test('no addtional publish of the same package with the exact same content', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, modifyPackageJson } = await createRepo(t, {
     packages: [
       {

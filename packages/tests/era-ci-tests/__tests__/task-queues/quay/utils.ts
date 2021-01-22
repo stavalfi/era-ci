@@ -137,7 +137,7 @@ async function createTestDependencies(
     customLogLevel: LogLevel.trace,
     disabled: false,
     logFilePath: './era-ci.log',
-  }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
+  }).callInitializeLogger({ repoPath, customLog: { customLog: t.log.bind(t), transformer: x => `${t.title} - ${x}` } })
 
   const queue = await quayBuildsTaskQueue({
     getCommitTarGzPublicAddress: () =>

@@ -11,6 +11,8 @@ import path from 'path'
 createTest(test)
 
 test('ensure lint-root runs', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       rootPackageJson: {
@@ -44,6 +46,8 @@ test('ensure lint-root runs', async t => {
 })
 
 test('ensure lint-root pass successfully', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       rootPackageJson: {
@@ -104,6 +108,8 @@ test('ensure lint-root pass successfully', async t => {
 })
 
 test('ensure lint-root skipped-as-passed in second run (when there are no changes in the repo)', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       rootPackageJson: {
@@ -166,6 +172,8 @@ test('ensure lint-root skipped-as-passed in second run (when there are no change
 })
 
 test('reproduce bug - lint-root should run if hash of one of the packages change', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, repoPath, toActualName } = await createRepo(t, {
     repo: {
       rootPackageJson: {

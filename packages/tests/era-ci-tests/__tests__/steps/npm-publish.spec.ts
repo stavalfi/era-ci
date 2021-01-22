@@ -21,6 +21,8 @@ import path from 'path'
 createTest(test)
 
 test(`happy-flow - should pass`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -48,6 +50,8 @@ test(`happy-flow - should pass`, async t => {
 })
 
 test('reproduce bug - wrong step statuses', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
@@ -149,6 +153,8 @@ test('reproduce bug - wrong step statuses', async t => {
 })
 
 test('reproduce bug - step is invoked multiple times', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -195,6 +201,8 @@ test('reproduce bug - step is invoked multiple times', async t => {
 })
 
 test(`single run - if a depends on b, a.package.json.dep.b.version should be the version of b which is published rigth now`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, repoPath, toActualName } = await createRepo(t, {
     repo: {
       packages: [
@@ -243,6 +251,8 @@ test(`single run - if a depends on b, a.package.json.dep.b.version should be the
 })
 
 test.skip(`two runs - if a depends on b, a.package.json.dep.b.version should be the version of b which is published rigth now`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, repoPath, toActualName } = await createRepo(t, {
     repo: {
       packages: [

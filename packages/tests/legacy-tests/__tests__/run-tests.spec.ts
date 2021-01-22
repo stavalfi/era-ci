@@ -6,6 +6,8 @@ import { TargetType } from './prepare-test/types'
 const { createRepo } = newEnv(test)
 
 test('make sure tests output is printed', async t => {
+  t.timeout(50 * 1000)
+
   const test = await manageStepResult()
 
   const { runCi } = await createRepo(t, {
@@ -33,6 +35,8 @@ test('make sure tests output is printed', async t => {
 })
 
 test('make sure ci fails if tests fails', async t => {
+  t.timeout(50 * 1000)
+
   const test = await manageStepResult()
 
   const { runCi } = await createRepo(t, {
@@ -60,6 +64,8 @@ test('make sure ci fails if tests fails', async t => {
 })
 
 test('multiple packages', async t => {
+  t.timeout(50 * 1000)
+
   const aTest = await manageStepResult()
   const bTest = await manageStepResult()
 
@@ -97,6 +103,8 @@ test('multiple packages', async t => {
 })
 
 test('skip package with passed tests', async t => {
+  t.timeout(50 * 1000)
+
   const test = await manageStepResult()
   const { runCi } = await createRepo(t, {
     packages: [
@@ -121,6 +129,8 @@ test('skip package with passed tests', async t => {
 })
 
 test('skip package with failed tests', async t => {
+  t.timeout(50 * 1000)
+
   const test = await manageStepResult()
   const { runCi } = await createRepo(t, {
     packages: [
@@ -156,6 +166,8 @@ test('skip package with failed tests', async t => {
 })
 
 test('run tests of package after the package changed even if the tests passed at the first run', async t => {
+  t.timeout(50 * 1000)
+
   const test = await manageStepResult()
   const { runCi, addRandomFileToPackage } = await createRepo(t, {
     packages: [

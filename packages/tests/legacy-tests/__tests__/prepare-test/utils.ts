@@ -57,7 +57,7 @@ export async function runNcExecutable({
     customLogLevel: LogLevel.trace,
     logFilePath: path.join(repoPath, 'test-logs.log'),
     disableFileOutput: true,
-  }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
+  }).callInitializeLogger({ repoPath, customLog: { customLog: t.log.bind(t), transformer: x => `${t.title} - ${x}` } })
 
   let stdio: 'pipe' | 'ignore' | 'inherit' | Array<StdioOption>
   if (printFlowId) {

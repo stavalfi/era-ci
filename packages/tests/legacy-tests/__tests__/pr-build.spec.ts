@@ -5,6 +5,8 @@ import { TargetType } from './prepare-test/types'
 const { createRepo } = newEnv(test)
 
 test('1 package', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {

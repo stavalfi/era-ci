@@ -56,7 +56,10 @@ export const newEnv: NewEnv = test => {
         customLogLevel: LogLevel.trace,
         logFilePath: 'test-logs.log',
         disabled: true,
-      }).callInitializeLogger({ repoPath, customLog: t.log.bind(t) })
+      }).callInitializeLogger({
+        repoPath,
+        customLog: { customLog: t.log.bind(t), transformer: x => `${t.title} - ${x}` },
+      })
     ).createLog('era-ci-tests')
 
     const getFlowLogs: GetFlowLogs = async ({ flowId, execaOptions }) => {

@@ -6,6 +6,8 @@ const { createRepo } = newEnv(test)
 
 describe('npm package depends on.....', () => {
   test('b-package depends on a-package, when a-package published, then b-package need to publish as well', async t => {
+    t.timeout(50 * 1000)
+
     const { runCi, addRandomFileToPackage } = await createRepo(t, {
       packages: [
         {
@@ -54,6 +56,8 @@ describe('npm package depends on.....', () => {
   })
 
   test('b-package depends on a-package, when b-package published, then a-package dont need to publish as well', async t => {
+    t.timeout(50 * 1000)
+
     const { runCi, addRandomFileToPackage } = await createRepo(t, {
       packages: [
         {
@@ -101,6 +105,8 @@ describe('npm package depends on.....', () => {
   })
 
   test('npm-package can depends on docker-package', async t => {
+    t.timeout(50 * 1000)
+
     const { runCi } = await createRepo(t, {
       packages: [
         {
@@ -139,6 +145,8 @@ describe('npm package depends on.....', () => {
   })
 
   test('public npm-package cannot depends on private-npm-package', async t => {
+    t.timeout(50 * 1000)
+
     const { runCi } = await createRepo(t, {
       packages: [
         {
@@ -181,6 +189,8 @@ describe('npm package depends on.....', () => {
 })
 
 test('private npm-package can depends on private-npm-package', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {
@@ -211,6 +221,8 @@ test('private npm-package can depends on private-npm-package', async t => {
 
 describe('docker-package depends on...', () => {
   test('b-docker-package depends on a-package, when a-package published, then b-package need to publish as well', async t => {
+    t.timeout(50 * 1000)
+
     const { runCi, addRandomFileToPackage, gitHeadCommit } = await createRepo(t, {
       packages: [
         {
@@ -268,6 +280,8 @@ describe('docker-package depends on...', () => {
   })
 
   test('docker-package can depends on docker-package', async t => {
+    t.timeout(50 * 1000)
+
     const { runCi } = await createRepo(t, {
       packages: [
         {
@@ -302,6 +316,8 @@ describe('docker-package depends on...', () => {
   })
 
   test('docker-package can depend on private npm package', async t => {
+    t.timeout(50 * 1000)
+
     const { runCi, gitHeadCommit } = await createRepo(t, {
       packages: [
         {

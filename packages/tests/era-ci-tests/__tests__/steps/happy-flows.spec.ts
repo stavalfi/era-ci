@@ -8,6 +8,8 @@ import sinon from 'sinon'
 createTest(test)
 
 test('ensure onArtifact is called at most once', async t => {
+  t.timeout(50 * 1000)
+
   const onArtifact = sinon.fake.resolves(undefined)
 
   const { runCi } = await createRepo(t, {
@@ -40,6 +42,8 @@ test('ensure onArtifact is called at most once', async t => {
 })
 
 test('ensure onArtifact is called on child-step while parent-step did not finish all artifacts', async t => {
+  t.timeout(50 * 1000)
+
   const callsOrder: string[] = []
   const { runCi } = await createRepo(t, {
     repo: {

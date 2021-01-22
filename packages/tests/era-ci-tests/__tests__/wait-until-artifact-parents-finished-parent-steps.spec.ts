@@ -9,6 +9,8 @@ import { ExecutionActionTypes } from '../../../core/dist/src/steps-execution/act
 createTest(test)
 
 test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do nothing when there is only a single step and single artifact', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -40,6 +42,8 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do n
 })
 
 test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do nothing when there is only a single step and single artifact', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -71,6 +75,8 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do 
 })
 
 test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do nothing when there is only a single step', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -109,6 +115,8 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do n
 })
 
 test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do nothing when there is only a single step', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -147,6 +155,8 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do 
 })
 
 test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async t => {
+  t.timeout(50 * 1000)
+
   expect.assertions(2)
 
   const { runCi } = await createRepo(t, toActualName => ({
@@ -210,6 +220,8 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async 
 })
 
 test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, toActualName } = await createRepo(t, toActualName => ({
     repo: {
       packages: [

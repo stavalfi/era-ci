@@ -9,7 +9,10 @@ export async function printFlowLogs<TaskQueue>(options: {
   flowId: string
   config: Config<TaskQueue>
   repoPath: string
-  customLog?: (...values: unknown[]) => void
+  customLog?: {
+    customLog: (...values: unknown[]) => void
+    transformer: (log: string) => string
+  }
 }): Promise<void> {
   const cleanups: Cleanup[] = []
   let log: Log | undefined

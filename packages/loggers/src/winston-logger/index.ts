@@ -1,4 +1,7 @@
 import { createLogger, Log, LogLevel } from '@era-ci/core'
+import fse from 'fs-extra'
+import path from 'path'
+import winston from 'winston'
 import {
   createConsoleTransport,
   createCustomLogTransport,
@@ -6,10 +9,6 @@ import {
   defaultFormat,
   noFormat,
 } from './transports'
-import winston from 'winston'
-import path from 'path'
-import fse from 'fs-extra'
-import { formatLog } from './formatter'
 
 export type LoggerConfiguration =
   | {
@@ -59,7 +58,7 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [
         customLog
-          ? createCustomLogTransport({ customLog, customFormat: formatLog, format: defaultFormat })
+          ? createCustomLogTransport({ customLog, format: defaultFormat })
           : createConsoleTransport(defaultFormat),
         createFileTransport(loggerConfigurations.logFilePath, loggerConfigurations.disableFileOutput, defaultFormat),
       ],

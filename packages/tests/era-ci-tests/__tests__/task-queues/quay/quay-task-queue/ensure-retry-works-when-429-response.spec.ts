@@ -14,6 +14,8 @@ beforeAfterEach(test, {
 })
 
 test('ensure-retry-works-when-429-response.spec - multiple tasks', async t => {
+  t.timeout(50 * 1000)
+
   const tasks = t.context.taskQueuesResources.queue.addTasksToQueue(
     Object.values(t.context.packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,

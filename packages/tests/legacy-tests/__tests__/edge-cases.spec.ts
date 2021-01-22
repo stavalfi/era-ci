@@ -4,6 +4,8 @@ import { newEnv, test } from './prepare-test'
 const { createRepo } = newEnv(test)
 
 test('empty repo', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t)
   const pr = await runCi()
   expect(pr.published).toHaveProperty('size', 0)
@@ -23,6 +25,8 @@ test('empty repo', async t => {
 })
 
 test('artifacts without targets', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     packages: [
       {

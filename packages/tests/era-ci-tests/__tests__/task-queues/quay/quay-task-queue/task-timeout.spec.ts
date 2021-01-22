@@ -17,6 +17,8 @@ beforeAfterEach(test, {
 })
 
 test('ensure task is aborted when it reaches timeout (while the retry mechanism is running)', async t => {
+  t.timeout(50 * 1000)
+
   const [{ taskId }] = t.context.taskQueuesResources.queue.addTasksToQueue([
     {
       packageName: t.context.packages.package1.name,
@@ -43,6 +45,8 @@ test('ensure task is aborted when it reaches timeout (while the retry mechanism 
 })
 
 test('ensure task is aborted when it reaches timeout (while the docker-build is running)', async t => {
+  t.timeout(50 * 1000)
+
   await fs.promises.writeFile(
     path.join(t.context.taskQueuesResources.repoPath, t.context.packages.package1.relativeDockerFilePath),
     `

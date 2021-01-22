@@ -9,6 +9,8 @@ import expect from 'expect'
 createTest(test)
 
 test('passed,passed => passed', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [

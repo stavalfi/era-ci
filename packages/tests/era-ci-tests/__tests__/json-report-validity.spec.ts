@@ -8,7 +8,11 @@ import expect from 'expect'
 
 createTest(test)
 
-test('ensure ci dont fail when there are no steps and no artifacts', async t => {
+test.only('ensure ci dont fail when there are no steps and no artifacts', async t => {
+  t.timeout(100)
+
+  t.log('stav1')
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [],
@@ -23,6 +27,8 @@ test('ensure ci dont fail when there are no steps and no artifacts', async t => 
 })
 
 test('ensure ci dont fail when there are no artifacts', async t => {
+  t.timeout(100)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [],
@@ -43,6 +49,8 @@ test('ensure ci dont fail when there are no artifacts', async t => {
 })
 
 test('ensure ci dont fail when there is a single-step but no artifacts', async t => {
+  t.timeout(100)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [],
@@ -56,6 +64,8 @@ test('ensure ci dont fail when there is a single-step but no artifacts', async t
 })
 
 test('ensure ci dont fail when there are no steps', async t => {
+  t.timeout(100)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -75,6 +85,8 @@ test('ensure ci dont fail when there are no steps', async t => {
 })
 
 test('ensure json-report contains the corrent flow-id', async t => {
+  t.timeout(100)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -92,6 +104,8 @@ test('ensure json-report contains the corrent flow-id', async t => {
 })
 
 test('ensure json-report contains the all the steps until it (not included)', async t => {
+  t.timeout(100)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -110,6 +124,8 @@ test('ensure json-report contains the all the steps until it (not included)', as
 })
 
 test('flow should be skippedAsPassed because there are no steps', async t => {
+  t.timeout(100)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -136,6 +152,8 @@ test('flow should be skippedAsPassed because there are no steps', async t => {
 })
 
 test('verify artifact in json-report', async t => {
+  t.timeout(100)
+
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
@@ -166,6 +184,8 @@ test('verify artifact in json-report', async t => {
 })
 
 test('reproduce bug - no packages hangs the flow', async t => {
+  t.timeout(100)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [],

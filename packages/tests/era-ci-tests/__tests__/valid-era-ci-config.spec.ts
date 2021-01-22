@@ -8,6 +8,8 @@ import expect from 'expect'
 createTest(test)
 
 test('no steps and no task-queues in config is considered as valid', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -30,6 +32,8 @@ test('no steps and no task-queues in config is considered as valid', async t => 
 })
 
 test('should throw error if user forgot to declare a task-queue which one of the steps needs', async t => {
+  t.timeout(50 * 1000)
+
   class MissingTaskQueue implements TaskQueueBase<void, void> {
     public readonly eventEmitter = new EventEmitter()
     async cleanup() {

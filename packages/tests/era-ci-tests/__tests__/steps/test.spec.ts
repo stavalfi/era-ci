@@ -12,6 +12,8 @@ import _ from 'lodash'
 createTest(test)
 
 test('single worker - no packages', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo(t, {
     repo: {
@@ -41,6 +43,8 @@ test('single worker - no packages', async t => {
 })
 
 test('single worker - no tasks', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo(t, {
     repo: {
@@ -75,6 +79,8 @@ test('single worker - no tasks', async t => {
 })
 
 test('single worker - single task', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message = `hi-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo(t, {
@@ -114,6 +120,8 @@ test('single worker - single task', async t => {
 })
 
 test('splitTestsToMultipleVms=false - single worker - single task', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo(t, {
     repo: {
@@ -151,6 +159,8 @@ test('splitTestsToMultipleVms=false - single worker - single task', async t => {
 })
 
 test('splitTestsToMultipleVms=undefined - single worker - single task', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo(t, {
     repo: {
@@ -188,6 +198,8 @@ test('splitTestsToMultipleVms=undefined - single worker - single task', async t 
 })
 
 test('splitTestsToMultipleVms - single worker - single task', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo(t, {
     repo: {
@@ -232,6 +244,8 @@ test('splitTestsToMultipleVms - single worker - single task', async t => {
 })
 
 test('splitTestsToMultipleVms.startIndexingFromZero=false - single worker - single task', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo(t, {
     repo: {
@@ -276,6 +290,8 @@ test('splitTestsToMultipleVms.startIndexingFromZero=false - single worker - sing
 })
 
 test('splitTestsToMultipleVms - two workers - single task - two workers should execute the task but with different enviroment variables', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi, repoPath } = await createRepo(t, {
     repo: {
@@ -338,6 +354,8 @@ test('splitTestsToMultipleVms - two workers - single task - two workers should e
 })
 
 test('splitTestsToMultipleVms - 5 workers - single task - 5 workers should execute the task but with different enviroment variables', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi, repoPath } = await createRepo(t, {
     repo: {
@@ -405,6 +423,8 @@ test('splitTestsToMultipleVms - 5 workers - single task - 5 workers should execu
 })
 
 test('splitTestsToMultipleVms - 5 workers - long single task - all workers are expected to run a sub-task', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi, repoPath } = await createRepo(t, {
     repo: {
@@ -479,6 +499,8 @@ test('splitTestsToMultipleVms - 5 workers - long single task - all workers are e
 })
 
 test('single worker - two tasks', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message1 = `hi-${chance().hash().slice(0, 8)}`
   const message2 = `hi-${chance().hash().slice(0, 8)}`
@@ -529,6 +551,8 @@ test('single worker - two tasks', async t => {
 })
 
 test('two workers - single task - only one worker should execute the task', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message = `hi-${chance().hash().slice(0, 8)}`
   const { runCi, repoPath } = await createRepo(t, {
@@ -580,6 +604,8 @@ test('two workers - single task - only one worker should execute the task', asyn
 })
 
 test('two workers - one task for each worker', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message1 = `hi-${chance().hash().slice(0, 8)}`
   const message2 = `hi-${chance().hash().slice(0, 8)}`
@@ -643,6 +669,8 @@ test('two workers - one task for each worker', async t => {
 })
 
 test('reproduce bug - single worker - single task - test should be skipped-as-passed in second run', async t => {
+  t.timeout(50 * 1000)
+
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message = `hi-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo(t, {

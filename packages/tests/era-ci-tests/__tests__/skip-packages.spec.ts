@@ -11,6 +11,8 @@ createTest(test)
 // describe - define custom predicate to check if we need to run the step on a package
 
 test('return true and expect the step to run', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
@@ -92,6 +94,8 @@ test('return true and expect the step to run', async t => {
 })
 
 test('return false and expect the step not to run', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
@@ -175,6 +179,8 @@ test('return false and expect the step not to run', async t => {
 })
 
 test('return false with notes and expect the step not to run with notes', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
@@ -258,6 +264,8 @@ test('return false with notes and expect the step not to run with notes', async 
 })
 
 test('return false with duplicate notes and expect the step not to run with out duplicate notes', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
@@ -342,6 +350,8 @@ test('return false with duplicate notes and expect the step not to run with out 
 // describe - end
 
 test('reproduce bug - flow hangs when constrain allow package to run but artifact eventually aborted as passed', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -391,6 +401,8 @@ test('reproduce bug - flow hangs when constrain allow package to run but artifac
 })
 
 test('constrain allow package to run but artifact eventually aborted as failed', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [

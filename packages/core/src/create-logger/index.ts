@@ -13,7 +13,10 @@ export function createLogger<
   }) => Promise<NormalizedLoggerConfigurations>
   initializeLogger: (options: {
     loggerConfigurations: NormalizedLoggerConfigurations
-    customLog?: (...values: unknown[]) => void
+    customLog?: {
+      customLog: (...values: unknown[]) => void
+      transformer: (log: string) => string
+    }
   }) => Promise<Logger>
 }) {
   return (loggerConfigurations: LoggerConfigurations): CreateLogger => ({

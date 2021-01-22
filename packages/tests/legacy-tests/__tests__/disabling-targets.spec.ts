@@ -5,6 +5,8 @@ import { TargetType } from './prepare-test/types'
 const { createRepo } = newEnv(test)
 
 test('disable npm targets', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit } = await createRepo(t, {
     packages: [
       {
@@ -33,6 +35,8 @@ test('disable npm targets', async t => {
 })
 
 test('disable docker targets', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit } = await createRepo(t, {
     packages: [
       {

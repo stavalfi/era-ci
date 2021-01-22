@@ -8,6 +8,8 @@ import expect from 'expect'
 createTest(test)
 
 test('docker-artifact depends on published npm-artifact during docker-build', async t => {
+  t.timeout(50 * 1000)
+
   // eslint-disable-next-line no-process-env
   // const hostIp = process.env.GITHUB_RUN_NUMBER ? `172.17.0.1` : 'host.docker.internal' // it seems that 'host.docker.internal' stopped working for mac and now, `172.17.0.1` is working for mac.
   const hostIp = `172.17.0.1`
@@ -67,6 +69,8 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
 })
 
 test('publish with semver-tag', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit } = await createRepo(t, {
     repo: {
       packages: [
@@ -99,6 +103,8 @@ test('publish with semver-tag', async t => {
 })
 
 test('publish with hash-tag', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -131,6 +137,8 @@ test('publish with hash-tag', async t => {
 })
 
 test('publish with hash-tag and then with semver-tag', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit } = await createRepo(t, {
     repo: {
       packages: [
@@ -169,6 +177,8 @@ test('publish with hash-tag and then with semver-tag', async t => {
 })
 
 test('publish with hash-tag twice', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
@@ -203,6 +213,8 @@ test('publish with hash-tag twice', async t => {
 })
 
 test('publish with semver-tag twice', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit } = await createRepo(t, {
     repo: {
       packages: [
@@ -237,6 +249,8 @@ test('publish with semver-tag twice', async t => {
 })
 
 test('artifact package-json name has @ symbol', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [

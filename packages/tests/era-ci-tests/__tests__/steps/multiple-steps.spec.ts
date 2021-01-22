@@ -8,6 +8,8 @@ import expect from 'expect'
 createTest(test)
 
 test(`reproduce bug - flow hangs when there is a npm + docker publishes`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi, gitHeadCommit } = await createRepo(t, {
     repo: {
       packages: [
@@ -49,6 +51,8 @@ test(`reproduce bug - flow hangs when there is a npm + docker publishes`, async 
 })
 
 test(`reproduce bug - steps are triggered in the wrong time when using waitUntilArtifactParentsFinishedParentSteps=false in one of the steps`, async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     logLevel: LogLevel.debug,
     repo: {

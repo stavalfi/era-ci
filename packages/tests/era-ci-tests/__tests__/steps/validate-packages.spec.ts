@@ -7,6 +7,8 @@ import expect from 'expect'
 createTest(test)
 
 test('validate-packages-step should pass', async t => {
+  t.timeout(50 * 1000)
+
   const { runCi } = await createRepo(t, {
     repo: {
       packages: [
