@@ -321,12 +321,13 @@ test('splitTestsToMultipleVms - two workers - single task - two workers should e
         url: t.context.resources.redisServerUrl,
       },
       repoPath,
-      maxWaitMsUntilFirstTask: 3_000,
-      maxWaitMsWithoutTasks: 3_000,
+      maxWaitMsUntilFirstTask: 300_000,
+      maxWaitMsWithoutTasks: 300_000,
     },
     processEnv: t.context.processEnv,
     logger: t.context.testLogger,
   })
+  t.context.cleanups.push(worker2.cleanup)
 
   const { flowLogs } = await runCi()
   const workerLogs = await fs.promises.readFile(worker2.logFilePath, 'utf-8')
@@ -334,8 +335,6 @@ test('splitTestsToMultipleVms - two workers - single task - two workers should e
 
   expect(combinedLogs).toEqual(expect.stringContaining(`total=2, index=0`))
   expect(combinedLogs).toEqual(expect.stringContaining(`total=2, index=1`))
-
-  await worker2.cleanup() // we don't have to do it but it ends the test 1-2 seconds faster.
 })
 
 test('splitTestsToMultipleVms - 5 workers - single task - 5 workers should execute the task but with different enviroment variables', async t => {
@@ -453,7 +452,7 @@ test('splitTestsToMultipleVms - 5 workers - long single task - all workers are e
             url: t.context.resources.redisServerUrl,
           },
           repoPath,
-          maxWaitMsUntilFirstTask: 3_000,
+          maxWaitMsUntilFirstTask: 300_000,
           maxWaitMsWithoutTasks: 300_000,
         },
         processEnv: t.context.processEnv,

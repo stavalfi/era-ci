@@ -32,6 +32,7 @@ export async function startQuayMockService(
   config: Config,
 ): Promise<{ address: string; cleanup: () => Promise<unknown> }> {
   const logger = {
+    level: 'debug',
     debug: (log: unknown) => config.customLog(log),
     info: (log: unknown) => config.customLog(log),
     trace: (log: unknown) => config.customLog(log),
@@ -41,7 +42,10 @@ export async function startQuayMockService(
     child: () => logger,
   }
   const app = fastify({
-    logger,
+    logger: {
+      prettyPrint: true,
+      level: 'info',
+    },
   })
 
   app.register(fastifyRateLimiter, {
