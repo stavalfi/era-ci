@@ -6,7 +6,7 @@ import {
   createImmutableCache,
   Logger,
   LogLevel,
-  StepRedisEvent,
+  RedisFlowEvent,
   TaskQueueBase,
 } from '@era-ci/core'
 import { listTags } from '@era-ci/image-registry-client'
@@ -105,7 +105,7 @@ const runCi = ({
   t,
   testLogger,
 }: RunCiOptions) => async (options?: { processEnv?: NodeJS.ProcessEnv }): Promise<RunCiResult> => {
-  const flowEvents: StepRedisEvent[] = []
+  const flowEvents: RedisFlowEvent[] = []
   t.context.resources.redisFlowEventsSubscriptionsConnection.on('message', (_topic: string, eventString: string) =>
     flowEvents.push(JSON.parse(eventString)),
   )

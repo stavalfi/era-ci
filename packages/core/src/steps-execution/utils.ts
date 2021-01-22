@@ -4,7 +4,7 @@ import { deserializeError } from 'serialize-error'
 import { Log, LogLevel } from '../create-logger'
 import { TaskQueueBase } from '../create-task-queue'
 import { ImmutableCache } from '../immutable-cache'
-import { StepRedisEvent } from '../types'
+import { RedisFlowEvent } from '../types'
 import { getEventsTopicName } from '../utils'
 import { Actions, ExecutionActionTypes } from './actions'
 import { Options } from './types'
@@ -62,7 +62,7 @@ export function buildRedisCommands(options: {
     'publish',
     getEventsTopicName(options.processEnv),
     JSON.stringify(
-      _.identity<StepRedisEvent>({
+      _.identity<RedisFlowEvent>({
         flowId: options.flowId,
         gitCommit: options.gitRepoInfo.commit,
         repoName: options.gitRepoInfo.repoName,

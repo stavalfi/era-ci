@@ -1,11 +1,11 @@
 import { Actions } from './steps-execution'
 
-export type StepRedisEvent = {
+export type RedisFlowEvent = {
   flowId: string
   gitCommit: string
   repoName: string
   repoHash: string
   startFlowMs: number
-  event: Actions
   eventTs: number
+  event: Actions
 }
