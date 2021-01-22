@@ -52,25 +52,33 @@ export function createStepExperimental<
         })
 
         if (globalConstrainsResult.combinedResultType === ConstrainResultType.shouldSkip) {
-          const events: Actions[] = [
-            ...artifactsEventsAbort({
-              step: userRunStepOptions.currentStepInfo,
-              artifacts: userRunStepOptions.artifacts,
-              startStepMs: userRunStepOptions.startStepMs,
-              status: globalConstrainsResult.combinedResult.status,
-            }),
-            {
-              type: ExecutionActionTypes.step,
-              payload: {
-                step: userRunStepOptions.currentStepInfo,
-                stepResult: {
-                  durationMs: Date.now() - userRunStepOptions.startStepMs,
-                  ...globalConstrainsResult.combinedResult,
+          let sent = false
+          return () => {
+            if (!sent) {
+              sent = true
+              const events: Actions[] = [
+                ...artifactsEventsAbort({
+                  step: userRunStepOptions.currentStepInfo,
+                  artifacts: userRunStepOptions.artifacts,
+                  startStepMs: userRunStepOptions.startStepMs,
+                  status: globalConstrainsResult.combinedResult.status,
+                }),
+                {
+                  type: ExecutionActionTypes.step,
+                  payload: {
+                    step: userRunStepOptions.currentStepInfo,
+                    stepResult: {
+                      durationMs: Date.now() - userRunStepOptions.startStepMs,
+                      ...globalConstrainsResult.combinedResult,
+                    },
+                  },
                 },
-              },
-            },
-          ]
-          return () => from(events)
+              ]
+              return from(events)
+            } else {
+              return EMPTY
+            }
+          }
         }
 
         let onAction: (action: Actions, getState: () => State) => Observable<Actions>

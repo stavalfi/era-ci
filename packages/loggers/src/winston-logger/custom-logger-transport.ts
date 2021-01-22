@@ -14,6 +14,10 @@ export class CustomLogTransport extends Transport {
   log(logOptions: winston.Logform.TransformableInfo, next: () => void) {
     const log = this.options.customFormat ? this.options.customFormat(logOptions) : logOptions.message
     this.options.customLog(log)
+
+    // uncomment when you want to see live logs in tests:
+    // console.log(log)
+
     next()
   }
 }

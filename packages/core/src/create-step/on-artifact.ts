@@ -1,6 +1,6 @@
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import { queue } from 'async'
-import { Observable, from } from 'rxjs'
+import { Observable, from, EMPTY } from 'rxjs'
 import { mergeMap } from 'rxjs/operators'
 import { serializeError } from 'serialize-error'
 import { CombinedConstrainResult, ConstrainResultType, runConstrains } from '../create-constrain'
@@ -47,28 +47,35 @@ export async function setupArtifactCallback<TaskQueue extends TaskQueueBase<any,
   }, 1)
 
   if (userRunStepOptions.artifacts.length === 0) {
-    return () =>
-      from<Actions[]>([
-        ...artifactsEventsAbort({
-          startStepMs,
-          artifacts: userRunStepOptions.artifacts,
-          step: userRunStepOptions.currentStepInfo,
-          status: Status.skippedAsPassed,
-        }),
-        {
-          type: ExecutionActionTypes.step,
-          payload: {
+    let sent = false
+    return () => {
+      if (!sent) {
+        sent = true
+        return from<Actions[]>([
+          ...artifactsEventsAbort({
+            startStepMs,
+            artifacts: userRunStepOptions.artifacts,
             step: userRunStepOptions.currentStepInfo,
-            stepResult: {
-              durationMs: Date.now() - startStepMs,
-              executionStatus: ExecutionStatus.aborted,
-              status: Status.skippedAsPassed,
-              errors: [],
-              notes: [],
+            status: Status.skippedAsPassed,
+          }),
+          {
+            type: ExecutionActionTypes.step,
+            payload: {
+              step: userRunStepOptions.currentStepInfo,
+              stepResult: {
+                durationMs: Date.now() - startStepMs,
+                executionStatus: ExecutionStatus.aborted,
+                status: Status.skippedAsPassed,
+                errors: [],
+                notes: [],
+              },
             },
           },
-        },
-      ])
+        ])
+      } else {
+        return EMPTY
+      }
+    }
   }
 
   // each step needs to have an internal state because I can't count on

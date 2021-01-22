@@ -7,7 +7,7 @@
     "lint:code": "eslint --cache --max-warnings 0 'packages/*/**/*.{ts,js,json,d.ts}'",
     "lint:versions": "syncpack list-mismatches",
     "lint:staged-files": "yarn lint-staged && yarn pretty-quick --staged && yarn build && yarn lint:versions",
-    "test": "ava --verbose --timeout 3000s",
+    "test": "ava --verbose --timeout 20s",
     "clean": "yarn workspace scripts clean",
     "run-era-ci": "time node --trace-warnings --unhandled-rejections=strict packages/core/dist/src/index.js",
     "run-era-ci:secrethub": "node_modules/@secrethub/cli/bin/secrethub run --ignore-missing-secrets -- yarn run-era-ci",
