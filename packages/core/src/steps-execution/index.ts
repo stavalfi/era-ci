@@ -1,7 +1,8 @@
 import { ExecutionStatus, lastValueFrom } from '@era-ci/utils'
+import _ from 'lodash'
 import { applyMiddleware, createStore, Dispatch, Middleware } from 'redux'
 import { merge, Subject } from 'rxjs'
-import { concatMap, mergeMap, tap } from 'rxjs/operators'
+import { bufferTime, concatMap, map, mergeMap, tap } from 'rxjs/operators'
 import { Actions, ExecutionActionTypes } from './actions'
 import { createReducer } from './reducer'
 import { State } from './state'
@@ -17,10 +18,14 @@ export async function runAllSteps(options: Options): Promise<State> {
 
   const middleware: Middleware<{}, State> = store => (next: Dispatch<Actions>) => {
     return (action: Actions) => {
+      const oldState = store.getState()
       next(action)
-      actions$.next(action)
-      if (store.getState().flowFinished) {
-        actions$.complete()
+      const newState = store.getState()
+      if (oldState !== newState) {
+        actions$.next(action)
+        if (store.getState().flowFinished) {
+          actions$.complete()
+        }
       }
     }
   }
@@ -51,7 +56,9 @@ export async function runAllSteps(options: Options): Promise<State> {
     merge(
       actions$.pipe(
         tap(action => logAction({ log: options.log, action })),
-        concatMap(action => options.redisClient.multi(buildRedisCommands({ ...options, action }))),
+        map(action => buildRedisCommands({ ...options, action })),
+        bufferTime(100),
+        concatMap(redisCommands => options.redisClient.multi(_.flatten(redisCommands))),
       ),
       actions$.pipe(
         mergeMap(action => merge(...onActionArray.map(onAction => onAction(action, store.getState)))),

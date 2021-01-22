@@ -1,4 +1,4 @@
-import { Config, Logger, LogLevel, StepRedisEvent, TaskQueueBase } from '@era-ci/core'
+import { Config, Logger, LogLevel, RedisFlowEvent, TaskQueueBase } from '@era-ci/core'
 import { JsonReport } from '@era-ci/steps'
 import { Graph, PackageJson, StepInfo, TargetType } from '@era-ci/utils'
 import { FolderStructure } from 'create-folder-structure'
@@ -104,7 +104,7 @@ export type RunCiResult = {
   logFilePath: string
   flowLogs: string
   published: Map<string, ResultingArtifact>
-  flowEvents: StepRedisEvent[]
+  flowEvents: RedisFlowEvent[]
 }
 
 type Deployment = { address: string; cleanup: () => Promise<unknown> }
