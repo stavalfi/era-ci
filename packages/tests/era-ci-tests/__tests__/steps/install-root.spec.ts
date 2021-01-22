@@ -32,7 +32,7 @@ test('install-step should pass', async t => {
   expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('install-step should abort-as-failed because it depends on other step which is not defined: validatePackages', async t => {
+test('install-step should abort-as-passed because it depends on other step which is not defined: validatePackages', async t => {
   const { runCi, toActualName } = await createRepo(t, {
     repo: {
       packages: [
@@ -53,7 +53,7 @@ test('install-step should abort-as-failed because it depends on other step which
       errors: [],
       notes: [],
       executionStatus: ExecutionStatus.aborted,
-      status: Status.skippedAsFailed,
+      status: Status.skippedAsPassed,
     },
     stepsResultOfArtifactsByStep: [
       {
@@ -64,7 +64,7 @@ test('install-step should abort-as-failed because it depends on other step which
           },
           stepResult: {
             executionStatus: ExecutionStatus.aborted,
-            status: Status.skippedAsFailed,
+            status: Status.skippedAsPassed,
           },
           artifactsResult: [
             {
@@ -76,7 +76,7 @@ test('install-step should abort-as-failed because it depends on other step which
                 },
                 artifactStepResult: {
                   executionStatus: ExecutionStatus.aborted,
-                  status: Status.skippedAsFailed,
+                  status: Status.skippedAsPassed,
                   errors: [],
                   notes: [],
                 },
