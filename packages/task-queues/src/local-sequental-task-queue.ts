@@ -15,7 +15,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void, LocalSequent
     captureRejections: true,
   })
   private readonly queueState = { isQueueKilled: false }
-  private readonly taskQueue = queue(this.startTask.bind(this), 1)
+  private readonly taskQueue = queue(this.startTask, 1)
 
   // we use this task-queue to track on non-blocking-functions (promises we don't await for) and wait for all in the cleanup.
   // why we don't await on every function (instead of using this queue): because we want to emit events after functions returns
@@ -37,9 +37,9 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void, LocalSequent
    * this operation is not async to ensure that the caller can do other stuff before any of the tasks are executed
    * @param tasksOptions tasks array to preform
    */
-  public addTasksToQueue(
+  public addTasksToQueue = (
     tasksOptions: ({ taskName: string; func: Func } | Func)[],
-  ): TaskInfo<LocalSequentalTaskPayload>[] {
+  ): TaskInfo<LocalSequentalTaskPayload>[] => {
     const taskOptionsNormalized: { taskName: string; func: Func }[] = tasksOptions.map(t =>
       typeof t === 'function' ? { taskName: 'anonymous-task', func: t } : t,
     )
@@ -121,7 +121,7 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void, LocalSequent
     cb()
   }
 
-  public async cleanup(): Promise<void> {
+  public cleanup = async (): Promise<void> => {
     if (this.queueState.isQueueKilled) {
       return
     }

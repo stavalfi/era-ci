@@ -1,8 +1,8 @@
+/* eslint-disable no-console */
 import { buildFullDockerImageName } from '@era-ci/utils'
 import compressing from 'compressing'
 import { createFile, createFolder } from 'create-folder-structure'
 import execa from 'execa'
-import { FastifyLoggerInstance } from 'fastify'
 import fs from 'fs'
 import got from 'got'
 import path from 'path'
@@ -46,14 +46,12 @@ export async function buildDockerFile({
   docker_tags,
   build,
   namespace,
-  log,
   config,
   context,
   dockerfile_path,
   cleanups,
 }: {
   config: Config
-  log: FastifyLoggerInstance
   db: Db
   archive_url: string
   buildId: string
@@ -139,12 +137,12 @@ export async function buildDockerFile({
         repoName,
       }).catch(notifyError => {
         if (notifyError.code === 'ECONNREFUSED') {
-          log.error(
+          console.error(
             `stav4 [${repoName}] - quay-helper-service is down. probably because the test is over so we can ignore this error: ${notifyError}`,
           )
         }
       })
     }
-    log.error(`failed to build-push image: ${repoName}`, e)
+    console.error(`failed to build-push image: ${repoName}`, e)
   }
 }

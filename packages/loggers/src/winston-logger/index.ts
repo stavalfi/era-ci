@@ -2,13 +2,7 @@ import { createLogger, Log, LogLevel } from '@era-ci/core'
 import fse from 'fs-extra'
 import path from 'path'
 import winston from 'winston'
-import {
-  createConsoleTransport,
-  createCustomLogTransport,
-  createFileTransport,
-  defaultFormat,
-  noFormat,
-} from './transports'
+import { createConsoleTransport, createFileTransport, defaultFormat, noFormat } from './transports'
 
 export type LoggerConfiguration =
   | {
@@ -52,14 +46,12 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
       }
     }
   },
-  initializeLogger: async ({ loggerConfigurations, customLog }) => {
+  initializeLogger: async ({ loggerConfigurations }) => {
     await fse.remove(loggerConfigurations.logFilePath)
     const mainLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [
-        customLog
-          ? createCustomLogTransport({ customLog, format: defaultFormat })
-          : createConsoleTransport(defaultFormat),
+        createConsoleTransport(defaultFormat),
         createFileTransport(loggerConfigurations.logFilePath, loggerConfigurations.disableFileOutput, defaultFormat),
       ],
       silent: loggerConfigurations.disabled,
@@ -67,7 +59,7 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
     const noFormattingLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [
-        customLog ? createCustomLogTransport({ customLog, format: noFormat }) : createConsoleTransport(noFormat),
+        createConsoleTransport(noFormat),
         createFileTransport(loggerConfigurations.logFilePath, loggerConfigurations.disableFileOutput, noFormat),
       ],
       silent: loggerConfigurations.disabled,

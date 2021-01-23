@@ -112,8 +112,6 @@ const runCi = (testFuncs: TestFuncs) => ({
       ...testFuncs.getProcessEnv(),
       ...options?.processEnv,
     },
-    // eslint-disable-next-line no-console
-    customLog: { customLog: console.log.bind(console), transformer: x => x },
   })
 
   flowEvents.sort((e1, e2) => e1.eventTs - e2.eventTs) // [1,2,3]
@@ -196,8 +194,6 @@ export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options =>
     logFilePath: path.join(repoPath, 'era-ci-test.log'),
   }).callInitializeLogger({
     repoPath,
-    // eslint-disable-next-line no-console
-    customLog: { customLog: console.log.bind(console), transformer: x => x },
   })
 
   const getImageTags = async (packageName: string): Promise<string[]> => {
@@ -250,6 +246,8 @@ function beforeAfterCleanups(): () => Cleanup[] {
     cleanups = []
   })
   afterEach(async () => {
+    // eslint-disable-next-line no-console
+    console.log(`finished test - cleaning up ${cleanups.length} resources`)
     await Promise.allSettled(cleanups.map(f => f()))
   })
   return () => cleanups
@@ -283,23 +281,22 @@ const createTestLogger = async (repoPath: string) =>
   winstonLogger({
     customLogLevel: LogLevel.trace,
     disabled: false,
-    logFilePath: path.join(repoPath, 'era-ci-test.log'),
+    logFilePath: path.join(repoPath, `era-ci-test.log`),
   }).callInitializeLogger({
     repoPath,
-    // eslint-disable-next-line no-console
-    customLog: { customLog: console.log.bind(console), transformer: x => x },
   })
 
 export function createTest(options?: {
   startQuayHelperService?: boolean
   startQuayMockService?: boolean
 }): TestFuncs & { createRepo: CreateRepo } {
+  const getCleanups = beforeAfterCleanups()
   const getProcessEnv = processEnvBeforeAfterEach()
   const getResources = resourcesBeforeAfterEach({
     ...options,
     getProcessEnv,
+    getCleanups,
   })
-  const getCleanups = beforeAfterCleanups()
 
   const testFuncs: TestFuncs = {
     sleep: sleep(getCleanups),

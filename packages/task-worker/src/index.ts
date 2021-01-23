@@ -45,10 +45,6 @@ export async function startWorker({
 }: {
   config: WorkerConfig & {
     repoPath: string
-    customLog?: {
-      customLog: (...values: unknown[]) => void
-      transformer: (log: string) => string
-    }
   }
   processEnv: NodeJS.ProcessEnv
   logger?: Logger
@@ -65,7 +61,6 @@ export async function startWorker({
       logFilePath,
     }).callInitializeLogger({
       repoPath: config.repoPath,
-      customLog: config.customLog,
     }))
 
   const queue = new Queue<WorkerTask>(config.queueName, {

@@ -11,21 +11,15 @@ export function createLogger<
     repoPath: string
     customLog?: (...values: unknown[]) => void
   }) => Promise<NormalizedLoggerConfigurations>
-  initializeLogger: (options: {
-    loggerConfigurations: NormalizedLoggerConfigurations
-    customLog?: {
-      customLog: (...values: unknown[]) => void
-      transformer: (log: string) => string
-    }
-  }) => Promise<Logger>
+  initializeLogger: (options: { loggerConfigurations: NormalizedLoggerConfigurations }) => Promise<Logger>
 }) {
   return (loggerConfigurations: LoggerConfigurations): CreateLogger => ({
-    callInitializeLogger: async ({ repoPath, customLog }) => {
+    callInitializeLogger: async ({ repoPath }) => {
       // @ts-ignore - we need to find a way to ensure that if NormalizedLoggerConfigurations is defined, also normalizedLoggerConfigurations is defined.
       const normalizedLoggerConfigurations: NormalizedLoggerConfigurations = createLoggerOptions.normalizeLoggerConfigurations
         ? await createLoggerOptions.normalizeLoggerConfigurations({ loggerConfigurations, repoPath })
         : loggerConfigurations
-      return createLoggerOptions.initializeLogger({ loggerConfigurations: normalizedLoggerConfigurations, customLog })
+      return createLoggerOptions.initializeLogger({ loggerConfigurations: normalizedLoggerConfigurations })
     },
   })
 }

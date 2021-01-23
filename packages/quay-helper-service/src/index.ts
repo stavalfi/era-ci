@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 import type { QuayBuildStatusChangedTopicPayload, QuayNotificationEvents } from '@era-ci/task-queues'
 import fastify from 'fastify'
 import Redis from 'ioredis'
@@ -7,30 +9,19 @@ import { downloadTarGz, quayNotificationEventToBuildStatus } from './utils'
 
 export async function startQuayHelperService(
   env: Record<string, string | undefined>,
-  customLog?: (...values: unknown[]) => void,
 ): Promise<{ address: string; cleanup: () => Promise<unknown> }> {
   const config = getConfig(env)
-
-  const logger = {
-    debug: (log: unknown) => customLog && customLog(log),
-    info: (log: unknown) => customLog && customLog(log),
-    trace: (log: unknown) => customLog && customLog(log),
-    error: (log: unknown) => customLog && customLog(log),
-    warn: (log: unknown) => customLog && customLog(log),
-    fatal: (log: unknown) => customLog && customLog(log),
-    child: () => logger,
-  }
 
   const app = fastify({
     logger: {
       prettyPrint: true,
-      level: 'info',
+      level: 'error',
     },
   })
 
-  app.log[env.NC_TEST_MODE ? 'trace' : 'info'](
-    `starting quay-helper-service with config: ${JSON.stringify(config, null, 2)}`,
-  )
+  if (!env.NC_TEST_MODE) {
+    console.log(`starting quay-helper-service with config: ${JSON.stringify(config, null, 2)}`)
+  }
 
   const redisConnection = new Redis(config.redisAddress, {
     lazyConnect: true,
@@ -67,7 +58,7 @@ export async function startQuayHelperService(
   )
 
   const address = await app.listen(config.port, '0.0.0.0')
-  app.log.info(`quay-helper-service: "${address}"`)
+  console.log(`quay-helper-service: "${address}"`)
 
   let closed = false
   return {
@@ -79,17 +70,14 @@ export async function startQuayHelperService(
       closed = true
       await app.close()
       await redisConnection.disconnect()
-      if (customLog) {
-        customLog(`closed quay-helper-service: "${address}"`)
-      } else {
-        // eslint-disable-next-line no-console
-        console.log(`closed quay-helper-service: "${address}"`)
-      }
+      console.log(`closed quay-helper-service: "${address}"`)
     },
   }
 }
 
 if (require.main === module) {
-  // eslint-disable-next-line no-process-env
-  startQuayHelperService(process.env)
+  startQuayHelperService(
+    // eslint-disable-next-line no-process-env
+    process.env,
+  )
 }

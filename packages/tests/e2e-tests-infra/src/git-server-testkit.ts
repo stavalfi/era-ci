@@ -64,7 +64,11 @@ export const starGittServer = async (): Promise<GitServer> => {
     getToken: () => token,
     generateGitRepositoryAddress: (scope, name) =>
       `${connectionType}://${username}:${token}@${ip}:${port}/${scope}/${name}.git`,
-    close: () => server.close(),
+    close: async () => {
+      await server.close()
+      // eslint-disable-next-line no-console
+      console.log('closed git server')
+    },
     createRepository: async (scope, name) => {
       await new Promise<void>(res => server.create(`${scope}/${name}`, res))
     },
