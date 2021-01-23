@@ -26,6 +26,7 @@ export async function ci(options: {
   process.stderr.setMaxListeners(Infinity)
 
   const cleanups: Cleanup[] = []
+  const connectionsCleanups: Cleanup[] = []
   const flowId = chance().hash().slice(0, 8)
   let fatalError: boolean
   let repoHash: string | undefined
@@ -69,7 +70,7 @@ export async function ci(options: {
       config: options.config.redis,
       logger,
     })
-    cleanups.push(redisClient.cleanup)
+    connectionsCleanups.push(redisClient.cleanup)
 
     immutableCache = await createImmutableCache({
       artifacts,
@@ -90,6 +91,7 @@ export async function ci(options: {
           throw new Error(`I can't be here`)
         }
         return t.createFunc({
+          redisClient,
           log: logger.createLog(t.taskQueueName),
           gitRepoInfo,
           logger,
@@ -144,6 +146,9 @@ export async function ci(options: {
     })
   }
   await Promise.all(cleanups.map(f => f().catch(e => log?.error(`cleanup function failed to run`, e))))
+  await Promise.all(
+    connectionsCleanups.map(f => f().catch(e => log?.error(`cleanup function of a connection failed to run`, e))),
+  )
 
   // 'SKIP_EXIT_CODE_1' is for test purposes
   if (!options.processEnv['SKIP_EXIT_CODE_1']) {

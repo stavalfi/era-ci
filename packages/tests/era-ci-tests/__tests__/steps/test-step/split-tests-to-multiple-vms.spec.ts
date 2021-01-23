@@ -11,7 +11,7 @@ import path from 'path'
 
 const { createRepo, getCleanups, getProcessEnv, getResources, createTestLogger } = createTest()
 
-test('splitTestsToMultipleVms - single worker - glob does not find any test file - should print helpful note to the user about that', async () => {
+test('single worker - glob does not find any test file - should print helpful note to the user about that', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo({
     repo: {
@@ -42,6 +42,7 @@ test('splitTestsToMultipleVms - single worker - glob does not find any test file
           isStepEnabled: true,
           scriptName: 'test',
           splitTestsToMultipleVms: {
+            totalWorkers: 1,
             relativeGlobToSearchTestFiles: 'tests/*.spec.js',
             startIndexingFromZero: true,
             env: {
@@ -60,7 +61,7 @@ test('splitTestsToMultipleVms - single worker - glob does not find any test file
   expect(flowLogs).toEqual(expect.stringContaining(`could not find any test file using glob: "tests/*.spec.js"`))
 })
 
-test('splitTestsToMultipleVms - single worker - single task', async () => {
+test('single worker - single task', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo({
     repo: {
@@ -92,6 +93,7 @@ test('splitTestsToMultipleVms - single worker - single task', async () => {
           isStepEnabled: true,
           scriptName: 'test',
           splitTestsToMultipleVms: {
+            totalWorkers: 1,
             relativeGlobToSearchTestFiles: 'tests/*.spec.js',
             startIndexingFromZero: true,
             env: {
@@ -147,6 +149,7 @@ test('splitTestsToMultipleVms.startIndexingFromZero=false - single worker - sing
           isStepEnabled: true,
           scriptName: 'test',
           splitTestsToMultipleVms: {
+            totalWorkers: 1,
             relativeGlobToSearchTestFiles: 'tests/*.spec.js',
             startIndexingFromZero: false,
             env: {
@@ -164,7 +167,7 @@ test('splitTestsToMultipleVms.startIndexingFromZero=false - single worker - sing
   expect(flowLogs).toEqual(expect.stringContaining(`total=1, index=1`))
 })
 
-test('splitTestsToMultipleVms - two workers - single task - two workers should execute the task but with different enviroment variables', async () => {
+test('two workers - single task - two workers should execute the task but with different enviroment variables', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi, repoPath } = await createRepo({
     repo: {
@@ -196,6 +199,7 @@ test('splitTestsToMultipleVms - two workers - single task - two workers should e
           isStepEnabled: true,
           scriptName: 'test',
           splitTestsToMultipleVms: {
+            totalWorkers: 2,
             relativeGlobToSearchTestFiles: 'tests/*.spec.js',
             startIndexingFromZero: true,
             env: {
@@ -231,7 +235,7 @@ test('splitTestsToMultipleVms - two workers - single task - two workers should e
   expect(combinedLogs).toEqual(expect.stringContaining(`total=2, index=1`))
 })
 
-test('splitTestsToMultipleVms - 1 + 5 workers - single task - all workers should execute the task but with different enviroment variables', async () => {
+test('1 + 5 workers - single task - all workers should execute the task but with different enviroment variables', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi, repoPath } = await createRepo({
     repo: {
@@ -267,6 +271,7 @@ test('splitTestsToMultipleVms - 1 + 5 workers - single task - all workers should
           isStepEnabled: true,
           scriptName: 'test',
           splitTestsToMultipleVms: {
+            totalWorkers: 6,
             relativeGlobToSearchTestFiles: 'tests/*.spec.js',
             startIndexingFromZero: true,
             env: {
@@ -314,7 +319,7 @@ test('splitTestsToMultipleVms - 1 + 5 workers - single task - all workers should
   }
 })
 
-test('splitTestsToMultipleVms - 1 + 5 workers - long single task - all workers are expected to run a sub-task', async () => {
+test('1 + 5 workers - long single task - all workers are expected to run a sub-task', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi, repoPath } = await createRepo({
     repo: {
@@ -350,6 +355,7 @@ test('splitTestsToMultipleVms - 1 + 5 workers - long single task - all workers a
           isStepEnabled: true,
           scriptName: 'test',
           splitTestsToMultipleVms: {
+            totalWorkers: 6,
             relativeGlobToSearchTestFiles: 'tests/*.spec.js',
             startIndexingFromZero: true,
             env: {
@@ -393,6 +399,62 @@ test('splitTestsToMultipleVms - 1 + 5 workers - long single task - all workers a
     const isExecutedAnySubTask = _.range(0, amountOfSubTasks).some(i =>
       workerLog.includes(`total=${workers.length + 1}, index=${i}`),
     )
+    expect(isExecutedAnySubTask).toBeTruthy()
+  }
+})
+
+test('1 worker but we specify totalWorkers=3 - we expect to run 3 sub tasks', async () => {
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { runCi } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          scripts: {
+            test: `echo "total=$TOTAL_KEY_NAME, index=$INDEX_KEY_NAME"`,
+          },
+          tests: {
+            'test1.spec.js': '',
+            'test2.spec.js': '',
+            'test3.spec.js': '',
+          },
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        testStep({
+          isStepEnabled: true,
+          scriptName: 'test',
+          splitTestsToMultipleVms: {
+            totalWorkers: 3,
+            relativeGlobToSearchTestFiles: 'tests/*.spec.js',
+            startIndexingFromZero: true,
+            env: {
+              indexKeyEnvName: 'INDEX_KEY_NAME',
+              totalVmsEnvKeyName: 'TOTAL_KEY_NAME',
+            },
+          },
+        }),
+      ]),
+    },
+  })
+
+  const { flowLogs } = await runCi()
+
+  const amountOfSubTasks = 3
+
+  for (let i = 0; i < 3; i++) {
+    const isExecutedAnySubTask = _.range(0, amountOfSubTasks).some(i => flowLogs.includes(`total=3, index=${i}`))
     expect(isExecutedAnySubTask).toBeTruthy()
   }
 })

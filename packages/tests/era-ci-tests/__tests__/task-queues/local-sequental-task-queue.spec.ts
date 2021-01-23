@@ -1,3 +1,4 @@
+import { connectToRedis } from '@era-ci/core'
 import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { LocalSequentalTaskQueue, localSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
@@ -5,7 +6,7 @@ import { createFolder } from 'create-folder-structure'
 import expect from 'expect'
 import sinon from 'sinon'
 
-const { getCleanups, sleep, createTestLogger } = createTest()
+const { getCleanups, sleep, createTestLogger, getResources } = createTest()
 
 let taskQueue: LocalSequentalTaskQueue
 
@@ -14,6 +15,12 @@ beforeEach(async () => {
   const logger = await createTestLogger(repoPath)
 
   taskQueue = await localSequentalTaskQueue().createFunc({
+    redisClient: await connectToRedis({
+      config: {
+        url: getResources().redisServerUrl,
+      },
+      logger,
+    }),
     log: logger.createLog('task-queue'),
     gitRepoInfo: {
       auth: {

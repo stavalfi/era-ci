@@ -10,6 +10,7 @@ import {
   ScheduledResult,
   Status,
 } from '@era-ci/utils'
+import { RedisClient } from '../redis-client'
 
 export type TaskInfo<TaskPayload> = {
   taskName: string
@@ -75,6 +76,7 @@ export type CreateTaskQueue<
   gitRepoInfo: GitRepoInfo
   repoPath: string
   processEnv: NodeJS.ProcessEnv
+  redisClient: RedisClient
 }) => Promise<TaskQueue>
 
 export type ConfigureTaskQueue<
@@ -95,4 +97,5 @@ export type TaskQueueOptions<TaskQueueConfigurations = void> = {
   repoPath: string
   gitRepoInfo: GitRepoInfo
   processEnv: NodeJS.ProcessEnv
+  redisClient: RedisClient
 }
