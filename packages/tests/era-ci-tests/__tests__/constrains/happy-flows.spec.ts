@@ -1,15 +1,13 @@
 import { ConstrainResultBase, ConstrainResultType, createConstrain, createStepExperimental } from '@era-ci/core'
-import { createRepo, createTest, test } from '@era-ci/e2e-tests-infra'
+import { createTest } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph, createTreeStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import expect from 'expect'
 import sinon from 'sinon'
 
-createTest(test)
+const { createRepo, sleep } = createTest()
 
-test('ensure constrain is called at most once', async t => {
-  t.timeout(50 * 1000)
-
+test('ensure constrain is called at most once', async () => {
   const constrain = sinon.fake.resolves({
     resultType: ConstrainResultType.ignoreThisConstrain,
     result: {
@@ -18,7 +16,7 @@ test('ensure constrain is called at most once', async t => {
     },
   })
 
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -53,14 +51,12 @@ test('ensure constrain is called at most once', async t => {
   expect(constrain.calledOnce).toBeTruthy()
 })
 
-test('reproduce bug: ensure constrain is called at most once', async t => {
-  t.timeout(50 * 1000)
-
+test('reproduce bug: ensure constrain is called at most once', async () => {
   const sleepMs = 3_000
 
   const constrain = sinon.fake(
     async (): Promise<ConstrainResultBase> => {
-      await t.context.sleep(sleepMs)
+      await sleep(sleepMs)
       return {
         resultType: ConstrainResultType.ignoreThisConstrain,
         result: {
@@ -71,7 +67,7 @@ test('reproduce bug: ensure constrain is called at most once', async t => {
     },
   )
 
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -88,7 +84,7 @@ test('reproduce bug: ensure constrain is called at most once', async t => {
             stepGroup: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
             run: () => ({
-              onArtifact: () => t.context.sleep(sleepMs / 2),
+              onArtifact: () => sleep(sleepMs / 2),
             }),
           })(),
           children: [],

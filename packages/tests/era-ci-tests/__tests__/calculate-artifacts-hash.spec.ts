@@ -1,15 +1,13 @@
-import { createRepo, createTest, test } from '@era-ci/e2e-tests-infra'
+import { createTest } from '@era-ci/e2e-tests-infra'
 import execa from 'execa'
 import expect from 'expect'
 import fs from 'fs'
 import path from 'path'
 
-createTest(test)
+const { createRepo } = createTest()
 
-test('artifact-hash depends on root-hash so if root-hash changes, so the artifact-hash sould change as well', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, repoPath } = await createRepo(t, {
+test('artifact-hash depends on root-hash so if root-hash changes, so the artifact-hash sould change as well', async () => {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -31,10 +29,8 @@ test('artifact-hash depends on root-hash so if root-hash changes, so the artifac
   )
 })
 
-test('artifacts which has no relation dont have dependent hashes - if we change artifact1 content, artifact2 hash should not change', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, repoPath } = await createRepo(t, {
+test('artifacts which has no relation dont have dependent hashes - if we change artifact1 content, artifact2 hash should not change', async () => {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -70,10 +66,8 @@ test('artifacts which has no relation dont have dependent hashes - if we change 
   )
 })
 
-test('artifact-hash depends on parent-artifact-hash so if parent-artifact-hash changes, so the artifact-hash sould change as well', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, repoPath } = await createRepo(t, {
+test('artifact-hash depends on parent-artifact-hash so if parent-artifact-hash changes, so the artifact-hash sould change as well', async () => {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -106,10 +100,8 @@ test('artifact-hash depends on parent-artifact-hash so if parent-artifact-hash c
   )
 })
 
-test('reproduce bug - parent-indexes of monorepo artifacts should be only artifacts from monorepo (without external npm dependencies)', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('reproduce bug - parent-indexes of monorepo artifacts should be only artifacts from monorepo (without external npm dependencies)', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {

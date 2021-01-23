@@ -5,10 +5,8 @@ import { TargetType } from './prepare-test/types'
 
 const { createRepo } = newEnv(test)
 
-test('ensure log file is created', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('ensure log file is created', async () => {
+  const { runCi } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -29,10 +27,8 @@ test('ensure log file is created', async t => {
   expect(result1.ncLogfileContent).toMatch(result1.flowId!)
 })
 
-test('ensure log file is deleted when a new flow starts', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('ensure log file is deleted when a new flow starts', async () => {
+  const { runCi } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -63,12 +59,10 @@ test('ensure log file is deleted when a new flow starts', async t => {
   expect(result2.ncLogfileContent).toEqual(expect.stringContaining(`flow-id: "${result2.flowId}"`))
 })
 
-test('ensure any user-command that we run will be sent to the log file - user command passed', async t => {
-  t.timeout(50 * 1000)
-
+test('ensure any user-command that we run will be sent to the log file - user command passed', async () => {
   const test = await manageStepResult()
 
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -94,12 +88,10 @@ test('ensure any user-command that we run will be sent to the log file - user co
   expect(result1.ncLogfileContent).toMatch(test.expectedContentInLog())
 })
 
-test('ensure any user-command that we run will be sent to the log file - user command failed', async t => {
-  t.timeout(50 * 1000)
-
+test('ensure any user-command that we run will be sent to the log file - user command failed', async () => {
   const test = await manageStepResult()
 
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     packages: [
       {
         name: 'a',

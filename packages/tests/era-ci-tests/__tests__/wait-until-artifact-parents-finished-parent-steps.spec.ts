@@ -1,17 +1,15 @@
 import { createStepExperimental, getResult } from '@era-ci/core'
-import { createRepo, createTest, test } from '@era-ci/e2e-tests-infra'
+import { createTest } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import expect from 'expect'
 import { ExecutionActionTypes } from '../../../core/dist/src/steps-execution/actions'
 
-createTest(test)
+const { createRepo, sleep } = createTest()
 
-test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do nothing when there is only a single step and single artifact', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do nothing when there is only a single step and single artifact', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -41,10 +39,8 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do n
   expect(passed).toBeTruthy()
 })
 
-test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do nothing when there is only a single step and single artifact', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do nothing when there is only a single step and single artifact', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -74,10 +70,8 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do 
   expect(passed).toBeTruthy()
 })
 
-test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do nothing when there is only a single step', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do nothing when there is only a single step', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -114,10 +108,8 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do n
   expect(passed).toBeTruthy()
 })
 
-test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do nothing when there is only a single step', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do nothing when there is only a single step', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -154,12 +146,10 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do 
   expect(passed).toBeTruthy()
 })
 
-test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async t => {
-  t.timeout(50 * 1000)
-
+test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async () => {
   expect.assertions(2)
 
-  const { runCi } = await createRepo(t, toActualName => ({
+  const { runCi } = await createRepo(toActualName => ({
     repo: {
       packages: [
         {
@@ -184,7 +174,7 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async 
           run: () => ({
             onArtifact: async ({ artifact }) => {
               if (artifact.data.artifact.packageJson.name === toActualName('parent-artifact')) {
-                await t.context.sleep(3000)
+                await sleep(3000)
               }
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
             },
@@ -219,10 +209,8 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async 
   expect(passed).toBeTruthy()
 })
 
-test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, toActualName } = await createRepo(t, toActualName => ({
+test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait', async () => {
+  const { runCi, toActualName } = await createRepo(toActualName => ({
     repo: {
       packages: [
         {
@@ -247,7 +235,7 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait'
           run: () => ({
             onArtifact: async ({ artifact }) => {
               if (artifact.data.artifact.packageJson.name === toActualName('parent-artifact')) {
-                await t.context.sleep(3000)
+                await sleep(3000)
               }
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
             },

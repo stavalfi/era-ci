@@ -1,19 +1,17 @@
 import { ConstrainResultType, createConstrain, createStepExperimental } from '@era-ci/core'
-import { createRepo, createTest, DeepPartial, isDeepSubset, test } from '@era-ci/e2e-tests-infra'
+import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { JsonReport } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import expect from 'expect'
 
-createTest(test)
+const { createRepo } = createTest()
 
 // describe - define custom predicate to check if we need to run the step on a package
 
-test('return true and expect the step to run', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, toActualName } = await createRepo(t, {
+test('return true and expect the step to run', async () => {
+  const { runCi, toActualName } = await createRepo({
     repo: {
       packages: [
         {
@@ -90,13 +88,11 @@ test('return true and expect the step to run', async t => {
     ],
   }
 
-  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('return false and expect the step not to run', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, toActualName } = await createRepo(t, {
+test('return false and expect the step not to run', async () => {
+  const { runCi, toActualName } = await createRepo({
     repo: {
       packages: [
         {
@@ -175,13 +171,11 @@ test('return false and expect the step not to run', async t => {
     ],
   }
 
-  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('return false with notes and expect the step not to run with notes', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, toActualName } = await createRepo(t, {
+test('return false with notes and expect the step not to run with notes', async () => {
+  const { runCi, toActualName } = await createRepo({
     repo: {
       packages: [
         {
@@ -260,13 +254,11 @@ test('return false with notes and expect the step not to run with notes', async 
     ],
   }
 
-  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('return false with duplicate notes and expect the step not to run with out duplicate notes', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, toActualName } = await createRepo(t, {
+test('return false with duplicate notes and expect the step not to run with out duplicate notes', async () => {
+  const { runCi, toActualName } = await createRepo({
     repo: {
       packages: [
         {
@@ -344,15 +336,13 @@ test('return false with duplicate notes and expect the step not to run with out 
     ],
   }
 
-  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
 // describe - end
 
-test('reproduce bug - flow hangs when constrain allow package to run but artifact eventually aborted as passed', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('reproduce bug - flow hangs when constrain allow package to run but artifact eventually aborted as passed', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -397,13 +387,11 @@ test('reproduce bug - flow hangs when constrain allow package to run but artifac
     },
   }
 
-  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('constrain allow package to run but artifact eventually aborted as failed', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('constrain allow package to run but artifact eventually aborted as failed', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -448,5 +436,5 @@ test('constrain allow package to run but artifact eventually aborted as failed',
     },
   }
 
-  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })

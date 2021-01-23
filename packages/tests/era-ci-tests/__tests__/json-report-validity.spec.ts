@@ -1,19 +1,15 @@
 import { createStepExperimental } from '@era-ci/core'
-import { createRepo, createTest, DeepPartial, isDeepSubset, test } from '@era-ci/e2e-tests-infra'
+import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { JsonReport } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import expect from 'expect'
 
-createTest(test)
+const { createRepo } = createTest()
 
-test.only('ensure ci dont fail when there are no steps and no artifacts', async t => {
-  t.timeout(100)
-
-  t.log('stav1')
-
-  const { runCi } = await createRepo(t, {
+test.only('ensure ci dont fail when there are no steps and no artifacts', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [],
     },
@@ -26,10 +22,8 @@ test.only('ensure ci dont fail when there are no steps and no artifacts', async 
   expect(passed).toBeTruthy()
 })
 
-test('ensure ci dont fail when there are no artifacts', async t => {
-  t.timeout(100)
-
-  const { runCi } = await createRepo(t, {
+test('ensure ci dont fail when there are no artifacts', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [],
     },
@@ -48,10 +42,8 @@ test('ensure ci dont fail when there are no artifacts', async t => {
   expect(passed).toBeTruthy()
 })
 
-test('ensure ci dont fail when there is a single-step but no artifacts', async t => {
-  t.timeout(100)
-
-  const { runCi } = await createRepo(t, {
+test('ensure ci dont fail when there is a single-step but no artifacts', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [],
     },
@@ -63,10 +55,8 @@ test('ensure ci dont fail when there is a single-step but no artifacts', async t
   expect(passed).toBeTruthy()
 })
 
-test('ensure ci dont fail when there are no steps', async t => {
-  t.timeout(100)
-
-  const { runCi } = await createRepo(t, {
+test('ensure ci dont fail when there are no steps', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -84,10 +74,8 @@ test('ensure ci dont fail when there are no steps', async t => {
   expect(passed).toBeTruthy()
 })
 
-test('ensure json-report contains the corrent flow-id', async t => {
-  t.timeout(100)
-
-  const { runCi } = await createRepo(t, {
+test('ensure json-report contains the corrent flow-id', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -103,10 +91,8 @@ test('ensure json-report contains the corrent flow-id', async t => {
   expect(jsonReport.flow.flowId).toEqual(flowId)
 })
 
-test('ensure json-report contains the all the steps until it (not included)', async t => {
-  t.timeout(100)
-
-  const { runCi } = await createRepo(t, {
+test('ensure json-report contains the all the steps until it (not included)', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -123,10 +109,8 @@ test('ensure json-report contains the all the steps until it (not included)', as
   expect(jsonReport.steps).toEqual(expect.arrayContaining(jsonReport.steps))
 })
 
-test('flow should be skippedAsPassed because there are no steps', async t => {
-  t.timeout(100)
-
-  const { runCi } = await createRepo(t, {
+test('flow should be skippedAsPassed because there are no steps', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -148,13 +132,11 @@ test('flow should be skippedAsPassed because there are no steps', async t => {
     },
   }
 
-  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('verify artifact in json-report', async t => {
-  t.timeout(100)
-
-  const { runCi, toActualName } = await createRepo(t, {
+test('verify artifact in json-report', async () => {
+  const { runCi, toActualName } = await createRepo({
     repo: {
       packages: [
         {
@@ -180,13 +162,11 @@ test('verify artifact in json-report', async t => {
     ],
   }
 
-  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test('reproduce bug - no packages hangs the flow', async t => {
-  t.timeout(100)
-
-  const { runCi } = await createRepo(t, {
+test('reproduce bug - no packages hangs the flow', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [],
     },
@@ -210,5 +190,5 @@ test('reproduce bug - no packages hangs the flow', async t => {
     },
   }
 
-  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })

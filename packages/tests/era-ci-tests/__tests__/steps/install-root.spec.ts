@@ -1,15 +1,13 @@
-import { createRepo, createTest, DeepPartial, isDeepSubset, test } from '@era-ci/e2e-tests-infra'
+import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { installRoot, JsonReport, validatePackages } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import expect from 'expect'
 
-createTest(test)
+const { createRepo } = createTest()
 
-test('install-step should pass', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('install-step should pass', async () => {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -31,13 +29,11 @@ test('install-step should pass', async t => {
     },
   }
 
-  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })
 
-test.only('install-step should skipped-as-passed because it depends on other step which is not defined: validatePackages', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, toActualName } = await createRepo(t, {
+test.only('install-step should skipped-as-passed because it depends on other step which is not defined: validatePackages', async () => {
+  const { runCi, toActualName } = await createRepo({
     repo: {
       packages: [
         {
@@ -92,5 +88,5 @@ test.only('install-step should skipped-as-passed because it depends on other ste
     ],
   }
 
-  expect(isDeepSubset(t, jsonReport, expectedJsonReport)).toBeTruthy()
+  expect(isDeepSubset(jsonReport, expectedJsonReport)).toBeTruthy()
 })

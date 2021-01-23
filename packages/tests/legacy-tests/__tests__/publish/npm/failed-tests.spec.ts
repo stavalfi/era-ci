@@ -6,11 +6,9 @@ import { TargetType } from '../../prepare-test/types'
 const { createRepo } = newEnv(test)
 
 describe('publish only packages without failing tests', () => {
-  test('tests failed so there is no publish', async t => {
-    t.timeout(50 * 1000)
-
+  test('tests failed so there is no publish', async () => {
     const aTests = await manageStepResult()
-    const { runCi } = await createRepo(t, {
+    const { runCi } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -40,11 +38,9 @@ describe('publish only packages without failing tests', () => {
     expect(master.published.get('a')?.npm?.versions).toBeFalsy()
   })
 
-  test('tests passed so there is a publish', async t => {
-    t.timeout(50 * 1000)
-
+  test('tests passed so there is a publish', async () => {
     const aTests = await manageStepResult()
-    const { runCi } = await createRepo(t, {
+    const { runCi } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -72,12 +68,10 @@ describe('publish only packages without failing tests', () => {
     expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.0')
   })
 
-  test('multiple packages - publish only packages with passed tests', async t => {
-    t.timeout(50 * 1000)
-
+  test('multiple packages - publish only packages with passed tests', async () => {
     const aTests = await manageStepResult()
     const bTests = await manageStepResult()
-    const { runCi } = await createRepo(t, {
+    const { runCi } = await createRepo({
       packages: [
         {
           name: 'a',

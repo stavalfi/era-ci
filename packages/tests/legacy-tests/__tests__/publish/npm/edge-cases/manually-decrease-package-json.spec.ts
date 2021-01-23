@@ -6,10 +6,8 @@ import { test, describe } from '../../../prepare-test'
 const { createRepo } = newEnv(test)
 
 describe('run ci -> decrease packageJson.version -> run ci', () => {
-  test('decrease to unpublished version', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi, modifyPackageJson } = await createRepo(t, {
+  test('decrease to unpublished version', async () => {
+    const { runCi, modifyPackageJson } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -43,10 +41,8 @@ describe('run ci -> decrease packageJson.version -> run ci', () => {
     expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.11')
   })
 
-  test('decrease to published version', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi, modifyPackageJson, addRandomFileToPackage } = await createRepo(t, {
+  test('decrease to published version', async () => {
+    const { runCi, modifyPackageJson, addRandomFileToPackage } = await createRepo({
       packages: [
         {
           name: 'a',

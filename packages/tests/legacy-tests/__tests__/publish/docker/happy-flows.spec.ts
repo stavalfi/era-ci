@@ -7,10 +7,8 @@ import { TargetType } from '../../prepare-test/types'
 
 const { createRepo } = newEnv(test)
 
-test('1 package', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, gitHeadCommit } = await createRepo(t, {
+test('1 package', async () => {
+  const { runCi, gitHeadCommit } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -31,11 +29,9 @@ test('1 package', async t => {
   expect(master.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([await gitHeadCommit()]))
 })
 
-test('ensure the image is working', async t => {
-  t.timeout(50 * 1000)
-
+test('ensure the image is working', async () => {
   const hash = chance().hash().slice(0, 8)
-  const { runCi, dockerOrganizationName, toActualName, gitHeadCommit } = await createRepo(t, {
+  const { runCi, dockerOrganizationName, toActualName, gitHeadCommit } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -60,7 +56,7 @@ test('ensure the image is working', async t => {
 
   await expect(
     runDockerImage(
-      `${t.context.resources.dockerRegistry.replace('http://', '')}/${dockerOrganizationName}/${toActualName(
+      `${getResources().dockerRegistry.replace('http://', '')}/${dockerOrganizationName}/${toActualName(
         'a',
       )}:${await gitHeadCommit()}`,
     ),
@@ -71,11 +67,9 @@ test('ensure the image is working', async t => {
   )
 })
 
-test('ensure image is deleted after docker-push', async t => {
-  t.timeout(50 * 1000)
-
+test('ensure image is deleted after docker-push', async () => {
   const hash = chance().hash().slice(0, 8)
-  const { runCi, getFullImageName, gitHeadCommit } = await createRepo(t, {
+  const { runCi, getFullImageName, gitHeadCommit } = await createRepo({
     packages: [
       {
         name: 'a',

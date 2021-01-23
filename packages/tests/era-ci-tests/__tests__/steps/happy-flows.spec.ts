@@ -1,18 +1,16 @@
 import { createStepExperimental } from '@era-ci/core'
-import { createRepo, createTest, test } from '@era-ci/e2e-tests-infra'
+import { createTest } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import expect from 'expect'
 import sinon from 'sinon'
 
-createTest(test)
+const { createRepo, sleep } = createTest()
 
-test('ensure onArtifact is called at most once', async t => {
-  t.timeout(50 * 1000)
-
+test('ensure onArtifact is called at most once', async () => {
   const onArtifact = sinon.fake.resolves(undefined)
 
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -41,11 +39,9 @@ test('ensure onArtifact is called at most once', async t => {
   expect(onArtifact.calledOnce).toBeTruthy()
 })
 
-test('ensure onArtifact is called on child-step while parent-step did not finish all artifacts', async t => {
-  t.timeout(50 * 1000)
-
+test('ensure onArtifact is called on child-step while parent-step did not finish all artifacts', async () => {
   const callsOrder: string[] = []
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -68,7 +64,7 @@ test('ensure onArtifact is called on child-step while parent-step did not finish
             onArtifact: async ({ artifact }) => {
               callsOrder.push(`step1-${artifact.index}`)
               if (artifact.index === 0) {
-                await t.context.sleep(1000)
+                await sleep(1000)
               }
             },
           }),

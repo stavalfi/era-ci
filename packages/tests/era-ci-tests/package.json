@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "test": "ava --verbose"
+    "test": "jest"
   },
   "devDependencies": {
     "@era-ci/constrains": "^2.0.0",
@@ -21,7 +21,6 @@
     "@era-ci/task-worker": "^2.0.0",
     "esbuild": "^0.8.32",
     "esbuild-register": "^1.2.1",
-    "ava": "git://github.com/stavalfi/ava.git#c805d5654aab82ad92363708fd5ed2453ef189a9",
     "chance": "^1.1.5",
     "create-folder-structure": "^3.0.5",
     "execa": "^4.0.1",

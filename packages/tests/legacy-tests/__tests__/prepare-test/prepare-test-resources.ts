@@ -4,7 +4,7 @@ import { TestResources } from './types'
 
 export function prepareTestResources(test: TestInterface<{ resources: TestResources }>): void {
   test.beforeEach(async t => {
-    t.context.resources = {
+    getResources() = {
       gitServer: await starGittServer(),
       dockerRegistry: `http://localhost:35000`,
       npmRegistry: {
@@ -19,6 +19,6 @@ export function prepareTestResources(test: TestInterface<{ resources: TestResour
     }
   })
   test.afterEach(async t => {
-    await t.context.resources.gitServer.close()
+    await getResources().gitServer.close()
   })
 }
