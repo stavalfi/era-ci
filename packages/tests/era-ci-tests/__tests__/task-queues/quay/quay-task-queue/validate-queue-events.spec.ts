@@ -401,7 +401,7 @@ RUN sleep 100_000 # make sure that this task will not end
   ).toBeTruthy()
 })
 
-test('multiple tasks', async () => {
+test.only('multiple tasks', async () => {
   const tasks = getResources().taskQueuesResources.queue.addTasksToQueue(
     Object.values(getResources().packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,
@@ -410,7 +410,7 @@ test('multiple tasks', async () => {
       imageTags: [`1.0.${i}`],
       relativeContextPath: '/',
       relativeDockerfilePath: packageInfo.relativeDockerFilePath,
-      taskTimeoutMs: 100_000,
+      taskTimeoutMs: 20_000,
     })),
   )
 
