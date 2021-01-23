@@ -41,7 +41,7 @@ export const newEnv: NewEnv = () => {
       repo,
       gitServer,
       toActualName,
-      gitIgnoreFiles: ['era-ci.log', 'test-logs.log'],
+      gitIgnoreFiles: ['*.log'],
     })
 
     const testLogger = await testFuncs.createTestLogger(repoPath)

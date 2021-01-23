@@ -24,8 +24,4 @@ export * from './steps-execution'
 if (require.main === module) {
   // eslint-disable-next-line no-process-env
   startCli(process.argv, process.env)
-  console.log('1')
-  console.log('1')
-  console.log('1')
-  console.log('1')
 }

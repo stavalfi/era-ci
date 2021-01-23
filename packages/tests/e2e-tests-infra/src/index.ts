@@ -186,7 +186,7 @@ export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options =>
     repo,
     gitServer: testFuncs.getResources().gitServer,
     toActualName,
-    gitIgnoreFiles: ['era-ci.log', 'era-ci-test.log'],
+    gitIgnoreFiles: ['*.log'],
   })
 
   const testLogger = await winstonLogger({
@@ -268,7 +268,7 @@ function processEnvBeforeAfterEach(): () => TestProcessEnv {
   let processEnv: TestProcessEnv
   beforeEach(async () => {
     processEnv = {
-      NC_TEST_MODE: 'true',
+      ERA_TEST_MODE: 'true',
       SKIP_EXIT_CODE_1: 'true',
       QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: `redis-topic-${chance().hash().slice(0, 8)}`,
       ERA_CI_EVENTS_TOPIC_PREFIX: `redis-topic-${chance().hash().slice(0, 8)}`,

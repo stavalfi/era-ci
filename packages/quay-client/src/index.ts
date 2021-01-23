@@ -231,7 +231,7 @@ export class QuayClient {
     }
     this.log.info(
       `started image-build for package: "${packageName}": "${result.quayBuildAddress}" for image: "${
-        this.processEnv.NC_TEST_MODE
+        this.processEnv.ERA_TEST_MODE
           ? // in tests, docker-registry is not quay-server.
             `localhost:35000/${buildInfo.repository.namespace}/${buildInfo.repository.name}`
           : buildFullDockerImageName({

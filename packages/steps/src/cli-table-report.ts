@@ -115,7 +115,6 @@ function generatePackagesStatusReport(jsonReport: JsonReport): string {
         })),
         ...row.notes.slice(0, 1).map(content => ({
           content,
-          style: {},
         })),
       ],
       ...row.notes.slice(1).map(note => [note]),
