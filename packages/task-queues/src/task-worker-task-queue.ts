@@ -1,5 +1,5 @@
 import { createTaskQueue, TaskInfo, TaskQueueBase, TaskQueueEventEmitter, TaskQueueOptions } from '@era-ci/core'
-import { startWorker, Worker, WorkerTask } from '@era-ci/task-worker'
+import { isFlowFinishedKey, startWorker, Worker, WorkerTask } from '@era-ci/task-worker'
 import { DoneResult, ExecutionStatus, Status } from '@era-ci/utils'
 import { queue } from 'async'
 import Queue from 'bee-queue'
@@ -125,6 +125,8 @@ export class TaskWorkerTaskQueue implements TaskQueueBase<TaskWorkerTaskQueueCon
 
     this.isQueueActive = false
     this.options.log.debug(`closing quay-builds task-queue and aborting scheduled and running tasks`)
+
+    await this.options.redisClient.connection.set(isFlowFinishedKey(this.getQueueName()), 'true')
 
     if (!this.internalTaskQueue.idle()) {
       // drain will not resolve if the queue is empty so we drain if it's not empty

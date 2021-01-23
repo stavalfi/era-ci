@@ -1,4 +1,4 @@
-import { Logger } from '@era-ci/core'
+import { connectToRedis, Logger } from '@era-ci/core'
 import { CreateRepo, createTest, TestFuncs } from '@era-ci/e2e-tests-infra'
 import { listTags } from '@era-ci/image-registry-client'
 import { startQuayMockService } from '@era-ci/quay-mock-service'
@@ -147,6 +147,12 @@ async function createTestDependencies(
       url: testFuncs.getResources().redisServerUrl,
     },
   }).createFunc({
+    redisClient: await connectToRedis({
+      config: {
+        url: testFuncs.getResources().redisServerUrl,
+      },
+      logger,
+    }),
     log: logger.createLog('quayBuildsTaskQueue'),
     gitRepoInfo: await getGitRepoInfo(repoPath, logger.createLog('--')),
     logger,

@@ -7,6 +7,7 @@ import { ExecutionStatus, Status } from '@era-ci/utils'
 import chance from 'chance'
 import expect from 'expect'
 import fs from 'fs'
+import _ from 'lodash'
 
 const { createRepo, getProcessEnv, getResources, createTestLogger } = createTest()
 
@@ -414,4 +415,114 @@ test('reproduce bug - single worker - single task - test should be skipped-as-pa
       ],
     }),
   ).toBeTruthy()
+})
+
+test('6 workers - both of them should be stopped when the flow is finished - no tasks', async () => {
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { runCi, repoPath } = await createRepo({
+    repo: {
+      packages: [],
+    },
+    configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
+    },
+  })
+
+  const logger = await createTestLogger(repoPath)
+
+  await Promise.all(
+    _.range(0, 5).map(i =>
+      startWorker({
+        config: {
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+          repoPath,
+          maxWaitMsUntilFirstTask: 3_000,
+          maxWaitMsWithoutTasks: 3_000,
+        },
+        processEnv: getProcessEnv(),
+        logger,
+      }),
+    ),
+  )
+
+  await runCi()
+
+  // the test won't complete if the workers won't finish because they open connections to redis
+})
+
+test('6 workers - both of them should be stopped when the flow is finished - single task - some of the workers will run a task and some of them will not', async () => {
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const message1 = `hi-${chance().hash().slice(0, 8)}`
+  const message2 = `hi-${chance().hash().slice(0, 8)}`
+  const { runCi, repoPath } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          scripts: {
+            test: `echo ${message1}`,
+          },
+        },
+        {
+          name: 'b',
+          version: '1.0.0',
+          scripts: {
+            test: `echo ${message2}`,
+          },
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
+      steps: createLinearStepsGraph([testStep({ isStepEnabled: true, scriptName: 'test' })]),
+    },
+  })
+
+  const logger = await createTestLogger(repoPath)
+
+  const workers = await Promise.all(
+    _.range(0, 5).map(i =>
+      startWorker({
+        config: {
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+          repoPath,
+          maxWaitMsUntilFirstTask: 3_000,
+          maxWaitMsWithoutTasks: 3_000,
+        },
+        processEnv: getProcessEnv(),
+        logger,
+      }),
+    ),
+  )
+
+  const { flowLogs } = await runCi()
+
+  const workersLogs = await Promise.all(workers.map(worker => fs.promises.readFile(worker.logFilePath, 'utf-8')))
+  const combinedLogs = `${flowLogs}${workersLogs.join('')}`
+
+  expect(combinedLogs).toEqual(expect.stringContaining(message1))
+  expect(combinedLogs).toEqual(expect.stringContaining(message2))
+
+  // the test won't complete if the workers won't finish because they open connections to redis
 })

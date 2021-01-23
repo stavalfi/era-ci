@@ -87,6 +87,7 @@ export default config({
           cwd: __dirname,
         },
         splitTestsToMultipleVms: {
+          totalWorkers: 10,
           relativeGlobToSearchTestFiles: '__tests__/**/*.spec.ts',
           startIndexingFromZero: true, // ava assume that the indexing starts from zero
           env: {

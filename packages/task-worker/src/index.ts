@@ -2,13 +2,13 @@ import { Logger, LogLevel } from '@era-ci/core'
 import { winstonLogger } from '@era-ci/loggers'
 import { DoneResult, execaCommand, ExecutionStatus, Status } from '@era-ci/utils'
 import Queue from 'bee-queue'
+import chance from 'chance'
+import Redis from 'ioredis'
 import path from 'path'
 import { serializeError } from 'serialize-error'
 import yargsParser from 'yargs-parser'
 import { parseConfig } from './parse-config-file'
-import { WorkerTask, WorkerConfig } from './types'
-import Redis from 'ioredis'
-import chance from 'chance'
+import { WorkerConfig, WorkerTask } from './types'
 
 export { WorkerTask, WorkerConfig }
 
@@ -17,6 +17,7 @@ export function config(config: WorkerConfig): WorkerConfig {
 }
 
 export const amountOfWrokersKey = (queueName: string) => `${queueName}--amount-of-workers`
+export const isFlowFinishedKey = (queueName: string) => `${queueName}--is-flow-finished`
 
 export async function main(processEnv: NodeJS.ProcessEnv, processArgv: string[]): Promise<void> {
   const argv = yargsParser(processArgv, {
@@ -90,33 +91,58 @@ export async function startWorker({
     isRunningTaskNow: false,
     allTasksSucceed: true,
     lastTaskEndedMs: Date.now(),
+    terminatingWorker: false,
   }
 
   const workerLog = finalLogger.createLog(workerName)
 
-  const intervalId = setInterval(async () => {
+  const intervalId1 = setInterval(async () => {
     if (state.receivedFirstTask) {
       const timePassedAfterLastTaskMs = Date.now() - state.lastTaskEndedMs
       if (!state.isRunningTaskNow && timePassedAfterLastTaskMs >= config.maxWaitMsWithoutTasks) {
-        workerLog.info(`no more tasks - shuting down worker`)
+        workerLog.info(`no more tasks - shutting down worker`)
         await cleanup()
         return
       }
     } else {
       const timePassedWithoutTasksMs = Date.now() - workerStarteTimedMs
       if (timePassedWithoutTasksMs >= config.maxWaitMsUntilFirstTask) {
-        workerLog.info(`no tasks at all - shuting down worker`)
+        workerLog.info(`no tasks at all - shutting down worker`)
         await cleanup()
         return
       }
     }
-  }, 500)
-  cleanups.push(async () => clearInterval(intervalId))
 
-  let closed = false
+    // we do pulling because we want to avoid addtional connection just for additional subscription
+    // because the free redis in redis-labs has limitation of max 20 connections at the same time.
+    const isFlowFinished = await redisConnection.get(isFlowFinishedKey(config.queueName))
+    if (isFlowFinished === 'true') {
+      workerLog.info(`flow finished - shutting down worker`)
+      await cleanup()
+      return
+    }
+  }, 500)
+
+  cleanups.push(async () => clearInterval(intervalId1))
+
+  const intervalId2 = setInterval(async () => {
+    if (!state.terminatingWorker) {
+      // we do pulling because we want to avoid addtional connection just for additional subscription
+      // because the free redis in redis-labs has limitation of max 20 connections at the same time.
+      const isFlowFinished = await redisConnection.get(isFlowFinishedKey(config.queueName))
+      if (isFlowFinished === 'true') {
+        workerLog.info(`flow finished - shutting down worker`)
+        await cleanup()
+        return
+      }
+    }
+  }, 2_000)
+
+  cleanups.push(async () => clearInterval(intervalId2))
+
   const cleanup = async () => {
-    if (!closed) {
-      closed = true
+    if (!state.terminatingWorker) {
+      state.terminatingWorker = true
       await Promise.allSettled(cleanups.map(f => f()))
 
       if (!state.allTasksSucceed) {

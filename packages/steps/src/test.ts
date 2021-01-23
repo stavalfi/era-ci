@@ -7,7 +7,6 @@ import {
 } from '@era-ci/constrains'
 import { createStepExperimental, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
-import { amountOfWrokersKey } from '@era-ci/task-worker'
 import {
   calculateCombinedStatus,
   calculateExecutionStatus,
@@ -25,6 +24,7 @@ export type TestConfigurations = {
     | false
     | {
         relativeGlobToSearchTestFiles: string // using https://github.com/terkelg/tiny-glob
+        totalWorkers: number
         startIndexingFromZero: boolean
         env: {
           // for more info: https://www.npmjs.com/package/ci-parallel-vars
@@ -119,15 +119,16 @@ export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfiguratio
           }
         }
 
-        const actualWorkersAsString = await options.redisClient.connection.get(
-          amountOfWrokersKey(options.taskQueue.getQueueName()),
-        )
-
-        const actualWorkers = Number(actualWorkersAsString ?? 0)
-        if (actualWorkers === 0) {
-          throw new Error(`there are no avialable workers to preform the task`)
+        if (splitTestsToMultipleVms.totalWorkers < 1 || !_.isInteger(splitTestsToMultipleVms.totalWorkers)) {
+          throw new Error(
+            `illegal value for totalWorkers: ${splitTestsToMultipleVms.totalWorkers}. must be integer >= 1`,
+          )
         }
-        const testGroups = _.chunk(testFilesPaths, Math.ceil(testFilesPaths.length / actualWorkers))
+
+        const testGroups = _.chunk(
+          testFilesPaths,
+          Math.ceil(testFilesPaths.length / splitTestsToMultipleVms.totalWorkers),
+        )
 
         options.log.info(
           `running tests for package: "${artifact.data.artifact.packageJson.name}" by splitting them to ${testGroups.length} vms. each vm will run ${testGroups[0].length} test files`,
