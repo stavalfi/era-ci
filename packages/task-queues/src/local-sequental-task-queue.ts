@@ -15,17 +15,12 @@ export class LocalSequentalTaskQueue implements TaskQueueBase<void, LocalSequent
     captureRejections: true,
   })
   private readonly queueState = { isQueueKilled: false }
-  private readonly taskQueue = queue(this.startTask, 1)
+  private readonly taskQueue = queue(this.startTask.bind(this), 1)
 
   // we use this task-queue to track on non-blocking-functions (promises we don't await for) and wait for all in the cleanup.
   // why we don't await on every function (instead of using this queue): because we want to emit events after functions returns
-  private readonly internalTaskQueue = queue<() => Promise<unknown>>(async (task, done) => {
-    try {
-      await task()
-      done()
-    } catch (error) {
-      done(error)
-    }
+  private readonly internalTaskQueue = queue<() => Promise<unknown>>(async task => {
+    await task()
   }, 1)
 
   constructor(private readonly options: TaskQueueOptions<void>) {

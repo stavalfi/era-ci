@@ -99,7 +99,7 @@ export async function buildDockerFile({
 
       const p = execa.command(`docker build -f Dockerfile -t ${image} ${path.join(extractedContextPath, context)}`, {
         cwd: path.dirname(path.join(extractedContextPath, dockerfile_path)),
-        stdio: 'pipe',
+        stdio: 'inherit',
         env: {
           DOCKER_BUILDKIT: '1',
         },
