@@ -1,6 +1,6 @@
-import { config, LogLevel } from './packages/core/dist/src/index'
-import { winstonLogger } from './packages/loggers/dist/src/index'
-import { createTreeStepsGraph } from './packages/steps-graph/dist/src/index'
+import { config, LogLevel } from './packages/core/src/index'
+import { winstonLogger } from './packages/loggers/src/index'
+import { createTreeStepsGraph } from './packages/steps-graph/src/index'
 import {
   installRoot,
   buildRoot,
@@ -12,8 +12,8 @@ import {
   NpmScopeAccess,
   test,
   validatePackages,
-} from './packages/steps/dist/src/index'
-import { localSequentalTaskQueue, taskWorkerTaskQueue } from './packages/task-queues/dist/src/index'
+} from './packages/steps/src/index'
+import { localSequentalTaskQueue, taskWorkerTaskQueue } from './packages/task-queues/src/index'
 
 const {
   NPM_REGISTRY = 'http://localhost:34873',
