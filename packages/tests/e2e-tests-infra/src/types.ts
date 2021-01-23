@@ -26,6 +26,7 @@ export type TestFuncs = {
   getProcessEnv: () => TestProcessEnv
   getResources: () => TestResources
   getCleanups: () => Cleanup[]
+  getConnectionCleanups: () => Cleanup[]
   createTestLogger: (repoPath: string) => Promise<Logger>
 }
 

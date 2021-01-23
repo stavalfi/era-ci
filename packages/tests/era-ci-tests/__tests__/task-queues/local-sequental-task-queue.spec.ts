@@ -6,21 +6,22 @@ import { createFolder } from 'create-folder-structure'
 import expect from 'expect'
 import sinon from 'sinon'
 
-const { getCleanups, sleep, createTestLogger, getResources } = createTest()
+const { getCleanups, getConnectionCleanups, sleep, createTestLogger, getResources } = createTest()
 
 let taskQueue: LocalSequentalTaskQueue
 
 beforeEach(async () => {
   const repoPath = await createFolder()
   const logger = await createTestLogger(repoPath)
-
+  const redisClient = await connectToRedis({
+    config: {
+      url: getResources().redisServerUrl,
+    },
+    logger,
+  })
+  getConnectionCleanups().push(redisClient.cleanup)
   taskQueue = await localSequentalTaskQueue().createFunc({
-    redisClient: await connectToRedis({
-      config: {
-        url: getResources().redisServerUrl,
-      },
-      logger,
-    }),
+    redisClient,
     log: logger.createLog('task-queue'),
     gitRepoInfo: {
       auth: {

@@ -242,6 +242,7 @@ test(`single run - if a depends on b, a.package.json.dep.b.version should be the
   expect(aDeps1[toActualName('b')]).toEqual('1.0.0')
 })
 
+// TODO: need to implement :)
 test.skip(`two runs - if a depends on b, a.package.json.dep.b.version should be the version of b which is published rigth now`, async () => {
   const { runCi, repoPath, toActualName } = await createRepo({
     repo: {

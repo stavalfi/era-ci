@@ -13,6 +13,7 @@ const { getResources } = beforeAfterEach({
   },
 })
 
+// NOTE: this test is flaky in CI. I think it is related to the fact that the CI is much slower but im not sure what is the cause of the failures.
 test('ensure-retry-works-when-429-response.spec - multiple tasks', async () => {
   const tasks = getResources().taskQueuesResources.queue.addTasksToQueue(
     Object.values(getResources().packages).map((packageInfo, i) => ({
@@ -22,7 +23,7 @@ test('ensure-retry-works-when-429-response.spec - multiple tasks', async () => {
       imageTags: [`1.0.${i}`],
       relativeContextPath: '/',
       relativeDockerfilePath: packageInfo.relativeDockerFilePath,
-      taskTimeoutMs: 1000000,
+      taskTimeoutMs: 100_000,
     })),
   )
 

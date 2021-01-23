@@ -29,6 +29,7 @@ const {
   GITHUB_RUN_NUMBER = 'local-run',
   CI,
   FULL_RUN,
+  LOG_LEVEL = LogLevel.info,
   // eslint-disable-next-line no-process-env
 } = process.env
 
@@ -53,7 +54,7 @@ export default config({
   },
   logger: winstonLogger({
     disabled: false,
-    customLogLevel: LogLevel.trace,
+    customLogLevel: LOG_LEVEL as LogLevel,
     logFilePath: './era-ci.log',
   }),
   steps: createTreeStepsGraph([

@@ -1,5 +1,5 @@
 import { skipIfStepResultMissingOrFailedInCacheConstrain } from '@era-ci/constrains'
-import { createStepExperimental, stepToString } from '@era-ci/core'
+import { createStepExperimental, LogLevel, stepToString } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import Table, { CellOptions } from 'cli-table3'
@@ -51,12 +51,15 @@ const EXECUTION_STATUS_COLORED = {
   [ExecutionStatus.scheduled]: colors.cyan('scheduled'),
 }
 
-function generatePackagesStatusReport(jsonReport: JsonReport): string {
+function generatePackagesStatusReport(jsonReport: JsonReport, logLevel: LogLevel): string {
   const stepsName = jsonReport.steps.map(step => step.data.stepInfo.stepName)
 
   function getRows() {
     return jsonReport.stepsResultOfArtifactsByArtifact.slice().map(node => ({
-      packageName: `${node.data.artifact.packageJson.name} (${node.data.artifact.packageHash})`,
+      packageName:
+        logLevel === LogLevel.info
+          ? node.data.artifact.packageJson.name
+          : `${node.data.artifact.packageJson.name} (${node.data.artifact.packageHash})`,
       stepsStatus: node.data.stepsResult.slice().map(s => {
         if (
           s.data.artifactStepResult.executionStatus === ExecutionStatus.done ||
@@ -324,11 +327,9 @@ export const cliTableReporter = createStepExperimental({
         throw new Error(`can't find json-report in the cache. printing the report is aborted`)
       }
 
-      options.log.info(`report:`)
-
       const packagesErrorsReport = generatePackagesErrorsReport(jsonReportResult.value)
       const stepsErrorsReport = generateStepsErrorsReport(jsonReportResult.value)
-      const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value)
+      const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value, options.logger.logLevel)
       const summaryReport = generateSummaryReport(jsonReportResult.value)
 
       if (packagesErrorsReport.split('\n').length > 15) {

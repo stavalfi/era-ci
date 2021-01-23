@@ -100,14 +100,14 @@ export async function startWorker({
     if (state.receivedFirstTask) {
       const timePassedAfterLastTaskMs = Date.now() - state.lastTaskEndedMs
       if (!state.isRunningTaskNow && timePassedAfterLastTaskMs >= config.maxWaitMsWithoutTasks) {
-        workerLog.info(`no more tasks - shutting down worker`)
+        workerLog.debug(`no more tasks - shutting down worker`)
         await cleanup()
         return
       }
     } else {
       const timePassedWithoutTasksMs = Date.now() - workerStarteTimedMs
       if (timePassedWithoutTasksMs >= config.maxWaitMsUntilFirstTask) {
-        workerLog.info(`no tasks at all - shutting down worker`)
+        workerLog.debug(`no tasks at all - shutting down worker`)
         await cleanup()
         return
       }
@@ -117,7 +117,7 @@ export async function startWorker({
     // because the free redis in redis-labs has limitation of max 20 connections at the same time.
     const isFlowFinished = await redisConnection.get(isFlowFinishedKey(config.queueName))
     if (isFlowFinished === 'true') {
-      workerLog.info(`flow finished - shutting down worker`)
+      workerLog.debug(`flow finished - shutting down worker`)
       await cleanup()
       return
     }
@@ -131,7 +131,7 @@ export async function startWorker({
       // because the free redis in redis-labs has limitation of max 20 connections at the same time.
       const isFlowFinished = await redisConnection.get(isFlowFinishedKey(config.queueName))
       if (isFlowFinished === 'true') {
-        workerLog.info(`flow finished - shutting down worker`)
+        workerLog.debug(`flow finished - shutting down worker`)
         await cleanup()
         return
       }
@@ -271,9 +271,9 @@ export async function startWorker({
     }
   })
 
-  workerLog.info('----------------------------------')
-  workerLog.info(`starting listen for tasks`)
-  workerLog.info('----------------------------------')
+  workerLog.verbose('----------------------------------')
+  workerLog.verbose(`starting listen for tasks`)
+  workerLog.verbose('----------------------------------')
 
   return {
     logFilePath,
