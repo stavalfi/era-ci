@@ -1,8 +1,8 @@
 import expect from 'expect'
-import { describe, newEnv, test } from '../../../prepare-test'
+import { newEnv } from '../../../prepare-test'
 import { TargetType } from '../../../prepare-test/types'
 
-const { createRepo } = newEnv(test)
+const { createRepo } = newEnv()
 
 describe('run ci -> increase packageJson.version -> run ci', () => {
   test('run ci -> increase packageJson.version in major -> run ci', async () => {

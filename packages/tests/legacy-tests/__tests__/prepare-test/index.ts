@@ -1,13 +1,10 @@
 /// <reference path="../../../../../declarations.d.ts" />
 
-import { LogLevel } from '@era-ci/core'
-import { winstonLogger } from '@era-ci/loggers'
+import { createTest } from '@era-ci/e2e-tests-infra'
 import { buildFullDockerImageName } from '@era-ci/utils'
-import anyTest from 'ava'
 import chance from 'chance'
 import execa from 'execa'
 import { createRepo } from './create-repo'
-import { prepareTestResources } from './prepare-test-resources'
 import {
   addRandomFileToPackage,
   addRandomFileToRoot,
@@ -22,17 +19,13 @@ import {
   renamePackageFolder,
   unpublishNpmPackage,
 } from './test-helpers'
-import { CreateAndManageRepo, GetFlowLogs, MinimalNpmPackage, NewEnv, RunCi, TestWithContext } from './types'
+import { CreateAndManageRepo, GetFlowLogs, MinimalNpmPackage, NewEnv, RunCi } from './types'
 import { getPackagePath, runCiUsingConfigFile, runNcExecutable } from './utils'
 
-export const describe = (_title: string, func: () => void) => func()
+export const newEnv: NewEnv = () => {
+  const testFuncs = createTest()
 
-export const test = anyTest as TestWithContext
-
-export const newEnv: NewEnv = test => {
-  prepareTestResources(test)
-
-  const createAndManageRepo: CreateAndManageRepo = async (t, repo = {}) => {
+  const createAndManageRepo: CreateAndManageRepo = async (repo = {}) => {
     const resourcesNamesPostfix = chance().hash().slice(0, 8)
 
     const toActualName = (name: string) =>
@@ -42,7 +35,7 @@ export const newEnv: NewEnv = test => {
 
     const dockerOrganizationName = toActualName('repo')
 
-    const { dockerRegistry, npmRegistry, gitServer, redisServer } = getResources()
+    const { dockerRegistry, npmRegistry, gitServer, redisServerUrl } = testFuncs.getResources()
 
     const { repoPath, repoName, repoOrg, subPackagesFolderPath } = await createRepo({
       repo,
@@ -51,20 +44,12 @@ export const newEnv: NewEnv = test => {
       gitIgnoreFiles: ['era-ci.log', 'test-logs.log'],
     })
 
-    const testLog = (
-      await winstonLogger({
-        customLogLevel: LogLevel.trace,
-        logFilePath: 'test-logs.log',
-        disabled: true,
-      }).callInitializeLogger({
-        repoPath,
-        customLog: { customLog: t.log.bind(t), transformer: x => `${t.title} - ${x}` },
-      })
-    ).createLog('era-ci-tests')
+    const testLogger = await testFuncs.createTestLogger(repoPath)
+    const testLog = testLogger.createLog('test-infra')
 
     const getFlowLogs: GetFlowLogs = async ({ flowId, execaOptions }) => {
       return runNcExecutable({
-        t,
+        testLogger,
         repoPath,
         testOptions: {
           execaOptions,
@@ -73,13 +58,12 @@ export const newEnv: NewEnv = test => {
         dockerOrganizationName,
         dockerRegistry,
         npmRegistry,
-        redisServer,
+        redisServerUrl,
       })
     }
 
     const runCi: RunCi = async ({ targetsInfo, execaOptions } = {}) => {
       return runCiUsingConfigFile({
-        t,
         repoPath,
         testOptions: {
           targetsInfo,
@@ -89,7 +73,8 @@ export const newEnv: NewEnv = test => {
         dockerRegistry,
         npmRegistry,
         toOriginalName,
-        redisServer,
+        redisServerUrl,
+        testLogger,
       })
     }
 
@@ -121,7 +106,6 @@ export const newEnv: NewEnv = test => {
       dockerOrganizationName,
       installAndRunNpmDependency: dependencyName =>
         installAndRunNpmDependency({
-          t,
           createRepo: createAndManageRepo,
           npmRegistry,
           toActualName,
@@ -146,7 +130,7 @@ export const newEnv: NewEnv = test => {
         }),
       removeAllNpmHashTags: packageName =>
         removeAllNpmHashTags({
-          redisServer,
+          redisServerUrl,
           packageName: toActualName(packageName),
         }),
       modifyPackageJson: (packageName, modification) =>
@@ -201,6 +185,7 @@ export const newEnv: NewEnv = test => {
   }
 
   return {
+    ...testFuncs,
     createRepo: createAndManageRepo,
   }
 }

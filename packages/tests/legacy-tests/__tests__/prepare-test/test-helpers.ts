@@ -1,7 +1,6 @@
 import { Log } from '@era-ci/core'
 import { npmRegistryLogin } from '@era-ci/steps'
 import { buildFullDockerImageName } from '@era-ci/utils'
-import { ExecutionContext } from 'ava'
 import chance from 'chance'
 import { createFile } from 'create-folder-structure'
 import execa from 'execa'
@@ -9,7 +8,7 @@ import fse from 'fs-extra'
 import Redis from 'ioredis'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
-import { CreateAndManageRepo, MinimalNpmPackage, TestWithContextType, ToActualName } from './types'
+import { CreateAndManageRepo, MinimalNpmPackage, ToActualName } from './types'
 import { getPackagePath, getPackages, ignore } from './utils'
 
 export async function manageStepResult() {
@@ -35,12 +34,12 @@ export async function commitAllAndPushChanges(repoPath: string, gitRepoAddress: 
 
 export async function removeAllNpmHashTags({
   packageName,
-  redisServer,
+  redisServerUrl,
 }: {
   packageName: string
-  redisServer: string
+  redisServerUrl: string
 }): Promise<void> {
-  const redisClient = new Redis(redisServer)
+  const redisClient = new Redis(redisServerUrl)
   const keys = await redisClient.keys(`npm-version-of-${packageName}-*`)
   if (keys.length === 0) {
     throw new Error(
@@ -196,9 +195,7 @@ export const installAndRunNpmDependency = async ({
   createRepo,
   npmRegistry,
   dependencyName,
-  t,
 }: {
-  t: ExecutionContext<TestWithContextType>
   toActualName: ToActualName
   npmRegistry: {
     address: string

@@ -1,9 +1,9 @@
 import expect from 'expect'
-import { newEnv, test } from './prepare-test'
+import { newEnv } from './prepare-test'
 import { manageStepResult } from './prepare-test/test-helpers'
 import { TargetType } from './prepare-test/types'
 
-const { createRepo } = newEnv(test)
+const { createRepo } = newEnv()
 
 test('make sure tests output is printed', async () => {
   const test = await manageStepResult()

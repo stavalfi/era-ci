@@ -28,6 +28,7 @@ export { createGitRepo } from './create-git-repo'
 export { resourcesBeforeAfterEach } from './prepare-test-resources'
 export { CreateRepo, DeepPartial, TestResources, TestWithContextType, TestFuncs } from './types'
 export { isDeepSubset } from './utils'
+export { GitServer } from './git-server-testkit'
 
 const getJsonReport = (testFuncs: TestFuncs) => async ({
   flowId,

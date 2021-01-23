@@ -1,18 +1,11 @@
-import { FolderStructure } from 'create-folder-structure'
-import { IDependencyMap, IPackageJson } from 'package-json-type'
-import execa, { StdioOption } from 'execa'
 import { NpmScopeAccess } from '@era-ci/steps'
+import { TestFuncs } from '@era-ci/e2e-tests-infra'
 import { TargetType } from '@era-ci/utils'
+import { FolderStructure } from 'create-folder-structure'
+import execa, { StdioOption } from 'execa'
+import { IDependencyMap, IPackageJson } from 'package-json-type'
 
 export { TargetType }
-
-import { ExecutionContext, TestInterface } from 'ava'
-import { GitServer } from './git-server-testkit'
-
-export type TestWithContextType = {
-  resources: TestResources
-}
-export type TestWithContext = TestInterface<TestWithContextType>
 
 export enum Resource {
   dockerRegistry = 'docker-registry',
@@ -77,20 +70,6 @@ export type ResultingArtifact = {
   }
 }
 
-export type TestResources = {
-  npmRegistry: {
-    address: string
-    auth: {
-      username: string
-      token: string
-      email: string
-    }
-  }
-  dockerRegistry: string
-  gitServer: GitServer
-  redisServer: string
-}
-
 export type CiResults = {
   ciProcessResult: execa.ExecaReturnValue<string>
   published: Map<string, ResultingArtifact>
@@ -138,10 +117,8 @@ export type ManageRepoResult = {
   getFlowLogs: GetFlowLogs
 }
 
-export type CreateAndManageRepo = (t: ExecutionContext<TestWithContextType>, repo?: Repo) => Promise<ManageRepoResult>
+export type CreateAndManageRepo = (repo?: Repo) => Promise<ManageRepoResult>
 
-export type NewEnv = (
-  test: TestInterface<{ resources: TestResources }>,
-) => {
+export type NewEnv = () => TestFuncs & {
   createRepo: CreateAndManageRepo
 }

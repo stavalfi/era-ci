@@ -1,6 +1,6 @@
 import { createFolder, FolderStructure } from 'create-folder-structure'
 import execa from 'execa'
-import { GitServer } from './git-server-testkit'
+import { GitServer } from '@era-ci/e2e-tests-infra'
 import { Repo, TargetType, ToActualName, Package } from './types'
 import chance from 'chance'
 import path from 'path'

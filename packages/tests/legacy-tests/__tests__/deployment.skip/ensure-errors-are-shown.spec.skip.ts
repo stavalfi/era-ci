@@ -1,9 +1,9 @@
 import chance from 'chance'
 import expect from 'expect'
-import { newEnv, test } from '../prepare-test'
+import { newEnv } from '../prepare-test'
 import { TargetType } from '../prepare-test/types'
 
-const { createRepo } = newEnv(test)
+const { createRepo } = newEnv()
 
 test('make sure that errors from initializeDeploymentClient function are shown', async () => {
   const { runCi } = await createRepo({

@@ -1,10 +1,10 @@
 import expect from 'expect'
-import { newEnv, test } from './prepare-test'
+import { newEnv } from './prepare-test'
 
-const { createRepo } = newEnv(test)
+const { createRepo } = newEnv()
 
 test('empty repo', async () => {
-  const { runCi } = await createRepo(t)
+  const { runCi } = await createRepo()
   const pr = await runCi()
   expect(pr.published).toHaveProperty('size', 0)
   const master = await runCi({
