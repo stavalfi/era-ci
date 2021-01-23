@@ -129,6 +129,10 @@ export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfiguratio
         }
         const testGroups = _.chunk(testFilesPaths, Math.ceil(testFilesPaths.length / actualWorkers))
 
+        options.log.info(
+          `running tests for package: "${artifact.data.artifact.packageJson.name}" by splitting them to ${testGroups.length} vms. each vm will run ${testGroups[0].length} test files`,
+        )
+
         const tasks = options.taskQueue.addTasksToQueue(
           testGroups.map((testGroup, i) => {
             const taskIndex = splitTestsToMultipleVms.startIndexingFromZero ? i : i + 1
