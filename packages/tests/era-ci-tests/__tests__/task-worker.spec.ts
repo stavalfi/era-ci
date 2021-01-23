@@ -424,7 +424,7 @@ test('the worker runs multiple tasks which one of them fail. so when the worker 
   expect(exitCode).not.toEqual(0)
 })
 
-test('no tasks so the worker is closing automaticaly', async () => {
+test.only('no tasks so the worker is closing automaticaly', async () => {
   const repoPath = await createFolder()
 
   const workerConfig: WorkerConfig = {
@@ -453,7 +453,7 @@ test('no tasks so the worker is closing automaticaly', async () => {
     },
   )
 
-  expect(stdout).toEqual(expect.stringContaining('no tasks at all - shuting down worker'))
+  expect(stdout).toEqual(expect.stringContaining('no tasks at all - shutting down worker'))
 })
 
 test('single task -> after that, no tasks so the worker is closing automaticaly', async () => {
@@ -498,7 +498,7 @@ test('single task -> after that, no tasks so the worker is closing automaticaly'
 
   const { stdout } = await workerProcess
 
-  expect(stdout).toEqual(expect.stringContaining('no more tasks - shuting down worker'))
+  expect(stdout).toEqual(expect.stringContaining('no more tasks - shutting down worker'))
 })
 
 test('single task - success - override processEnv', async () => {

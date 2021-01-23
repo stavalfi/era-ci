@@ -43,7 +43,6 @@ export async function ci(options: {
 
     log = logger.createLog('ci-logic')
 
-    log.info(`-----------------------------------------`)
     log.info(`Starting CI - flow-id: "${flowId}"`)
     log.info(`directory: "${options.repoPath}"`)
 
@@ -54,7 +53,6 @@ export async function ci(options: {
     log.info(`git-commit: "${gitRepoInfo.commit}"`)
     log.info(`log-level: "${logger.logLevel}"`)
     log.info(`packages: ${packagesPath.length}`)
-    log.info(`-----------------------------------------`)
 
     // in the legacy-tests, we extract the flowId using regex from this line (super ugly :S)
 

@@ -292,6 +292,7 @@ export function createTest(options?: {
   startQuayMockService?: boolean
 }): TestFuncs & { createRepo: CreateRepo } {
   const getCleanups = beforeAfterCleanups()
+  const getConnectionCleanups = beforeAfterCleanups()
   const getProcessEnv = processEnvBeforeAfterEach()
   const getResources = resourcesBeforeAfterEach({
     ...options,
@@ -305,6 +306,7 @@ export function createTest(options?: {
     getResources,
     getCleanups,
     createTestLogger,
+    getConnectionCleanups,
   }
 
   return {

@@ -134,7 +134,7 @@ async function createTestDependencies(
 
   const logger = await testFuncs.createTestLogger(repoPath)
 
-  const queue = await quayBuildsTaskQueue({
+  const queue1 = quayBuildsTaskQueue({
     getCommitTarGzPublicAddress: () =>
       `${
         testFuncs.getResources().quayHelperService.address
@@ -146,13 +146,17 @@ async function createTestDependencies(
     redis: {
       url: testFuncs.getResources().redisServerUrl,
     },
-  }).createFunc({
-    redisClient: await connectToRedis({
-      config: {
-        url: testFuncs.getResources().redisServerUrl,
-      },
-      logger,
-    }),
+  })
+  const redisClient = await connectToRedis({
+    config: {
+      url: testFuncs.getResources().redisServerUrl,
+    },
+    logger,
+  })
+  testFuncs.getConnectionCleanups().push(redisClient.cleanup)
+
+  const queue = await queue1.createFunc({
+    redisClient,
     log: logger.createLog('quayBuildsTaskQueue'),
     gitRepoInfo: await getGitRepoInfo(repoPath, logger.createLog('--')),
     logger,

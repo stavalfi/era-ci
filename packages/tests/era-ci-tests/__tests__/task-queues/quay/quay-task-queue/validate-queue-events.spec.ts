@@ -411,7 +411,7 @@ test('multiple tasks', async () => {
       imageTags: [`1.0.${i}`],
       relativeContextPath: '/',
       relativeDockerfilePath: packageInfo.relativeDockerFilePath,
-      taskTimeoutMs: 10_000,
+      taskTimeoutMs: 40_000, // eventually, quay-mock-service process one request at a time, so we need to give a big timeout for each task.
     })),
   )
 

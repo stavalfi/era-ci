@@ -22,6 +22,7 @@ import {
   QuayClient,
   QuayNotificationEvents,
 } from '@era-ci/quay-client'
+import _ from 'lodash'
 
 export type QuayBuildsTaskPayload = Record<string, never>
 
@@ -154,7 +155,13 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       this.internalTaskQueue.push(() => this.onQuayBuildStatusChanged(topic, eventString)),
     )
 
-    options.log.trace(`initialized ${QuayBuildsTaskQueue.name} with options: ${JSON.stringify(options, null, 2)}`)
+    options.log.trace(
+      `initialized ${QuayBuildsTaskQueue.name} with options: ${JSON.stringify(
+        _.omit(options, ['redisClient']),
+        null,
+        2,
+      )}`,
+    )
   }
 
   private isTaskTimeout = (
