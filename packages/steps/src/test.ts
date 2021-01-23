@@ -8,8 +8,15 @@ import {
 import { createStepExperimental, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
 import { amountOfWrokersKey } from '@era-ci/task-worker'
-import { calculateCombinedStatus, calculateExecutionStatus, ExecutionStatus, lastValueFrom } from '@era-ci/utils'
+import {
+  calculateCombinedStatus,
+  calculateExecutionStatus,
+  ExecutionStatus,
+  lastValueFrom,
+  Status,
+} from '@era-ci/utils'
 import _ from 'lodash'
+import glob from 'tiny-glob'
 
 export type TestConfigurations = {
   isStepEnabled: boolean
@@ -17,6 +24,7 @@ export type TestConfigurations = {
   splitTestsToMultipleVms?:
     | false
     | {
+        relativeGlobToSearchTestFiles: string // using https://github.com/terkelg/tiny-glob
         startIndexingFromZero: boolean
         env: {
           // for more info: https://www.npmjs.com/package/ci-parallel-vars
@@ -95,13 +103,34 @@ export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfiguratio
           }
         }
       } else {
+        const testFilesPaths = await glob(splitTestsToMultipleVms.relativeGlobToSearchTestFiles, {
+          filesOnly: true,
+          absolute: true,
+          cwd: artifact.data.artifact.packagePath,
+        })
+
+        if (testFilesPaths.length === 0) {
+          return {
+            executionStatus: ExecutionStatus.aborted,
+            status: Status.skippedAsPassed,
+            notes: [
+              `could not find any test file using glob: "${splitTestsToMultipleVms.relativeGlobToSearchTestFiles}" under folder: "${artifact.data.artifact.relativePackagePath}"`,
+            ],
+          }
+        }
+
         const actualWorkersAsString = await options.redisClient.connection.get(
           amountOfWrokersKey(options.taskQueue.getQueueName()),
         )
 
-        const subTasks = Number(actualWorkersAsString ?? 0)
+        const actualWorkers = Number(actualWorkersAsString ?? 0)
+        if (actualWorkers === 0) {
+          throw new Error(`there are no avialable workers to preform the task`)
+        }
+        const testGroups = _.chunk(testFilesPaths, Math.ceil(testFilesPaths.length / actualWorkers))
+
         const tasks = options.taskQueue.addTasksToQueue(
-          _.range(0, subTasks).map(i => {
+          testGroups.map((testGroup, i) => {
             const taskIndex = splitTestsToMultipleVms.startIndexingFromZero ? i : i + 1
             return {
               group: workerBeforeAll && {
@@ -110,10 +139,12 @@ export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfiguratio
               },
               taskName: `${artifact.data.artifact.packageJson.name}---tests`,
               task: {
-                shellCommand: `echo "sub-task ${taskIndex}/${subTasks}" && yarn run ${options.stepConfigurations.scriptName}`,
+                shellCommand: `echo "sub-task ${taskIndex}/${testGroups.length}" && yarn run ${
+                  options.stepConfigurations.scriptName
+                } ${testGroup.join(' ')}`,
                 cwd: artifact.data.artifact.packagePath,
                 processEnv: {
-                  [splitTestsToMultipleVms.env.totalVmsEnvKeyName]: subTasks.toString(),
+                  [splitTestsToMultipleVms.env.totalVmsEnvKeyName]: testGroups.length.toString(),
                   [splitTestsToMultipleVms.env.indexKeyEnvName]: taskIndex.toString(),
                 },
               },

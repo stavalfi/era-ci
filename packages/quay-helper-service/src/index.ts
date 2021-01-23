@@ -19,7 +19,7 @@ export async function startQuayHelperService(
     },
   })
 
-  if (!env.NC_TEST_MODE) {
+  if (!env.ERA_TEST_MODE) {
     console.log(`starting quay-helper-service with config: ${JSON.stringify(config, null, 2)}`)
   }
 

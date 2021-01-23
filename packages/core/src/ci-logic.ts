@@ -150,6 +150,18 @@ export async function ci(options: {
     process.exitCode = processExitCode
   }
 
+  // jest don't print last 2 console.log lines so it's a workaround
+  if (options.processEnv['ERA_TEST_MODE']) {
+    // eslint-disable-next-line no-console
+    console.log('------------------------')
+    // eslint-disable-next-line no-console
+    console.log('------------------------')
+    // eslint-disable-next-line no-console
+    console.log('------------------------')
+    // eslint-disable-next-line no-console
+    console.log('------------------------')
+  }
+
   return {
     flowId,
     repoHash,

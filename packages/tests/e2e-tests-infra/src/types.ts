@@ -30,7 +30,7 @@ export type TestFuncs = {
 }
 
 export type TestProcessEnv = {
-  NC_TEST_MODE: string
+  ERA_TEST_MODE: string
   SKIP_EXIT_CODE_1: string
   QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: string
   ERA_CI_EVENTS_TOPIC_PREFIX: string

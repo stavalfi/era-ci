@@ -272,7 +272,7 @@ export const renamePackageFolder = async ({
   toActualName: ToActualName
 }): Promise<string> => {
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
-  const newPackagePath = path.join(packagePath, '..', chance().hash().slice(0, 8))
+  const newPackagePath = path.join(packagePath, '..', `${packageName}-rename-${chance().hash().slice(0, 8)}`)
   await fse.rename(packagePath, newPackagePath)
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
   return newPackagePath

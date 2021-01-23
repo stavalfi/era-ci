@@ -28,6 +28,7 @@
     "pretty-ms": "^7.0.0",
     "rxjs": "^7.0.0-beta.10",
     "semver": "^7.3.2",
-    "serialize-error": "^7.0.1"
+    "serialize-error": "^7.0.1",
+    "tiny-glob": "^0.2.8"
   }
 }

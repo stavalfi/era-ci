@@ -87,6 +87,7 @@ export default config({
           cwd: __dirname,
         },
         splitTestsToMultipleVms: {
+          relativeGlobToSearchTestFiles: '__tests__/**/*.spec.ts',
           startIndexingFromZero: true, // ava assume that the indexing starts from zero
           env: {
             indexKeyEnvName: 'CI_NODE_INDEX',
