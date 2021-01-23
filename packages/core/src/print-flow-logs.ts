@@ -9,17 +9,12 @@ export async function printFlowLogs<TaskQueue>(options: {
   flowId: string
   config: Config<TaskQueue>
   repoPath: string
-  customLog?: {
-    customLog: (...values: unknown[]) => void
-    transformer: (log: string) => string
-  }
 }): Promise<void> {
   const cleanups: Cleanup[] = []
   let log: Log | undefined
   try {
     const logger = await options.config.logger.callInitializeLogger({
       repoPath: options.repoPath,
-      customLog: options.customLog,
     })
     log = logger.createLog('print-flow')
 

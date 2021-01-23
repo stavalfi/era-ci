@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+
 const path = require('path')
 const { pathsToModuleNameMapper } = require('ts-jest/utils')
 const { compilerOptions } = require('./tsconfig.json')
@@ -10,7 +12,7 @@ module.exports = {
   setupFilesAfterEnv: [path.join(__dirname, 'jest.setup.js')],
   globals: {
     'ts-jest': {
-      tsConfig: path.join(__dirname, 'tsconfig.json'),
+      tsconfig: path.join(__dirname, 'tsconfig.json'),
     },
   },
   testMatch: [

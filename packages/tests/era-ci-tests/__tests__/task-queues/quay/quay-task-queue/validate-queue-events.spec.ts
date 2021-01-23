@@ -47,7 +47,7 @@ test('task is executed and we expect the docker-image to be presentin the regist
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 100_000,
+      taskTimeoutMs: 10000_000,
     },
   ])
 
@@ -56,7 +56,8 @@ test('task is executed and we expect the docker-image to be presentin the regist
       eventEmitter: getResources().taskQueuesResources.queue.eventEmitter,
       throwOnTaskNotPassed: true,
     }),
-  )
+    // eslint-disable-next-line no-console
+  ).catch(e => console.error(JSON.stringify(2, null, 2)))
 
   await expect(getResources().getImageTags(getResources().packages.package1.name)).resolves.toEqual(['1.0.0'])
 })
@@ -76,7 +77,7 @@ test('scheduled and running events are fired', async () => {
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 100_000,
+      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -101,7 +102,7 @@ test('illegal parameter - relativeContextPath', async () => {
         imageTags: ['1.0.0'],
         relativeContextPath: '/invalid-path-to-context',
         relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-        taskTimeoutMs: 100_000,
+        taskTimeoutMs: 10_000,
       },
     ]),
   ).toThrow()
@@ -117,7 +118,7 @@ test('illegal parameter - relativeDockerfilePath', async () => {
         imageTags: ['1.0.0'],
         relativeContextPath: '/',
         relativeDockerfilePath: '/invalid-path-to-context',
-        taskTimeoutMs: 100_000,
+        taskTimeoutMs: 10_000,
       },
     ]),
   ).toThrow()
@@ -146,7 +147,7 @@ RUN exit 1
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 100_000,
+      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -174,7 +175,7 @@ test('events schema is valid', async () => {
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 100_000,
+      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -240,7 +241,7 @@ RUN exit 1
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 100_000,
+      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -284,7 +285,7 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 100_000,
+      taskTimeoutMs: 10_000,
     },
     {
       packageName: getResources().packages.package2.name,
@@ -293,7 +294,7 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResources().packages.package2.relativeDockerFilePath,
-      taskTimeoutMs: 100_000,
+      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -328,7 +329,7 @@ RUN sleep 1000 # make sure that this task will not end
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 100_000,
+      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -352,7 +353,7 @@ test('abort events schema is valid', async () => {
     path.join(getResources().taskQueuesResources.repoPath, getResources().packages.package1.relativeDockerFilePath),
     `
 FROM alpine
-RUN sleep 100_000 # make sure that this task will not end
+RUN sleep 10_000 # make sure that this task will not end
   `,
   )
 
@@ -364,7 +365,7 @@ RUN sleep 100_000 # make sure that this task will not end
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 100_000,
+      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -401,7 +402,7 @@ RUN sleep 100_000 # make sure that this task will not end
   ).toBeTruthy()
 })
 
-test.only('multiple tasks', async () => {
+test('multiple tasks', async () => {
   const tasks = getResources().taskQueuesResources.queue.addTasksToQueue(
     Object.values(getResources().packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,
@@ -410,7 +411,7 @@ test.only('multiple tasks', async () => {
       imageTags: [`1.0.${i}`],
       relativeContextPath: '/',
       relativeDockerfilePath: packageInfo.relativeDockerFilePath,
-      taskTimeoutMs: 20_000,
+      taskTimeoutMs: 10_000,
     })),
   )
 

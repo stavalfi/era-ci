@@ -1,5 +1,4 @@
 import winston from 'winston'
-import { CustomLogTransport } from './custom-logger-transport'
 import { formatLog } from './formatter'
 
 export const defaultFormat = winston.format.combine(
@@ -16,14 +15,6 @@ export const createConsoleTransport = (format: winston.Logform.Format): winston.
     stderrLevels: ['error'],
     format: format,
   })
-
-export const createCustomLogTransport = (options: {
-  customLog: {
-    customLog: (...values: unknown[]) => void
-    transformer: (log: string) => string
-  }
-  format?: winston.Logform.Format
-}): CustomLogTransport => new CustomLogTransport(options)
 
 export const createFileTransport = (
   ncLogFilePath: string,

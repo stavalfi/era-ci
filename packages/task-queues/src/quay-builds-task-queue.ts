@@ -157,7 +157,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     options.log.trace(`initialized ${QuayBuildsTaskQueue.name} with options: ${JSON.stringify(options, null, 2)}`)
   }
 
-  private isTaskTimeout(
+  private isTaskTimeout = (
     options:
       | {
           taskId: string
@@ -169,7 +169,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
           startTaskMs: number
           taskTimeoutMs: number
         },
-  ): boolean {
+  ): boolean => {
     if ('quayBuildId' in options) {
       const task = Array.from(this.tasks.values()).find(b => b.quayBuildId === options.quayBuildId)
       if (!task) {
@@ -189,7 +189,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     }
   }
 
-  private async onQuayBuildStatusChanged(topic: string, eventString: string, retry = 0): Promise<void> {
+  private onQuayBuildStatusChanged = async (topic: string, eventString: string, retry = 0): Promise<void> => {
     const event: QuayBuildStatusChangedTopicPayload = JSON.parse(eventString)
     if (!this.isQueueActive) {
       this.options.log.debug(
@@ -255,7 +255,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     }
   }
 
-  public addTasksToQueue(
+  public addTasksToQueue = (
     tasksOptions: {
       packageName: string
       repoName: string
@@ -265,7 +265,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       imageTags: string[]
       taskTimeoutMs: number
     }[],
-  ): TaskInfo<QuayBuildsTaskPayload>[] {
+  ): TaskInfo<QuayBuildsTaskPayload>[] => {
     const startTaskMs = Date.now()
     if (!this.isQueueActive) {
       throw new Error(`task-queue was destroyed so you can not add new tasks to it`)
@@ -331,7 +331,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     return tasks
   }
 
-  public getBuildLogsAddress(taskId: string): string | undefined {
+  public getBuildLogsAddress = (taskId: string): string | undefined => {
     const task = this.tasks.get(taskId)
     if (!task) {
       throw new Error(`taskId: ${taskId} not found`)
@@ -339,7 +339,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     return task.quayBuildLogsAddress
   }
 
-  private async buildImage(task: Task): Promise<void> {
+  private buildImage = async (task: Task): Promise<void> => {
     this.options.log.trace(`starting to process task: "${task.taskInfo.taskId}"`)
     const sendAbortEvent = (options: { notes: string[]; errors: ErrorObject[] }) => {
       if (
@@ -474,15 +474,15 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     }
   }
 
-  public async cleanup(): Promise<void> {
+  public cleanup = async (): Promise<void> => {
     if (!this.isQueueActive) {
       return
     }
+    this.isQueueActive = false
 
     this.options.log.debug(`closing quay-builds task-queue and aborting scheduled and running tasks`)
     await Promise.allSettled(this.cleanups.map(f => f()))
     // ensure we don't send events of any processing or pending tasks
-    this.isQueueActive = false
     this.queueStatusChanged.emit('closed')
     if (!this.internalTaskQueue.idle()) {
       // drain will not resolve if the queue is empty so we drain if it's not empty

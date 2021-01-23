@@ -15,10 +15,6 @@ export async function ci(options: {
   repoPath: string
   config: Config<TaskQueueBase<any, any>>
   processEnv: NodeJS.ProcessEnv
-  customLog?: {
-    customLog: (...values: unknown[]) => void
-    transformer: (log: string) => string
-  }
 }): Promise<{
   flowId: string
   repoHash?: string
@@ -42,7 +38,6 @@ export async function ci(options: {
     const startFlowMs = Date.now()
     logger = await options.config.logger.callInitializeLogger({
       repoPath: options.repoPath,
-      customLog: options.customLog,
     })
 
     log = logger.createLog('ci-logic')
@@ -135,12 +130,8 @@ export async function ci(options: {
     if (log) {
       log.error(`CI failed unexpectedly: `, error)
     } else {
-      if (options.customLog) {
-        options.customLog.customLog(`CI failed unexpectedly - ${error}`)
-      } else {
-        // eslint-disable-next-line no-console
-        console.error(`CI failed unexpectedly`, error)
-      }
+      // eslint-disable-next-line no-console
+      console.error(`CI failed unexpectedly`, error)
     }
   }
 

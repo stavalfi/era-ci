@@ -191,7 +191,7 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
   taskQueue.addTasksToQueue([
     {
       taskName: 'task1',
-      func: () => sleep(300_000),
+      func: () => sleep(10_000),
     },
     {
       taskName: 'task2',
@@ -215,7 +215,7 @@ test('abort event is fired for running tasks', async () => {
   taskQueue.addTasksToQueue([
     {
       taskName: 'task1',
-      func: () => sleep(300_000),
+      func: () => sleep(10_000),
     },
   ])
 
@@ -227,7 +227,7 @@ test('abort event is fired for running tasks', async () => {
 })
 
 test('abort events schema is valid', async () => {
-  taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => sleep(300_000) }])
+  taskQueue.addTasksToQueue([{ taskName: 'task1', func: () => sleep(10_000) }])
 
   expect.hasAssertions()
 

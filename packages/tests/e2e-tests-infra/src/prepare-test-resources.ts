@@ -4,10 +4,11 @@ import { startQuayMockService } from '@era-ci/quay-mock-service'
 import chance from 'chance'
 import Redis from 'ioredis'
 import { starGittServer } from './git-server-testkit'
-import { TestProcessEnv, TestResources } from './types'
+import { Cleanup, TestProcessEnv, TestResources } from './types'
 
 export function resourcesBeforeAfterEach(options: {
   getProcessEnv: () => TestProcessEnv
+  getCleanups: () => Cleanup[]
   startQuayHelperService?: boolean
   startQuayMockService?: boolean
 }): () => TestResources {
@@ -31,26 +32,29 @@ export function resourcesBeforeAfterEach(options: {
               timeWindowMs: 1000,
             },
             token: quayToken,
-            // eslint-disable-next-line no-console
-            customLog: console.log.bind(console),
           })
         : Promise.resolve({ address: '', cleanup: () => Promise.resolve() }),
       options?.startQuayHelperService
-        ? await startQuayHelperService(
-            {
-              PORT: '0',
-              REDIS_ADDRESS: redisServerUrl,
-              ...processEnv,
-            },
-            // eslint-disable-next-line no-console
-            console.log.bind(console),
-          )
+        ? await startQuayHelperService({
+            PORT: '0',
+            REDIS_ADDRESS: redisServerUrl,
+            ...processEnv,
+          })
         : Promise.resolve({ address: '', cleanup: () => Promise.resolve() }),
       await starGittServer(),
       redisFlowEventsSubscriptionsConnection
         .connect()
         .then(() => redisFlowEventsSubscriptionsConnection.subscribe(getEventsTopicName(processEnv))),
     ])
+    options.getCleanups().push(async () => {
+      redisFlowEventsSubscriptionsConnection.disconnect()
+      // eslint-disable-next-line no-console
+      console.log(`disconnected redis-flow-events-subscriptions connection. topic: "${getEventsTopicName(processEnv)}"`)
+    })
+    options.getCleanups().push(quayMockService.cleanup)
+    options.getCleanups().push(quayHelperService.cleanup)
+    options.getCleanups().push(gitServer.close)
+
     resources = {
       npmRegistry: {
         address: `http://localhost:34873`,
@@ -72,15 +76,6 @@ export function resourcesBeforeAfterEach(options: {
       quayHelperService,
       redisFlowEventsSubscriptionsConnection,
     }
-  })
-
-  afterEach(async () => {
-    resources.redisFlowEventsSubscriptionsConnection.disconnect()
-    await Promise.allSettled([
-      resources.quayMockService.cleanup(),
-      resources.quayHelperService.cleanup(),
-      resources.gitServer.close(),
-    ])
   })
 
   return () => resources

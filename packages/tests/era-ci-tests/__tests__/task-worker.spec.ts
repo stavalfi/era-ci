@@ -33,15 +33,10 @@ test('no tasks - manual close worker', async () => {
     config: {
       queueName: `queue-${chance().hash().slice(0, 8)}`,
       repoPath,
-      maxWaitMsWithoutTasks: 100_000,
-      maxWaitMsUntilFirstTask: 100_000,
+      maxWaitMsWithoutTasks: 10_000,
+      maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
-      },
-      customLog: {
-        // eslint-disable-next-line no-console
-        customLog: console.log.bind(console),
-        transformer: x => x,
       },
     },
     processEnv: getProcessEnv(),
@@ -60,14 +55,10 @@ test('single worker - amount of workers === 1', async () => {
     config: {
       queueName,
       repoPath,
-      maxWaitMsWithoutTasks: 100_000,
-      maxWaitMsUntilFirstTask: 100_000,
+      maxWaitMsWithoutTasks: 10_000,
+      maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
-      },
-      customLog: {
-        customLog: console.log.bind(console),
-        transformer: x => x,
       },
     },
     processEnv: getProcessEnv(),
@@ -90,14 +81,10 @@ test('manual close worker multiple times', async () => {
     config: {
       queueName: `queue-${chance().hash().slice(0, 8)}`,
       repoPath,
-      maxWaitMsWithoutTasks: 100_000,
-      maxWaitMsUntilFirstTask: 100_000,
+      maxWaitMsWithoutTasks: 10_000,
+      maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
-      },
-      customLog: {
-        customLog: console.log.bind(console),
-        transformer: x => x,
       },
     },
     processEnv: getProcessEnv(),
@@ -116,14 +103,10 @@ test('single task - success', async () => {
     config: {
       queueName,
       repoPath,
-      maxWaitMsWithoutTasks: 100_000,
-      maxWaitMsUntilFirstTask: 100_000,
+      maxWaitMsWithoutTasks: 10_000,
+      maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
-      },
-      customLog: {
-        customLog: console.log.bind(console),
-        transformer: x => x,
       },
     },
     processEnv: getProcessEnv(),
@@ -165,14 +148,10 @@ test('multiple tasks - all success', async () => {
     config: {
       queueName,
       repoPath,
-      maxWaitMsWithoutTasks: 100_000,
-      maxWaitMsUntilFirstTask: 100_000,
+      maxWaitMsWithoutTasks: 10_000,
+      maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
-      },
-      customLog: {
-        customLog: console.log.bind(console),
-        transformer: x => x,
       },
     },
     processEnv: getProcessEnv(),
@@ -215,14 +194,10 @@ test('single empty task - expect to fail', async () => {
     config: {
       queueName,
       repoPath,
-      maxWaitMsWithoutTasks: 100_000,
-      maxWaitMsUntilFirstTask: 100_000,
+      maxWaitMsWithoutTasks: 10_000,
+      maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
-      },
-      customLog: {
-        customLog: console.log.bind(console),
-        transformer: x => x,
       },
     },
     processEnv: getProcessEnv(),
@@ -258,14 +233,10 @@ test('single task - expect to fail', async () => {
     config: {
       queueName,
       repoPath,
-      maxWaitMsWithoutTasks: 100_000,
-      maxWaitMsUntilFirstTask: 100_000,
+      maxWaitMsWithoutTasks: 10_000,
+      maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
-      },
-      customLog: {
-        customLog: console.log.bind(console),
-        transformer: x => x,
       },
     },
     processEnv: getProcessEnv(),
@@ -305,14 +276,10 @@ test('multiple tasks - all fail', async () => {
     config: {
       queueName,
       repoPath,
-      maxWaitMsWithoutTasks: 100_000,
-      maxWaitMsUntilFirstTask: 100_000,
+      maxWaitMsWithoutTasks: 10_000,
+      maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
-      },
-      customLog: {
-        customLog: console.log.bind(console),
-        transformer: x => x,
       },
     },
     processEnv: getProcessEnv(),
@@ -360,7 +327,7 @@ test('the worker runs a task which fails so when the worker exits, it will exit 
   const workerConfig: WorkerConfig = {
     queueName,
     maxWaitMsWithoutTasks: 3_000,
-    maxWaitMsUntilFirstTask: 100_000,
+    maxWaitMsUntilFirstTask: 10_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -405,7 +372,7 @@ test('the worker runs multiple tasks which one of them fail. so when the worker 
   const workerConfig: WorkerConfig = {
     queueName,
     maxWaitMsWithoutTasks: 3_000,
-    maxWaitMsUntilFirstTask: 100_000,
+    maxWaitMsUntilFirstTask: 10_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -463,7 +430,7 @@ test('no tasks so the worker is closing automaticaly', async () => {
   const workerConfig: WorkerConfig = {
     queueName: `queue-${chance().hash().slice(0, 8)}`,
     maxWaitMsUntilFirstTask: 1_000,
-    maxWaitMsWithoutTasks: 100_000,
+    maxWaitMsWithoutTasks: 10_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -497,7 +464,7 @@ test('single task -> after that, no tasks so the worker is closing automaticaly'
   const workerConfig: WorkerConfig = {
     queueName,
     maxWaitMsWithoutTasks: 3_000,
-    maxWaitMsUntilFirstTask: 100_000,
+    maxWaitMsUntilFirstTask: 10_000,
     redis: {
       url: getResources().redisServerUrl,
     },
@@ -541,14 +508,10 @@ test('single task - success - override processEnv', async () => {
     config: {
       queueName,
       repoPath,
-      maxWaitMsWithoutTasks: 100_000,
-      maxWaitMsUntilFirstTask: 100_000,
+      maxWaitMsWithoutTasks: 10_000,
+      maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
-      },
-      customLog: {
-        customLog: console.log.bind(console),
-        transformer: x => x,
       },
     },
     processEnv: getProcessEnv(),
@@ -593,14 +556,10 @@ test('single task - success - part of a group', async () => {
     config: {
       queueName,
       repoPath,
-      maxWaitMsWithoutTasks: 100_000,
-      maxWaitMsUntilFirstTask: 100_000,
+      maxWaitMsWithoutTasks: 10_000,
+      maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
-      },
-      customLog: {
-        customLog: console.log.bind(console),
-        transformer: x => x,
       },
     },
     processEnv: getProcessEnv(),
@@ -652,14 +611,10 @@ test('single task - success - part of a group - override process-env', async () 
     config: {
       queueName,
       repoPath,
-      maxWaitMsWithoutTasks: 100_000,
-      maxWaitMsUntilFirstTask: 100_000,
+      maxWaitMsWithoutTasks: 10_000,
+      maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
-      },
-      customLog: {
-        customLog: console.log.bind(console),
-        transformer: x => x,
       },
     },
     processEnv: getProcessEnv(),
@@ -714,14 +669,10 @@ test('multiple tasks - before-all is called once', async () => {
     config: {
       queueName,
       repoPath,
-      maxWaitMsWithoutTasks: 100_000,
-      maxWaitMsUntilFirstTask: 100_000,
+      maxWaitMsWithoutTasks: 10_000,
+      maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
-      },
-      customLog: {
-        customLog: console.log.bind(console),
-        transformer: x => x,
       },
     },
     processEnv: getProcessEnv(),

@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+
 import chance from 'chance'
 import fastify from 'fastify'
 import fastifyRateLimiter from 'fastify-rate-limit'
@@ -31,20 +32,10 @@ export {
 export async function startQuayMockService(
   config: Config,
 ): Promise<{ address: string; cleanup: () => Promise<unknown> }> {
-  const logger = {
-    level: 'debug',
-    debug: (log: unknown) => config.customLog(log),
-    info: (log: unknown) => config.customLog(log),
-    trace: (log: unknown) => config.customLog(log),
-    error: (log: unknown) => config.customLog(log),
-    warn: (log: unknown) => config.customLog(log),
-    fatal: (log: unknown) => config.customLog(log),
-    child: () => logger,
-  }
   const app = fastify({
     logger: {
       prettyPrint: true,
-      level: 'info',
+      level: 'error',
     },
   })
 
@@ -215,7 +206,7 @@ export async function startQuayMockService(
 
     const build = db.namespaces[req.params.namespace].repos[req.params.repoName].builds[buildId]
 
-    app.log.info(`build-id: "${buildId}" - start building dockerfile`)
+    console.log(`build-id: "${buildId}" - start building dockerfile`)
 
     await res.send({
       status: '',
@@ -245,13 +236,12 @@ export async function startQuayMockService(
       buildId,
       cleanups,
       db,
-      log: app.log,
       config,
     })
   })
 
   const address = await app.listen(0)
-  app.log.info(`quay-mock-service: "${address}"`)
+  console.log(`quay-mock-service: "${address}"`)
   let closed = false
   return {
     address,
@@ -260,9 +250,9 @@ export async function startQuayMockService(
         return
       }
       closed = true
-      app.log.debug(`closing quay-mock-service: "${address}"`)
       await app.close()
       await Promise.allSettled(cleanups.map(f => f()))
+      console.log(`closed quay-mock-service: "${address}"`)
     },
   }
 }

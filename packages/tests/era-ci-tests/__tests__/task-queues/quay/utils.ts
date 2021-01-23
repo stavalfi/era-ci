@@ -59,7 +59,10 @@ export function beforeAfterEach(options?: {
 }): {
   getResources: () => TestResources
 } {
-  const testFuncs = createTest()
+  const testFuncs = createTest({
+    startQuayHelperService: true,
+    startQuayMockService: true,
+  })
 
   let getResources: TestResources
 
@@ -111,8 +114,6 @@ async function createTestDependencies(
     namespace: testFuncs.getResources().quayNamespace,
     token: testFuncs.getResources().quayToken,
     rateLimit: options?.quayMockService?.rateLimit || { max: 1000, timeWindowMs: 1000 * 1000 },
-    // eslint-disable-next-line no-console
-    customLog: console.log.bind(console),
   })
   testFuncs.getCleanups().push(quayMockService.cleanup)
 
