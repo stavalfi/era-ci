@@ -2,12 +2,11 @@ import { Config, Logger, LogLevel, RedisFlowEvent, TaskQueueBase } from '@era-ci
 import { JsonReport } from '@era-ci/steps'
 import { Graph, PackageJson, StepInfo, TargetType } from '@era-ci/utils'
 import { FolderStructure } from 'create-folder-structure'
+import { Redis } from 'ioredis'
 import { IDependencyMap } from 'package-json-type'
 import { DeepPartial } from 'ts-essentials'
 import { GitServer } from './git-server-testkit'
 
-import { ExecutionContext, TestInterface } from 'ava'
-import { Redis } from 'ioredis'
 export type TestWithContextType = {
   resources: TestResources
   sleep: (ms: number) => Promise<void>
@@ -16,12 +15,26 @@ export type TestWithContextType = {
   processEnv: NodeJS.ProcessEnv
   testLogger: Logger
 }
-export type TestWithContext = TestInterface<TestWithContextType>
 
 export { DeepPartial } from 'ts-essentials'
 export { TargetType, PackageJson }
 
 export type Cleanup = () => Promise<unknown>
+
+export type TestFuncs = {
+  sleep: (ms: number) => Promise<void>
+  getProcessEnv: () => TestProcessEnv
+  getResources: () => TestResources
+  getCleanups: () => Cleanup[]
+  createTestLogger: (repoPath: string) => Promise<Logger>
+}
+
+export type TestProcessEnv = {
+  NC_TEST_MODE: string
+  SKIP_EXIT_CODE_1: string
+  QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: string
+  ERA_CI_EVENTS_TOPIC_PREFIX: string
+}
 
 export type Package = {
   name: string
@@ -84,7 +97,6 @@ export type CreateRepoOptions<TaskQueue extends TaskQueueBase<any, any>> = {
 }
 
 export type CreateRepo = (
-  t: ExecutionContext<TestWithContextType>,
   options:
     | CreateRepoOptions<TaskQueueBase<any, any>>
     | ((toActualName: ToActualName) => CreateRepoOptions<TaskQueueBase<any, any>>),

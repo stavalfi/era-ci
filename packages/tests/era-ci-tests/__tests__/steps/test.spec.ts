@@ -1,4 +1,4 @@
-import { createRepo, createTest, isDeepSubset, test } from '@era-ci/e2e-tests-infra'
+import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { test as testStep } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { taskWorkerTaskQueue } from '@era-ci/task-queues'
@@ -9,13 +9,11 @@ import expect from 'expect'
 import fs from 'fs'
 import _ from 'lodash'
 
-createTest(test)
+const { createRepo, getCleanups, getProcessEnv, getResources, createTestLogger } = createTest()
 
-test('single worker - no packages', async t => {
-  t.timeout(50 * 1000)
-
+test('single worker - no packages', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [],
     },
@@ -24,7 +22,7 @@ test('single worker - no packages', async t => {
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -42,11 +40,9 @@ test('single worker - no packages', async t => {
   expect(passed).toBeTruthy()
 })
 
-test('single worker - no tasks', async t => {
-  t.timeout(50 * 1000)
-
+test('single worker - no tasks', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -60,7 +56,7 @@ test('single worker - no tasks', async t => {
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -78,12 +74,10 @@ test('single worker - no tasks', async t => {
   expect(passed).toBeTruthy()
 })
 
-test('single worker - single task', async t => {
-  t.timeout(50 * 1000)
-
+test('single worker - single task', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message = `hi-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -100,7 +94,7 @@ test('single worker - single task', async t => {
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -119,11 +113,9 @@ test('single worker - single task', async t => {
   expect(flowLogs.split(message)).toHaveLength(3) // ensure the message was printed two times (printing the command and then the result of the command)
 })
 
-test('splitTestsToMultipleVms=false - single worker - single task', async t => {
-  t.timeout(50 * 1000)
-
+test('splitTestsToMultipleVms=false - single worker - single task', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -140,7 +132,7 @@ test('splitTestsToMultipleVms=false - single worker - single task', async t => {
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -158,11 +150,9 @@ test('splitTestsToMultipleVms=false - single worker - single task', async t => {
   expect(flowLogs).toEqual(expect.stringContaining(`total=, index=`))
 })
 
-test('splitTestsToMultipleVms=undefined - single worker - single task', async t => {
-  t.timeout(50 * 1000)
-
+test('splitTestsToMultipleVms=undefined - single worker - single task', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -179,7 +169,7 @@ test('splitTestsToMultipleVms=undefined - single worker - single task', async t 
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -197,11 +187,9 @@ test('splitTestsToMultipleVms=undefined - single worker - single task', async t 
   expect(flowLogs).toEqual(expect.stringContaining(`total=, index=`))
 })
 
-test('splitTestsToMultipleVms - single worker - single task', async t => {
-  t.timeout(50 * 1000)
-
+test('splitTestsToMultipleVms - single worker - single task', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -218,7 +206,7 @@ test('splitTestsToMultipleVms - single worker - single task', async t => {
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -243,11 +231,9 @@ test('splitTestsToMultipleVms - single worker - single task', async t => {
   expect(flowLogs).toEqual(expect.stringContaining(`total=1, index=0`))
 })
 
-test('splitTestsToMultipleVms.startIndexingFromZero=false - single worker - single task', async t => {
-  t.timeout(50 * 1000)
-
+test('splitTestsToMultipleVms.startIndexingFromZero=false - single worker - single task', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -264,7 +250,7 @@ test('splitTestsToMultipleVms.startIndexingFromZero=false - single worker - sing
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -289,11 +275,9 @@ test('splitTestsToMultipleVms.startIndexingFromZero=false - single worker - sing
   expect(flowLogs).toEqual(expect.stringContaining(`total=1, index=1`))
 })
 
-test('splitTestsToMultipleVms - two workers - single task - two workers should execute the task but with different enviroment variables', async t => {
-  t.timeout(50 * 1000)
-
+test('splitTestsToMultipleVms - two workers - single task - two workers should execute the task but with different enviroment variables', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
-  const { runCi, repoPath } = await createRepo(t, {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -310,7 +294,7 @@ test('splitTestsToMultipleVms - two workers - single task - two workers should e
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -334,16 +318,16 @@ test('splitTestsToMultipleVms - two workers - single task - two workers should e
     config: {
       queueName,
       redis: {
-        url: t.context.resources.redisServerUrl,
+        url: getResources().redisServerUrl,
       },
       repoPath,
       maxWaitMsUntilFirstTask: 300_000,
       maxWaitMsWithoutTasks: 300_000,
     },
-    processEnv: t.context.processEnv,
-    logger: t.context.testLogger,
+    processEnv: getProcessEnv(),
+    logger: await createTestLogger(repoPath),
   })
-  t.context.cleanups.push(worker2.cleanup)
+  getCleanups().push(worker2.cleanup)
 
   const { flowLogs } = await runCi()
   const workerLogs = await fs.promises.readFile(worker2.logFilePath, 'utf-8')
@@ -353,11 +337,9 @@ test('splitTestsToMultipleVms - two workers - single task - two workers should e
   expect(combinedLogs).toEqual(expect.stringContaining(`total=2, index=1`))
 })
 
-test('splitTestsToMultipleVms - 5 workers - single task - 5 workers should execute the task but with different enviroment variables', async t => {
-  t.timeout(50 * 1000)
-
+test('splitTestsToMultipleVms - 5 workers - single task - 5 workers should execute the task but with different enviroment variables', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
-  const { runCi, repoPath } = await createRepo(t, {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -374,7 +356,7 @@ test('splitTestsToMultipleVms - 5 workers - single task - 5 workers should execu
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -395,23 +377,23 @@ test('splitTestsToMultipleVms - 5 workers - single task - 5 workers should execu
   })
 
   const workers = await Promise.all(
-    _.range(0, 5).map(() =>
+    _.range(0, 5).map(async () =>
       startWorker({
         config: {
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
           repoPath,
           maxWaitMsUntilFirstTask: 3_000,
           maxWaitMsWithoutTasks: 300_000,
         },
-        processEnv: t.context.processEnv,
-        logger: t.context.testLogger,
+        processEnv: getProcessEnv(),
+        logger: await createTestLogger(repoPath),
       }),
     ),
   )
-  t.context.cleanups.push(() => Promise.all(workers.map(worker => worker.cleanup())))
+  getCleanups().push(() => Promise.all(workers.map(worker => worker.cleanup())))
 
   const { flowLogs } = await runCi()
   const workersLogs = await Promise.all(workers.map(worker => fs.promises.readFile(worker.logFilePath, 'utf-8')))
@@ -422,11 +404,9 @@ test('splitTestsToMultipleVms - 5 workers - single task - 5 workers should execu
   }
 })
 
-test('splitTestsToMultipleVms - 5 workers - long single task - all workers are expected to run a sub-task', async t => {
-  t.timeout(50 * 1000)
-
+test('splitTestsToMultipleVms - 5 workers - long single task - all workers are expected to run a sub-task', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
-  const { runCi, repoPath } = await createRepo(t, {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -443,7 +423,7 @@ test('splitTestsToMultipleVms - 5 workers - long single task - all workers are e
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -464,23 +444,23 @@ test('splitTestsToMultipleVms - 5 workers - long single task - all workers are e
   })
 
   const workers = await Promise.all(
-    _.range(0, 5).map(() =>
+    _.range(0, 5).map(async () =>
       startWorker({
         config: {
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
           repoPath,
           maxWaitMsUntilFirstTask: 300_000,
           maxWaitMsWithoutTasks: 300_000,
         },
-        processEnv: t.context.processEnv,
-        logger: t.context.testLogger,
+        processEnv: getProcessEnv(),
+        logger: await createTestLogger(repoPath),
       }),
     ),
   )
-  t.context.cleanups.push(() => Promise.all(workers.map(worker => worker.cleanup())))
+  getCleanups().push(() => Promise.all(workers.map(worker => worker.cleanup())))
 
   const { flowLogs } = await runCi()
   const workersLogs = [
@@ -498,13 +478,11 @@ test('splitTestsToMultipleVms - 5 workers - long single task - all workers are e
   }
 })
 
-test('single worker - two tasks', async t => {
-  t.timeout(50 * 1000)
-
+test('single worker - two tasks', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message1 = `hi-${chance().hash().slice(0, 8)}`
   const message2 = `hi-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -528,7 +506,7 @@ test('single worker - two tasks', async t => {
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -550,12 +528,10 @@ test('single worker - two tasks', async t => {
   expect(flowLogs.split(message2)).toHaveLength(3) // ensure the message was printed two times (printing the command and then the result of the command)
 })
 
-test('two workers - single task - only one worker should execute the task', async t => {
-  t.timeout(50 * 1000)
-
+test('two workers - single task - only one worker should execute the task', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message = `hi-${chance().hash().slice(0, 8)}`
-  const { runCi, repoPath } = await createRepo(t, {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -572,7 +548,7 @@ test('two workers - single task - only one worker should execute the task', asyn
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -584,14 +560,14 @@ test('two workers - single task - only one worker should execute the task', asyn
     config: {
       queueName,
       redis: {
-        url: t.context.resources.redisServerUrl,
+        url: getResources().redisServerUrl,
       },
       repoPath,
       maxWaitMsUntilFirstTask: 3_000,
       maxWaitMsWithoutTasks: 3_000,
     },
-    processEnv: t.context.processEnv,
-    logger: t.context.testLogger,
+    processEnv: getProcessEnv(),
+    logger: await createTestLogger(repoPath),
   })
 
   const { flowLogs } = await runCi()
@@ -603,13 +579,11 @@ test('two workers - single task - only one worker should execute the task', asyn
   await worker2.cleanup() // we don't have to do it but it ends the test 1-2 seconds faster.
 })
 
-test('two workers - one task for each worker', async t => {
-  t.timeout(50 * 1000)
-
+test('two workers - one task for each worker', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message1 = `hi-${chance().hash().slice(0, 8)}`
   const message2 = `hi-${chance().hash().slice(0, 8)}`
-  const { runCi, repoPath } = await createRepo(t, {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -633,7 +607,7 @@ test('two workers - one task for each worker', async t => {
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -645,14 +619,14 @@ test('two workers - one task for each worker', async t => {
     config: {
       queueName,
       redis: {
-        url: t.context.resources.redisServerUrl,
+        url: getResources().redisServerUrl,
       },
       repoPath,
       maxWaitMsUntilFirstTask: 3_000,
       maxWaitMsWithoutTasks: 3_000,
     },
-    processEnv: t.context.processEnv,
-    logger: t.context.testLogger,
+    processEnv: getProcessEnv(),
+    logger: await createTestLogger(repoPath),
   })
 
   const { flowLogs } = await runCi()
@@ -668,12 +642,10 @@ test('two workers - one task for each worker', async t => {
   await worker2.cleanup() // we don't have to do it but it ends the test 1-2 seconds faster.
 })
 
-test('reproduce bug - single worker - single task - test should be skipped-as-passed in second run', async t => {
-  t.timeout(50 * 1000)
-
+test('reproduce bug - single worker - single task - test should be skipped-as-passed in second run', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message = `hi-${chance().hash().slice(0, 8)}`
-  const { runCi } = await createRepo(t, {
+  const { runCi } = await createRepo({
     repo: {
       packages: [
         {
@@ -690,7 +662,7 @@ test('reproduce bug - single worker - single task - test should be skipped-as-pa
         taskWorkerTaskQueue({
           queueName,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
@@ -703,7 +675,7 @@ test('reproduce bug - single worker - single task - test should be skipped-as-pa
   const { jsonReport } = await runCi()
 
   expect(
-    isDeepSubset(t, jsonReport, {
+    isDeepSubset(jsonReport, {
       stepsResultOfArtifactsByStep: [
         {
           data: {

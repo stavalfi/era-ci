@@ -1,12 +1,11 @@
 import { Logger } from '@era-ci/core'
 import { listTags } from '@era-ci/image-registry-client'
 import { distructPackageJsonName, getPackages } from '@era-ci/utils'
-import { ExecutionContext } from 'ava'
 import execa from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
 import semver from 'semver'
-import { ResultingArtifact, TestWithContextType } from './types'
+import { ResultingArtifact, TestFuncs } from './types'
 
 async function latestNpmPackageDistTags(
   packageName: string,
@@ -47,16 +46,14 @@ async function publishedNpmPackageVersions(packageName: string, npmRegistry: str
   }
 }
 
-export const getPublishResult = async ({
+export const getPublishResult = (testFuncs: TestFuncs) => async ({
   toOriginalName,
   repoPath,
   testLogger,
-  t,
 }: {
   toOriginalName: (artifactName: string) => string
   repoPath: string
   testLogger: Logger
-  t: ExecutionContext<TestWithContextType>
 }): Promise<Map<string, ResultingArtifact>> => {
   const log = testLogger.createLog('test')
   const packagesPaths = await getPackages({ repoPath, log })
@@ -65,12 +62,12 @@ export const getPublishResult = async ({
       .map(packagePath => fse.readJSONSync(path.join(packagePath, 'package.json')).name)
       .map<Promise<[string, ResultingArtifact]>>(async (packageName: string) => {
         const [versions, highestVersion, tags] = await Promise.all([
-          publishedNpmPackageVersions(packageName, t.context.resources.npmRegistry.address),
-          latestNpmPackageVersion(packageName, t.context.resources.npmRegistry.address),
+          publishedNpmPackageVersions(packageName, testFuncs.getResources().npmRegistry.address),
+          latestNpmPackageVersion(packageName, testFuncs.getResources().npmRegistry.address),
           listTags({
-            dockerOrg: t.context.resources.quayNamespace,
+            dockerOrg: testFuncs.getResources().quayNamespace,
             repo: distructPackageJsonName(packageName).name,
-            registry: t.context.resources.dockerRegistry,
+            registry: testFuncs.getResources().dockerRegistry,
           }).then(tags => [
             ...tags.filter(tag => !semver.valid(tag)),
             ...semver.sort(tags.filter(tag => semver.valid(tag))),

@@ -14,40 +14,35 @@ import { winstonLogger } from '@era-ci/loggers'
 import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@era-ci/steps'
 import { localSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
-import anyTest, { ExecutionContext } from 'ava'
 import chance from 'chance'
 import execa from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
 import { createGitRepo } from './create-git-repo'
-import { resourcesBeforeAfterAll } from './prepare-test-resources'
+import { resourcesBeforeAfterEach } from './prepare-test-resources'
 import { getPublishResult } from './seach-targets'
-import { Cleanup, CreateRepo, RunCiResult, TestWithContext, TestWithContextType } from './types'
+import { Cleanup, CreateRepo, RunCiResult, TestFuncs, TestProcessEnv } from './types'
 import { addReportToStepsAsLastNodes } from './utils'
 
-export const test = anyTest as TestWithContext
-
 export { createGitRepo } from './create-git-repo'
-export { resourcesBeforeAfterAll } from './prepare-test-resources'
-export { CreateRepo, DeepPartial, TestResources, TestWithContextType } from './types'
+export { resourcesBeforeAfterEach } from './prepare-test-resources'
+export { CreateRepo, DeepPartial, TestResources, TestWithContextType, TestFuncs } from './types'
 export { isDeepSubset } from './utils'
 
-const getJsonReport = async ({
+const getJsonReport = (testFuncs: TestFuncs) => async ({
   flowId,
   repoHash,
   jsonReportStepId,
   testLogger,
-  t,
 }: {
   flowId: string
   repoHash: string
   jsonReportStepId: string
   testLogger: Logger
-  t: ExecutionContext<TestWithContextType>
 }): Promise<JsonReport> => {
   const redisClient = await connectToRedis({
     config: {
-      url: t.context.resources.redisServerUrl,
+      url: testFuncs.getResources().redisServerUrl,
     },
     logger: testLogger,
   })
@@ -92,32 +87,33 @@ type RunCiOptions = {
   logFilePath: string
   stepsDontContainReport: boolean
   toOriginalName: (artifactName: string) => string
-  t: ExecutionContext<TestWithContextType>
   testLogger: Logger
 }
 
-const runCi = ({
+const runCi = (testFuncs: TestFuncs) => ({
   repoPath,
   configurations,
   logFilePath,
   stepsDontContainReport,
   toOriginalName,
-  t,
   testLogger,
 }: RunCiOptions) => async (options?: { processEnv?: NodeJS.ProcessEnv }): Promise<RunCiResult> => {
   const flowEvents: RedisFlowEvent[] = []
-  t.context.resources.redisFlowEventsSubscriptionsConnection.on('message', (_topic: string, eventString: string) =>
-    flowEvents.push(JSON.parse(eventString)),
-  )
+  testFuncs
+    .getResources()
+    .redisFlowEventsSubscriptionsConnection.on('message', (_topic: string, eventString: string) =>
+      flowEvents.push(JSON.parse(eventString)),
+    )
 
   const { flowId, repoHash, steps, passed, fatalError } = await ci({
     repoPath,
     config: configurations,
     processEnv: {
-      ...t.context.processEnv,
+      ...testFuncs.getProcessEnv(),
       ...options?.processEnv,
     },
-    customLog: { customLog: t.log.bind(t), transformer: x => `${t.title} - ${x}` },
+    // eslint-disable-next-line no-console
+    customLog: { customLog: console.log.bind(console), transformer: x => x },
   })
 
   flowEvents.sort((e1, e2) => e1.eventTs - e2.eventTs) // [1,2,3]
@@ -137,8 +133,7 @@ const runCi = ({
   const jsonReport =
     !fatalError &&
     !stepsDontContainReport &&
-    (await getJsonReport({
-      t,
+    (await getJsonReport(testFuncs)({
       testLogger,
       flowId,
       repoHash,
@@ -146,8 +141,7 @@ const runCi = ({
         jsonReportStepId || `we will never be here. this default value is here only because of typescript.`,
     }))
 
-  const published = await getPublishResult({
-    t,
+  const published = await getPublishResult(testFuncs)({
     testLogger,
     toOriginalName,
     repoPath,
@@ -179,7 +173,7 @@ const runCi = ({
   }
 }
 
-export const createRepo: CreateRepo = async (t, options) => {
+export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options => {
   const resourcesNamesPostfix = chance().hash().slice(0, 8)
 
   const toActualName = (name: string): string =>
@@ -189,28 +183,27 @@ export const createRepo: CreateRepo = async (t, options) => {
   const { repo, configurations = {}, dontAddReportSteps, logLevel = LogLevel.trace } =
     typeof options === 'function' ? options(toActualName) : options
 
-  const { gitServer } = t.context.resources
-
   const { repoPath } = await createGitRepo({
     repo,
-    gitServer,
+    gitServer: testFuncs.getResources().gitServer,
     toActualName,
     gitIgnoreFiles: ['era-ci.log', 'era-ci-test.log'],
   })
 
-  t.context.testLogger = await winstonLogger({
+  const testLogger = await winstonLogger({
     customLogLevel: LogLevel.trace,
     disabled: false,
     logFilePath: path.join(repoPath, 'era-ci-test.log'),
   }).callInitializeLogger({
     repoPath,
-    customLog: { customLog: t.log.bind(t), transformer: x => `${t.title} - ${x}` },
+    // eslint-disable-next-line no-console
+    customLog: { customLog: console.log.bind(console), transformer: x => x },
   })
 
   const getImageTags = async (packageName: string): Promise<string[]> => {
     return listTags({
-      registry: t.context.resources.dockerRegistry,
-      dockerOrg: t.context.resources.quayNamespace,
+      registry: testFuncs.getResources().dockerRegistry,
+      dockerOrg: testFuncs.getResources().quayNamespace,
       repo: toActualName(packageName),
     })
   }
@@ -226,7 +219,7 @@ export const createRepo: CreateRepo = async (t, options) => {
         logFilePath,
       }),
     redis: configurations.redis || {
-      url: t.context.resources.redisServerUrl,
+      url: testFuncs.getResources().redisServerUrl,
     },
     taskQueues: [
       localSequentalTaskQueue(),
@@ -240,9 +233,8 @@ export const createRepo: CreateRepo = async (t, options) => {
     gitHeadCommit: () => execa.command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath }).then(r => r.stdout),
     toActualName,
     getImageTags,
-    runCi: runCi({
-      t,
-      testLogger: t.context.testLogger,
+    runCi: runCi(testFuncs)({
+      testLogger,
       repoPath,
       toOriginalName,
       configurations: finalConfigurations,
@@ -252,36 +244,73 @@ export const createRepo: CreateRepo = async (t, options) => {
   }
 }
 
-function beforeAfterCleanups(test: TestWithContext) {
-  test.serial.beforeEach(async t => {
-    t.context.cleanups = []
+function beforeAfterCleanups(): () => Cleanup[] {
+  let cleanups: Cleanup[]
+  beforeEach(async () => {
+    cleanups = []
   })
-  test.serial.afterEach(async t => {
-    await Promise.allSettled(t.context.cleanups.map(f => f()))
+  afterEach(async () => {
+    await Promise.allSettled(cleanups.map(f => f()))
   })
+  return () => cleanups
 }
 
-export const sleep = (cleanups: Cleanup[]) => (ms: number): Promise<void> => {
+export const sleep = (getCleanups: () => Cleanup[]) => (ms: number): Promise<void> => {
   return new Promise(res => {
     const id = setTimeout(res, ms)
-    cleanups.push(async () => {
+    getCleanups().push(async () => {
       clearTimeout(id)
       res()
     })
   })
 }
 
-export function createTest(
-  test: TestWithContext,
-  options?: {
-    startQuayHelperService?: boolean
-    startQuayMockService?: boolean
-  },
-): void {
-  resourcesBeforeAfterAll(test, options)
-  beforeAfterCleanups(test)
-  test.serial.beforeEach(async t => {
-    t.context.sleep = sleep(t.context.cleanups)
-    t.context.createRepo = createRepo
+function processEnvBeforeAfterEach(): () => TestProcessEnv {
+  let processEnv: TestProcessEnv
+  beforeEach(async () => {
+    processEnv = {
+      NC_TEST_MODE: 'true',
+      SKIP_EXIT_CODE_1: 'true',
+      QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: `redis-topic-${chance().hash().slice(0, 8)}`,
+      ERA_CI_EVENTS_TOPIC_PREFIX: `redis-topic-${chance().hash().slice(0, 8)}`,
+    }
   })
+
+  return () => processEnv
+}
+
+const createTestLogger = async (repoPath: string) =>
+  winstonLogger({
+    customLogLevel: LogLevel.trace,
+    disabled: false,
+    logFilePath: path.join(repoPath, 'era-ci-test.log'),
+  }).callInitializeLogger({
+    repoPath,
+    // eslint-disable-next-line no-console
+    customLog: { customLog: console.log.bind(console), transformer: x => x },
+  })
+
+export function createTest(options?: {
+  startQuayHelperService?: boolean
+  startQuayMockService?: boolean
+}): TestFuncs & { createRepo: CreateRepo } {
+  const getProcessEnv = processEnvBeforeAfterEach()
+  const getResources = resourcesBeforeAfterEach({
+    ...options,
+    getProcessEnv,
+  })
+  const getCleanups = beforeAfterCleanups()
+
+  const testFuncs: TestFuncs = {
+    sleep: sleep(getCleanups),
+    getProcessEnv,
+    getResources,
+    getCleanups,
+    createTestLogger,
+  }
+
+  return {
+    ...testFuncs,
+    createRepo: createRepo(testFuncs),
+  }
 }

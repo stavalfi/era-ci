@@ -5,10 +5,8 @@ import { TargetType } from './prepare-test/types'
 const { createRepo } = newEnv(test)
 
 describe('npm package depends on.....', () => {
-  test('b-package depends on a-package, when a-package published, then b-package need to publish as well', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi, addRandomFileToPackage } = await createRepo(t, {
+  test('b-package depends on a-package, when a-package published, then b-package need to publish as well', async () => {
+    const { runCi, addRandomFileToPackage } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -55,10 +53,8 @@ describe('npm package depends on.....', () => {
     expect(master2.published.get('b')?.npm?.highestVersion).toEqual('2.0.1')
   })
 
-  test('b-package depends on a-package, when b-package published, then a-package dont need to publish as well', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi, addRandomFileToPackage } = await createRepo(t, {
+  test('b-package depends on a-package, when b-package published, then a-package dont need to publish as well', async () => {
+    const { runCi, addRandomFileToPackage } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -104,10 +100,8 @@ describe('npm package depends on.....', () => {
     expect(master2.published.get('b')?.npm?.highestVersion).toEqual('2.0.1')
   })
 
-  test('npm-package can depends on docker-package', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi } = await createRepo(t, {
+  test('npm-package can depends on docker-package', async () => {
+    const { runCi } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -144,10 +138,8 @@ describe('npm package depends on.....', () => {
     expect(result.ciProcessResult.failed).toBeFalsy()
   })
 
-  test('public npm-package cannot depends on private-npm-package', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi } = await createRepo(t, {
+  test('public npm-package cannot depends on private-npm-package', async () => {
+    const { runCi } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -188,10 +180,8 @@ describe('npm package depends on.....', () => {
   })
 })
 
-test('private npm-package can depends on private-npm-package', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('private npm-package can depends on private-npm-package', async () => {
+  const { runCi } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -220,10 +210,8 @@ test('private npm-package can depends on private-npm-package', async t => {
 })
 
 describe('docker-package depends on...', () => {
-  test('b-docker-package depends on a-package, when a-package published, then b-package need to publish as well', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi, addRandomFileToPackage, gitHeadCommit } = await createRepo(t, {
+  test('b-docker-package depends on a-package, when a-package published, then b-package need to publish as well', async () => {
+    const { runCi, addRandomFileToPackage, gitHeadCommit } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -279,10 +267,8 @@ describe('docker-package depends on...', () => {
     expect(master2.published.get('b')?.docker?.tags).toEqual(expect.arrayContaining([head1, head2]))
   })
 
-  test('docker-package can depends on docker-package', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi } = await createRepo(t, {
+  test('docker-package can depends on docker-package', async () => {
+    const { runCi } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -315,10 +301,8 @@ describe('docker-package depends on...', () => {
     expect(result.ciProcessResult.failed).toBeFalsy()
   })
 
-  test('docker-package can depend on private npm package', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi, gitHeadCommit } = await createRepo(t, {
+  test('docker-package can depend on private npm package', async () => {
+    const { runCi, gitHeadCommit } = await createRepo({
       packages: [
         {
           name: 'a',

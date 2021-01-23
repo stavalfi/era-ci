@@ -5,9 +5,9 @@ import expect from 'expect'
 import fs from 'fs'
 import path from 'path'
 import { first, map } from 'rxjs/operators'
-import { beforeAfterEach, test } from '../utils'
+import { beforeAfterEach } from '../utils'
 
-beforeAfterEach(test, {
+const { getResources } = beforeAfterEach({
   quayMockService: {
     rateLimit: {
       max: 1,
@@ -16,24 +16,22 @@ beforeAfterEach(test, {
   },
 })
 
-test('ensure task is aborted when it reaches timeout (while the retry mechanism is running)', async t => {
-  t.timeout(50 * 1000)
-
-  const [{ taskId }] = t.context.taskQueuesResources.queue.addTasksToQueue([
+test('ensure task is aborted when it reaches timeout (while the retry mechanism is running)', async () => {
+  const [{ taskId }] = getResources().taskQueuesResources.queue.addTasksToQueue([
     {
-      packageName: t.context.packages.package1.name,
-      repoName: distructPackageJsonName(t.context.packages.package1.name).name,
+      packageName: getResources().packages.package1.name,
+      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 1500,
     },
   ])
 
   const aborted = await firstValueFrom(
     toTaskEvent$(taskId, {
-      eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+      eventEmitter: getResources().taskQueuesResources.queue.eventEmitter,
       throwOnTaskNotPassed: false,
     }).pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.aborted),
@@ -44,32 +42,30 @@ test('ensure task is aborted when it reaches timeout (while the retry mechanism 
   expect(aborted.taskResult.notes).toEqual(['task-timeout'])
 })
 
-test('ensure task is aborted when it reaches timeout (while the docker-build is running)', async t => {
-  t.timeout(50 * 1000)
-
+test('ensure task is aborted when it reaches timeout (while the docker-build is running)', async () => {
   await fs.promises.writeFile(
-    path.join(t.context.taskQueuesResources.repoPath, t.context.packages.package1.relativeDockerFilePath),
+    path.join(getResources().taskQueuesResources.repoPath, getResources().packages.package1.relativeDockerFilePath),
     `
 FROM alpine
 RUN sleep 10000 # make sure that this task will not end
   `,
   )
 
-  const [{ taskId }] = t.context.taskQueuesResources.queue.addTasksToQueue([
+  const [{ taskId }] = getResources().taskQueuesResources.queue.addTasksToQueue([
     {
-      packageName: t.context.packages.package1.name,
-      repoName: distructPackageJsonName(t.context.packages.package1.name).name,
+      packageName: getResources().packages.package1.name,
+      repoName: distructPackageJsonName(getResources().packages.package1.name).name,
       visibility: 'public',
       imageTags: ['1.0.0'],
       relativeContextPath: '/',
-      relativeDockerfilePath: t.context.packages.package1.relativeDockerFilePath,
+      relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
       taskTimeoutMs: 3000,
     },
   ])
 
   const aborted = await firstValueFrom(
     toTaskEvent$(taskId, {
-      eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+      eventEmitter: getResources().taskQueuesResources.queue.eventEmitter,
       throwOnTaskNotPassed: false,
     }).pipe(
       first(e => e.taskExecutionStatus === ExecutionStatus.aborted),

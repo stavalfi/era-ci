@@ -5,10 +5,8 @@ import { TargetType } from '../../../prepare-test/types'
 const { createRepo } = newEnv(test)
 
 describe('run ci -> increase packageJson.version -> run ci', () => {
-  test('run ci -> increase packageJson.version in major -> run ci', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi, modifyPackageJson } = await createRepo(t, {
+  test('run ci -> increase packageJson.version in major -> run ci', async () => {
+    const { runCi, modifyPackageJson } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -42,10 +40,8 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     expect(master.published.get('a')?.npm?.highestVersion).toEqual('2.0.0')
   })
 
-  test('run ci -> increase packageJson.version in minor -> run ci', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi, modifyPackageJson } = await createRepo(t, {
+  test('run ci -> increase packageJson.version in minor -> run ci', async () => {
+    const { runCi, modifyPackageJson } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -78,10 +74,8 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.1.0')
   })
 
-  test('run ci -> increase packageJson.version in patch (should be next version anyway) -> run ci', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi, modifyPackageJson } = await createRepo(t, {
+  test('run ci -> increase packageJson.version in patch (should be next version anyway) -> run ci', async () => {
+    const { runCi, modifyPackageJson } = await createRepo({
       packages: [
         {
           name: 'a',
@@ -115,10 +109,8 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
     expect(master.published.get('a')?.npm?.highestVersion).toEqual('1.0.1')
   })
 
-  test('run ci -> increase packageJson.version in patch -> run ci', async t => {
-    t.timeout(50 * 1000)
-
-    const { runCi, modifyPackageJson } = await createRepo(t, {
+  test('run ci -> increase packageJson.version in patch -> run ci', async () => {
+    const { runCi, modifyPackageJson } = await createRepo({
       packages: [
         {
           name: 'a',

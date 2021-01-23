@@ -5,10 +5,8 @@ import { TargetType } from '../prepare-test/types'
 
 const { createRepo } = newEnv(test)
 
-test('1 package - make sure that app dont crush when we skip deployment', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('1 package - make sure that app dont crush when we skip deployment', async () => {
+  const { runCi } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -30,10 +28,8 @@ test('1 package - make sure that app dont crush when we skip deployment', async 
   expect(master.published.get('a')?.docker?.tags).toEqual(['1.0.0'])
 })
 
-test('1 package - make sure we skip deployment', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('1 package - make sure we skip deployment', async () => {
+  const { runCi } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -61,10 +57,8 @@ test('1 package - make sure we skip deployment', async t => {
   ).resolves.toBeTruthy()
 })
 
-test('1 package - ensure deploymentClient is passed to other functions', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('1 package - ensure deploymentClient is passed to other functions', async () => {
+  const { runCi } = await createRepo({
     packages: [
       {
         name: 'a',

@@ -1,13 +1,9 @@
-import { Logger, LogLevel } from '@era-ci/core'
-import { createRepo, CreateRepo, createTest, TestWithContextType } from '@era-ci/e2e-tests-infra'
+import { Logger } from '@era-ci/core'
+import { CreateRepo, createTest, TestFuncs } from '@era-ci/e2e-tests-infra'
 import { listTags } from '@era-ci/image-registry-client'
-import { winstonLogger } from '@era-ci/loggers'
-import { startQuayHelperService } from '@era-ci/quay-helper-service'
 import { startQuayMockService } from '@era-ci/quay-mock-service'
 import { QuayBuildsTaskQueue, quayBuildsTaskQueue } from '@era-ci/task-queues'
 import { distructPackageJsonName, getGitRepoInfo } from '@era-ci/utils'
-import anyTest, { ExecutionContext, TestInterface } from 'ava'
-import chance from 'chance'
 import _ from 'lodash'
 import path from 'path'
 
@@ -23,75 +19,84 @@ export type ContextType = {
   }
 }
 
-export const test = anyTest as TestInterface<ContextType & TestWithContextType>
-
 type TestDependencies = {
-  quayServiceHelper: { address: string; cleanup: () => Promise<unknown> }
   quayMockService: { address: string; cleanup: () => Promise<unknown> }
-  quayNamespace: string
-  quayToken: string
   repoPath: string
   logger: Logger
   queue: QuayBuildsTaskQueue
   toActualPackageName: (packageName: string) => string
 }
 
-const getImageTags = (t: ExecutionContext<ContextType & TestWithContextType>) => (packageName: string) =>
+const getImageTags = ({
+  getResources,
+  toActualPackageName,
+}: TestFuncs & { createRepo: CreateRepo } & TestDependencies) => (packageName: string) =>
   listTags({
-    registry: t.context.resources.dockerRegistry,
-    dockerOrg: t.context.taskQueuesResources.quayNamespace,
-    repo: distructPackageJsonName(t.context.taskQueuesResources.toActualPackageName(packageName)).name,
+    registry: getResources().dockerRegistry,
+    dockerOrg: getResources().quayNamespace,
+    repo: distructPackageJsonName(toActualPackageName(packageName)).name,
   })
 
-export function beforeAfterEach(
-  test: TestInterface<ContextType & TestWithContextType>,
-  options?: {
-    quayMockService?: {
-      rateLimit?: {
-        max: number
-        timeWindowMs: number
-      }
+type TestResources = {
+  taskQueuesResources: TestDependencies
+  getImageTags: (packageName: string) => Promise<string[]>
+  packages: {
+    [k: string]: {
+      name: string
+      relativeDockerFilePath: string
+      path: string
     }
-  },
-) {
-  createTest(test)
+  }
+}
 
-  test.serial.beforeEach(async t => {
-    t.context.taskQueuesResources = await createTestDependencies(t, createRepo, options)
-    t.context.getImageTags = getImageTags(t)
-    t.context.packages = Object.fromEntries(
+export function beforeAfterEach(options?: {
+  quayMockService?: {
+    rateLimit?: {
+      max: number
+      timeWindowMs: number
+    }
+  }
+}): {
+  getResources: () => TestResources
+} {
+  const testFuncs = createTest()
+
+  let getResources: TestResources
+
+  beforeEach(async () => {
+    const taskQueuesResources = await createTestDependencies(testFuncs, options)
+    const getImageTags1 = getImageTags({ ...testFuncs, ...taskQueuesResources })
+    const packages = Object.fromEntries(
       _.range(0, 15).map(i => [
         `package${i}`,
         {
-          name: t.context.taskQueuesResources.toActualPackageName(`package${i}`),
+          name: taskQueuesResources.toActualPackageName(`package${i}`),
           relativeDockerFilePath: path.join(
             '/',
             'packages',
-            t.context.taskQueuesResources.toActualPackageName(`package${i}`),
+            taskQueuesResources.toActualPackageName(`package${i}`),
             'Dockerfile',
           ),
           path: path.join(
-            t.context.taskQueuesResources.repoPath,
+            taskQueuesResources.repoPath,
             'packages',
-            t.context.taskQueuesResources.toActualPackageName(`package${i}`),
+            taskQueuesResources.toActualPackageName(`package${i}`),
           ),
         },
       ]),
     )
+    getResources = {
+      taskQueuesResources,
+      getImageTags: getImageTags1,
+      packages,
+    }
   })
 
-  test.serial.afterEach(async t => {
-    await Promise.all([
-      t.context.taskQueuesResources.quayMockService.cleanup(),
-      t.context.taskQueuesResources.quayServiceHelper.cleanup(),
-      t.context.taskQueuesResources.queue.cleanup(),
-    ])
-  })
+  return { getResources: () => getResources }
 }
 
 async function createTestDependencies(
-  t: ExecutionContext<ContextType & TestWithContextType>,
-  createRepo: CreateRepo,
+  testFuncs: TestFuncs & { createRepo: CreateRepo },
   options?: {
     quayMockService?: {
       rateLimit?: {
@@ -101,24 +106,17 @@ async function createTestDependencies(
     }
   },
 ): Promise<TestDependencies> {
-  const redisTopic = `redis-topic-${chance().hash().slice(0, 8)}`
-  const quayServiceHelper = await startQuayHelperService({
-    PORT: '0',
-    REDIS_ADDRESS: t.context.resources.redisServerUrl,
-    QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: redisTopic,
-    NC_TEST_MODE: 'true',
-  })
-  const quayNamespace = `namespace-${chance().hash().slice(0, 8)}`
-  const quayToken = `token-${chance().hash().slice(0, 8)}`
   const quayMockService = await startQuayMockService({
-    dockerRegistryAddress: t.context.resources.dockerRegistry,
-    namespace: quayNamespace,
-    token: quayToken,
+    dockerRegistryAddress: testFuncs.getResources().dockerRegistry,
+    namespace: testFuncs.getResources().quayNamespace,
+    token: testFuncs.getResources().quayToken,
     rateLimit: options?.quayMockService?.rateLimit || { max: 1000, timeWindowMs: 1000 * 1000 },
-    customLog: t.log.bind(t),
+    // eslint-disable-next-line no-console
+    customLog: console.log.bind(console),
   })
+  testFuncs.getCleanups().push(quayMockService.cleanup)
 
-  const { repoPath, toActualName } = await createRepo(t, {
+  const { repoPath, toActualName } = await testFuncs.createRepo({
     repo: {
       packages: _.range(0, 15).map(i => ({
         name: `package${i}`,
@@ -133,21 +131,19 @@ async function createTestDependencies(
     },
   })
 
-  const logger = await winstonLogger({
-    customLogLevel: LogLevel.trace,
-    disabled: false,
-    logFilePath: './era-ci.log',
-  }).callInitializeLogger({ repoPath, customLog: { customLog: t.log.bind(t), transformer: x => `${t.title} - ${x}` } })
+  const logger = await testFuncs.createTestLogger(repoPath)
 
   const queue = await quayBuildsTaskQueue({
     getCommitTarGzPublicAddress: () =>
-      `${quayServiceHelper.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+      `${
+        testFuncs.getResources().quayHelperService.address
+      }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
     quayAddress: quayMockService.address,
-    quayNamespace,
-    quayServiceHelperAddress: quayServiceHelper.address,
-    quayToken,
+    quayNamespace: testFuncs.getResources().quayNamespace,
+    quayToken: testFuncs.getResources().quayToken,
+    quayServiceHelperAddress: testFuncs.getResources().quayHelperService.address,
     redis: {
-      url: t.context.resources.redisServerUrl,
+      url: testFuncs.getResources().redisServerUrl,
     },
   }).createFunc({
     log: logger.createLog('quayBuildsTaskQueue'),
@@ -155,16 +151,14 @@ async function createTestDependencies(
     logger,
     repoPath,
     processEnv: {
-      QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: redisTopic,
+      QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: testFuncs.getProcessEnv().QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC,
     },
   })
+  testFuncs.getCleanups().push(queue.cleanup)
 
   return {
     logger,
-    quayToken,
     quayMockService,
-    quayServiceHelper,
-    quayNamespace,
     queue,
     repoPath,
     toActualPackageName: toActualName,

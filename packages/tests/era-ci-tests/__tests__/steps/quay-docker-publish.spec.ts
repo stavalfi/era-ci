@@ -1,19 +1,17 @@
-import { createRepo, createTest, test } from '@era-ci/e2e-tests-infra'
+import { createTest } from '@era-ci/e2e-tests-infra'
 import { quayDockerPublish } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { quayBuildsTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status, TargetType } from '@era-ci/utils'
 import expect from 'expect'
 
-createTest(test, {
+const { getResources, createRepo } = createTest({
   startQuayHelperService: true,
   startQuayMockService: true,
 })
 
-test('single package - no problems - step should pass', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, gitHeadCommit, repoPath } = await createRepo(t, {
+test('single package - no problems - step should pass', async () => {
+  const { runCi, gitHeadCommit, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -32,22 +30,24 @@ test('single package - no problems - step should pass', async t => {
       taskQueues: [
         quayBuildsTaskQueue({
           getCommitTarGzPublicAddress: (): string =>
-            `${t.context.resources.quayHelperService.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
-          quayAddress: t.context.resources.quayMockService.address,
-          quayNamespace: t.context.resources.quayNamespace,
-          quayServiceHelperAddress: t.context.resources.quayHelperService.address,
-          quayToken: t.context.resources.quayToken,
+            `${
+              getResources().quayHelperService.address
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService.address,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayToken: getResources().quayToken,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
         quayDockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: t.context.resources.quayNamespace,
+          dockerOrganizationName: getResources().quayNamespace,
           dockerfileBuildTimeoutMs: 100 * 1000,
-          registry: t.context.resources.dockerRegistry,
+          registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
           buildAndPushOnlyTempVersion: false,
         }),
@@ -62,10 +62,8 @@ test('single package - no problems - step should pass', async t => {
   )
 })
 
-test('multiple packages - no problems - step should pass', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, gitHeadCommit, repoPath } = await createRepo(t, {
+test('multiple packages - no problems - step should pass', async () => {
+  const { runCi, gitHeadCommit, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -94,22 +92,24 @@ test('multiple packages - no problems - step should pass', async t => {
       taskQueues: [
         quayBuildsTaskQueue({
           getCommitTarGzPublicAddress: (): string =>
-            `${t.context.resources.quayHelperService.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
-          quayAddress: t.context.resources.quayMockService.address,
-          quayNamespace: t.context.resources.quayNamespace,
-          quayServiceHelperAddress: t.context.resources.quayHelperService.address,
-          quayToken: t.context.resources.quayToken,
+            `${
+              getResources().quayHelperService.address
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService.address,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayToken: getResources().quayToken,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
         quayDockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: t.context.resources.quayNamespace,
+          dockerOrganizationName: getResources().quayNamespace,
           dockerfileBuildTimeoutMs: 100 * 1000,
-          registry: t.context.resources.dockerRegistry,
+          registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
           buildAndPushOnlyTempVersion: false,
         }),
@@ -128,10 +128,8 @@ test('multiple packages - no problems - step should pass', async t => {
   )
 })
 
-test('expect the step to be failed if the dockerfile has an error', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, repoPath } = await createRepo(t, {
+test('expect the step to be failed if the dockerfile has an error', async () => {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -150,22 +148,24 @@ test('expect the step to be failed if the dockerfile has an error', async t => {
       taskQueues: [
         quayBuildsTaskQueue({
           getCommitTarGzPublicAddress: (): string =>
-            `${t.context.resources.quayHelperService.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
-          quayAddress: t.context.resources.quayMockService.address,
-          quayNamespace: t.context.resources.quayNamespace,
-          quayServiceHelperAddress: t.context.resources.quayHelperService.address,
-          quayToken: t.context.resources.quayToken,
+            `${
+              getResources().quayHelperService.address
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService.address,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayToken: getResources().quayToken,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
         quayDockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: t.context.resources.quayNamespace,
+          dockerOrganizationName: getResources().quayNamespace,
           dockerfileBuildTimeoutMs: 100 * 1000,
-          registry: t.context.resources.dockerRegistry,
+          registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
           buildAndPushOnlyTempVersion: false,
         }),
@@ -182,10 +182,8 @@ test('expect the step to be failed if the dockerfile has an error', async t => {
   }
 })
 
-test('run step again on failure and expect to abort-as-failed on second run', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, repoPath } = await createRepo(t, {
+test('run step again on failure and expect to abort-as-failed on second run', async () => {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -204,22 +202,24 @@ test('run step again on failure and expect to abort-as-failed on second run', as
       taskQueues: [
         quayBuildsTaskQueue({
           getCommitTarGzPublicAddress: (): string =>
-            `${t.context.resources.quayHelperService.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
-          quayAddress: t.context.resources.quayMockService.address,
-          quayNamespace: t.context.resources.quayNamespace,
-          quayServiceHelperAddress: t.context.resources.quayHelperService.address,
-          quayToken: t.context.resources.quayToken,
+            `${
+              getResources().quayHelperService.address
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService.address,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayToken: getResources().quayToken,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
         quayDockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: t.context.resources.quayNamespace,
+          dockerOrganizationName: getResources().quayNamespace,
           dockerfileBuildTimeoutMs: 100 * 1000,
-          registry: t.context.resources.dockerRegistry,
+          registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
           buildAndPushOnlyTempVersion: false,
         }),
@@ -238,10 +238,8 @@ test('run step again on failure and expect to abort-as-failed on second run', as
   }
 })
 
-test('do not run step again if step succeed (image built and pushed to registry)', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, repoPath } = await createRepo(t, {
+test('do not run step again if step succeed (image built and pushed to registry)', async () => {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -260,22 +258,24 @@ test('do not run step again if step succeed (image built and pushed to registry)
       taskQueues: [
         quayBuildsTaskQueue({
           getCommitTarGzPublicAddress: (): string =>
-            `${t.context.resources.quayHelperService.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
-          quayAddress: t.context.resources.quayMockService.address,
-          quayNamespace: t.context.resources.quayNamespace,
-          quayServiceHelperAddress: t.context.resources.quayHelperService.address,
-          quayToken: t.context.resources.quayToken,
+            `${
+              getResources().quayHelperService.address
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService.address,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayToken: getResources().quayToken,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
         quayDockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: t.context.resources.quayNamespace,
+          dockerOrganizationName: getResources().quayNamespace,
           dockerfileBuildTimeoutMs: 100 * 1000,
-          registry: t.context.resources.dockerRegistry,
+          registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
           buildAndPushOnlyTempVersion: false,
         }),
@@ -294,10 +294,8 @@ test('do not run step again if step succeed (image built and pushed to registry)
   }
 })
 
-test('publish with semver-tag', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, gitHeadCommit, repoPath } = await createRepo(t, {
+test('publish with semver-tag', async () => {
+  const { runCi, gitHeadCommit, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -311,22 +309,24 @@ test('publish with semver-tag', async t => {
       taskQueues: [
         quayBuildsTaskQueue({
           getCommitTarGzPublicAddress: (): string =>
-            `${t.context.resources.quayHelperService.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
-          quayAddress: t.context.resources.quayMockService.address,
-          quayNamespace: t.context.resources.quayNamespace,
-          quayServiceHelperAddress: t.context.resources.quayHelperService.address,
-          quayToken: t.context.resources.quayToken,
+            `${
+              getResources().quayHelperService.address
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService.address,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayToken: getResources().quayToken,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
         quayDockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: t.context.resources.quayNamespace,
+          dockerOrganizationName: getResources().quayNamespace,
           dockerfileBuildTimeoutMs: 100 * 1000,
-          registry: t.context.resources.dockerRegistry,
+          registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
           buildAndPushOnlyTempVersion: false,
         }),
@@ -341,10 +341,8 @@ test('publish with semver-tag', async t => {
   )
 })
 
-test('publish with hash-tag', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, repoPath } = await createRepo(t, {
+test('publish with hash-tag', async () => {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -358,22 +356,24 @@ test('publish with hash-tag', async t => {
       taskQueues: [
         quayBuildsTaskQueue({
           getCommitTarGzPublicAddress: (): string =>
-            `${t.context.resources.quayHelperService.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
-          quayAddress: t.context.resources.quayMockService.address,
-          quayNamespace: t.context.resources.quayNamespace,
-          quayServiceHelperAddress: t.context.resources.quayHelperService.address,
-          quayToken: t.context.resources.quayToken,
+            `${
+              getResources().quayHelperService.address
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService.address,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayToken: getResources().quayToken,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
         quayDockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: t.context.resources.quayNamespace,
+          dockerOrganizationName: getResources().quayNamespace,
           dockerfileBuildTimeoutMs: 100 * 1000,
-          registry: t.context.resources.dockerRegistry,
+          registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
           buildAndPushOnlyTempVersion: true,
         }),
@@ -388,10 +388,8 @@ test('publish with hash-tag', async t => {
   ])
 })
 
-test('publish with hash-tag and then with semver-tag', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, gitHeadCommit, repoPath } = await createRepo(t, {
+test('publish with hash-tag and then with semver-tag', async () => {
+  const { runCi, gitHeadCommit, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -405,22 +403,24 @@ test('publish with hash-tag and then with semver-tag', async t => {
       taskQueues: [
         quayBuildsTaskQueue({
           getCommitTarGzPublicAddress: (): string =>
-            `${t.context.resources.quayHelperService.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
-          quayAddress: t.context.resources.quayMockService.address,
-          quayNamespace: t.context.resources.quayNamespace,
-          quayServiceHelperAddress: t.context.resources.quayHelperService.address,
-          quayToken: t.context.resources.quayToken,
+            `${
+              getResources().quayHelperService.address
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService.address,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayToken: getResources().quayToken,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
         quayDockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: t.context.resources.quayNamespace,
+          dockerOrganizationName: getResources().quayNamespace,
           dockerfileBuildTimeoutMs: 100 * 1000,
-          registry: t.context.resources.dockerRegistry,
+          registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
           buildAndPushOnlyTempVersion: true,
         }),
@@ -441,10 +441,8 @@ test('publish with hash-tag and then with semver-tag', async t => {
   )
 })
 
-test('publish with hash-tag twice', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, repoPath } = await createRepo(t, {
+test('publish with hash-tag twice', async () => {
+  const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -458,22 +456,24 @@ test('publish with hash-tag twice', async t => {
       taskQueues: [
         quayBuildsTaskQueue({
           getCommitTarGzPublicAddress: (): string =>
-            `${t.context.resources.quayHelperService.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
-          quayAddress: t.context.resources.quayMockService.address,
-          quayNamespace: t.context.resources.quayNamespace,
-          quayServiceHelperAddress: t.context.resources.quayHelperService.address,
-          quayToken: t.context.resources.quayToken,
+            `${
+              getResources().quayHelperService.address
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService.address,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayToken: getResources().quayToken,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
         quayDockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: t.context.resources.quayNamespace,
+          dockerOrganizationName: getResources().quayNamespace,
           dockerfileBuildTimeoutMs: 100 * 1000,
-          registry: t.context.resources.dockerRegistry,
+          registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
           buildAndPushOnlyTempVersion: true,
         }),
@@ -490,10 +490,8 @@ test('publish with hash-tag twice', async t => {
   ])
 })
 
-test('publish with semver-tag twice', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, gitHeadCommit, repoPath } = await createRepo(t, {
+test('publish with semver-tag twice', async () => {
+  const { runCi, gitHeadCommit, repoPath } = await createRepo({
     repo: {
       packages: [
         {
@@ -507,22 +505,24 @@ test('publish with semver-tag twice', async t => {
       taskQueues: [
         quayBuildsTaskQueue({
           getCommitTarGzPublicAddress: (): string =>
-            `${t.context.resources.quayHelperService.address}/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
-          quayAddress: t.context.resources.quayMockService.address,
-          quayNamespace: t.context.resources.quayNamespace,
-          quayServiceHelperAddress: t.context.resources.quayHelperService.address,
-          quayToken: t.context.resources.quayToken,
+            `${
+              getResources().quayHelperService.address
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          quayAddress: getResources().quayMockService.address,
+          quayNamespace: getResources().quayNamespace,
+          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayToken: getResources().quayToken,
           redis: {
-            url: t.context.resources.redisServerUrl,
+            url: getResources().redisServerUrl,
           },
         }),
       ],
       steps: createLinearStepsGraph([
         quayDockerPublish({
           isStepEnabled: true,
-          dockerOrganizationName: t.context.resources.quayNamespace,
+          dockerOrganizationName: getResources().quayNamespace,
           dockerfileBuildTimeoutMs: 100 * 1000,
-          registry: t.context.resources.dockerRegistry,
+          registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
           buildAndPushOnlyTempVersion: false,
         }),

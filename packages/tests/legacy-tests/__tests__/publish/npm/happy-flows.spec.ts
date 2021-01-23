@@ -5,10 +5,8 @@ import { TargetType } from '../../prepare-test/types'
 
 const { createRepo } = newEnv(test)
 
-test('1 package', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('1 package', async () => {
+  const { runCi } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -29,10 +27,8 @@ test('1 package', async t => {
   expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
 })
 
-test.only('multiple publishes of the same package', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi, addRandomFileToPackage } = await createRepo(t, {
+test.only('multiple publishes of the same package', async () => {
+  const { runCi, addRandomFileToPackage } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -80,10 +76,8 @@ test.only('multiple publishes of the same package', async t => {
   expect(master3.published.get('a')?.npm?.highestVersion).toEqual('1.0.2')
 })
 
-test('multiple packages', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('multiple packages', async () => {
+  const { runCi } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -116,11 +110,9 @@ test('multiple packages', async t => {
   expect(master.published.get('c')?.npm?.versions).toEqual(['3.0.0'])
 })
 
-test('1 package - validate publish content', async t => {
-  t.timeout(50 * 1000)
-
+test('1 package - validate publish content', async () => {
   const hash = chance().hash().slice(0, 8)
-  const { runCi, installAndRunNpmDependency } = await createRepo(t, {
+  const { runCi, installAndRunNpmDependency } = await createRepo({
     packages: [
       {
         name: 'a',
@@ -147,10 +139,8 @@ test('1 package - validate publish content', async t => {
   )
 })
 
-test('reproduce bug in travelGraph function', async t => {
-  t.timeout(50 * 1000)
-
-  const { runCi } = await createRepo(t, {
+test('reproduce bug in travelGraph function', async () => {
+  const { runCi } = await createRepo({
     packages: [
       {
         name: 'a',

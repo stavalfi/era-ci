@@ -1,10 +1,10 @@
 import { toTaskEvent$ } from '@era-ci/core'
 import { distructPackageJsonName, lastValueFrom } from '@era-ci/utils'
 import { merge } from 'rxjs'
-import { beforeAfterEach, test } from '../utils'
+import { beforeAfterEach } from '../utils'
 import expect from 'expect'
 
-beforeAfterEach(test, {
+const { getResources } = beforeAfterEach({
   quayMockService: {
     rateLimit: {
       max: 14,
@@ -13,11 +13,9 @@ beforeAfterEach(test, {
   },
 })
 
-test('ensure-retry-works-when-429-response.spec - multiple tasks', async t => {
-  t.timeout(50 * 1000)
-
-  const tasks = t.context.taskQueuesResources.queue.addTasksToQueue(
-    Object.values(t.context.packages).map((packageInfo, i) => ({
+test('ensure-retry-works-when-429-response.spec - multiple tasks', async () => {
+  const tasks = getResources().taskQueuesResources.queue.addTasksToQueue(
+    Object.values(getResources().packages).map((packageInfo, i) => ({
       packageName: packageInfo.name,
       repoName: distructPackageJsonName(packageInfo.name).name,
       visibility: 'public',
@@ -32,20 +30,21 @@ test('ensure-retry-works-when-429-response.spec - multiple tasks', async t => {
     merge(
       ...tasks.map(task =>
         toTaskEvent$(task.taskId, {
-          eventEmitter: t.context.taskQueuesResources.queue.eventEmitter,
+          eventEmitter: getResources().taskQueuesResources.queue.eventEmitter,
           throwOnTaskNotPassed: true,
         }),
       ),
     ),
   ).catch(error => {
-    t.log(
+    // eslint-disable-next-line no-console
+    console.log(
       'manually printing error because the error-properties are not shown by test-runner: ',
       JSON.stringify(error, null, 2),
     )
     throw error
   })
 
-  for (const [i, packageInfo] of Object.values(t.context.packages).entries()) {
-    await expect(t.context.getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])
+  for (const [i, packageInfo] of Object.values(getResources().packages).entries()) {
+    await expect(getResources().getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])
   }
 })
