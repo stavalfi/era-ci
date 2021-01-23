@@ -16,8 +16,8 @@
     "build:tsc": "yarn tsc -b tsconfig-build.json",
     "build": "yarn build:tsc && chmod +x packages/core/dist/src/index.js",
     "build:watch": "yarn build:tsc --watch",
-    "test-resources:up": "docker-compose -f ./packages/tests/legacy-tests/__tests__/prepare-test/docker-compose.yml up -d",
-    "test-resources:down": "docker-compose -f ./packages/tests/legacy-tests/__tests__/prepare-test/docker-compose.yml down",
+    "test-resources:up": "docker-compose -f test-docker-compose.yml up -d",
+    "test-resources:down": "docker-compose -f test-docker-compose.yml down",
     "test-resources:reset": "yarn test-resources:down && yarn test-resources:up"
   },
   "repository": {
@@ -25,9 +25,7 @@
   },
   "workspaces": [
     "packages/*",
-    "packages/tests/e2e-tests-infra",
-    "packages/tests/era-ci-tests",
-    "packages/tests/quay-mock-service"
+    "packages/tests/*"
   ],
   "husky": {
     "hooks": {

@@ -1,11 +1,11 @@
 import chance from 'chance'
 import execa from 'execa'
 import expect from 'expect'
-import { newEnv, test } from '../../prepare-test'
+import { newEnv } from '../../prepare-test'
 import { runDockerImage } from '../../prepare-test/test-helpers'
 import { TargetType } from '../../prepare-test/types'
 
-const { createRepo } = newEnv(test)
+const { createRepo, getResources } = newEnv()
 
 test('1 package', async () => {
   const { runCi, gitHeadCommit } = await createRepo({

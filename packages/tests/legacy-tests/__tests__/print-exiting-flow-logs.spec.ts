@@ -1,8 +1,8 @@
 import expect from 'expect'
-import { describe, newEnv, test } from './prepare-test'
+import { newEnv } from './prepare-test'
 import { TargetType } from './prepare-test/types'
 
-const { createRepo } = newEnv(test)
+const { createRepo } = newEnv()
 
 describe('@era-ci/core --print-flow <flow-id>', () => {
   test('ensure we can print old flow logs', async () => {

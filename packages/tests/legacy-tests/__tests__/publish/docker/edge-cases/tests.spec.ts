@@ -1,8 +1,8 @@
 import expect from 'expect'
-import { newEnv, test } from '../../../prepare-test'
+import { newEnv } from '../../../prepare-test'
 import { TargetType } from '../../../prepare-test/types'
 
-const { createRepo } = newEnv(test)
+const { createRepo } = newEnv()
 
 test(`run ci as the first time after there is already a docker publish`, async () => {
   const { runCi, gitHeadCommit, publishDockerPackageWithoutCi } = await createRepo({

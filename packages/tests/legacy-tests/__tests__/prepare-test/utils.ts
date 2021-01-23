@@ -1,12 +1,10 @@
-import { LogLevel } from '@era-ci/core'
-import { winstonLogger } from '@era-ci/loggers'
+import { Logger } from '@era-ci/core'
 import { distructPackageJsonName, execaCommand } from '@era-ci/utils'
-import { ExecutionContext } from 'ava'
 import execa, { StdioOption } from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
 import { latestNpmPackageVersion, publishedDockerImageTags, publishedNpmPackageVersions } from './seach-targets'
-import { CiResults, ResultingArtifact, TestOptions, TestWithContextType, ToActualName } from './types'
+import { CiResults, ResultingArtifact, TestOptions, ToActualName } from './types'
 
 export async function getPackages(repoPath: string): Promise<Array<string>> {
   const result = await execa.command('yarn workspaces --json info', {
@@ -39,26 +37,19 @@ export async function runNcExecutable({
   printFlowId,
   dockerOrganizationName,
   dockerRegistry,
-  redisServer,
+  redisServerUrl,
   npmRegistry,
-  t,
+  testLogger,
 }: {
   repoPath: string
   testOptions?: TestOptions
   printFlowId?: string
-  redisServer: string
+  redisServerUrl: string
   npmRegistry: { address: string; auth: { username: string; token: string; email: string } }
   dockerRegistry: string
   dockerOrganizationName: string
-  t: ExecutionContext<TestWithContextType>
+  testLogger: Logger
 }): Promise<execa.ExecaReturnValue<string>> {
-  const testLogger = await winstonLogger({
-    disabled: false,
-    customLogLevel: LogLevel.trace,
-    logFilePath: path.join(repoPath, 'test-logs.log'),
-    disableFileOutput: true,
-  }).callInitializeLogger({ repoPath, customLog: { customLog: t.log.bind(t), transformer: x => `${t.title} - ${x}` } })
-
   let stdio: 'pipe' | 'ignore' | 'inherit' | Array<StdioOption>
   if (printFlowId) {
     stdio = 'pipe'
@@ -89,7 +80,7 @@ export async function runNcExecutable({
       NPM_TOKEN: npmRegistry.auth.token,
       DOCKER_HUB_USERNAME: '',
       DOCKER_HUB_TOKEN: '',
-      REDIS_ENDPOINT: redisServer,
+      REDIS_ENDPOINT: redisServerUrl,
       TEST_SCRIPT_NAME: 'test',
       NC_TEST_MODE: 'true',
     },
@@ -103,9 +94,9 @@ export async function runCiUsingConfigFile({
   dockerRegistry,
   npmRegistry,
   toOriginalName,
-  redisServer,
+  redisServerUrl,
   printFlowId,
-  t,
+  testLogger,
 }: {
   repoPath: string
   testOptions?: TestOptions
@@ -113,19 +104,19 @@ export async function runCiUsingConfigFile({
   dockerRegistry: string
   dockerOrganizationName: string
   toOriginalName: (packageName: string) => string
-  redisServer: string
+  redisServerUrl: string
   printFlowId?: string
-  t: ExecutionContext<TestWithContextType>
+  testLogger: Logger
 }): Promise<CiResults> {
   const ciProcessResult = await runNcExecutable({
-    t,
     repoPath,
     testOptions,
     dockerOrganizationName,
     dockerRegistry,
     npmRegistry,
-    redisServer,
+    redisServerUrl,
     printFlowId,
+    testLogger,
   })
 
   async function getPublishResult() {

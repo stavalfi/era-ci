@@ -1,8 +1,8 @@
 import expect from 'expect'
-import { describe, newEnv, test } from './prepare-test'
+import { newEnv } from './prepare-test'
 import { TargetType } from './prepare-test/types'
 
-const { createRepo } = newEnv(test)
+const { createRepo } = newEnv()
 
 describe('npm package depends on.....', () => {
   test('b-package depends on a-package, when a-package published, then b-package need to publish as well', async () => {
