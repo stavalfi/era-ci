@@ -5,7 +5,7 @@ import fastify from 'fastify'
 import Redis from 'ioredis'
 import { getConfig } from './config'
 import { QueryStringOptions } from './types'
-import { downloadTarGz, quayNotificationEventToBuildStatus } from './utils'
+import { checkTarGzExist, downloadTarGz, quayNotificationEventToBuildStatus } from './utils'
 
 export async function startQuayHelperService(
   env: Record<string, string | undefined>,
@@ -41,6 +41,10 @@ export async function startQuayHelperService(
   app.get<{
     Querystring: QueryStringOptions
   }>('/download-git-repo-tar-gz', async (req, res) => res.send(await downloadTarGz(req.query, config.auth)))
+
+  app.head<{
+    Querystring: QueryStringOptions
+  }>('/download-git-repo-tar-gz', async (req, res) => res.send(await checkTarGzExist(req.query, config.auth)))
 
   app.post<{ Params: { event: QuayNotificationEvents }; Body: { build_id: string } }>(
     '/quay-build-notification/:event',
