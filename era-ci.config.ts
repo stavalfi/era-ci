@@ -1,6 +1,6 @@
-import { config, LogLevel } from './packages/core/src/index'
-import { winstonLogger } from './packages/loggers/src/index'
-import { createTreeStepsGraph } from './packages/steps-graph/src/index'
+import { config, LogLevel } from './packages/core/dist/src/index'
+import { winstonLogger } from './packages/loggers/dist/src/index'
+import { createTreeStepsGraph } from './packages/steps-graph/dist/src/index'
 import {
   installRoot,
   buildRoot,
@@ -12,8 +12,12 @@ import {
   test,
   validatePackages,
   quayDockerPublish,
-} from './packages/steps/src/index'
-import { localSequentalTaskQueue, taskWorkerTaskQueue, quayBuildsTaskQueue } from './packages/task-queues/src/index'
+} from './packages/steps/dist/src/index'
+import {
+  localSequentalTaskQueue,
+  taskWorkerTaskQueue,
+  quayBuildsTaskQueue,
+} from './packages/task-queues/dist/src/index'
 
 const {
   NPM_REGISTRY = 'http://localhost:34873',
@@ -21,12 +25,12 @@ const {
   NPM_TOKEN = 'root',
   NPM_EMAIL = 'root@root.root',
   QUAY_REGISTRY = `http://localhost:9876`,
-  QUAY_ORG = 'fake-mock-quay-token',
-  QUAY_ORG_TOKEN = 'root',
+  QUAY_ORG = 'local-run-quay-org',
+  QUAY_ORG_TOKEN = 'fake-mock-quay-token',
   QUAY_USERNAME,
   QUAY_USERNAME_TOKEN,
   QUAY_HELPER_SERVICE_URL = 'http://localhost:9875',
-  DOCKERHUB_ORG = 'local-run-org',
+  DOCKERHUB_ORG = 'local-run-dockerhub-org',
   DOCKERHUB_REGISTRY = `http://localhost:35000`,
   REDIS_ENDPOINT = 'redis://localhost:36379',
   REDIS_PASSWORD,
@@ -40,8 +44,10 @@ const {
 export default config({
   taskQueues: [
     quayBuildsTaskQueue({
-      getCommitTarGzPublicAddress: ({ gitCommit, repoNameWithOrgName }) =>
-        `https://api.github.com/${repoNameWithOrgName}/repo/tarball/${gitCommit}`,
+      getCommitTarGzPublicAddress: async ({ gitCommit }: { gitCommit: string }) => ({
+        url: `https://api.github.com/repos/stavalfi/era-ci/tarball/${gitCommit}`,
+        folderName: `stavalfi-era-ci-${gitCommit.slice(0, 8)}`,
+      }),
       quayAddress: QUAY_REGISTRY,
       quayNamespace: QUAY_ORG,
       quayToken: QUAY_ORG_TOKEN,
@@ -120,7 +126,7 @@ export default config({
     {
       // 5
       step: quayDockerPublish({
-        isStepEnabled: Boolean(FULL_RUN) && !CI,
+        isStepEnabled: !CI,
         dockerfileBuildTimeoutMs: 200_000,
         imagesVisibility: 'public',
         dockerOrganizationName: DOCKERHUB_ORG,

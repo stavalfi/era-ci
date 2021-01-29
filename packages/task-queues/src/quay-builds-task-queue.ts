@@ -40,7 +40,13 @@ export type QuayBuildsTaskQueueConfigurations = {
   quayHelperServiceUrl: string
   quayToken: string
   quayNamespace: string
-  getCommitTarGzPublicAddress: (options: { repoNameWithOrgName: string; gitCommit: string }) => string
+  getCommitTarGzPublicAddress: (options: {
+    repoNameWithOrgName: string
+    gitCommit: string
+  }) => Promise<{
+    url: string
+    folderName: string
+  }>
 }
 
 // if you change this strin, change it also in "quay-helper-service" because it depends on it.
@@ -205,10 +211,12 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     const task = Array.from(this.tasks.values()).find(b => b.quayBuildId === event.quayBuildId)
     if (!task) {
       if (retry >= 30) {
-        this.options.log.error(`can't find build-id: "${event.quayBuildId}" which we received from quay-helper-service`)
+        this.options.log.trace(`can't find build-id: "${event.quayBuildId}" which we received from quay-helper-service`)
       }
       // quay sent us a quay-build-id: "${event.quayBuildId}" which we don't know.
-      // it means that quay gave us build-id in the REST-POST /build but we didn't process it yet and
+      // it can be from one of two reasons:
+      // 1. there is other quay-build running right now and we got his event as well (every redis event is sent to all subscribers).
+      // 2. quay gave us build-id in the REST-POST /build but we didn't process it yet and
       // then quay sent us notification about this build-id. let's process this event again with a delay of 1 second.
       await new Promise(res => setTimeout(res, 1000))
       return this.onQuayBuildStatusChanged(topic, eventString)
@@ -423,18 +431,22 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         sendAbortEvent({ notes: [`task-timeout`], errors: [] })
         return
       }
+      const { url, folderName } = await this.options.taskQueueConfigurations.getCommitTarGzPublicAddress({
+        repoNameWithOrgName: this.options.gitRepoInfo.repoNameWithOrgName,
+        gitCommit: this.options.gitRepoInfo.commit,
+      })
+      const relativeContextPath = path.join(folderName, task.relativeContextPath)
+      const relativeDockerfilePath = path.join(folderName, task.relativeDockerfilePath)
+
       buildTriggerResult = await this.quayClient.triggerBuild({
         taskId: task.taskInfo.taskId,
         packageName: task.packageName,
         imageTags: task.imageTags,
-        relativeContextPath: task.relativeContextPath,
-        relativeDockerfilePath: task.relativeDockerfilePath,
+        relativeContextPath,
+        relativeDockerfilePath,
         gitRepoName: this.options.gitRepoInfo.repoName,
         quayRepoName: task.quayRepoName,
-        archiveUrl: this.options.taskQueueConfigurations.getCommitTarGzPublicAddress({
-          repoNameWithOrgName: this.options.gitRepoInfo.repoNameWithOrgName,
-          gitCommit: this.options.gitRepoInfo.commit,
-        }),
+        archiveUrl: url,
         commit: this.options.gitRepoInfo.commit,
       })
 

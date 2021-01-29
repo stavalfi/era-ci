@@ -7,6 +7,7 @@ import fs from 'fs'
 import got from 'got'
 import path from 'path'
 import { Build, Config, Db, QuayBuildStatus, QuayNotificationEvents } from './types'
+import urllib from 'urllib'
 
 export async function notify({
   db,
@@ -80,14 +81,23 @@ export async function buildDockerFile({
       repoName,
     })
 
-    const tarPath = await createFile()
-    await new Promise((res, rej) =>
-      got.stream(archive_url).pipe(fs.createWriteStream(tarPath)).once('finish', res).once('error', rej),
-    )
-
     const extractedContextPath = await createFolder()
-
-    await compressing.tar.uncompress(tarPath, extractedContextPath)
+    // it looks like when downloading "real" tar.gz from github, it's not the same as I generate tar.gz files in tests.
+    // so we need different ways to uncompress them.
+    if (config.isTestMode) {
+      const tarPath = await createFile()
+      await new Promise((res, rej) =>
+        got.stream(archive_url).pipe(fs.createWriteStream(tarPath)).once('finish', res).once('error', rej),
+      )
+      await compressing.tar.uncompress(tarPath, extractedContextPath)
+    } else {
+      await urllib
+        .request(archive_url, {
+          streaming: true,
+          followRedirect: true,
+        })
+        .then(result => compressing.tgz.uncompress((result.res as unknown) as string, extractedContextPath))
+    }
 
     for (const imageTag of docker_tags) {
       const image = buildFullDockerImageName({
@@ -97,9 +107,10 @@ export async function buildDockerFile({
         imageTag,
       })
 
-      const p = execa.command(`docker build -f Dockerfile -t ${image} ${path.join(extractedContextPath, context)}`, {
+      const dockerBuildCommand = `docker build -f Dockerfile -t ${image} ${path.join(extractedContextPath, context)}`
+      const p = execa.command(dockerBuildCommand, {
         cwd: path.dirname(path.join(extractedContextPath, dockerfile_path)),
-        stdio: 'pipe',
+        stdio: config.isTestMode ? 'pipe' : 'inherit',
         env: {
           DOCKER_BUILDKIT: '1',
         },
@@ -110,7 +121,7 @@ export async function buildDockerFile({
       await p
 
       await execa.command(`docker push ${image}`, {
-        stdio: 'pipe',
+        stdio: config.isTestMode ? 'pipe' : 'inherit',
       })
 
       await execa.command(`docker rmi ${image}`, {

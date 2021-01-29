@@ -35,7 +35,7 @@ export async function startQuayMockService(
   const app = fastify({
     logger: {
       prettyPrint: true,
-      level: 'error',
+      level: config.isTestMode ? 'error' : 'info',
     },
   })
 
@@ -261,8 +261,9 @@ export async function startQuayMockService(
 if (require.main === module) {
   startQuayMockService({
     port: 9876,
+    isTestMode: false,
     dockerRegistryAddress: `http://localhost:35000`,
-    namespace: 'local-run-org',
+    namespace: 'local-run-quay-org',
     token: 'fake-mock-quay-token',
     rateLimit: {
       max: 1000,

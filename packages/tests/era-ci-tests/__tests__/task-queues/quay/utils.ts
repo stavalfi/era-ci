@@ -4,6 +4,7 @@ import { listTags } from '@era-ci/image-registry-client'
 import { startQuayMockService } from '@era-ci/quay-mock-service'
 import { QuayBuildsTaskQueue, quayBuildsTaskQueue } from '@era-ci/task-queues'
 import { distructPackageJsonName, getGitRepoInfo } from '@era-ci/utils'
+import execa from 'execa'
 import _ from 'lodash'
 import path from 'path'
 
@@ -110,6 +111,7 @@ async function createTestDependencies(
   },
 ): Promise<TestDependencies> {
   const quayMockService = await startQuayMockService({
+    isTestMode: true,
     dockerRegistryAddress: testFuncs.getResources().dockerRegistry,
     namespace: testFuncs.getResources().quayNamespace,
     token: testFuncs.getResources().quayToken,
@@ -117,7 +119,7 @@ async function createTestDependencies(
   })
   testFuncs.getCleanups().cleanups.push(quayMockService.cleanup)
 
-  const { repoPath, toActualName } = await testFuncs.createRepo({
+  const { repoPath, repoName, toActualName } = await testFuncs.createRepo({
     repo: {
       packages: _.range(0, 15).map(i => ({
         name: `package${i}`,
@@ -135,10 +137,17 @@ async function createTestDependencies(
   const logger = await testFuncs.createTestLogger(repoPath)
 
   const queue1 = quayBuildsTaskQueue({
-    getCommitTarGzPublicAddress: () =>
-      `${
-        testFuncs.getResources().quayHelperService.address
-      }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+    getCommitTarGzPublicAddress: async () => {
+      const folderName = `${repoName}-${await execa
+        .command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath })
+        .then(r => r.stdout)}`
+      return {
+        url: `${
+          testFuncs.getResources().quayHelperService.address
+        }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+        folderName,
+      }
+    },
     quayAddress: quayMockService.address,
     quayNamespace: testFuncs.getResources().quayNamespace,
     quayToken: testFuncs.getResources().quayToken,

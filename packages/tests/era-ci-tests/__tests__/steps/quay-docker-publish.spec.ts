@@ -11,7 +11,7 @@ const { getResources, createRepo } = createTest({
 })
 
 test('single package - no problems - step should pass', async () => {
-  const { runCi, gitHeadCommit, repoPath } = await createRepo({
+  const { runCi, gitHeadCommit, repoPath, repoName } = await createRepo({
     repo: {
       packages: [
         {
@@ -29,10 +29,12 @@ test('single package - no problems - step should pass', async () => {
     configurations: {
       taskQueues: [
         quayBuildsTaskQueue({
-          getCommitTarGzPublicAddress: (): string =>
-            `${
+          getCommitTarGzPublicAddress: async (): Promise<{ url: string; folderName: string }> => ({
+            url: `${
               getResources().quayHelperService.address
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+            folderName: `${repoName}-${await gitHeadCommit()}`,
+          }),
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
           quayHelperServiceUrl: getResources().quayHelperService.address,
@@ -63,7 +65,7 @@ test('single package - no problems - step should pass', async () => {
 })
 
 test('multiple packages - no problems - step should pass', async () => {
-  const { runCi, gitHeadCommit, repoPath } = await createRepo({
+  const { runCi, gitHeadCommit, repoPath, repoName } = await createRepo({
     repo: {
       packages: [
         {
@@ -91,10 +93,12 @@ test('multiple packages - no problems - step should pass', async () => {
     configurations: {
       taskQueues: [
         quayBuildsTaskQueue({
-          getCommitTarGzPublicAddress: (): string =>
-            `${
+          getCommitTarGzPublicAddress: async (): Promise<{ url: string; folderName: string }> => ({
+            url: `${
               getResources().quayHelperService.address
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+            folderName: `${repoName}-${await gitHeadCommit()}`,
+          }),
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
           quayHelperServiceUrl: getResources().quayHelperService.address,
@@ -129,7 +133,7 @@ test('multiple packages - no problems - step should pass', async () => {
 })
 
 test('expect the step to be failed if the dockerfile has an error', async () => {
-  const { runCi, repoPath } = await createRepo({
+  const { runCi, repoPath, repoName, gitHeadCommit } = await createRepo({
     repo: {
       packages: [
         {
@@ -147,10 +151,12 @@ test('expect the step to be failed if the dockerfile has an error', async () => 
     configurations: {
       taskQueues: [
         quayBuildsTaskQueue({
-          getCommitTarGzPublicAddress: (): string =>
-            `${
+          getCommitTarGzPublicAddress: async (): Promise<{ url: string; folderName: string }> => ({
+            url: `${
               getResources().quayHelperService.address
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+            folderName: `${repoName}-${await gitHeadCommit()}`,
+          }),
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
           quayHelperServiceUrl: getResources().quayHelperService.address,
@@ -183,7 +189,7 @@ test('expect the step to be failed if the dockerfile has an error', async () => 
 })
 
 test('run step again on failure and expect to abort-as-failed on second run', async () => {
-  const { runCi, repoPath } = await createRepo({
+  const { runCi, repoPath, repoName, gitHeadCommit } = await createRepo({
     repo: {
       packages: [
         {
@@ -201,10 +207,12 @@ test('run step again on failure and expect to abort-as-failed on second run', as
     configurations: {
       taskQueues: [
         quayBuildsTaskQueue({
-          getCommitTarGzPublicAddress: (): string =>
-            `${
+          getCommitTarGzPublicAddress: async (): Promise<{ url: string; folderName: string }> => ({
+            url: `${
               getResources().quayHelperService.address
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+            folderName: `${repoName}-${await gitHeadCommit()}`,
+          }),
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
           quayHelperServiceUrl: getResources().quayHelperService.address,
@@ -239,7 +247,7 @@ test('run step again on failure and expect to abort-as-failed on second run', as
 })
 
 test('do not run step again if step succeed (image built and pushed to registry)', async () => {
-  const { runCi, repoPath } = await createRepo({
+  const { runCi, repoPath, repoName, gitHeadCommit } = await createRepo({
     repo: {
       packages: [
         {
@@ -257,10 +265,12 @@ test('do not run step again if step succeed (image built and pushed to registry)
     configurations: {
       taskQueues: [
         quayBuildsTaskQueue({
-          getCommitTarGzPublicAddress: (): string =>
-            `${
+          getCommitTarGzPublicAddress: async (): Promise<{ url: string; folderName: string }> => ({
+            url: `${
               getResources().quayHelperService.address
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+            folderName: `${repoName}-${await gitHeadCommit()}`,
+          }),
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
           quayHelperServiceUrl: getResources().quayHelperService.address,
@@ -295,7 +305,7 @@ test('do not run step again if step succeed (image built and pushed to registry)
 })
 
 test('publish with semver-tag', async () => {
-  const { runCi, gitHeadCommit, repoPath } = await createRepo({
+  const { runCi, gitHeadCommit, repoPath, repoName } = await createRepo({
     repo: {
       packages: [
         {
@@ -308,10 +318,12 @@ test('publish with semver-tag', async () => {
     configurations: {
       taskQueues: [
         quayBuildsTaskQueue({
-          getCommitTarGzPublicAddress: (): string =>
-            `${
+          getCommitTarGzPublicAddress: async (): Promise<{ url: string; folderName: string }> => ({
+            url: `${
               getResources().quayHelperService.address
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+            folderName: `${repoName}-${await gitHeadCommit()}`,
+          }),
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
           quayHelperServiceUrl: getResources().quayHelperService.address,
@@ -342,7 +354,7 @@ test('publish with semver-tag', async () => {
 })
 
 test('publish with hash-tag', async () => {
-  const { runCi, repoPath } = await createRepo({
+  const { runCi, repoPath, repoName, gitHeadCommit } = await createRepo({
     repo: {
       packages: [
         {
@@ -355,10 +367,12 @@ test('publish with hash-tag', async () => {
     configurations: {
       taskQueues: [
         quayBuildsTaskQueue({
-          getCommitTarGzPublicAddress: (): string =>
-            `${
+          getCommitTarGzPublicAddress: async (): Promise<{ url: string; folderName: string }> => ({
+            url: `${
               getResources().quayHelperService.address
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+            folderName: `${repoName}-${await gitHeadCommit()}`,
+          }),
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
           quayHelperServiceUrl: getResources().quayHelperService.address,
@@ -389,7 +403,7 @@ test('publish with hash-tag', async () => {
 })
 
 test('publish with hash-tag and then with semver-tag', async () => {
-  const { runCi, gitHeadCommit, repoPath } = await createRepo({
+  const { runCi, gitHeadCommit, repoPath, repoName } = await createRepo({
     repo: {
       packages: [
         {
@@ -402,10 +416,12 @@ test('publish with hash-tag and then with semver-tag', async () => {
     configurations: {
       taskQueues: [
         quayBuildsTaskQueue({
-          getCommitTarGzPublicAddress: (): string =>
-            `${
+          getCommitTarGzPublicAddress: async (): Promise<{ url: string; folderName: string }> => ({
+            url: `${
               getResources().quayHelperService.address
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+            folderName: `${repoName}-${await gitHeadCommit()}`,
+          }),
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
           quayHelperServiceUrl: getResources().quayHelperService.address,
@@ -442,7 +458,7 @@ test('publish with hash-tag and then with semver-tag', async () => {
 })
 
 test('publish with hash-tag twice', async () => {
-  const { runCi, repoPath } = await createRepo({
+  const { runCi, repoPath, repoName, gitHeadCommit } = await createRepo({
     repo: {
       packages: [
         {
@@ -455,10 +471,12 @@ test('publish with hash-tag twice', async () => {
     configurations: {
       taskQueues: [
         quayBuildsTaskQueue({
-          getCommitTarGzPublicAddress: (): string =>
-            `${
+          getCommitTarGzPublicAddress: async (): Promise<{ url: string; folderName: string }> => ({
+            url: `${
               getResources().quayHelperService.address
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+            folderName: `${repoName}-${await gitHeadCommit()}`,
+          }),
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
           quayHelperServiceUrl: getResources().quayHelperService.address,
@@ -491,7 +509,7 @@ test('publish with hash-tag twice', async () => {
 })
 
 test('publish with semver-tag twice', async () => {
-  const { runCi, gitHeadCommit, repoPath } = await createRepo({
+  const { runCi, gitHeadCommit, repoPath, repoName } = await createRepo({
     repo: {
       packages: [
         {
@@ -504,10 +522,12 @@ test('publish with semver-tag twice', async () => {
     configurations: {
       taskQueues: [
         quayBuildsTaskQueue({
-          getCommitTarGzPublicAddress: (): string =>
-            `${
+          getCommitTarGzPublicAddress: async (): Promise<{ url: string; folderName: string }> => ({
+            url: `${
               getResources().quayHelperService.address
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+            folderName: `${repoName}-${await gitHeadCommit()}`,
+          }),
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
           quayHelperServiceUrl: getResources().quayHelperService.address,

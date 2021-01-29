@@ -28,6 +28,7 @@ export function resourcesBeforeAfterEach(options: {
     const [quayMockService, quayHelperService, gitServer] = await Promise.all([
       options?.startQuayMockService
         ? await startQuayMockService({
+            isTestMode: true,
             dockerRegistryAddress: dockerRegistry,
             namespace: quayNamespace,
             rateLimit: {

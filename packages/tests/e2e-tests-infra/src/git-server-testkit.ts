@@ -1,3 +1,5 @@
+/// <reference path="../../../../declarations.d.ts" />
+
 import { createFolder } from 'create-folder-structure'
 import { Server } from 'http'
 import { URL } from 'url'

@@ -2,7 +2,6 @@ import { Log, TaskTimeoutEventEmitter } from '@era-ci/core'
 import { buildFullDockerImageName } from '@era-ci/utils'
 import got, { RequestError } from 'got'
 import HttpStatusCodes from 'http-status-codes'
-import path from 'path'
 import { AbortEventHandler } from './types'
 
 export { AbortEventHandler } from './types'
@@ -216,8 +215,8 @@ export class QuayClient {
       requestBody: {
         archive_url: archiveUrl,
         docker_tags: imageTags,
-        context: path.join(`${gitRepoName}-${commit}`, relativeContextPath),
-        dockerfile_path: path.join(`${gitRepoName}-${commit}`, relativeDockerfilePath),
+        context: relativeContextPath,
+        dockerfile_path: relativeDockerfilePath,
       },
     })
 

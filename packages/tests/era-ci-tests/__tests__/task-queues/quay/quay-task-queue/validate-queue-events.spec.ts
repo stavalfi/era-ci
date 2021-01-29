@@ -56,8 +56,7 @@ test('task is executed and we expect the docker-image to be presentin the regist
       eventEmitter: getResources().taskQueuesResources.queue.eventEmitter,
       throwOnTaskNotPassed: true,
     }),
-    // eslint-disable-next-line no-console
-  ).catch(e => console.error(JSON.stringify(2, null, 2)))
+  )
 
   await expect(getResources().getImageTags(getResources().packages.package1.name)).resolves.toEqual(['1.0.0'])
 })

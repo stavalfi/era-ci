@@ -1,4 +1,5 @@
 export type Config = {
+  isTestMode: boolean
   port?: number
   rateLimit: {
     max: number

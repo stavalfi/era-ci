@@ -15,7 +15,7 @@ export async function startQuayHelperService(
   const app = fastify({
     logger: {
       prettyPrint: true,
-      level: 'error',
+      level: env['ERA_TEST_MODE'] ? 'error' : 'info',
     },
   })
 

@@ -1,5 +1,4 @@
 // #!/usr/bin/env node --unhandled-rejections=strict
-/* eslint-disable no-console */
 
 /// <reference path="../../../declarations.d.ts" />
 
