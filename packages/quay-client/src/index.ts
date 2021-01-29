@@ -188,19 +188,15 @@ export class QuayClient {
   }
 
   public async triggerBuild({
-    gitRepoName,
     quayRepoName,
     relativeContextPath,
     relativeDockerfilePath,
     imageTags,
     packageName,
     archiveUrl,
-    commit,
     taskId,
   }: {
-    gitRepoName: string
     quayRepoName: string
-    commit: string
     packageName: string
     relativeContextPath: string
     relativeDockerfilePath: string

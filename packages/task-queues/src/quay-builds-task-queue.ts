@@ -11,7 +11,7 @@ import { queue } from 'async'
 import chance from 'chance'
 import { EventEmitter } from 'events'
 import fs from 'fs'
-import { CancelError } from 'got'
+import got, { CancelError } from 'got'
 import Redis from 'ioredis'
 import path from 'path'
 import { ErrorObject, serializeError } from 'serialize-error'
@@ -398,6 +398,25 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
 
     let buildTriggerResult: BuildTriggerResult | undefined
     try {
+      const { url, folderName } = await this.options.taskQueueConfigurations.getCommitTarGzPublicAddress({
+        repoNameWithOrgName: this.options.gitRepoInfo.repoNameWithOrgName,
+        gitCommit: this.options.gitRepoInfo.commit,
+      })
+
+      const isUrlExist = await got.head(url).then(
+        () => true,
+        () => false,
+      )
+      if (!isUrlExist) {
+        sendAbortEvent({
+          notes: [
+            `the generated url from your configuration (getCommitTarGzPublicAddress) is not reachable: "${url}". Did you forgot to push your commit?`,
+          ],
+          errors: [],
+        })
+        return
+      }
+
       await this.quayClient.createRepo({
         taskId: task.taskInfo.taskId,
         repoName: task.quayRepoName,
@@ -431,10 +450,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         sendAbortEvent({ notes: [`task-timeout`], errors: [] })
         return
       }
-      const { url, folderName } = await this.options.taskQueueConfigurations.getCommitTarGzPublicAddress({
-        repoNameWithOrgName: this.options.gitRepoInfo.repoNameWithOrgName,
-        gitCommit: this.options.gitRepoInfo.commit,
-      })
+
       const relativeContextPath = path.join(folderName, task.relativeContextPath)
       const relativeDockerfilePath = path.join(folderName, task.relativeDockerfilePath)
 
@@ -444,10 +460,8 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         imageTags: task.imageTags,
         relativeContextPath,
         relativeDockerfilePath,
-        gitRepoName: this.options.gitRepoInfo.repoName,
         quayRepoName: task.quayRepoName,
         archiveUrl: url,
-        commit: this.options.gitRepoInfo.commit,
       })
 
       this.tasks.set(task.taskInfo.taskId, {

@@ -3,7 +3,7 @@ import { buildFullDockerImageName } from '@era-ci/utils'
 import compressing from 'compressing'
 import { createFile, createFolder } from 'create-folder-structure'
 import execa from 'execa'
-import fs from 'fs'
+import fs, { ReadStream } from 'fs'
 import got from 'got'
 import path from 'path'
 import { Build, Config, Db, QuayBuildStatus, QuayNotificationEvents } from './types'
@@ -96,7 +96,7 @@ export async function buildDockerFile({
           streaming: true,
           followRedirect: true,
         })
-        .then(result => compressing.tgz.uncompress((result.res as unknown) as string, extractedContextPath))
+        .then(result => compressing.tgz.uncompress((result.res as unknown) as ReadStream, extractedContextPath))
     }
 
     for (const imageTag of docker_tags) {

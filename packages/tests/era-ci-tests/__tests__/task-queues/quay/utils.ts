@@ -1,5 +1,5 @@
 import { connectToRedis, Logger } from '@era-ci/core'
-import { CreateRepo, createTest, TestFuncs } from '@era-ci/e2e-tests-infra'
+import { CreateRepo, createTest, TestFuncs, TestResources } from '@era-ci/e2e-tests-infra'
 import { listTags } from '@era-ci/image-registry-client'
 import { startQuayMockService } from '@era-ci/quay-mock-service'
 import { QuayBuildsTaskQueue, quayBuildsTaskQueue } from '@era-ci/task-queues'
@@ -22,6 +22,7 @@ export type ContextType = {
 
 type TestDependencies = {
   quayMockService: { address: string; cleanup: () => Promise<unknown> }
+  repoName: string
   repoPath: string
   logger: Logger
   queue: QuayBuildsTaskQueue
@@ -38,7 +39,9 @@ const getImageTags = ({
     repo: distructPackageJsonName(toActualPackageName(packageName)).name,
   })
 
-type TestResources = {
+type QuayTestResources = {
+  repoName: string
+  repoPath: string
   taskQueuesResources: TestDependencies
   getImageTags: (packageName: string) => Promise<string[]>
   packages: {
@@ -57,15 +60,22 @@ export function beforeAfterEach(options?: {
       timeWindowMs: number
     }
   }
+  getCommitTarGzPublicAddress?: (options: {
+    repoNameWithOrgName: string
+    gitCommit: string
+  }) => Promise<{
+    url: string
+    folderName: string
+  }>
 }): {
-  getResources: () => TestResources
+  getResources: () => QuayTestResources & TestResources
 } {
   const testFuncs = createTest({
     startQuayHelperService: true,
     startQuayMockService: true,
   })
 
-  let getResources: TestResources
+  let getResources: QuayTestResources
 
   beforeEach(async () => {
     const taskQueuesResources = await createTestDependencies(testFuncs, options)
@@ -90,13 +100,15 @@ export function beforeAfterEach(options?: {
       ]),
     )
     getResources = {
+      repoName: taskQueuesResources.repoName,
+      repoPath: taskQueuesResources.repoPath,
       taskQueuesResources,
       getImageTags: getImageTags1,
       packages,
     }
   })
 
-  return { getResources: () => getResources }
+  return { getResources: () => ({ ...getResources, ...testFuncs.getResources() }) }
 }
 
 async function createTestDependencies(
@@ -108,6 +120,13 @@ async function createTestDependencies(
         timeWindowMs: number
       }
     }
+    getCommitTarGzPublicAddress?: (options: {
+      repoNameWithOrgName: string
+      gitCommit: string
+    }) => Promise<{
+      url: string
+      folderName: string
+    }>
   },
 ): Promise<TestDependencies> {
   const quayMockService = await startQuayMockService({
@@ -137,17 +156,19 @@ async function createTestDependencies(
   const logger = await testFuncs.createTestLogger(repoPath)
 
   const queue1 = quayBuildsTaskQueue({
-    getCommitTarGzPublicAddress: async () => {
-      const folderName = `${repoName}-${await execa
-        .command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath })
-        .then(r => r.stdout)}`
-      return {
-        url: `${
-          testFuncs.getResources().quayHelperService.address
-        }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
-        folderName,
-      }
-    },
+    getCommitTarGzPublicAddress:
+      options?.getCommitTarGzPublicAddress ??
+      (async () => {
+        const folderName = `${repoName}-${await execa
+          .command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath })
+          .then(r => r.stdout)}`
+        return {
+          url: `${
+            testFuncs.getResources().quayHelperService.address
+          }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+          folderName,
+        }
+      }),
     quayAddress: quayMockService.address,
     quayNamespace: testFuncs.getResources().quayNamespace,
     quayToken: testFuncs.getResources().quayToken,
@@ -181,6 +202,7 @@ async function createTestDependencies(
     quayMockService,
     queue,
     repoPath,
+    repoName,
     toActualPackageName: toActualName,
   }
 }
