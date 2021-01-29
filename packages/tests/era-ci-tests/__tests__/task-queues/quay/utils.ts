@@ -142,7 +142,7 @@ async function createTestDependencies(
     quayAddress: quayMockService.address,
     quayNamespace: testFuncs.getResources().quayNamespace,
     quayToken: testFuncs.getResources().quayToken,
-    quayServiceHelperAddress: testFuncs.getResources().quayHelperService.address,
+    quayHelperServiceUrl: testFuncs.getResources().quayHelperService.address,
     redis: {
       url: testFuncs.getResources().redisServerUrl,
     },

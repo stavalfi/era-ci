@@ -1,29 +1,33 @@
-import { config, LogLevel } from './packages/core/dist/src/index'
-import { winstonLogger } from './packages/loggers/dist/src/index'
-import { createTreeStepsGraph } from './packages/steps-graph/dist/src/index'
+import { config, LogLevel } from './packages/core/src/index'
+import { winstonLogger } from './packages/loggers/src/index'
+import { createTreeStepsGraph } from './packages/steps-graph/src/index'
 import {
   installRoot,
   buildRoot,
   cliTableReporter,
-  dockerPublish,
   jsonReporter,
   lintRoot,
   npmPublish,
   NpmScopeAccess,
   test,
   validatePackages,
-} from './packages/steps/dist/src/index'
-import { localSequentalTaskQueue, taskWorkerTaskQueue } from './packages/task-queues/dist/src/index'
+  quayDockerPublish,
+} from './packages/steps/src/index'
+import { localSequentalTaskQueue, taskWorkerTaskQueue, quayBuildsTaskQueue } from './packages/task-queues/src/index'
 
 const {
   NPM_REGISTRY = 'http://localhost:34873',
   NPM_USERNAME = 'root',
   NPM_TOKEN = 'root',
   NPM_EMAIL = 'root@root.root',
-  DOCKER_HUB_USERNAME,
-  DOCKER_HUB_TOKEN,
-  DOCKER_ORG = 'local-run-org',
-  DOCKER_REGISTRY = `http://localhost:35000`,
+  QUAY_REGISTRY = `http://localhost:9876`,
+  QUAY_ORG = 'fake-mock-quay-token',
+  QUAY_ORG_TOKEN = 'root',
+  QUAY_USERNAME,
+  QUAY_USERNAME_TOKEN,
+  QUAY_HELPER_SERVICE_URL = 'http://localhost:9875',
+  DOCKERHUB_ORG = 'local-run-org',
+  DOCKERHUB_REGISTRY = `http://localhost:35000`,
   REDIS_ENDPOINT = 'redis://localhost:36379',
   REDIS_PASSWORD,
   GITHUB_RUN_NUMBER = 'local-run',
@@ -35,6 +39,20 @@ const {
 
 export default config({
   taskQueues: [
+    quayBuildsTaskQueue({
+      getCommitTarGzPublicAddress: ({ gitCommit, repoNameWithOrgName }) =>
+        `https://api.github.com/${repoNameWithOrgName}/repo/tarball/${gitCommit}`,
+      quayAddress: QUAY_REGISTRY,
+      quayNamespace: QUAY_ORG,
+      quayToken: QUAY_ORG_TOKEN,
+      quayHelperServiceUrl: QUAY_HELPER_SERVICE_URL,
+      redis: {
+        url: REDIS_ENDPOINT!,
+        auth: {
+          password: REDIS_PASSWORD,
+        },
+      },
+    }),
     localSequentalTaskQueue(),
     taskWorkerTaskQueue({
       queueName: `queue-${GITHUB_RUN_NUMBER}`,
@@ -101,13 +119,15 @@ export default config({
     },
     {
       // 5
-      step: dockerPublish({
+      step: quayDockerPublish({
         isStepEnabled: Boolean(FULL_RUN) && !CI,
-        dockerOrganizationName: DOCKER_ORG,
-        registry: DOCKER_REGISTRY,
+        dockerfileBuildTimeoutMs: 200_000,
+        imagesVisibility: 'public',
+        dockerOrganizationName: DOCKERHUB_ORG,
+        registry: DOCKERHUB_REGISTRY,
         registryAuth: {
-          username: DOCKER_HUB_USERNAME!,
-          token: DOCKER_HUB_TOKEN!,
+          username: QUAY_USERNAME!,
+          token: QUAY_USERNAME_TOKEN!,
         },
         buildAndPushOnlyTempVersion: false,
       }),

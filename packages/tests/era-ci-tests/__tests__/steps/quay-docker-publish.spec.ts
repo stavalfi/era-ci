@@ -35,7 +35,7 @@ test('single package - no problems - step should pass', async () => {
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
-          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayHelperServiceUrl: getResources().quayHelperService.address,
           quayToken: getResources().quayToken,
           redis: {
             url: getResources().redisServerUrl,
@@ -97,7 +97,7 @@ test('multiple packages - no problems - step should pass', async () => {
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
-          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayHelperServiceUrl: getResources().quayHelperService.address,
           quayToken: getResources().quayToken,
           redis: {
             url: getResources().redisServerUrl,
@@ -153,7 +153,7 @@ test('expect the step to be failed if the dockerfile has an error', async () => 
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
-          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayHelperServiceUrl: getResources().quayHelperService.address,
           quayToken: getResources().quayToken,
           redis: {
             url: getResources().redisServerUrl,
@@ -207,7 +207,7 @@ test('run step again on failure and expect to abort-as-failed on second run', as
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
-          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayHelperServiceUrl: getResources().quayHelperService.address,
           quayToken: getResources().quayToken,
           redis: {
             url: getResources().redisServerUrl,
@@ -263,7 +263,7 @@ test('do not run step again if step succeed (image built and pushed to registry)
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
-          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayHelperServiceUrl: getResources().quayHelperService.address,
           quayToken: getResources().quayToken,
           redis: {
             url: getResources().redisServerUrl,
@@ -314,7 +314,7 @@ test('publish with semver-tag', async () => {
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
-          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayHelperServiceUrl: getResources().quayHelperService.address,
           quayToken: getResources().quayToken,
           redis: {
             url: getResources().redisServerUrl,
@@ -361,7 +361,7 @@ test('publish with hash-tag', async () => {
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
-          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayHelperServiceUrl: getResources().quayHelperService.address,
           quayToken: getResources().quayToken,
           redis: {
             url: getResources().redisServerUrl,
@@ -408,7 +408,7 @@ test('publish with hash-tag and then with semver-tag', async () => {
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
-          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayHelperServiceUrl: getResources().quayHelperService.address,
           quayToken: getResources().quayToken,
           redis: {
             url: getResources().redisServerUrl,
@@ -461,7 +461,7 @@ test('publish with hash-tag twice', async () => {
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
-          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayHelperServiceUrl: getResources().quayHelperService.address,
           quayToken: getResources().quayToken,
           redis: {
             url: getResources().redisServerUrl,
@@ -510,7 +510,7 @@ test('publish with semver-tag twice', async () => {
             }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
           quayAddress: getResources().quayMockService.address,
           quayNamespace: getResources().quayNamespace,
-          quayServiceHelperAddress: getResources().quayHelperService.address,
+          quayHelperServiceUrl: getResources().quayHelperService.address,
           quayToken: getResources().quayToken,
           redis: {
             url: getResources().redisServerUrl,

@@ -37,17 +37,10 @@ export type QuayBuildsTaskQueueConfigurations = {
     }
   }
   quayAddress: 'https://quay.io' | string
-  quayServiceHelperAddress: string
+  quayHelperServiceUrl: string
   quayToken: string
   quayNamespace: string
-  getCommitTarGzPublicAddress: (options: {
-    repoNameWithOrgName: string
-    gitCommit: string
-    gitAuth?: {
-      username?: string
-      token?: string
-    }
-  }) => string
+  getCommitTarGzPublicAddress: (options: { repoNameWithOrgName: string; gitCommit: string }) => string
 }
 
 // if you change this strin, change it also in "quay-helper-service" because it depends on it.
@@ -418,7 +411,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
             event,
             packageName: task.packageName,
             repoName: task.quayRepoName,
-            webhookUrl: `${this.options.taskQueueConfigurations.quayServiceHelperAddress}/quay-build-notification/${event}`,
+            webhookUrl: `${this.options.taskQueueConfigurations.quayHelperServiceUrl}/quay-build-notification/${event}`,
           }),
         ),
       )
@@ -441,10 +434,6 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         archiveUrl: this.options.taskQueueConfigurations.getCommitTarGzPublicAddress({
           repoNameWithOrgName: this.options.gitRepoInfo.repoNameWithOrgName,
           gitCommit: this.options.gitRepoInfo.commit,
-          gitAuth: {
-            username: this.options.gitRepoInfo?.auth?.username,
-            token: this.options.gitRepoInfo?.auth?.username,
-          },
         }),
         commit: this.options.gitRepoInfo.commit,
       })

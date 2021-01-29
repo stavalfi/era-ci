@@ -240,7 +240,7 @@ export async function startQuayMockService(
     })
   })
 
-  const address = await app.listen(0)
+  const address = await app.listen(config.port ?? 0)
   console.log(`quay-mock-service: "${address}"`)
   let closed = false
   return {
@@ -255,4 +255,18 @@ export async function startQuayMockService(
       console.log(`closed quay-mock-service: "${address}"`)
     },
   }
+}
+
+// this is for local runs of the era-ci on itself
+if (require.main === module) {
+  startQuayMockService({
+    port: 9876,
+    dockerRegistryAddress: `http://localhost:35000`,
+    namespace: 'local-run-org',
+    token: 'fake-mock-quay-token',
+    rateLimit: {
+      max: 1000,
+      timeWindowMs: 1000,
+    },
+  })
 }

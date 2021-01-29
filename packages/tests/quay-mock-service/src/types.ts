@@ -1,4 +1,5 @@
 export type Config = {
+  port?: number
   rateLimit: {
     max: number
     timeWindowMs: number
