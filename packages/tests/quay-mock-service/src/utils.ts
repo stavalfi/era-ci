@@ -138,7 +138,7 @@ export async function buildDockerFile({
       }).catch(notifyError => {
         if (notifyError.code === 'ECONNREFUSED') {
           console.error(
-            `stav4 [${repoName}] - quay-helper-service is down. probably because the test is over so we can ignore this error: ${notifyError}`,
+            `stav1 [${repoName}] - quay-helper-service is down. probably because the test is over so we can ignore this error: ${notifyError}`,
           )
         }
       })

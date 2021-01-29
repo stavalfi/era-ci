@@ -115,7 +115,7 @@ async function createTestDependencies(
     token: testFuncs.getResources().quayToken,
     rateLimit: options?.quayMockService?.rateLimit || { max: 1000, timeWindowMs: 1000 * 1000 },
   })
-  testFuncs.getCleanups().push(quayMockService.cleanup)
+  testFuncs.getCleanups().cleanups.push(quayMockService.cleanup)
 
   const { repoPath, toActualName } = await testFuncs.createRepo({
     repo: {
@@ -153,7 +153,7 @@ async function createTestDependencies(
     },
     logger,
   })
-  testFuncs.getConnectionCleanups().push(redisClient.cleanup)
+  testFuncs.getCleanups().connectionCleanups.push(redisClient.cleanup)
 
   const queue = await queue1.createFunc({
     redisClient,
@@ -165,7 +165,7 @@ async function createTestDependencies(
       QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: testFuncs.getProcessEnv().QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC,
     },
   })
-  testFuncs.getCleanups().push(queue.cleanup)
+  testFuncs.getCleanups().cleanups.push(queue.cleanup)
 
   return {
     logger,

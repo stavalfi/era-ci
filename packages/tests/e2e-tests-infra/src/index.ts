@@ -21,8 +21,9 @@ import path from 'path'
 import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterEach } from './prepare-test-resources'
 import { getPublishResult } from './seach-targets'
-import { Cleanup, CreateRepo, RunCiResult, TestFuncs, TestProcessEnv } from './types'
+import { Cleanup, CreateRepo, GetCleanups, RunCiResult, TestFuncs, TestProcessEnv, TestResources } from './types'
 import { addReportToStepsAsLastNodes } from './utils'
+import Redis from 'ioredis'
 
 export { createGitRepo } from './create-git-repo'
 export { resourcesBeforeAfterEach } from './prepare-test-resources'
@@ -189,6 +190,18 @@ export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options =>
     gitIgnoreFiles: ['*.log'],
   })
 
+  // only login to npm like this in tests. publishing in non-interactive mode is very buggy and tricky.
+  await execa.command(require.resolve(`.bin/npm-login-noninteractive`), {
+    stdio: 'ignore',
+    cwd: repoPath,
+    env: {
+      NPM_USER: testFuncs.getResources().npmRegistry.auth.username,
+      NPM_PASS: testFuncs.getResources().npmRegistry.auth.token,
+      NPM_EMAIL: testFuncs.getResources().npmRegistry.auth.email,
+      NPM_REGISTRY: testFuncs.getResources().npmRegistry.address,
+    },
+  })
+
   const testLogger = await winstonLogger({
     customLogLevel: LogLevel.trace,
     disabled: false,
@@ -241,23 +254,29 @@ export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options =>
   }
 }
 
-function beforeAfterCleanups(): () => Cleanup[] {
+function beforeAfterCleanups(): GetCleanups {
   let cleanups: Cleanup[]
+  let connectionCleanups: Cleanup[]
   beforeEach(async () => {
     cleanups = []
+    connectionCleanups = []
   })
   afterEach(async () => {
     // eslint-disable-next-line no-console
     console.log(`finished test - cleaning up ${cleanups.length} resources`)
-    await Promise.allSettled(cleanups.map(f => f()))
+    await Promise.all(cleanups.map(f => f()))
+    await Promise.all(connectionCleanups.map(f => f()))
   })
-  return () => cleanups
+  return () => ({
+    cleanups,
+    connectionCleanups,
+  })
 }
 
-export const sleep = (getCleanups: () => Cleanup[]) => (ms: number): Promise<void> => {
+export const sleep = (getCleanups: GetCleanups) => (ms: number): Promise<void> => {
   return new Promise(res => {
     const id = setTimeout(res, ms)
-    getCleanups().push(async () => {
+    getCleanups().cleanups.push(async () => {
       clearTimeout(id)
       res()
     })
@@ -278,6 +297,23 @@ function processEnvBeforeAfterEach(): () => TestProcessEnv {
   return () => processEnv
 }
 
+const createRedisConnection = ({
+  getCleanups,
+  getResources,
+}: {
+  getCleanups: GetCleanups
+  getResources: () => TestResources
+}) => () => {
+  const redisConnection = new Redis(getResources().redisServerUrl, {
+    showFriendlyErrorStack: true,
+  })
+
+  getCleanups().connectionCleanups.push(async () => {
+    redisConnection.disconnect()
+  })
+  return redisConnection
+}
+
 const createTestLogger = async (repoPath: string) =>
   winstonLogger({
     customLogLevel: LogLevel.trace,
@@ -292,7 +328,6 @@ export function createTest(options?: {
   startQuayMockService?: boolean
 }): TestFuncs & { createRepo: CreateRepo } {
   const getCleanups = beforeAfterCleanups()
-  const getConnectionCleanups = beforeAfterCleanups()
   const getProcessEnv = processEnvBeforeAfterEach()
   const getResources = resourcesBeforeAfterEach({
     ...options,
@@ -302,11 +337,11 @@ export function createTest(options?: {
 
   const testFuncs: TestFuncs = {
     sleep: sleep(getCleanups),
+    createRedisConnection: createRedisConnection({ getResources, getCleanups }),
     getProcessEnv,
     getResources,
     getCleanups,
     createTestLogger,
-    getConnectionCleanups,
   }
 
   return {

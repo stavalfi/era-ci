@@ -9,7 +9,7 @@ import fs from 'fs'
 import _ from 'lodash'
 import path from 'path'
 
-const { createRepo, getCleanups, getProcessEnv, getResources, createTestLogger } = createTest()
+const { createRepo, getCleanups, getProcessEnv, getResources, createTestLogger, createRedisConnection } = createTest()
 
 test('single worker - glob does not find any test file - should print helpful note to the user about that', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
@@ -218,14 +218,14 @@ test('two workers - single task - two workers should execute the task but with d
       redis: {
         url: getResources().redisServerUrl,
       },
-      repoPath,
       maxWaitMsUntilFirstTask: 10_000,
       maxWaitMsWithoutTasks: 10_000,
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
-  getCleanups().push(worker2.cleanup)
+  getCleanups().cleanups.push(worker2.cleanup)
 
   const { flowLogs } = await runCi()
   const workerLogs = await fs.promises.readFile(worker2.logFilePath, 'utf-8')
@@ -292,16 +292,16 @@ test('1 + 5 workers - single task - all workers should execute the task but with
           redis: {
             url: getResources().redisServerUrl,
           },
-          repoPath,
           maxWaitMsUntilFirstTask: 3_000,
           maxWaitMsWithoutTasks: 10_000,
         },
+        redisConnection: createRedisConnection(),
         processEnv: getProcessEnv(),
         logger: await createTestLogger(repoPath),
       }),
     ),
   )
-  getCleanups().push(() => Promise.all(workers.map(worker => worker.cleanup())))
+  getCleanups().cleanups.push(() => Promise.all(workers.map(worker => worker.cleanup())))
 
   const { flowLogs } = await runCi()
   const workersLogs = [
@@ -376,16 +376,16 @@ test('1 + 5 workers - long single task - all workers are expected to run a sub-t
           redis: {
             url: getResources().redisServerUrl,
           },
-          repoPath,
           maxWaitMsUntilFirstTask: 10_000,
           maxWaitMsWithoutTasks: 10_000,
         },
+        redisConnection: createRedisConnection(),
         processEnv: getProcessEnv(),
         logger: await createTestLogger(repoPath),
       }),
     ),
   )
-  getCleanups().push(() => Promise.all(workers.map(worker => worker.cleanup())))
+  getCleanups().cleanups.push(() => Promise.all(workers.map(worker => worker.cleanup())))
 
   const { flowLogs } = await runCi()
   const workersLogs = [

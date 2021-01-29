@@ -1,23 +1,25 @@
-import { Logger, LogLevel } from '@era-ci/core'
+import { LogLevel } from '@era-ci/core'
 import { winstonLogger } from '@era-ci/loggers'
-import { DoneResult, execaCommand, ExecutionStatus, Status } from '@era-ci/utils'
-import Queue from 'bee-queue'
-import chance from 'chance'
+import BeeQueue from 'bee-queue'
 import Redis from 'ioredis'
 import path from 'path'
-import { serializeError } from 'serialize-error'
 import yargsParser from 'yargs-parser'
 import { parseConfig } from './parse-config-file'
-import { WorkerConfig, WorkerTask } from './types'
+import { StartWorkerOptions, TaskWorker, WorkerConfig, WorkerState, WorkerTask } from './types'
+import {
+  amountOfWrokersKey,
+  cleanup,
+  generateWorkerName,
+  isFlowFinishedKey,
+  isWorkerFinished,
+  processTask,
+} from './utils'
 
-export { WorkerTask, WorkerConfig }
+export { WorkerTask, WorkerConfig, isWorkerFinished, amountOfWrokersKey, TaskWorker, isFlowFinishedKey }
 
 export function config(config: WorkerConfig): WorkerConfig {
   return config
 }
-
-export const amountOfWrokersKey = (queueName: string) => `${queueName}--amount-of-workers`
-export const isFlowFinishedKey = (queueName: string) => `${queueName}--is-flow-finished`
 
 export async function main(processEnv: NodeJS.ProcessEnv, processArgv: string[]): Promise<void> {
   const argv = yargsParser(processArgv, {
@@ -31,62 +33,53 @@ export async function main(processEnv: NodeJS.ProcessEnv, processArgv: string[])
   const configFilePath = path.join(repoPath, 'task-worker.config.ts')
   const config = await parseConfig(configFilePath)
 
-  await startWorker({ config: { ...config, repoPath }, processEnv })
-}
+  const connectionsCleanups: (() => Promise<unknown>)[] = []
 
-export type Worker = {
-  logFilePath: string
-  cleanup: () => Promise<void>
+  const redisConnection = new Redis(config.redis.url, {
+    showFriendlyErrorStack: true,
+    password: config.redis.auth?.password,
+  })
+
+  connectionsCleanups.push(async () => redisConnection.disconnect())
+
+  const workerName = generateWorkerName(config.queueName)
+
+  const logger = await winstonLogger({
+    customLogLevel: LogLevel.trace,
+    logFilePath: path.join(repoPath, `${workerName}.log`),
+  }).callInitializeLogger({
+    repoPath,
+  })
+
+  await startWorker({
+    config,
+    logger,
+    processEnv,
+    redisConnection,
+    connectionsCleanups,
+    workerName,
+  })
 }
 
 export async function startWorker({
-  config,
+  connectionsCleanups = [],
   processEnv,
+  onFinish,
+  config,
+  workerName = generateWorkerName(config.queueName),
+  redisConnection,
   logger,
-}: {
-  config: WorkerConfig & {
-    repoPath: string
-  }
-  processEnv: NodeJS.ProcessEnv
-  logger?: Logger
-}): Promise<Worker> {
-  const workerName = `${config.queueName}-worker-${chance().hash().slice(0, 8)}`
-  const logFilePath = logger?.logFilePath ?? path.join(config.repoPath, `${workerName}.log`)
-
+}: StartWorkerOptions): Promise<TaskWorker> {
   const cleanups: (() => Promise<unknown>)[] = []
 
-  const finalLogger =
-    logger ||
-    (await winstonLogger({
-      customLogLevel: LogLevel.trace,
-      logFilePath,
-    }).callInitializeLogger({
-      repoPath: config.repoPath,
-    }))
-
-  const queue = new Queue<WorkerTask>(config.queueName, {
-    redis: {
-      url: config.redis.url,
-      password: config.redis.auth?.password,
-    },
-    removeOnSuccess: true,
-    removeOnFailure: true,
-  })
-  cleanups.push(() => queue.close())
-
-  const redisConnection = new Redis(config.redis.url, { password: config.redis.auth?.password })
-
-  await queue.ready()
-
   await redisConnection.incr(amountOfWrokersKey(config.queueName))
-  cleanups.push(async () => {
-    await redisConnection.decr(amountOfWrokersKey(config.queueName))
-    redisConnection.disconnect()
+  cleanups.push(() => {
+    return redisConnection.decr(amountOfWrokersKey(config.queueName))
   })
 
   const workerStarteTimedMs = Date.now()
 
-  const state = {
+  const state: WorkerState = {
     receivedFirstTask: false,
     isRunningTaskNow: false,
     allTasksSucceed: true,
@@ -94,190 +87,50 @@ export async function startWorker({
     terminatingWorker: false,
   }
 
-  const workerLog = finalLogger.createLog(workerName)
+  const workerLog = logger.createLog(workerName)
 
-  const intervalId1 = setInterval(async () => {
-    if (state.receivedFirstTask) {
-      const timePassedAfterLastTaskMs = Date.now() - state.lastTaskEndedMs
-      if (!state.isRunningTaskNow && timePassedAfterLastTaskMs >= config.maxWaitMsWithoutTasks) {
-        workerLog.debug(`no more tasks - shutting down worker`)
-        await cleanup()
-        return
-      }
-    } else {
-      const timePassedWithoutTasksMs = Date.now() - workerStarteTimedMs
-      if (timePassedWithoutTasksMs >= config.maxWaitMsUntilFirstTask) {
-        workerLog.debug(`no tasks at all - shutting down worker`)
-        await cleanup()
-        return
-      }
-    }
-
-    // we do pulling because we want to avoid addtional connection just for additional subscription
-    // because the free redis in redis-labs has limitation of max 20 connections at the same time.
-    const isFlowFinished = await redisConnection.get(isFlowFinishedKey(config.queueName))
-    if (isFlowFinished === 'true') {
-      workerLog.debug(`flow finished - shutting down worker`)
-      await cleanup()
-      return
-    }
-  }, 500)
-
-  cleanups.push(async () => clearInterval(intervalId1))
-
-  const intervalId2 = setInterval(async () => {
-    if (!state.terminatingWorker) {
-      // we do pulling because we want to avoid addtional connection just for additional subscription
-      // because the free redis in redis-labs has limitation of max 20 connections at the same time.
-      const isFlowFinished = await redisConnection.get(isFlowFinishedKey(config.queueName))
-      if (isFlowFinished === 'true') {
-        workerLog.debug(`flow finished - shutting down worker`)
-        await cleanup()
-        return
-      }
-    }
-  }, 2_000)
-
-  cleanups.push(async () => clearInterval(intervalId2))
-
-  const cleanup = async () => {
-    if (!state.terminatingWorker) {
-      state.terminatingWorker = true
-      await Promise.allSettled(cleanups.map(f => f()))
-
-      if (!state.allTasksSucceed) {
-        // 'SKIP_EXIT_CODE_1' is for test purposes
-        if (!processEnv['SKIP_EXIT_CODE_1']) {
-          process.exitCode = 1
-        }
-      }
-      workerLog.debug(`closed worker`)
-    }
-  }
-
-  const tasksByGroupId = new Map<
-    string,
-    {
-      succeedBeforeAll: boolean
-      tasks: Array<WorkerTask>
-    }
-  >()
-
-  queue.process<DoneResult>(1, async job => {
-    const startMs = Date.now()
-    state.isRunningTaskNow = true
-    state.receivedFirstTask = true
-    state.lastTaskEndedMs = Date.now()
-
-    job.reportProgress(1) // it's to nofity that we started to process this task
-
-    const taskLog = finalLogger.createLog(`${workerName}--task-${job.id}`)
-
-    const { group, task } = job.data
-    if (group) {
-      if (!tasksByGroupId.get(group.groupId)) {
-        taskLog.info('----------------------------------')
-        taskLog.info(`executing before-all: "${group.beforeAll.shellCommand}"`)
-        taskLog.info('----------------------------------')
-        const result = await execaCommand(group.beforeAll.shellCommand, {
-          stdio: 'inherit',
-          cwd: group.beforeAll.cwd,
-          reject: false,
-          log: taskLog,
-          shell: true,
-          env: group.beforeAll.processEnv,
-        }).catch((error: unknown) => {
-          // we can be here if the command is an empty string (it is covered with a test)
-          return {
-            failed: true,
-            error,
-          }
-        })
-
-        taskLog.info('----------------------------------')
-        taskLog.info(`ended before-all: "${group.beforeAll.shellCommand}" - passed: ${!result.failed}.`)
-        taskLog.info('----------------------------------')
-
-        tasksByGroupId.set(group.groupId, {
-          succeedBeforeAll: !result.failed,
-          tasks: [job.data],
-        })
-
-        if (result.failed) {
-          state.allTasksSucceed = false
-          taskLog.info('----------------------------------')
-          taskLog.info(`skipping task: "${job.data.task.shellCommand}" because the before-all failed on this worker.`)
-          taskLog.info('----------------------------------')
-
-          return {
-            executionStatus: ExecutionStatus.aborted,
-            status: Status.skippedAsFailed,
-            durationMs: Date.now() - startMs,
-            notes: [`failed to run before-all-tests in worker: "${workerName}": "${group.beforeAll.shellCommand}"`],
-            errors: result.failed ? [serializeError('error' in result ? result.error : result)] : [],
-          }
-        }
-      }
-
-      if (!tasksByGroupId.get(group.groupId)?.succeedBeforeAll) {
-        return {
-          executionStatus: ExecutionStatus.aborted,
-          status: Status.skippedAsFailed,
-          durationMs: Date.now() - startMs,
-          notes: [`failed to run before-all-tests in worker: "${workerName}": "${group.beforeAll.shellCommand}"`],
-          errors: [],
-        }
-      }
-
-      tasksByGroupId.get(group.groupId)?.tasks.push(job.data)
-    }
-
-    taskLog.info('----------------------------------')
-    taskLog.info(`started task: "${task.shellCommand}"`)
-    taskLog.info('----------------------------------')
-
-    const result = await execaCommand(task.shellCommand, {
-      stdio: 'inherit',
-      cwd: task.cwd,
-      reject: false,
-      log: taskLog,
-      shell: true,
-      env: task.processEnv,
-    }).catch((error: unknown) => {
-      // we can be here if the command is an empty string (it is covered with a test)
-      return {
-        failed: true,
-        error,
-      }
-    })
-
-    taskLog.info('----------------------------------')
-    taskLog.info(`ended task: "${task.shellCommand}" - passed: ${!result.failed}`)
-    taskLog.info('----------------------------------')
-
-    if (result.failed) {
-      state.allTasksSucceed = false
-    }
-
-    state.lastTaskEndedMs = Date.now()
-    state.isRunningTaskNow = false
-
-    return {
-      executionStatus: ExecutionStatus.done,
-      status: result.failed ? Status.failed : Status.passed,
-      durationMs: Date.now() - startMs,
-      notes: [],
-      errors: result.failed ? [serializeError('error' in result ? result.error : result)] : [],
-    }
+  const queue = new BeeQueue<WorkerTask>(config.queueName, {
+    redis: { url: config.redis.url, password: config.redis.auth?.password },
+    removeOnSuccess: true,
+    removeOnFailure: true,
   })
+  cleanups.push(() => queue.close())
+
+  queue.process(processTask({ workerName, logger, state }))
+
+  await queue.ready()
 
   workerLog.verbose('----------------------------------')
   workerLog.verbose(`starting listen for tasks`)
   workerLog.verbose('----------------------------------')
 
+  const cleanupFunc = () =>
+    cleanup({
+      state,
+      onFinish,
+      cleanups,
+      connectionsCleanups,
+      processEnv,
+      workerLog,
+    })
+
+  const intervalId = setInterval(
+    isWorkerFinished({
+      workerLog,
+      state,
+      config,
+      workerStarteTimedMs,
+      cleanup: cleanupFunc,
+      redisConnection,
+    }),
+    1_000,
+  )
+
+  cleanups.push(async () => clearInterval(intervalId))
+
   return {
-    logFilePath,
-    cleanup,
+    logFilePath: logger.logFilePath,
+    cleanup: cleanupFunc,
   }
 }
 

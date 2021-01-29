@@ -10,3 +10,9 @@ compiled-task-worker.config.js
 .eslintcaches
 compiled-era-ci-*
 .clinic
+**/src/**/*.js
+**/src/**/*.d.ts
+**/__tests__/**/*.js
+lib1.js
+*.d.ts
+!declarations.d.ts

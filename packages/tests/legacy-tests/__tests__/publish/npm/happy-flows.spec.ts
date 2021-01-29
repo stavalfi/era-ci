@@ -27,7 +27,7 @@ test('1 package', async () => {
   expect(master.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
 })
 
-test.only('multiple publishes of the same package', async () => {
+test('multiple publishes of the same package', async () => {
   const { runCi, addRandomFileToPackage } = await createRepo({
     packages: [
       {

@@ -9,7 +9,7 @@ import expect from 'expect'
 import fs from 'fs'
 import _ from 'lodash'
 
-const { createRepo, getProcessEnv, getResources, createTestLogger } = createTest()
+const { getCleanups, createRepo, getProcessEnv, getResources, createTestLogger, createRedisConnection } = createTest()
 
 test('single worker - no packages', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
@@ -271,10 +271,10 @@ test('two workers - single task - only one worker should execute the task', asyn
       redis: {
         url: getResources().redisServerUrl,
       },
-      repoPath,
       maxWaitMsUntilFirstTask: 3_000,
       maxWaitMsWithoutTasks: 3_000,
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
@@ -330,10 +330,10 @@ test('two workers - one task for each worker', async () => {
       redis: {
         url: getResources().redisServerUrl,
       },
-      repoPath,
       maxWaitMsUntilFirstTask: 3_000,
       maxWaitMsWithoutTasks: 3_000,
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
@@ -417,7 +417,7 @@ test('reproduce bug - single worker - single task - test should be skipped-as-pa
   ).toBeTruthy()
 })
 
-test('6 workers - both of them should be stopped when the flow is finished - no tasks', async () => {
+test('6 workers - all of them should be stopped when the flow is finished - no tasks', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi, repoPath } = await createRepo({
     repo: {
@@ -437,30 +437,33 @@ test('6 workers - both of them should be stopped when the flow is finished - no 
 
   const logger = await createTestLogger(repoPath)
 
-  await Promise.all(
-    _.range(0, 5).map(i =>
-      startWorker({
-        config: {
-          queueName,
-          redis: {
-            url: getResources().redisServerUrl,
-          },
-          repoPath,
-          maxWaitMsUntilFirstTask: 3_000,
-          maxWaitMsWithoutTasks: 3_000,
-        },
-        processEnv: getProcessEnv(),
-        logger,
-      }),
+  await Promise.all([
+    runCi().then<void>(() => {
+      //
+    }),
+    ..._.range(0, 5).map(
+      () =>
+        new Promise<void>(res =>
+          startWorker({
+            config: {
+              queueName,
+              redis: {
+                url: getResources().redisServerUrl,
+              },
+              maxWaitMsUntilFirstTask: 3_000,
+              maxWaitMsWithoutTasks: 3_000,
+            },
+            redisConnection: createRedisConnection(),
+            processEnv: getProcessEnv(),
+            logger,
+            onFinish: async () => res(),
+          }),
+        ),
     ),
-  )
-
-  await runCi()
-
-  // the test won't complete if the workers won't finish because they open connections to redis
+  ])
 })
 
-test('6 workers - both of them should be stopped when the flow is finished - single task - some of the workers will run a task and some of them will not', async () => {
+test('6 workers - all of them should be stopped when the flow is finished - single task - some of the workers will run a task and some of them will not', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const message1 = `hi-${chance().hash().slice(0, 8)}`
   const message2 = `hi-${chance().hash().slice(0, 8)}`
@@ -506,15 +509,16 @@ test('6 workers - both of them should be stopped when the flow is finished - sin
           redis: {
             url: getResources().redisServerUrl,
           },
-          repoPath,
           maxWaitMsUntilFirstTask: 3_000,
           maxWaitMsWithoutTasks: 3_000,
         },
+        redisConnection: createRedisConnection(),
         processEnv: getProcessEnv(),
         logger,
       }),
     ),
   )
+  getCleanups().cleanups.push(() => Promise.all(workers.map(w => w.cleanup())))
 
   const { flowLogs } = await runCi()
 

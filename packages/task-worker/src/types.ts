@@ -1,3 +1,6 @@
+import { Logger } from '@era-ci/core'
+import Redis from 'ioredis'
+
 export type WorkerConfig = {
   queueName: string
   maxWaitMsWithoutTasks: number
@@ -29,4 +32,27 @@ export type WorkerTask = {
         }
       }
     | false
+}
+
+export type TaskWorker = {
+  logFilePath: string
+  cleanup: () => Promise<void>
+}
+
+export type StartWorkerOptions = {
+  config: WorkerConfig
+  processEnv: NodeJS.ProcessEnv
+  logger: Logger
+  workerName?: string
+  redisConnection: Redis.Redis
+  onFinish?: () => Promise<void>
+  connectionsCleanups?: (() => Promise<unknown>)[]
+}
+
+export type WorkerState = {
+  receivedFirstTask: boolean
+  isRunningTaskNow: boolean
+  allTasksSucceed: boolean
+  lastTaskEndedMs: number
+  terminatingWorker: boolean
 }

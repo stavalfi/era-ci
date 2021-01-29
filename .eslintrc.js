@@ -8,7 +8,7 @@ module.exports = {
     es6: true,
     node: true,
   },
-  plugins: ['@typescript-eslint', 'json', 'prettier', 'spellcheck'],
+  plugins: ['@typescript-eslint', 'json', 'prettier'],
   extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'plugin:json/recommended', 'prettier'],
   globals: {
     globalThis: false, // it means that it is not writeable

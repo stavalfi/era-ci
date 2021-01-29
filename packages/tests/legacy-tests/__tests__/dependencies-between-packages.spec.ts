@@ -317,7 +317,7 @@ describe('docker-package depends on...', () => {
           },
           additionalFiles: {
             Dockerfile: `\
-FROM node
+FROM node:alpine
 
 WORKDIR /usr/repo
 

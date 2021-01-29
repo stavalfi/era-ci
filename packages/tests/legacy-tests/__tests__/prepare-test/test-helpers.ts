@@ -39,8 +39,11 @@ export async function removeAllNpmHashTags({
   packageName: string
   redisServerUrl: string
 }): Promise<void> {
-  const redisClient = new Redis(redisServerUrl)
-  const keys = await redisClient.keys(`npm-version-of-${packageName}-*`)
+  const redisConnection = new Redis(redisServerUrl, {
+    showFriendlyErrorStack: true,
+  })
+
+  const keys = await redisConnection.keys(`npm-version-of-${packageName}-*`)
   if (keys.length === 0) {
     throw new Error(
       `looks like we could not find any key that represent the new-version of an artifact. \
@@ -48,8 +51,8 @@ maybe the key-schema changed in the production code. anyways, \
 this test is useless until update the key-schema in this test-function`,
     )
   }
-  await redisClient.del(...keys)
-  await redisClient.quit()
+  await redisConnection.del(...keys)
+  redisConnection.disconnect()
 }
 
 export async function publishNpmPackageWithoutCi({
@@ -74,12 +77,12 @@ export async function publishNpmPackageWithoutCi({
 }): Promise<void> {
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
   await npmRegistryLogin({
-    repoPath,
     npmRegistry: npmRegistry.address,
-    npmRegistryEmail: npmRegistry.auth.email,
     npmRegistryToken: npmRegistry.auth.token,
-    npmRegistryUsername: npmRegistry.auth.username,
     log,
+    processEnv: {
+      ERA_TEST_MODE: 'true',
+    },
   })
   await execa.command(`npm publish --registry ${npmRegistry.address}`, {
     stdio: 'pipe',
@@ -150,12 +153,12 @@ export async function unpublishNpmPackage({
   log: Log
 }): Promise<void> {
   await npmRegistryLogin({
-    repoPath,
     npmRegistry: npmRegistry.address,
-    npmRegistryEmail: npmRegistry.auth.email,
     npmRegistryToken: npmRegistry.auth.token,
-    npmRegistryUsername: npmRegistry.auth.username,
     log,
+    processEnv: {
+      ERA_TEST_MODE: 'true',
+    },
   })
   await execa.command(
     `npm unpublish ${toActualName(packageName)}@${versionToUnpublish} --registry ${npmRegistry.address}`,

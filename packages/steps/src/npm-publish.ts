@@ -138,36 +138,17 @@ async function isNpmVersionAlreadyPulished({
 
 export async function npmRegistryLogin({
   npmRegistry,
-  npmRegistryEmail,
   npmRegistryToken,
-  npmRegistryUsername,
   log,
-  repoPath,
+  processEnv,
 }: {
-  repoPath: string
   npmRegistry: string
-  npmRegistryUsername: string
   npmRegistryToken: string
-  npmRegistryEmail: string
   log: Log
+  processEnv: NodeJS.ProcessEnv
 }): Promise<void> {
-  // only login in tests. publishing in non-interactive mode is very buggy and tricky.
-  // ---------------------------------------------------------------------------------
-  // it's an ugly why to check if we are in a test but at least,
-  // it doesn't use env-var (that the user can use by mistake) or addtional ci-parameter.
-  if (npmRegistryEmail === 'root@root.root') {
-    await execaCommand(require.resolve(`.bin/npm-login-noninteractive`), {
-      log,
-      stdio: 'ignore',
-      cwd: repoPath,
-      env: {
-        NPM_USER: npmRegistryUsername,
-        NPM_PASS: npmRegistryToken,
-        NPM_EMAIL: npmRegistryEmail,
-        NPM_REGISTRY: npmRegistry,
-      },
-    })
-  } else {
+  // in tests, we connect to the register in different way.
+  if (!processEnv['ERA_TEST_MODE']) {
     await fse.writeFile(path.join(os.homedir(), '.npmrc'), `//${npmRegistry}/:_authToken=${npmRegistryToken}`)
   }
   log.info(`logged in to npm-registry: "${npmRegistry}"`)
@@ -261,7 +242,7 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
   stepName: 'npm-publish',
   stepGroup: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: ({ stepConfigurations, repoPath, log, immutableCache }) => ({
+  run: ({ stepConfigurations, repoPath, log, immutableCache, processEnv }) => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact =>
@@ -288,12 +269,10 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
     ],
     onBeforeArtifacts: async () =>
       npmRegistryLogin({
-        repoPath,
         npmRegistry: stepConfigurations.registry,
-        npmRegistryEmail: stepConfigurations.publishAuth.email,
         npmRegistryToken: stepConfigurations.publishAuth.token,
-        npmRegistryUsername: stepConfigurations.publishAuth.username,
         log,
+        processEnv,
       }),
     onArtifact: async ({ artifact }) => {
       const newVersion = await calculateNextNewVersion({

@@ -9,7 +9,7 @@ import { State } from './state'
 import { Options } from './types'
 import { buildRedisCommands, findTaskQueue, logAction } from './utils'
 
-export { Actions, ChangeArtifactStatusAction, ChangeStepStatusAction } from './actions'
+export { Actions, ChangeArtifactStatusAction, ChangeStepStatusAction, ExecutionActionTypes } from './actions'
 export { State } from './state'
 
 export async function runAllSteps(options: Options): Promise<State> {
