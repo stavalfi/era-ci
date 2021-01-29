@@ -11,6 +11,7 @@ COPY ${package_path}/package.json ./${package_path}/package.json
 RUN node remove-all-dev-deps-from-all-package-jsons.js && rm remove-all-dev-deps-from-all-package-jsons.js
 RUN yarn install --frozen-lockfile --production
 
+RUN yarn build
 COPY ${package_path}/dist/src ./${package_path}/dist/src
 COPY ${package_path}/src ./${package_path}/src
 
