@@ -1,10 +1,22 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+
 const fs = require('fs')
 const path = require('path')
 const { execSync } = require('child_process')
 
 async function deleteDevDeps(packageJsonPath) {
   const packageJson = require(packageJsonPath)
-  delete packageJson.devDependencies
+  packageJson.devDependencies = Object.fromEntries(
+    Object.entries(packageJson.devDependencies)
+      .map(([key, value]) => {
+        if (['ts-node'].includes(key)) {
+          return []
+        } else {
+          return [key, value]
+        }
+      })
+      .filter(x => x.length > 0),
+  )
   await new Promise((res, rej) =>
     fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2), 'utf-8', error => (error ? rej(error) : res())),
   )
