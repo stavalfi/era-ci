@@ -3,10 +3,6 @@
 
 /// <reference path="../../../declarations.d.ts" />
 
-// `require('source-map-support').install()` MUST be the first (executed) line in the project!!!
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-import 'source-map-support/register'
-//
 import { startCli } from './configuration/cli'
 
 export * from './ci-logic'

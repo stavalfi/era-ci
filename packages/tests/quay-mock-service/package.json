@@ -11,7 +11,7 @@
   ],
   "types": "dist/src/index.d.ts",
   "scripts": {
-    "start:dev": "node -r @swc/register src/index.ts"
+    "start:dev": "ts-node src/index.ts"
   },
   "dependencies": {
     "@era-ci/utils": "^2.0.0",

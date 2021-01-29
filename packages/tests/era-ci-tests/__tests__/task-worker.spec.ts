@@ -1,29 +1,22 @@
-/* eslint-disable no-console */
 import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
-import { amountOfWrokersKey, startWorker, WorkerConfig, WorkerTask } from '@era-ci/task-worker'
+import { amountOfWrokersKey, isFlowFinishedKey, startWorker, WorkerConfig, WorkerTask } from '@era-ci/task-worker'
 import { DoneResult, ExecutionStatus, Status } from '@era-ci/utils'
-import Queue from 'bee-queue'
+import BeeQueue from 'bee-queue'
 import chance from 'chance'
 import { createFolder } from 'create-folder-structure'
 import execa from 'execa'
 import expect from 'expect'
 import fs from 'fs'
-import Redis from 'ioredis'
 import _ from 'lodash'
 import path from 'path'
 
-const { getCleanups, getProcessEnv, getResources, createTestLogger } = createTest()
+const { getCleanups, getProcessEnv, getResources, createTestLogger, createRedisConnection } = createTest()
 
-async function createQueue(queueName: string): Promise<Queue<WorkerTask>> {
-  const queue = new Queue<WorkerTask>(queueName, {
-    redis: { host: getResources().redisServerHost, port: getResources().redisServerPort },
-    removeOnSuccess: true,
-    removeOnFailure: true,
+function createQueue(queueName: string) {
+  const queue = new BeeQueue<WorkerTask>(queueName, {
+    redis: { url: getResources().redisServerUrl },
   })
-
-  await queue.ready()
-  getCleanups().push(() => queue.close())
-
+  getCleanups().connectionCleanups.push(() => queue.close())
   return queue
 }
 
@@ -32,18 +25,77 @@ test('no tasks - manual close worker', async () => {
   const { cleanup } = await startWorker({
     config: {
       queueName: `queue-${chance().hash().slice(0, 8)}`,
-      repoPath,
       maxWaitMsWithoutTasks: 10_000,
       maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
       },
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
-
   await cleanup()
+})
+
+test('no tasks - send event to finish flow - ensure the worker exits', async () => {
+  const repoPath = await createFolder()
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+
+  const redisConnection = createRedisConnection()
+
+  await new Promise<void>(res => {
+    Promise.resolve().then(async () => {
+      await startWorker({
+        config: {
+          queueName,
+          // we make sure that the worker won't exit because there are no tasks
+          maxWaitMsWithoutTasks: 1_000_000,
+          maxWaitMsUntilFirstTask: 1_000_000,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        },
+        processEnv: getProcessEnv(),
+        logger: await createTestLogger(repoPath),
+        redisConnection,
+        onFinish: async () => res(),
+      })
+      redisConnection.set(isFlowFinishedKey(queueName), 'true')
+    })
+  })
+})
+
+test('ensure the worker exits only after maxWaitMsUntilFirstTask', async () => {
+  const repoPath = await createFolder()
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+
+  const redisConnection = createRedisConnection()
+
+  const howMuchWorkerTimeWasAlive = await new Promise<number>(res => {
+    Promise.resolve().then(async () => {
+      // eslint-disable-next-line prefer-const
+      let startMs: number
+      await startWorker({
+        config: {
+          queueName,
+          // we make sure that the worker won't exit because there are no tasks
+          maxWaitMsWithoutTasks: 1_000_000,
+          maxWaitMsUntilFirstTask: 4_000,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        },
+        processEnv: getProcessEnv(),
+        logger: await createTestLogger(repoPath),
+        redisConnection,
+        onFinish: async () => res(Date.now() - startMs),
+      })
+      startMs = Date.now()
+    })
+  })
+
+  expect(howMuchWorkerTimeWasAlive).toBeGreaterThanOrEqual(4_000)
 })
 
 test('single worker - amount of workers === 1', async () => {
@@ -51,10 +103,11 @@ test('single worker - amount of workers === 1', async () => {
 
   const queueName = `queue-${chance().hash().slice(0, 8)}`
 
+  const redisConnection = createRedisConnection()
+
   const { cleanup } = await startWorker({
     config: {
       queueName,
-      repoPath,
       maxWaitMsWithoutTasks: 10_000,
       maxWaitMsUntilFirstTask: 10_000,
       redis: {
@@ -63,10 +116,8 @@ test('single worker - amount of workers === 1', async () => {
     },
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
+    redisConnection,
   })
-
-  const redisConnection = new Redis(getResources().redisServerUrl)
-  getCleanups().push(async () => redisConnection.disconnect())
 
   await expect(redisConnection.get(amountOfWrokersKey(queueName))).resolves.toEqual('1')
 
@@ -80,13 +131,13 @@ test('manual close worker multiple times', async () => {
   const { cleanup } = await startWorker({
     config: {
       queueName: `queue-${chance().hash().slice(0, 8)}`,
-      repoPath,
       maxWaitMsWithoutTasks: 10_000,
       maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
       },
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
@@ -102,19 +153,20 @@ test('single task - success', async () => {
   const { cleanup } = await startWorker({
     config: {
       queueName,
-      repoPath,
       maxWaitMsWithoutTasks: 10_000,
       maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
       },
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
-  getCleanups().push(cleanup)
+  getCleanups().cleanups.push(cleanup)
 
-  const queue = await createQueue(queueName)
+  const queue = createQueue(queueName)
+
   const task1 = queue.createJob({
     task: {
       shellCommand: 'echo hi > file1.txt',
@@ -137,7 +189,7 @@ test('single task - success', async () => {
     }),
   ).toBeTruthy()
 
-  const content = await fs.promises.readFile(path.join(repoPath, 'file1.txt'), 'utf-8')
+  const content = fs.readFileSync(path.join(repoPath, 'file1.txt'), 'utf-8')
   expect(content).toEqual('hi\n')
 })
 
@@ -147,17 +199,17 @@ test('multiple tasks - all success', async () => {
   const { cleanup } = await startWorker({
     config: {
       queueName,
-      repoPath,
       maxWaitMsWithoutTasks: 10_000,
       maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
       },
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
-  getCleanups().push(cleanup)
+  getCleanups().cleanups.push(cleanup)
 
   const queue = await createQueue(queueName)
 
@@ -193,17 +245,17 @@ test('single empty task - expect to fail', async () => {
   const { cleanup } = await startWorker({
     config: {
       queueName,
-      repoPath,
       maxWaitMsWithoutTasks: 10_000,
       maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
       },
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
-  getCleanups().push(cleanup)
+  getCleanups().cleanups.push(cleanup)
 
   const queue = await createQueue(queueName)
   const task1 = queue.createJob({
@@ -232,17 +284,17 @@ test('single task - expect to fail', async () => {
   const { cleanup } = await startWorker({
     config: {
       queueName,
-      repoPath,
       maxWaitMsWithoutTasks: 10_000,
       maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
       },
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
-  getCleanups().push(cleanup)
+  getCleanups().cleanups.push(cleanup)
 
   const queue = await createQueue(queueName)
   const task1 = queue.createJob({
@@ -275,17 +327,17 @@ test('multiple tasks - all fail', async () => {
   const { cleanup } = await startWorker({
     config: {
       queueName,
-      repoPath,
       maxWaitMsWithoutTasks: 10_000,
       maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
       },
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
-  getCleanups().push(cleanup)
+  getCleanups().cleanups.push(cleanup)
 
   const queue = await createQueue(queueName)
 
@@ -334,29 +386,30 @@ test('the worker runs a task which fails so when the worker exits, it will exit 
   }
 
   const queue = await createQueue(queueName)
+
   const task1 = queue.createJob({
     task: { shellCommand: 'exit 1', cwd: repoPath },
   })
+  task1.save()
 
-  await fs.promises.writeFile(
+  // we write using Sync because we don't want to do anything async until we
+  // wait for job completion (we don't want to miss the complete-event).
+  fs.writeFileSync(
     path.join(repoPath, 'task-worker.config.ts'),
     `export default ${JSON.stringify(workerConfig, null, 2)}`,
     'utf-8',
   )
   const workerProcess = execa.command(
-    `yarn node -r ts-node/register --trace-warnings --unhandled-rejections=strict ${require.resolve(
-      '@era-ci/task-worker',
-    )} --repo-path ${repoPath}`,
+    `yarn ts-node ${require.resolve('@era-ci/task-worker')} --repo-path ${repoPath}`,
     {
       stdio: 'pipe',
-      cwd: __dirname, // helping yarn to find "ts-node/register",
+      cwd: __dirname, // helping yarn to find "ts-node",
       reject: false,
     },
   )
 
   await new Promise<DoneResult>(res => {
     task1.once('succeeded', res)
-    task1.save()
   })
 
   const { exitCode } = await workerProcess
@@ -379,6 +432,7 @@ test('the worker runs multiple tasks which one of them fail. so when the worker 
   }
 
   const queue = await createQueue(queueName)
+
   const task1 = queue.createJob({
     task: { shellCommand: 'exit 1', cwd: repoPath },
   })
@@ -388,17 +442,20 @@ test('the worker runs multiple tasks which one of them fail. so when the worker 
   const task3 = queue.createJob({
     task: { shellCommand: 'echo hi', cwd: repoPath },
   })
+  task1.save()
+  task2.save()
+  task3.save()
 
-  await fs.promises.writeFile(
+  // we write using Sync because we don't want to do anything async until we
+  // wait for job completion (we don't want to miss the complete-event).
+  fs.writeFileSync(
     path.join(repoPath, 'task-worker.config.ts'),
     `export default ${JSON.stringify(workerConfig, null, 2)}`,
     'utf-8',
   )
 
   const workerProcess = execa.command(
-    `yarn node -r ts-node/register --trace-warnings --unhandled-rejections=strict ${require.resolve(
-      '@era-ci/task-worker',
-    )} --repo-path ${repoPath}`,
+    `yarn ts-node ${require.resolve('@era-ci/task-worker')} --repo-path ${repoPath}`,
     {
       stdio: 'pipe',
       cwd: __dirname,
@@ -408,15 +465,12 @@ test('the worker runs multiple tasks which one of them fail. so when the worker 
 
   await new Promise<DoneResult>(res => {
     task1.once('succeeded', res)
-    task1.save()
   })
   await new Promise<DoneResult>(res => {
     task2.once('succeeded', res)
-    task2.save()
   })
   await new Promise<DoneResult>(res => {
     task3.once('succeeded', res)
-    task3.save()
   })
 
   const { exitCode } = await workerProcess
@@ -424,7 +478,7 @@ test('the worker runs multiple tasks which one of them fail. so when the worker 
   expect(exitCode).not.toEqual(0)
 })
 
-test.only('no tasks so the worker is closing automaticaly', async () => {
+test('no tasks so the worker is closing automaticaly', async () => {
   const repoPath = await createFolder()
 
   const workerConfig: WorkerConfig = {
@@ -443,9 +497,7 @@ test.only('no tasks so the worker is closing automaticaly', async () => {
   )
 
   const { stdout } = await execa.command(
-    `yarn node -r ts-node/register --trace-warnings --unhandled-rejections=strict ${require.resolve(
-      '@era-ci/task-worker',
-    )} --repo-path ${repoPath}`,
+    `yarn ts-node ${require.resolve('@era-ci/task-worker')} --repo-path ${repoPath}`,
     {
       stdio: 'pipe',
       cwd: __dirname,
@@ -471,20 +523,22 @@ test('single task -> after that, no tasks so the worker is closing automaticaly'
   }
 
   const queue = await createQueue(queueName)
+
   const task1 = queue.createJob({
     task: { shellCommand: 'echo hi', cwd: repoPath },
   })
+  task1.save()
 
-  await fs.promises.writeFile(
+  // we write using Sync because we don't want to do anything async until we
+  // wait for job completion (we don't want to miss the complete-event).
+  fs.writeFileSync(
     path.join(repoPath, 'task-worker.config.ts'),
     `export default ${JSON.stringify(workerConfig, null, 2)}`,
     'utf-8',
   )
 
   const workerProcess = execa.command(
-    `yarn node -r ts-node/register --trace-warnings --unhandled-rejections=strict ${require.resolve(
-      '@era-ci/task-worker',
-    )} --repo-path ${repoPath}`,
+    `yarn ts-node ${require.resolve('@era-ci/task-worker')} --repo-path ${repoPath}`,
     {
       stdio: 'pipe',
       cwd: __dirname,
@@ -493,7 +547,6 @@ test('single task -> after that, no tasks so the worker is closing automaticaly'
 
   await new Promise<DoneResult>(res => {
     task1.once('succeeded', res)
-    task1.save()
   })
 
   const { stdout } = await workerProcess
@@ -507,19 +560,20 @@ test('single task - success - override processEnv', async () => {
   const { cleanup } = await startWorker({
     config: {
       queueName,
-      repoPath,
       maxWaitMsWithoutTasks: 10_000,
       maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
       },
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
-  getCleanups().push(cleanup)
+  getCleanups().cleanups.push(cleanup)
 
   const queue = await createQueue(queueName)
+
   const task1 = queue.createJob({
     task: {
       shellCommand: 'echo $X > file1.txt',
@@ -545,7 +599,7 @@ test('single task - success - override processEnv', async () => {
     }),
   ).toBeTruthy()
 
-  const content = await fs.promises.readFile(path.join(repoPath, 'file1.txt'), 'utf-8')
+  const content = fs.readFileSync(path.join(repoPath, 'file1.txt'), 'utf-8')
   expect(content).toEqual('hi\n')
 })
 
@@ -555,17 +609,17 @@ test('single task - success - part of a group', async () => {
   const { cleanup } = await startWorker({
     config: {
       queueName,
-      repoPath,
       maxWaitMsWithoutTasks: 10_000,
       maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
       },
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
-  getCleanups().push(cleanup)
+  getCleanups().cleanups.push(cleanup)
 
   const queue = await createQueue(queueName)
   const task1 = queue.createJob({
@@ -597,10 +651,10 @@ test('single task - success - part of a group', async () => {
     }),
   ).toBeTruthy()
 
-  const content1 = await fs.promises.readFile(path.join(repoPath, 'file1.txt'), 'utf-8')
+  const content1 = fs.readFileSync(path.join(repoPath, 'file1.txt'), 'utf-8')
   expect(content1).toEqual('hi1\n')
 
-  const content2 = await fs.promises.readFile(path.join(repoPath, 'file2.txt'), 'utf-8')
+  const content2 = fs.readFileSync(path.join(repoPath, 'file2.txt'), 'utf-8')
   expect(content2).toEqual('hi2\n')
 })
 
@@ -610,17 +664,17 @@ test('single task - success - part of a group - override process-env', async () 
   const { cleanup } = await startWorker({
     config: {
       queueName,
-      repoPath,
       maxWaitMsWithoutTasks: 10_000,
       maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
       },
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
-  getCleanups().push(cleanup)
+  getCleanups().cleanups.push(cleanup)
 
   const queue = await createQueue(queueName)
   const task1 = queue.createJob({
@@ -655,10 +709,10 @@ test('single task - success - part of a group - override process-env', async () 
     }),
   ).toBeTruthy()
 
-  const content1 = await fs.promises.readFile(path.join(repoPath, 'file1.txt'), 'utf-8')
+  const content1 = fs.readFileSync(path.join(repoPath, 'file1.txt'), 'utf-8')
   expect(content1).toEqual('hi1\n')
 
-  const content2 = await fs.promises.readFile(path.join(repoPath, 'file2.txt'), 'utf-8')
+  const content2 = fs.readFileSync(path.join(repoPath, 'file2.txt'), 'utf-8')
   expect(content2).toEqual('hi2\n')
 })
 
@@ -668,17 +722,17 @@ test('multiple tasks - before-all is called once', async () => {
   const { cleanup } = await startWorker({
     config: {
       queueName,
-      repoPath,
       maxWaitMsWithoutTasks: 10_000,
       maxWaitMsUntilFirstTask: 10_000,
       redis: {
         url: getResources().redisServerUrl,
       },
     },
+    redisConnection: createRedisConnection(),
     processEnv: getProcessEnv(),
     logger: await createTestLogger(repoPath),
   })
-  getCleanups().push(cleanup)
+  getCleanups().cleanups.push(cleanup)
 
   const queue = await createQueue(queueName)
   const task1 = queue.createJob({
@@ -719,6 +773,6 @@ test('multiple tasks - before-all is called once', async () => {
     task2.save()
   })
 
-  const content1 = await fs.promises.readFile(path.join(repoPath, 'file1.txt'), 'utf-8')
+  const content1 = fs.readFileSync(path.join(repoPath, 'file1.txt'), 'utf-8')
   expect(content1).toEqual('hi1\n')
 })

@@ -161,8 +161,6 @@ export async function ci(options: {
     console.log('------------------------')
     // eslint-disable-next-line no-console
     console.log('------------------------')
-    // eslint-disable-next-line no-console
-    console.log('------------------------')
   }
 
   return {

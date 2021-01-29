@@ -1,10 +1,9 @@
-import { createStepExperimental, getResult } from '@era-ci/core'
+import { createStepExperimental, getResult, ExecutionActionTypes } from '@era-ci/core'
 import { createTest } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import expect from 'expect'
-import { ExecutionActionTypes } from '../../../core/dist/src/steps-execution/actions'
 
 const { createRepo, sleep } = createTest()
 

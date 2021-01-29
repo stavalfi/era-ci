@@ -251,7 +251,7 @@ export async function startQuayMockService(
       }
       closed = true
       await app.close()
-      await Promise.allSettled(cleanups.map(f => f()))
+      await Promise.all(cleanups.map(f => f()))
       console.log(`closed quay-mock-service: "${address}"`)
     },
   }

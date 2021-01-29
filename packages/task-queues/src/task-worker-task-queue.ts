@@ -1,8 +1,8 @@
 import { createTaskQueue, TaskInfo, TaskQueueBase, TaskQueueEventEmitter, TaskQueueOptions } from '@era-ci/core'
-import { isFlowFinishedKey, startWorker, Worker, WorkerTask } from '@era-ci/task-worker'
+import { isFlowFinishedKey, startWorker, TaskWorker, WorkerTask } from '@era-ci/task-worker'
 import { DoneResult, ExecutionStatus, Status } from '@era-ci/utils'
-import { queue } from 'async'
-import Queue from 'bee-queue'
+import async from 'async'
+import BeeQueue from 'bee-queue'
 import chance from 'chance'
 import { EventEmitter } from 'events'
 import _ from 'lodash'
@@ -25,18 +25,22 @@ export class TaskWorkerTaskQueue implements TaskQueueBase<TaskWorkerTaskQueueCon
   public readonly eventEmitter: TaskQueueEventEmitter<WorkerTask> = new EventEmitter({ captureRejections: true })
   private isQueueActive = true
   private readonly cleanups: (() => Promise<unknown>)[] = []
-  private readonly queue: Queue<WorkerTask>
   // we use this task-queue to track on non-blocking-functions (promises we don't await for) and wait for all in the cleanup.
   // why we don't await on every function (instead of using this queue): because we want to emit events after functions returns
-  private readonly internalTaskQueue = queue<() => Promise<unknown>>(
+  private readonly internalTaskQueue = async.queue<() => Promise<unknown>>(
     (task, done) => task().then(() => done(), done),
     10,
   )
   private readonly tasks = new Map<string, TaskInfo<WorkerTask>>()
+  private readonly queue: BeeQueue<WorkerTask>
 
-  constructor(private readonly options: TaskQueueOptions<TaskWorkerTaskQueueConfigurations>, readonly worker: Worker) {
+  constructor(
+    private readonly options: TaskQueueOptions<TaskWorkerTaskQueueConfigurations>,
+    readonly worker: TaskWorker,
+  ) {
     this.eventEmitter.setMaxListeners(Infinity)
-    this.queue = new Queue<WorkerTask>(options.taskQueueConfigurations.queueName, {
+
+    this.queue = new BeeQueue<WorkerTask>(options.taskQueueConfigurations.queueName, {
       redis: {
         url: options.taskQueueConfigurations.redis.url,
         password: options.taskQueueConfigurations.redis.auth?.password,
@@ -133,12 +137,10 @@ export class TaskWorkerTaskQueue implements TaskQueueBase<TaskWorkerTaskQueueCon
       await this.internalTaskQueue.drain()
     }
     this.internalTaskQueue.kill()
-
-    await Promise.allSettled(this.cleanups.map(f => f()))
+    await Promise.all(this.cleanups.map(f => f()))
 
     // TODO: wait until all tasks are finished, add timeout, report on "waiting" tasks as aborted.
 
-    await this.queue.destroy() // delete all relevant keys from redis
     await this.queue.close()
     this.eventEmitter.removeAllListeners()
 
@@ -152,11 +154,11 @@ export const taskWorkerTaskQueue = createTaskQueue<TaskWorkerTaskQueue, WorkerTa
     const worker = await startWorker({
       config: {
         queueName: options.taskQueueConfigurations.queueName,
-        repoPath: options.repoPath,
         maxWaitMsWithoutTasks: 1_000_000_000,
         maxWaitMsUntilFirstTask: 1_000_000_000,
         redis: options.taskQueueConfigurations.redis,
       },
+      redisConnection: options.redisClient.connection,
       logger: options.logger,
       processEnv: options.processEnv,
     })

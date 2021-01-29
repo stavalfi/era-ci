@@ -6,7 +6,7 @@ import { createFolder } from 'create-folder-structure'
 import expect from 'expect'
 import sinon from 'sinon'
 
-const { getCleanups, getConnectionCleanups, sleep, createTestLogger, getResources } = createTest()
+const { getCleanups, sleep, createTestLogger, getResources } = createTest()
 
 let taskQueue: LocalSequentalTaskQueue
 
@@ -19,7 +19,7 @@ beforeEach(async () => {
     },
     logger,
   })
-  getConnectionCleanups().push(redisClient.cleanup)
+  getCleanups().connectionCleanups.push(redisClient.cleanup)
   taskQueue = await localSequentalTaskQueue().createFunc({
     redisClient,
     log: logger.createLog('task-queue'),
@@ -36,7 +36,7 @@ beforeEach(async () => {
     repoPath,
     processEnv: {},
   })
-  getCleanups().push(taskQueue.cleanup)
+  getCleanups().cleanups.push(taskQueue.cleanup)
 })
 
 test('cleanup dont throw when queue is empty', async () => {

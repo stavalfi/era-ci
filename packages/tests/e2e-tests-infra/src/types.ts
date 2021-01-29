@@ -21,12 +21,17 @@ export { TargetType, PackageJson }
 
 export type Cleanup = () => Promise<unknown>
 
+export type GetCleanups = () => {
+  cleanups: Cleanup[]
+  connectionCleanups: Cleanup[]
+}
+
 export type TestFuncs = {
   sleep: (ms: number) => Promise<void>
   getProcessEnv: () => TestProcessEnv
   getResources: () => TestResources
-  getCleanups: () => Cleanup[]
-  getConnectionCleanups: () => Cleanup[]
+  createRedisConnection: (s?: string) => Redis
+  getCleanups: GetCleanups
   createTestLogger: (repoPath: string) => Promise<Logger>
 }
 
@@ -68,8 +73,6 @@ export type TestResources = {
   dockerRegistry: string
   gitServer: GitServer
   redisServerUrl: string
-  redisServerHost: string
-  redisServerPort: number
   quayMockService: Deployment
   quayHelperService: Deployment
   quayNamespace: string

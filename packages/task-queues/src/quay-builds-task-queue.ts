@@ -488,7 +488,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     this.isQueueActive = false
 
     this.options.log.debug(`closing quay-builds task-queue and aborting scheduled and running tasks`)
-    await Promise.allSettled(this.cleanups.map(f => f()))
+    await Promise.all(this.cleanups.map(f => f()))
     // ensure we don't send events of any processing or pending tasks
     this.queueStatusChanged.emit('closed')
     if (!this.internalTaskQueue.idle()) {
