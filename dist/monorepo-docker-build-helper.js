@@ -60,7 +60,6 @@ function updateMainTsconfigBuildFile(repoPath, graph, deps) {
   fs_1.default.writeFileSync(tsconfigBuildFilePath, JSON.stringify(tsconfigBuild, null, 2))
 }
 function updateAllTsconfigBuildFiles(repoPath, graph, packageJsonName) {
-  debugger
   const deps = findAllRecursiveDepsOfPackage(graph, packageJsonName)
   updateMainTsconfigBuildFile(repoPath, graph, deps)
   for (const dep of deps) {
@@ -114,10 +113,10 @@ async function main(argv) {
         throw new Error(`packageJsonName: "${packageJsonNameToKeep}" was not found in this monorepo`)
       }
       if (param2 === '--remove-all-dev-deps-except') {
-        // deleteAllDevDeps(repoPath, graph, packageJsonNameToKeep, expectDevDepsNames)
+        deleteAllDevDeps(repoPath, graph, packageJsonNameToKeep, expectDevDepsNames)
       }
       updateAllTsconfigBuildFiles(repoPath, graph, packageJsonNameToKeep)
-      // keepOnlyNeededPackages(repoPath, graph, packageJsonNameToKeep)
+      keepOnlyNeededPackages(repoPath, graph, packageJsonNameToKeep)
       break
     }
     default:

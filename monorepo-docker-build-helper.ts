@@ -79,7 +79,6 @@ function updateMainTsconfigBuildFile(repoPath: string, graph: Workspaces, deps: 
 }
 
 function updateAllTsconfigBuildFiles(repoPath: string, graph: Workspaces, packageJsonName: string): void {
-  debugger
   const deps = findAllRecursiveDepsOfPackage(graph, packageJsonName)
   updateMainTsconfigBuildFile(repoPath, graph, deps)
   for (const dep of deps) {
@@ -144,11 +143,11 @@ async function main(argv: string[]) {
       }
 
       if (param2 === '--remove-all-dev-deps-except') {
-        // deleteAllDevDeps(repoPath, graph, packageJsonNameToKeep, expectDevDepsNames)
+        deleteAllDevDeps(repoPath, graph, packageJsonNameToKeep, expectDevDepsNames)
       }
 
       updateAllTsconfigBuildFiles(repoPath, graph, packageJsonNameToKeep)
-      // keepOnlyNeededPackages(repoPath, graph, packageJsonNameToKeep)
+      keepOnlyNeededPackages(repoPath, graph, packageJsonNameToKeep)
 
       break
     }
