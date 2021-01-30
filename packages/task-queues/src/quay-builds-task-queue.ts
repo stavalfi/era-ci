@@ -464,6 +464,12 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         archiveUrl: url,
       })
 
+      this.options.log.verbose(`starting quay build for:`, {
+        taskId: task.taskInfo.taskId,
+        packageName: task.packageName,
+        quayBuildId: buildTriggerResult.quayBuildId,
+      })
+
       this.tasks.set(task.taskInfo.taskId, {
         ...this.tasks.get(task.taskInfo.taskId),
         ...task,
