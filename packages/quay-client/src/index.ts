@@ -55,14 +55,20 @@ export class QuayClient {
       },
     })
 
-    this.abortEventHandler.once('closed', () => p.cancel())
-    this.taskTimeoutEventEmitter.once('timeout', taskId => {
+    const closed = () => p.cancel()
+    const timeout = (taskId: string) => {
       if (taskId === options.taskId) {
         p.cancel()
       }
-    })
+    }
 
-    return p
+    this.abortEventHandler.once('closed', closed)
+    this.taskTimeoutEventEmitter.once('timeout', timeout)
+
+    return p.finally(() => {
+      this.abortEventHandler.off('closed', closed)
+      this.taskTimeoutEventEmitter.off('timeout', timeout)
+    })
   }
 
   public async createRepo({
@@ -119,7 +125,7 @@ export class QuayClient {
     const quayBuildStatus = await this.request<QuayNewBuildResult>({
       taskId,
       method: 'get',
-      api: `api/v1/repository/build/${quayBuildId}/status`,
+      api: `api/v1/repository/${this.quayNamespace}/${repoName}/build/${quayBuildId}/status`,
     }).catch(e => {
       this.log.error(
         `failed to get build-status for quay-repo: "${repoName}" .quay-build-id: "${quayBuildId}": "${e}"`,
@@ -145,7 +151,7 @@ export class QuayClient {
     await this.request({
       taskId,
       method: 'delete',
-      api: `api/v1/repository/build/${quayBuildId}`,
+      api: `api/v1/repository/${this.quayNamespace}/${repoName}/build/${quayBuildId}`,
     }).catch(e => {
       this.log.error(`failed to cancel build for quay-repo: "${repoName}" .quay-build-id: "${quayBuildId}"`, e)
       throw e

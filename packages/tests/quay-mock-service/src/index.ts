@@ -102,36 +102,36 @@ export async function startQuayMockService(
   app.get<{
     Params: {
       quayBuildId: string
+      namespace: string
+      repoName: string
     }
     Querystring: never
     Body: never
     Reply: GetBuildStatusResponse
     Headers: Headers
-  }>('/api/v1/repository/build/:quayBuildId/status', async (req, res) => {
-    for (const namespace of Object.values(db.namespaces)) {
-      for (const repo of Object.values(namespace.repos)) {
-        if (repo.builds[req.params.quayBuildId]) {
-          return res.send({
-            status: '',
-            error: null,
-            display_name: '',
-            repository: { namespace: namespace.namespace, name: repo.repo },
-            subdirectory: '',
-            started: '',
-            tags: [],
-            archive_url: '',
-            pull_robot: null,
-            trigger: null,
-            trigger_metadata: '',
-            context: '',
-            is_writer: true,
-            phase: repo.builds[req.params.quayBuildId].status,
-            resource_key: null,
-            manual_user: '',
-            id: repo.builds[req.params.quayBuildId].buildId,
-            dockerfile_path: '',
-          })
-        }
+  }>('/api/v1/repository/:namespace/:repoName/build/:quayBuildId/status', async (req, res) => {
+    for (const repo of Object.values(db.namespaces[req.params.namespace].repos)) {
+      if (repo.builds[req.params.quayBuildId]) {
+        return res.send({
+          status: '',
+          error: null,
+          display_name: '',
+          repository: { namespace: req.params.namespace, name: repo.repo },
+          subdirectory: '',
+          started: '',
+          tags: [],
+          archive_url: '',
+          pull_robot: null,
+          trigger: null,
+          trigger_metadata: '',
+          context: '',
+          is_writer: true,
+          phase: repo.builds[req.params.quayBuildId].status,
+          resource_key: null,
+          manual_user: '',
+          id: repo.builds[req.params.quayBuildId].buildId,
+          dockerfile_path: '',
+        })
       }
     }
     throw new Error(`build-id not found`)
@@ -140,18 +140,18 @@ export async function startQuayMockService(
   app.delete<{
     Params: {
       quayBuildId: string
+      namespace: string
+      repoName: string
     }
     Querystring: never
     Body: never
     Reply: never
     Headers: Headers
-  }>('/api/v1/repository/build/:quayBuildId', async (req, res) => {
-    for (const namespace of Object.values(db.namespaces)) {
-      for (const repo of Object.values(namespace.repos)) {
-        if (repo.builds[req.params.quayBuildId]) {
-          repo.builds[req.params.quayBuildId].status = QuayBuildStatus.cancelled
-          return res.send()
-        }
+  }>('/api/v1/repository/:namespace/:repoName/build/:quayBuildId', async (req, res) => {
+    for (const repo of Object.values(db.namespaces[req.params.namespace].repos)) {
+      if (repo.builds[req.params.quayBuildId]) {
+        repo.builds[req.params.quayBuildId].status = QuayBuildStatus.cancelled
+        return res.send()
       }
     }
     throw new Error(`build-id not found`)
