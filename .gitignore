@@ -31,3 +31,4 @@ compiled-era-ci-*
 lib1.js
 *.d.ts
 !declarations.d.ts
+!dist/monorepo-docker-build-helper.js

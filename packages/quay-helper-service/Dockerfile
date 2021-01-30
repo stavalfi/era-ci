@@ -1,15 +1,18 @@
-FROM node:15
+FROM node:15.7.0-alpine3.10
 
-WORKDIR /usr/git-tar-gz-proxy
+WORKDIR /usr/service
 
-COPY yarn.lock package.json remove-all-dev-deps-from-all-package-jsons.js ./
+COPY yarn.lock package.json dist/monorepo-docker-build-helper.js tsconfig.json tsconfig-build.json ./
 
 ARG package_path=packages/quay-helper-service
 
 COPY ${package_path}/package.json ./${package_path}/package.json
+COPY ${package_path}/tsconfig-build.json ./${package_path}/tsconfig-build.json
 
-RUN node remove-all-dev-deps-from-all-package-jsons.js && rm remove-all-dev-deps-from-all-package-jsons.js
-RUN yarn install --frozen-lockfile --production
+RUN node dist/monorepo-docker-build-helper.js remove-irrelevant-packages \
+    --keep-package-and-its-deps @era-ci/quay-helper-service \
+    --remove-all-dev-deps-except typescript ts-node
+RUN yarn install
 
 RUN yarn build
 COPY ${package_path}/dist/src ./${package_path}/dist/src
