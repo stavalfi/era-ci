@@ -1,8 +1,7 @@
-import { Log, TaskTimeoutEventEmitter } from '@era-ci/core'
 import { buildFullDockerImageName } from '@era-ci/utils'
+import { EventEmitter } from 'events'
 import got, { RequestError } from 'got'
 import HttpStatusCodes from 'http-status-codes'
-import { URL } from 'url'
 import {
   AbortEventHandler,
   BuildTriggerResult,
@@ -11,19 +10,24 @@ import {
   QuayCreateRepoResult,
   QuayNewBuildResult,
   QuayNotificationEvents,
+  TaskTimeoutEventEmitter,
 } from './types'
-
+import urlJoin from 'url-join'
 export * from './types'
 
 export class QuayClient {
   constructor(
-    private readonly taskTimeoutEventEmitter: TaskTimeoutEventEmitter,
-    private readonly abortEventHandler: AbortEventHandler,
     private readonly quayAddress: string,
     private readonly quayToken: string,
     private readonly quayNamespace: string,
-    private readonly log: Log,
+    private readonly log: {
+      info: (s: string) => void
+      debug: (s: string) => void
+      error: (s: string, e: Error) => void
+    },
     private readonly processEnv: NodeJS.ProcessEnv,
+    private readonly taskTimeoutEventEmitter: TaskTimeoutEventEmitter = new EventEmitter({ captureRejections: true }),
+    private readonly abortEventHandler: AbortEventHandler = new EventEmitter({ captureRejections: true }),
   ) {}
 
   private async request<ResponseBody, RequestBody = unknown>(options: {
@@ -32,7 +36,7 @@ export class QuayClient {
     requestBody?: RequestBody
     taskId: string
   }): Promise<ResponseBody> {
-    const url = new URL(options.api, this.quayAddress).href
+    const url = urlJoin(this.quayAddress, options.api)
     const p = got[options.method]<ResponseBody>(url, {
       headers: {
         authorization: `Bearer ${this.quayToken}`,
@@ -117,7 +121,10 @@ export class QuayClient {
       method: 'get',
       api: `api/v1/repository/build/${quayBuildId}/status`,
     }).catch(e => {
-      this.log.error(`failed to get build-status for quay-repo: "${repoName}" .quay-build-id: "${quayBuildId}"`, e)
+      this.log.error(
+        `failed to get build-status for quay-repo: "${repoName}" .quay-build-id: "${quayBuildId}": "${e}"`,
+        e,
+      )
       throw e
     })
 
@@ -252,7 +259,7 @@ export class QuayClient {
       throw e
     })
 
-    this.log.verbose(
+    this.log.debug(
       `created notification: ${event} for quay-repo: "${repoName}" - repository: "${buildFullDockerImageName({
         dockerRegistry: this.quayAddress,
         imageName: repoName,

@@ -12,7 +12,7 @@ COPY ${package_path}/tsconfig-build.json ./${package_path}/tsconfig-build.json
 
 RUN node monorepo-docker-build-helper.js remove-irrelevant-packages \
     --keep-package-and-its-deps @era-ci/quay-helper-service \
-    --remove-all-dev-deps-except typescript ts-node
+    --remove-all-dev-deps-except typescript ts-node @types/*
 RUN yarn install
 
 COPY ${package_path}/src ./${package_path}/src

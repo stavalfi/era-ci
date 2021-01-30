@@ -23,8 +23,8 @@ type TsconfigBuild = {
 }
 
 type PackageJson = {
-  dependencies: { [dep: string]: string }
-  devDependencies: { [dep: string]: string }
+  dependencies?: { [dep: string]: string }
+  devDependencies?: { [dep: string]: string }
 }
 
 enum Actions {
@@ -44,7 +44,7 @@ function findAllRecursiveDepsOfPackage(graph: Workspaces, packageJsonName: strin
     const packageJson = JSON.parse(
       fs.readFileSync(path.join(graph[packageJsonName1].location, 'package.json'), 'utf-8'),
     ) as PackageJson
-    const allDeps = packageJson.dependencies
+    const allDeps = packageJson.dependencies ?? {}
     const allDevDepAndDepFromRepo = graph[packageJsonName1]
     for (const depName of Object.keys(allDeps)) {
       if (allDevDepAndDepFromRepo.workspaceDependencies.includes(depName)) {
@@ -123,13 +123,15 @@ function keepOnlyNeededPackages(repoPath: string, graph: Workspaces, packageJson
 function deleteDevDepsFromPackageJson(packageJsonPath: string, expectDevDeps: string[]) {
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
   packageJson.devDependencies = Object.fromEntries(
-    Object.entries(packageJson.devDependencies)
+    Object.entries(packageJson.devDependencies ?? {})
       .map(([key, value]) => {
+        if (expectDevDeps.some(e => e === '@types/*') && key.includes('@types/')) {
+          return [key, value]
+        }
         if (expectDevDeps.includes(key)) {
           return [key, value]
-        } else {
-          return []
         }
+        return []
       })
       .filter(x => x.length > 0),
   )

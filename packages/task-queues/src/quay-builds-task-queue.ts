@@ -23,6 +23,7 @@ import {
   QuayNotificationEvents,
 } from '@era-ci/quay-client'
 import _ from 'lodash'
+import urlJoin from 'url-join'
 
 export type QuayBuildsTaskPayload = Record<string, never>
 
@@ -36,8 +37,8 @@ export type QuayBuildsTaskQueueConfigurations = {
       password?: string
     }
   }
-  quayAddress: 'https://quay.io' | string
   quayHelperServiceUrl: string
+  quayAddress: 'https://quay.io' | string
   quayToken: string
   quayNamespace: string
   getCommitTarGzPublicAddress: (options: {
@@ -105,13 +106,13 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     this.taskTimeoutEventEmitter.setMaxListeners(Infinity)
     this.queueStatusChanged.setMaxListeners(Infinity)
     this.quayClient = new QuayClient(
-      this.taskTimeoutEventEmitter,
-      this.queueStatusChanged,
       options.taskQueueConfigurations.quayAddress,
       options.taskQueueConfigurations.quayToken,
       options.taskQueueConfigurations.quayNamespace,
       options.log,
       options.processEnv,
+      this.taskTimeoutEventEmitter,
+      this.queueStatusChanged,
     )
     this.taskTimeoutEventEmitter.on('timeout', async taskId => {
       const task = this.tasks.get(taskId)
@@ -209,18 +210,18 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       return
     }
     const task = Array.from(this.tasks.values()).find(b => b.quayBuildId === event.quayBuildId)!
-    // if (!task) {
-    //   if (retry >= 30) {
-    //     this.options.log.trace(`can't find build-id: "${event.quayBuildId}" which we received from quay-helper-service`)
-    //   }
-    //   // quay sent us a quay-build-id: "${event.quayBuildId}" which we don't know.
-    //   // it can be from one of two reasons:
-    //   // 1. there is other quay-build running right now and we got his event as well (every redis event is sent to all subscribers).
-    //   // 2. quay gave us build-id in the REST-POST /build but we didn't process it yet and
-    //   // then quay sent us notification about this build-id. let's process this event again with a delay of 1 second.
-    //   await new Promise(res => setTimeout(res, 1000))
-    //   return this.onQuayBuildStatusChanged(topic, eventString)
-    // }
+    if (!task) {
+      if (retry >= 30) {
+        this.options.log.trace(`can't find build-id: "${event.quayBuildId}" which we received from quay-helper-service`)
+      }
+      // quay sent us a quay-build-id: "${event.quayBuildId}" which we don't know.
+      // it can be from one of two reasons:
+      // 1. there is other quay-build running right now and we got his event as well (every redis event is sent to all subscribers).
+      // 2. quay gave us build-id in the REST-POST /build but we didn't process it yet and
+      // then quay sent us notification about this build-id. let's process this event again with a delay of 1 second.
+      await new Promise(res => setTimeout(res, 1000))
+      return this.onQuayBuildStatusChanged(topic, eventString)
+    }
 
     this.options.log.debug(`new event on topic: "${topic}" from quay-server: ${JSON.stringify(event, null, 2)}`)
 
@@ -499,6 +500,22 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         lastEmittedTaskExecutionStatus: ExecutionStatus.running,
         lastKnownQuayBuildStatus: buildTriggerResult.quayBuildStatus,
       })
+
+      // it looks like quay has a bug and they don't report failure-status in webhook.
+      // so we do pulling on the status and sent it to us as redis-event
+      await got.post(
+        urlJoin(this.options.taskQueueConfigurations.quayHelperServiceUrl, 'quay-build-notification-pulling'),
+        {
+          json: {
+            build_id: buildTriggerResult.quayBuildId,
+            quayAddress: this.options.taskQueueConfigurations.quayAddress,
+            quayToken: this.options.taskQueueConfigurations.quayToken,
+            quayNamespace: this.options.taskQueueConfigurations.quayNamespace,
+            eraTaskId: task.taskInfo.taskId,
+            quayRepoName: task.quayRepoName,
+          },
+        },
+      )
     } catch (error: unknown) {
       if (buildTriggerResult) {
         await this.quayClient

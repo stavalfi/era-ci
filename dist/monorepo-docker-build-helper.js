@@ -21,10 +21,11 @@ function getGraph(repoPath) {
 function findAllRecursiveDepsOfPackage(graph, packageJsonName) {
   const results = [packageJsonName]
   function find(packageJsonName1) {
+    var _a
     const packageJson = JSON.parse(
       fs_1.default.readFileSync(path_1.default.join(graph[packageJsonName1].location, 'package.json'), 'utf-8'),
     )
-    const allDeps = packageJson.dependencies
+    const allDeps = (_a = packageJson.dependencies) !== null && _a !== void 0 ? _a : {}
     const allDevDepAndDepFromRepo = graph[packageJsonName1]
     for (const depName of Object.keys(allDeps)) {
       if (allDevDepAndDepFromRepo.workspaceDependencies.includes(depName)) {
@@ -93,15 +94,18 @@ function keepOnlyNeededPackages(repoPath, graph, packageJsonName) {
   }
 }
 function deleteDevDepsFromPackageJson(packageJsonPath, expectDevDeps) {
+  var _a
   const packageJson = JSON.parse(fs_1.default.readFileSync(packageJsonPath, 'utf-8'))
   packageJson.devDependencies = Object.fromEntries(
-    Object.entries(packageJson.devDependencies)
+    Object.entries((_a = packageJson.devDependencies) !== null && _a !== void 0 ? _a : {})
       .map(([key, value]) => {
+        if (expectDevDeps.some(e => e === '@types/*') && key.includes('@types/')) {
+          return [key, value]
+        }
         if (expectDevDeps.includes(key)) {
           return [key, value]
-        } else {
-          return []
         }
+        return []
       })
       .filter(x => x.length > 0),
   )

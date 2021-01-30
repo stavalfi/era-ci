@@ -5,7 +5,16 @@ import fs from 'fs'
 import got from 'got'
 import path from 'path'
 import { Readable } from 'stream'
-import { Auth, QuayBuildStatus, QuayNotificationEvents, QueryStringOptions } from './types'
+import {
+  Auth,
+  Config,
+  QuayBuildStatus,
+  QuayBuildStatusChangedTopicPayload,
+  QuayNotificationEvents,
+  QueryStringOptions,
+} from './types'
+import Redis from 'ioredis'
+import { FastifyLoggerInstance } from 'fastify'
 
 function buildGithubUrl(options: {
   git_registry: 'bitbucket-cloud' | 'github'
@@ -101,4 +110,26 @@ export function quayNotificationEventToBuildStatus(event: QuayNotificationEvents
     case QuayNotificationEvents.buildSuccess:
       return QuayBuildStatus.complete
   }
+}
+
+export async function sendQuayNotificationInRedis({
+  config,
+  redisConnection,
+  build_id,
+  quayBuildStatus,
+  log,
+}: {
+  quayBuildStatus: QuayBuildStatus
+  build_id: string
+  config: Config
+  redisConnection: Redis.Redis
+  log: FastifyLoggerInstance
+}) {
+  const payload: QuayBuildStatusChangedTopicPayload = {
+    quayBuildId: build_id,
+    quayBuildStatus,
+    changeDateMs: Date.now(),
+  }
+  await redisConnection.publish(config.quayBuildStatusChangedRedisTopic, JSON.stringify(payload))
+  log.info(`sent build-event from quay: ${JSON.stringify(payload, null, 2)}`)
 }

@@ -1,6 +1,13 @@
 import { EventEmitter } from 'events'
 import { StrictEventEmitter } from 'strict-event-emitter-types'
 
+export type TaskTimeoutEventEmitter = StrictEventEmitter<
+  EventEmitter,
+  {
+    timeout: (taskId: string) => void
+  }
+>
+
 export type AbortEventHandler = StrictEventEmitter<
   EventEmitter,
   {
