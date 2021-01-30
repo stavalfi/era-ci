@@ -299,7 +299,7 @@ if (require.main === module) {
     port: 9876,
     isTestMode: false,
     dockerRegistryAddress: `http://localhost:35000`,
-    namespace: 'local-run-quay-org',
+    namespace: 'org1',
     token: 'fake-mock-quay-token',
     rateLimit: {
       max: 1000,

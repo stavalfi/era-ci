@@ -241,7 +241,8 @@ export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options =>
   return {
     repoName,
     repoPath,
-    gitHeadCommit: () => execa.command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath }).then(r => r.stdout),
+    gitHeadCommit: () =>
+      execa.command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath }).then(r => r.stdout.slice(0, 8)),
     toActualName,
     getImageTags,
     runCi: runCi(testFuncs)({

@@ -67,7 +67,7 @@ export async function chooseTagAndPublish<
     }
   }
 
-  const newTag = options.gitRepoInfo.commit
+  const newTag = options.gitRepoInfo.commit.slice(0, 8)
   const artifactStepResult = await options.publish(newTag)
 
   if (artifactStepResult.status === Status.passed || artifactStepResult.status === Status.skippedAsPassed) {
