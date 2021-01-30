@@ -230,6 +230,21 @@ export async function startQuayMockService(
     Reply: TriggerBuildResponse
     Headers: Headers
   }>('/api/v1/repository/:namespace/:repoName/build/', async (req, res) => {
+    if (req.body.context[0] !== '/') {
+      throw new Error(
+        `first char of context must be "/". received: "${req.body.context}" (without this, real quay builds won't work)`,
+      )
+    }
+    if (req.body.context[req.body.context.length - 1] === '/') {
+      throw new Error(
+        `last char of context can't be "/". received: "${req.body.context}" (with this, real quay builds won't work)`,
+      )
+    }
+    if (req.body.dockerfile_path[0] !== '/') {
+      throw new Error(
+        `first char of dockerfile_path must be "/". received: "${req.body.context}" (without this, real quay builds won't work)`,
+      )
+    }
     const repo = db.namespaces[req.params.namespace].repos[req.params.repoName]
     if (!repo) {
       throw new Error(`repo not found`)
