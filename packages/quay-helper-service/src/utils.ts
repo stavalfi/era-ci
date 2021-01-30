@@ -40,7 +40,8 @@ async function downloadFromLocalFilesystem(repo_abs_path: string): Promise<Reada
     shell: true,
     cwd: repo_abs_path,
   })
-  const newLocation = path.join(await createFolder(), `${gitRepoName}-${gitHeadCommit}`)
+
+  const newLocation = path.join(await createFolder(), `${gitRepoName}-${gitHeadCommit.slice(0, 8)}`)
 
   await fs.promises.symlink(repo_abs_path, newLocation)
 

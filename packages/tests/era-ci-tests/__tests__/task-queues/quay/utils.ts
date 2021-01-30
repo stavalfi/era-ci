@@ -161,7 +161,7 @@ async function createTestDependencies(
       (async () => {
         const folderName = `${repoName}-${await execa
           .command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath })
-          .then(r => r.stdout)}`
+          .then(r => r.stdout.slice(0, 8))}`
         return {
           url: `${
             testFuncs.getResources().quayHelperService.address
