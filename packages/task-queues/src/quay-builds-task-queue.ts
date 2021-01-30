@@ -129,6 +129,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       if (task.quayBuildId) {
         await this.quayClient
           .cancelBuild({
+            repoName: task.quayRepoName,
             taskId: task.taskInfo.taskId,
             packageName: task.packageName,
             quayBuildId: task.quayBuildId,
@@ -207,20 +208,21 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       )
       return
     }
+    const task = Array.from(this.tasks.values()).find(b => b.quayBuildId === event.quayBuildId)!
+    // if (!task) {
+    //   if (retry >= 30) {
+    //     this.options.log.trace(`can't find build-id: "${event.quayBuildId}" which we received from quay-helper-service`)
+    //   }
+    //   // quay sent us a quay-build-id: "${event.quayBuildId}" which we don't know.
+    //   // it can be from one of two reasons:
+    //   // 1. there is other quay-build running right now and we got his event as well (every redis event is sent to all subscribers).
+    //   // 2. quay gave us build-id in the REST-POST /build but we didn't process it yet and
+    //   // then quay sent us notification about this build-id. let's process this event again with a delay of 1 second.
+    //   await new Promise(res => setTimeout(res, 1000))
+    //   return this.onQuayBuildStatusChanged(topic, eventString)
+    // }
+
     this.options.log.debug(`new event on topic: "${topic}" from quay-server: ${JSON.stringify(event, null, 2)}`)
-    const task = Array.from(this.tasks.values()).find(b => b.quayBuildId === event.quayBuildId)
-    if (!task) {
-      if (retry >= 30) {
-        this.options.log.trace(`can't find build-id: "${event.quayBuildId}" which we received from quay-helper-service`)
-      }
-      // quay sent us a quay-build-id: "${event.quayBuildId}" which we don't know.
-      // it can be from one of two reasons:
-      // 1. there is other quay-build running right now and we got his event as well (every redis event is sent to all subscribers).
-      // 2. quay gave us build-id in the REST-POST /build but we didn't process it yet and
-      // then quay sent us notification about this build-id. let's process this event again with a delay of 1 second.
-      await new Promise(res => setTimeout(res, 1000))
-      return this.onQuayBuildStatusChanged(topic, eventString)
-    }
 
     if (
       task.lastEmittedTaskExecutionStatus === ExecutionStatus.aborted ||
@@ -431,17 +433,37 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         sendAbortEvent({ notes: [`task-timeout`], errors: [] })
         return
       }
+
+      const existingNotifications = await this.quayClient.getNotifications({
+        repoName: task.quayRepoName,
+        taskId: task.taskInfo.taskId,
+        org: this.options.taskQueueConfigurations.quayNamespace,
+      })
+
+      const createWebhookUrl = (event: QuayNotificationEvents) =>
+        `${this.options.taskQueueConfigurations.quayHelperServiceUrl}/quay-build-notification/${event}`
       await Promise.all(
-        Object.values(QuayNotificationEvents).map(event =>
-          this.quayClient.createNotification({
-            taskId: task.taskInfo.taskId,
-            event,
-            packageName: task.packageName,
-            repoName: task.quayRepoName,
-            webhookUrl: `${this.options.taskQueueConfigurations.quayHelperServiceUrl}/quay-build-notification/${event}`,
-          }),
-        ),
+        Object.values(QuayNotificationEvents)
+          // dont create the same notification again
+          .filter(
+            notificationType =>
+              !existingNotifications.notifications.some(
+                n =>
+                  n.event === notificationType && n.method === 'webhook' && n.config.url === createWebhookUrl(n.event),
+              ),
+          )
+          .map(event =>
+            this.quayClient.createNotification({
+              taskId: task.taskInfo.taskId,
+              event,
+              org: this.options.taskQueueConfigurations.quayNamespace,
+              packageName: task.packageName,
+              repoName: task.quayRepoName,
+              webhookUrl: createWebhookUrl(event),
+            }),
+          ),
       )
+
       if (!this.isQueueActive) {
         sendAbortEvent({ notes: [`task-queue was closed. aborting quay-build`], errors: [] })
         return
@@ -481,6 +503,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       if (buildTriggerResult) {
         await this.quayClient
           .cancelBuild({
+            repoName: task.quayRepoName,
             taskId: task.taskInfo.taskId,
             packageName: task.packageName,
             quayBuildId: buildTriggerResult.quayBuildId,

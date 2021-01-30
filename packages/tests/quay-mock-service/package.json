@@ -25,5 +25,8 @@
     "http-status-codes": "^2.1.4",
     "pino-pretty": "^4.3.0",
     "urllib": "^2.36.1"
+  },
+  "devDependencies": {
+    "@era-ci/quay-client": "^2.0.0"
   }
 }

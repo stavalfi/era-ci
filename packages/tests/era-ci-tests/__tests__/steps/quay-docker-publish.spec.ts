@@ -51,17 +51,14 @@ test('single package - no problems - step should pass', async () => {
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
-          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
   })
 
-  const { passed, published, jsonReport } = await runCi()
+  const { passed, published } = await runCi()
   expect(passed).toBeTruthy()
-  expect(published.get('a')?.docker.tags.sort()).toEqual(
-    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
-  )
+  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
 })
 
 test('multiple packages - no problems - step should pass', async () => {
@@ -115,21 +112,16 @@ test('multiple packages - no problems - step should pass', async () => {
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
-          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
   })
 
-  const { passed, published, jsonReport } = await runCi()
+  const { passed, published } = await runCi()
 
   expect(passed).toBeTruthy()
-  expect(published.get('a')?.docker.tags.sort()).toEqual(
-    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
-  )
-  expect(published.get('b')?.docker.tags.sort()).toEqual(
-    [`artifact-hash-${jsonReport.artifacts[1].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
-  )
+  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
+  expect(published.get('b')?.docker.tags).toEqual([await gitHeadCommit()])
 })
 
 test('expect the step to be failed if the dockerfile has an error', async () => {
@@ -173,7 +165,6 @@ test('expect the step to be failed if the dockerfile has an error', async () => 
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
-          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
@@ -229,7 +220,6 @@ test('run step again on failure and expect to abort-as-failed on second run', as
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
-          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
@@ -287,7 +277,6 @@ test('do not run step again if step succeed (image built and pushed to registry)
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
-          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
@@ -340,17 +329,14 @@ test('publish with semver-tag', async () => {
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
-          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
   })
 
-  const { published, jsonReport } = await runCi()
+  const { published } = await runCi()
 
-  expect(published.get('a')?.docker.tags.sort()).toEqual(
-    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
-  )
+  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
 })
 
 test('publish with hash-tag', async () => {
@@ -389,17 +375,14 @@ test('publish with hash-tag', async () => {
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
-          buildAndPushOnlyTempVersion: true,
         }),
       ]),
     },
   })
 
-  const { published, jsonReport } = await runCi()
+  const { published } = await runCi()
 
-  expect(published.get('a')?.docker.tags).toEqual([
-    `artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`,
-  ])
+  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
 })
 
 test('publish with hash-tag and then with semver-tag', async () => {
@@ -438,7 +421,6 @@ test('publish with hash-tag and then with semver-tag', async () => {
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
-          buildAndPushOnlyTempVersion: true,
         }),
       ]),
     },
@@ -446,15 +428,9 @@ test('publish with hash-tag and then with semver-tag', async () => {
 
   await runCi()
 
-  const { published, jsonReport } = await runCi({
-    processEnv: {
-      BUILD_AND_PUSH_ONLY_TEMP_VERSION: '',
-    },
-  })
+  const { published } = await runCi()
 
-  expect(published.get('a')?.docker.tags.sort()).toEqual(
-    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
-  )
+  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
 })
 
 test('publish with hash-tag twice', async () => {
@@ -493,7 +469,6 @@ test('publish with hash-tag twice', async () => {
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
-          buildAndPushOnlyTempVersion: true,
         }),
       ]),
     },
@@ -501,11 +476,9 @@ test('publish with hash-tag twice', async () => {
 
   await runCi()
 
-  const { published, jsonReport } = await runCi()
+  const { published } = await runCi()
 
-  expect(published.get('a')?.docker.tags).toEqual([
-    `artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`,
-  ])
+  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
 })
 
 test('publish with semver-tag twice', async () => {
@@ -544,7 +517,6 @@ test('publish with semver-tag twice', async () => {
           dockerfileBuildTimeoutMs: 100 * 1000,
           registry: getResources().dockerRegistry,
           imagesVisibility: 'public',
-          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
@@ -552,9 +524,53 @@ test('publish with semver-tag twice', async () => {
 
   await runCi()
 
-  const { published, jsonReport } = await runCi()
+  const { published } = await runCi()
 
-  expect(published.get('a')?.docker.tags.sort()).toEqual(
-    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
-  )
+  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
+})
+
+test('artifact package-json name has @ symbol', async () => {
+  const { runCi, gitHeadCommit, repoPath, repoName } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: '@scope1/a1',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        quayBuildsTaskQueue({
+          getCommitTarGzPublicAddress: async (): Promise<{ url: string; folderName: string }> => ({
+            url: `${
+              getResources().quayHelperService.address
+            }/download-git-repo-tar-gz?git_registry=local-filesystem&repo_abs_path=${repoPath}`,
+            folderName: `${repoName}-${await gitHeadCommit()}`,
+          }),
+          quayAddress: getResources().quayMockService.address,
+          quayNamespace: getResources().quayNamespace,
+          quayHelperServiceUrl: getResources().quayHelperService.address,
+          quayToken: getResources().quayToken,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        quayDockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          dockerfileBuildTimeoutMs: 100 * 1000,
+          registry: getResources().dockerRegistry,
+          imagesVisibility: 'public',
+        }),
+      ]),
+    },
+  })
+
+  const { published } = await runCi()
+
+  expect(published.get('@scope1/a1')?.docker.tags).toEqual([await gitHeadCommit()])
 })

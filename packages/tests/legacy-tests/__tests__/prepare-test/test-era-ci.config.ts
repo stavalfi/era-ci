@@ -63,7 +63,6 @@ const steps = createLinearStepsGraph([
       username: DOCKER_HUB_USERNAME!,
       token: DOCKER_HUB_TOKEN!,
     },
-    buildAndPushOnlyTempVersion: false,
   }),
   jsonReporter(),
   cliTableReporter(),

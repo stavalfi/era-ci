@@ -52,17 +52,14 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
           dockerOrganizationName: getResources().quayNamespace,
           registry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
-          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
   }))
 
-  const { passed, published, jsonReport } = await runCi()
+  const { passed, published } = await runCi()
   expect(passed).toBeTruthy()
-  expect(published.get('a')?.docker.tags.sort()).toEqual(
-    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
-  )
+  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
   expect(published.get('b')?.npm.versions).toEqual(['2.0.0'])
 })
 
@@ -85,52 +82,17 @@ test('publish with semver-tag', async () => {
           dockerOrganizationName: getResources().quayNamespace,
           registry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
-          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
   })
 
-  const { published, jsonReport } = await runCi()
+  const { published } = await runCi()
 
-  expect(published.get('a')?.docker.tags.sort()).toEqual(
-    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
-  )
+  expect(published.get('a')?.docker.tags.sort()).toEqual([await gitHeadCommit()])
 })
 
-test('publish with hash-tag', async () => {
-  const { runCi } = await createRepo({
-    repo: {
-      packages: [
-        {
-          name: 'a',
-          version: '1.0.0',
-          targetType: TargetType.docker,
-        },
-      ],
-    },
-    configurations: {
-      taskQueues: [localSequentalTaskQueue()],
-      steps: createLinearStepsGraph([
-        dockerPublish({
-          isStepEnabled: true,
-          dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
-          imageInstallArtifactsFromNpmRegistry: true,
-          buildAndPushOnlyTempVersion: true,
-        }),
-      ]),
-    },
-  })
-
-  const { published, jsonReport } = await runCi()
-
-  expect(published.get('a')?.docker.tags).toEqual([
-    `artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`,
-  ])
-})
-
-test('publish with hash-tag and then with semver-tag', async () => {
+test('publish twice - expect that there is only one tag to the image in the registry', async () => {
   const { runCi, gitHeadCommit } = await createRepo({
     repo: {
       packages: [
@@ -149,7 +111,6 @@ test('publish with hash-tag and then with semver-tag', async () => {
           dockerOrganizationName: getResources().quayNamespace,
           registry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
-          buildAndPushOnlyTempVersion: true,
         }),
       ]),
     },
@@ -157,87 +118,13 @@ test('publish with hash-tag and then with semver-tag', async () => {
 
   await runCi()
 
-  const { published, jsonReport } = await runCi({
-    processEnv: {
-      BUILD_AND_PUSH_ONLY_TEMP_VERSION: '',
-    },
-  })
+  const { published } = await runCi()
 
-  expect(published.get('a')?.docker.tags.sort()).toEqual(
-    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
-  )
-})
-
-test('publish with hash-tag twice', async () => {
-  const { runCi } = await createRepo({
-    repo: {
-      packages: [
-        {
-          name: 'a',
-          version: '1.0.0',
-          targetType: TargetType.docker,
-        },
-      ],
-    },
-    configurations: {
-      taskQueues: [localSequentalTaskQueue()],
-      steps: createLinearStepsGraph([
-        dockerPublish({
-          isStepEnabled: true,
-          dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
-          imageInstallArtifactsFromNpmRegistry: true,
-          buildAndPushOnlyTempVersion: true,
-        }),
-      ]),
-    },
-  })
-
-  await runCi()
-
-  const { published, jsonReport } = await runCi()
-
-  expect(published.get('a')?.docker.tags).toEqual([
-    `artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`,
-  ])
-})
-
-test('publish with semver-tag twice', async () => {
-  const { runCi, gitHeadCommit } = await createRepo({
-    repo: {
-      packages: [
-        {
-          name: 'a',
-          version: '1.0.0',
-          targetType: TargetType.docker,
-        },
-      ],
-    },
-    configurations: {
-      taskQueues: [localSequentalTaskQueue()],
-      steps: createLinearStepsGraph([
-        dockerPublish({
-          isStepEnabled: true,
-          dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
-          imageInstallArtifactsFromNpmRegistry: true,
-          buildAndPushOnlyTempVersion: false,
-        }),
-      ]),
-    },
-  })
-
-  await runCi()
-
-  const { published, jsonReport } = await runCi()
-
-  expect(published.get('a')?.docker.tags.sort()).toEqual(
-    [`artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
-  )
+  expect(published.get('a')?.docker.tags.sort()).toEqual([await gitHeadCommit()])
 })
 
 test('artifact package-json name has @ symbol', async () => {
-  const { runCi } = await createRepo({
+  const { runCi, gitHeadCommit } = await createRepo({
     repo: {
       packages: [
         {
@@ -255,15 +142,12 @@ test('artifact package-json name has @ symbol', async () => {
           dockerOrganizationName: getResources().quayNamespace,
           registry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
-          buildAndPushOnlyTempVersion: true,
         }),
       ]),
     },
   })
 
-  const { published, jsonReport } = await runCi()
+  const { published } = await runCi()
 
-  expect(published.get('@scope1/a1')?.docker.tags).toEqual([
-    `artifact-hash-${jsonReport.artifacts[0].data.artifact.packageHash}`,
-  ])
+  expect(published.get('@scope1/a1')?.docker.tags).toEqual([await gitHeadCommit()])
 })

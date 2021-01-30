@@ -57,6 +57,7 @@ export async function startQuayHelperService(
         changeDateMs: Date.now(),
       }
       await redisConnection.publish(config.quayBuildStatusChangedRedisTopic, JSON.stringify(payload))
+      app.log.info(`sent build-event from quay: ${JSON.stringify(payload, null, 2)}`)
       res.send()
     },
   )

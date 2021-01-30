@@ -17,6 +17,7 @@ import {
   TriggerBuildRequest,
   TriggerBuildResponse,
 } from './types'
+import { NotificationsListResult } from '@era-ci/quay-client'
 import { buildDockerFile } from './utils'
 
 export {
@@ -156,32 +157,67 @@ export async function startQuayMockService(
     throw new Error(`build-id not found`)
   })
 
+  app.get<{
+    Params: {
+      namespace: string
+      repoName: string
+    }
+    Querystring: never
+    Reply: NotificationsListResult
+    Headers: Headers
+  }>('/api/v1/repository/:namespace/:repoName/notification/', async (req, res) => {
+    const repo = db.namespaces[req.params.namespace].repos[req.params.repoName]
+    if (repo) {
+      return res.send({
+        notifications: Object.values(repo.notifications).map(n => ({
+          event_config: {},
+          uuid: n.notificationId,
+          title: n.event,
+          number_of_failures: 0,
+          method: n.method,
+          config: {
+            url: n.webhookAddress,
+          },
+          event: n.event,
+        })),
+      })
+    } else {
+      throw new Error(`repo-name not found`)
+    }
+  })
+
   app.post<{
     Params: {
+      namespace: string
       repoName: string
     }
     Querystring: never
     Body: CreateNotificationRequest
     Reply: CreateNotificationResponse
     Headers: Headers
-  }>('/api/v1/repository/:repoName/notification/', async (req, res) => {
+  }>('/api/v1/repository/:namespace/:repoName/notification/', async (req, res) => {
     if (req.body.method !== 'webhook') {
       throw new Error(`only webhook is supported`)
     }
-    for (const namespace of Object.values(db.namespaces)) {
-      const repo = namespace.repos[req.params.repoName]
-      if (repo) {
-        const notificationId = chance().hash().slice(0, 8)
-        repo.notifications[notificationId] = {
-          event: req.body.event,
-          method: req.body.method,
-          notificationId,
-          webhookAddress: req.body.config.url,
-        }
-        return res.send()
+    const repo = db.namespaces[req.params.namespace].repos[req.params.repoName]
+    if (repo) {
+      const isNotificationAlreadySet = Object.values(repo.notifications).some(
+        n => n.event === req.body.event && n.method === req.body.method && n.webhookAddress === req.body.config.url,
+      )
+      if (isNotificationAlreadySet) {
+        throw new Error(`notification was already set - looks like a bug`)
       }
+      const notificationId = chance().hash().slice(0, 8)
+      repo.notifications[notificationId] = {
+        event: req.body.event,
+        method: req.body.method,
+        notificationId,
+        webhookAddress: req.body.config.url,
+      }
+      return res.send()
+    } else {
+      throw new Error(`repo-name not found`)
     }
-    throw new Error(`repo-name not found`)
   })
 
   app.post<{

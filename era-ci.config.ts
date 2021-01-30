@@ -60,15 +60,15 @@ export default config({
       },
     }),
     localSequentalTaskQueue(),
-    taskWorkerTaskQueue({
-      queueName: `queue-${GITHUB_RUN_NUMBER}`,
-      redis: {
-        url: REDIS_ENDPOINT!,
-        auth: {
-          password: REDIS_PASSWORD,
-        },
-      },
-    }),
+    // taskWorkerTaskQueue({
+    //   queueName: `queue-${GITHUB_RUN_NUMBER}`,
+    //   redis: {
+    //     url: REDIS_ENDPOINT!,
+    //     auth: {
+    //       password: REDIS_PASSWORD,
+    //     },
+    //   },
+    // }),
   ],
   redis: {
     url: REDIS_ENDPOINT!,
@@ -82,47 +82,47 @@ export default config({
     logFilePath: './era-ci.log',
   }),
   steps: createTreeStepsGraph([
-    {
-      // 0
-      step: validatePackages(),
-      children: [6],
-    },
-    {
-      // 1
-      step: installRoot({ isStepEnabled: Boolean(FULL_RUN) }),
-      children: [6],
-    },
-    {
-      // 2
-      step: lintRoot({ isStepEnabled: Boolean(FULL_RUN), scriptName: 'lint:code' }),
-      children: [6],
-    },
-    {
-      // 3
-      step: buildRoot({ isStepEnabled: Boolean(FULL_RUN), scriptName: 'build' }),
-      children: [6],
-    },
-    {
-      // 4
-      step: test({
-        isStepEnabled: Boolean(FULL_RUN),
-        scriptName: 'test',
-        workerBeforeAll: {
-          shellCommand: 'yarn test-resources:up',
-          cwd: __dirname,
-        },
-        splitTestsToMultipleVms: {
-          totalWorkers: 10,
-          relativeGlobToSearchTestFiles: '__tests__/**/*.spec.ts',
-          startIndexingFromZero: true, // ava assume that the indexing starts from zero
-          env: {
-            indexKeyEnvName: 'CI_NODE_INDEX',
-            totalVmsEnvKeyName: 'CI_NODE_TOTAL',
-          },
-        },
-      }),
-      children: [6],
-    },
+    // {
+    //   // 0
+    //   step: validatePackages(),
+    //   children: [6],
+    // },
+    // {
+    //   // 1
+    //   step: installRoot({ isStepEnabled: Boolean(FULL_RUN) }),
+    //   children: [6],
+    // },
+    // {
+    //   // 2
+    //   step: lintRoot({ isStepEnabled: Boolean(FULL_RUN), scriptName: 'lint:code' }),
+    //   children: [6],
+    // },
+    // {
+    //   // 3
+    //   step: buildRoot({ isStepEnabled: Boolean(FULL_RUN), scriptName: 'build' }),
+    //   children: [6],
+    // },
+    // {
+    //   // 4
+    //   step: test({
+    //     isStepEnabled: Boolean(FULL_RUN),
+    //     scriptName: 'test',
+    //     workerBeforeAll: {
+    //       shellCommand: 'yarn test-resources:up',
+    //       cwd: __dirname,
+    //     },
+    //     splitTestsToMultipleVms: {
+    //       totalWorkers: 10,
+    //       relativeGlobToSearchTestFiles: '__tests__/**/*.spec.ts',
+    //       startIndexingFromZero: true, // ava assume that the indexing starts from zero
+    //       env: {
+    //         indexKeyEnvName: 'CI_NODE_INDEX',
+    //         totalVmsEnvKeyName: 'CI_NODE_TOTAL',
+    //       },
+    //     },
+    //   }),
+    //   children: [6],
+    // },
     {
       // 5
       step: quayDockerPublish({
@@ -135,28 +135,27 @@ export default config({
           username: QUAY_USERNAME!,
           token: QUAY_USERNAME_TOKEN!,
         },
-        buildAndPushOnlyTempVersion: false,
       }),
-      children: [6],
+      children: [1],
     },
-    {
-      // 6
-      step: npmPublish({
-        isStepEnabled: Boolean(FULL_RUN) && !CI,
-        npmScopeAccess: NpmScopeAccess.public,
-        registry: NPM_REGISTRY,
-        publishAuth: {
-          email: NPM_EMAIL,
-          username: NPM_USERNAME!,
-          token: NPM_TOKEN!,
-        },
-      }),
-      children: [7],
-    },
+    // {
+    //   // 6
+    //   step: npmPublish({
+    //     isStepEnabled: Boolean(FULL_RUN) && !CI,
+    //     npmScopeAccess: NpmScopeAccess.public,
+    //     registry: NPM_REGISTRY,
+    //     publishAuth: {
+    //       email: NPM_EMAIL,
+    //       username: NPM_USERNAME!,
+    //       token: NPM_TOKEN!,
+    //     },
+    //   }),
+    //   children: [7],
+    // },
     {
       // 7
       step: jsonReporter(),
-      children: [8],
+      children: [2],
     },
     {
       // 8
