@@ -23,6 +23,7 @@ type TsconfigBuild = {
 }
 
 type PackageJson = {
+  name?: string
   dependencies?: { [dep: string]: string }
   devDependencies?: { [dep: string]: string }
 }
@@ -80,16 +81,18 @@ function updateMainTsconfigFile(repoPath: string, graph: Workspaces, deps: strin
   fs.writeFileSync(tsconfigBuildFilePath, JSON.stringify(tsconfigBuild, null, 2))
 }
 
+const getPackageJson = (packageJsonPath: string): PackageJson => JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
+
 // remove packages which are devDeps from tsconfig-build.json
 function updatePackageTsconfigBuildFile(graph: Workspaces, packageJsonName: string, deps: string[]): void {
   const tsconfigBuildFilePath = path.join(graph[packageJsonName].location, 'tsconfig-build.json')
   const tsconfigBuild = JSON.parse(fs.readFileSync(tsconfigBuildFilePath, 'utf-8')) as TsconfigBuild
-  const directDeps = deps.filter(dep =>
-    tsconfigBuild.references.some(ref => ref.path === path.join(graph[dep].location, 'tsconfig-build.json')),
-  )
+  const packageJson = getPackageJson(path.join(graph[packageJsonName].location, 'package.json'))
+  const directDeps = deps.filter(dep => packageJson.dependencies?.[dep])
   tsconfigBuild.references = directDeps.map(dep => ({
-    path: path.join(graph[dep].location, 'tsconfig-build.json'),
+    path: path.relative(graph[packageJsonName].location, path.join(graph[dep].location, 'tsconfig-build.json')),
   }))
+  debugger
   fs.writeFileSync(tsconfigBuildFilePath, JSON.stringify(tsconfigBuild, null, 2), 'utf-8')
 }
 
