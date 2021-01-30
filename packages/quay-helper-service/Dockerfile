@@ -15,7 +15,7 @@ RUN node monorepo-docker-build-helper.js remove-irrelevant-packages \
     --remove-all-dev-deps-except typescript ts-node
 RUN yarn install
 
-RUN yarn build
 COPY ${package_path}/src ./${package_path}/src
+RUN yarn build
 
 CMD node --unhandled-rejections=strict ./packages/quay-helper-service/dist/src/index.js
