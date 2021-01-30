@@ -38,6 +38,24 @@ function findAllRecursiveDepsOfPackage(graph, packageJsonName) {
   find(packageJsonName)
   return results
 }
+// remove packages which are devDeps from tsconfig.json/paths section
+function updateMainTsconfigFile(repoPath, graph, deps) {
+  var _a
+  const tsconfigBuildFilePath = path_1.default.join(repoPath, 'tsconfig.json')
+  const tsconfigBuild = JSON.parse(fs_1.default.readFileSync(tsconfigBuildFilePath, 'utf-8'))
+  tsconfigBuild.compilerOptions.paths = Object.fromEntries(
+    Object.entries((_a = tsconfigBuild.compilerOptions.paths) !== null && _a !== void 0 ? _a : {})
+      .map(([depName, value]) => {
+        if (deps.includes(depName)) {
+          return [depName, value]
+        } else {
+          return []
+        }
+      })
+      .filter(r => r.length > 0),
+  )
+  fs_1.default.writeFileSync(tsconfigBuildFilePath, JSON.stringify(tsconfigBuild, null, 2))
+}
 // remove packages which are devDeps from tsconfig-build.json
 function updatePackageTsconfigBuildFile(graph, packageJsonName, deps) {
   const tsconfigBuildFilePath = path_1.default.join(graph[packageJsonName].location, 'tsconfig-build.json')
@@ -117,6 +135,7 @@ async function main(argv) {
       }
       updateAllTsconfigBuildFiles(repoPath, graph, packageJsonNameToKeep)
       keepOnlyNeededPackages(repoPath, graph, packageJsonNameToKeep)
+      updateMainTsconfigFile(repoPath, graph, findAllRecursiveDepsOfPackage(graph, packageJsonNameToKeep))
       break
     }
     default:

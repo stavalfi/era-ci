@@ -12,6 +12,12 @@ type Workspaces = {
   }
 }
 
+type Tsconfig = {
+  compilerOptions: {
+    paths: { [dep: string]: string }
+  }
+}
+
 type TsconfigBuild = {
   references: { path: string }[]
 }
@@ -53,6 +59,25 @@ function findAllRecursiveDepsOfPackage(graph: Workspaces, packageJsonName: strin
   find(packageJsonName)
 
   return results
+}
+
+// remove packages which are devDeps from tsconfig.json/paths section
+function updateMainTsconfigFile(repoPath: string, graph: Workspaces, deps: string[]): void {
+  const tsconfigBuildFilePath = path.join(repoPath, 'tsconfig.json')
+  const tsconfigBuild = JSON.parse(fs.readFileSync(tsconfigBuildFilePath, 'utf-8')) as Tsconfig
+  tsconfigBuild.compilerOptions.paths = Object.fromEntries(
+    Object.entries(tsconfigBuild.compilerOptions.paths ?? {})
+      .map(([depName, value]) => {
+        if (deps.includes(depName)) {
+          return [depName, value]
+        } else {
+          return []
+        }
+      })
+      .filter(r => r.length > 0),
+  )
+
+  fs.writeFileSync(tsconfigBuildFilePath, JSON.stringify(tsconfigBuild, null, 2))
 }
 
 // remove packages which are devDeps from tsconfig-build.json
@@ -148,6 +173,7 @@ async function main(argv: string[]) {
 
       updateAllTsconfigBuildFiles(repoPath, graph, packageJsonNameToKeep)
       keepOnlyNeededPackages(repoPath, graph, packageJsonNameToKeep)
+      updateMainTsconfigFile(repoPath, graph, findAllRecursiveDepsOfPackage(graph, packageJsonNameToKeep))
 
       break
     }
