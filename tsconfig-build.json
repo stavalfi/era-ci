@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "outDir": "dist" }, // only the compiled root-ts-files will be there
+  "compilerOptions": { "outDir": "dist" },
   "references": [
     {
       "path": "packages/utils/tsconfig-build.json"
