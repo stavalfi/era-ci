@@ -16,6 +16,11 @@ type TsconfigBuild = {
   references: { path: string }[]
 }
 
+type PackageJson = {
+  dependencies: { [dep: string]: string }
+  devDependencies: { [dep: string]: string }
+}
+
 enum Actions {
   removeIrrelevantPackages = 'remove-irrelevant-packages',
 }
@@ -30,7 +35,9 @@ function findAllRecursiveDepsOfPackage(graph: Workspaces, packageJsonName: strin
   const results: string[] = []
 
   function find(packageJsonName1: string): void {
-    const packageJson = require(packageJsonName1) as { dependencies: { [dep: string]: string } }
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(graph[packageJsonName1].location, 'package.json'), 'utf-8'),
+    ) as PackageJson
     const allDeps = packageJson.dependencies
     const allDevDepAndDepFromRepo = graph[packageJsonName1]
     for (const depName of Object.keys(allDeps)) {
@@ -51,7 +58,7 @@ function findAllRecursiveDepsOfPackage(graph: Workspaces, packageJsonName: strin
 // remove packages which are devDeps from tsconfig-build.json
 function updatePackageTsconfigBuildFile(graph: Workspaces, packageJsonName: string, deps: string[]): void {
   const tsconfigBuildFilePath = path.join(graph[packageJsonName].location, 'tsconfig-build.json')
-  const tsconfigBuild = require(tsconfigBuildFilePath) as TsconfigBuild
+  const tsconfigBuild = JSON.parse(fs.readFileSync(tsconfigBuildFilePath, 'utf-8')) as TsconfigBuild
   const directDeps = deps.filter(dep =>
     tsconfigBuild.references.some(ref => ref.path === path.join(graph[dep].location, 'tsconfig-build.json')),
   )
@@ -64,7 +71,7 @@ function updatePackageTsconfigBuildFile(graph: Workspaces, packageJsonName: stri
 // remove packages which are devDeps from tsconfig-build.json
 function updateMainTsconfigBuildFile(repoPath: string, graph: Workspaces, deps: string[]): void {
   const tsconfigBuildFilePath = path.join(repoPath, 'tsconfig-build.json')
-  const tsconfigBuild = require(tsconfigBuildFilePath) as TsconfigBuild
+  const tsconfigBuild = JSON.parse(fs.readFileSync(tsconfigBuildFilePath, 'utf-8')) as TsconfigBuild
   tsconfigBuild.references = deps.map(dep => ({
     path: path.join(graph[dep].location, 'tsconfig-build.json'),
   }))
@@ -81,13 +88,15 @@ function updateAllTsconfigBuildFiles(repoPath: string, graph: Workspaces, packag
 
 function keepOnlyNeededPackages(repoPath: string, graph: Workspaces, packageJsonName: string): void {
   const deps = findAllRecursiveDepsOfPackage(graph, packageJsonName)
-  for (const dep of deps) {
-    execSync(`rm -rf ${graph[dep].location}`, { cwd: repoPath })
+  for (const dep of Object.keys(graph)) {
+    if (!deps.includes(dep)) {
+      execSync(`rm -rf ${graph[dep].location}`, { cwd: repoPath })
+    }
   }
 }
 
 function deleteDevDepsFromPackageJson(packageJsonPath: string, expectDevDeps: string[]) {
-  const packageJson = require(packageJsonPath)
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
   packageJson.devDependencies = Object.fromEntries(
     Object.entries(packageJson.devDependencies)
       .map(([key, value]) => {
