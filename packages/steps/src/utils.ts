@@ -68,6 +68,16 @@ export async function chooseTagAndPublish<
   }
 
   const newTag = options.gitRepoInfo.commit.slice(0, 8)
+  if (tags.includes(newTag)) {
+    return {
+      executionStatus: ExecutionStatus.aborted,
+      status: Status.skippedAsFailed,
+      notes: [
+        `there is already a docker-image with a tag equal to <current-git-head>. please commit your changes and try again`,
+      ],
+    }
+  }
+
   const artifactStepResult = await options.publish(newTag)
 
   if (artifactStepResult.status === Status.passed || artifactStepResult.status === Status.skippedAsPassed) {

@@ -2,8 +2,10 @@ import { createTest } from '@era-ci/e2e-tests-infra'
 import { dockerPublish, npmPublish, NpmScopeAccess } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { localSequentalTaskQueue } from '@era-ci/task-queues'
-import { TargetType } from '@era-ci/utils'
+import { ExecutionStatus, TargetType } from '@era-ci/utils'
+import execa from 'execa'
 import expect from 'expect'
+import path from 'path'
 
 const { createRepo, getResources } = createTest()
 
@@ -150,4 +152,52 @@ test('artifact package-json name has @ symbol', async () => {
   const { published } = await runCi()
 
   expect(published.get('@scope1/a1')?.docker.tags).toEqual([await gitHeadCommit()])
+})
+
+test('publish -> modify repo without commiting -> try to publish again on the same git-head-commit - \
+we expect that the build will fail because of not, the image-tag will be overrided in the docker-registry \
+ and this is very bad and dangerous', async () => {
+  const { runCi, gitHeadCommit, repoPath, toActualName } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          targetType: TargetType.docker,
+          additionalFiles: {
+            file1: 'a',
+          },
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [localSequentalTaskQueue()],
+      steps: createLinearStepsGraph([
+        dockerPublish({
+          isStepEnabled: true,
+          dockerOrganizationName: getResources().quayNamespace,
+          registry: getResources().dockerRegistry,
+          imageInstallArtifactsFromNpmRegistry: true,
+        }),
+      ]),
+    },
+  })
+
+  const result1 = await runCi()
+
+  expect(result1.published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
+
+  await execa.command(`echo bbbb > ${path.join(repoPath, 'packages', toActualName('a'), 'file1')}`, {
+    shell: true,
+    stdio: 'inherit',
+  })
+
+  const result2 = await runCi()
+
+  expect(result2.passed).toBeFalsy()
+  expect(
+    result2.jsonReport.stepsResultOfArtifactsByArtifact[0].data.stepsResult[0].data.artifactStepResult.executionStatus,
+  ).toEqual(ExecutionStatus.aborted)
+  expect(result2.published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
+  expect(result2.published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
 })
