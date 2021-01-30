@@ -71,6 +71,10 @@ export async function runAllSteps(options: Options): Promise<State> {
     ),
   )
 
+  if (options.steps.length > 0 && options.artifacts.length > 0) {
+    options.log.info(`start to execute steps...`)
+  }
+
   for (const step of store.getState().stepsResultOfArtifactsByStep) {
     store.dispatch({
       type: ExecutionActionTypes.step,

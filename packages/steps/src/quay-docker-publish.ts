@@ -31,7 +31,7 @@ async function buildAndPublishArtifact({
   const [task] = taskQueue.addTasksToQueue([
     {
       packageName: currentArtifact.data.artifact.packageJson.name,
-      relativeContextPath: '/',
+      relativeContextPath: '',
       relativeDockerfilePath: path.join(currentArtifact.data.artifact.relativePackagePath, 'Dockerfile'),
       imageTags: [tag],
       taskTimeoutMs: stepConfigurations.dockerfileBuildTimeoutMs,

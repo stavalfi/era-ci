@@ -474,8 +474,8 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         return
       }
 
-      const relativeContextPath = path.join(folderName, task.relativeContextPath)
-      const relativeDockerfilePath = path.join(folderName, task.relativeDockerfilePath)
+      const relativeContextPath = path.join('/', folderName, task.relativeContextPath)
+      const relativeDockerfilePath = path.join('/', folderName, task.relativeDockerfilePath)
 
       buildTriggerResult = await this.quayClient.triggerBuild({
         taskId: task.taskInfo.taskId,
