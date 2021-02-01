@@ -102,7 +102,7 @@ export default config({
     {
       // 4
       step: test({
-        isStepEnabled: false,
+        isStepEnabled: true,
         scriptName: 'test',
         workerBeforeAll: {
           shellCommand: 'yarn test-resources:up',
