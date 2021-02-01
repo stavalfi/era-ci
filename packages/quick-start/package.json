@@ -7,16 +7,21 @@
   "files": [
     "dist",
     "src",
-    "__tests__"
+    "__tests__",
+    "mock-docker-compose.yml"
   ],
+  "bin": {
+    "era-ci-mocks": "./dist/src/index.js"
+  },
   "types": "dist/src/index.d.ts",
   "dependencies": {
-    "@era-ci/core": "^2.0.0",
-    "@era-ci/image-registry-client": "^2.0.0",
+    "yargs-parser": "^20.2.4",
     "@era-ci/loggers": "^2.0.0",
+    "@era-ci/constrains": "^2.0.0",
+    "@era-ci/quay-helper-service": "^2.0.0",
+    "@era-ci/quay-mock-service": "^2.0.0",
     "@era-ci/steps": "^2.0.0",
     "@era-ci/steps-graph": "^2.0.0",
-    "@era-ci/task-queues": "^2.0.0",
-    "@era-ci/utils": "^2.0.0"
+    "@era-ci/task-queues": "^2.0.0"
   }
 }

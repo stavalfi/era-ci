@@ -34,7 +34,6 @@ const {
   REDIS_PASSWORD,
   GITHUB_RUN_NUMBER = 'local-run',
   CI,
-  FULL_RUN,
   LOG_LEVEL = LogLevel.info,
   // eslint-disable-next-line no-process-env
 } = process.env
@@ -87,23 +86,23 @@ export default config({
     },
     {
       // 1
-      step: installRoot({ isStepEnabled: Boolean(FULL_RUN) }),
+      step: installRoot({ isStepEnabled: true }),
       children: [6],
     },
     {
       // 2
-      step: lintRoot({ isStepEnabled: Boolean(FULL_RUN), scriptName: 'lint:code' }),
+      step: lintRoot({ isStepEnabled: true, scriptName: 'lint:code' }),
       children: [6],
     },
     {
       // 3
-      step: buildRoot({ isStepEnabled: Boolean(FULL_RUN), scriptName: 'build' }),
+      step: buildRoot({ isStepEnabled: true, scriptName: 'build' }),
       children: [6],
     },
     {
       // 4
       step: test({
-        isStepEnabled: Boolean(FULL_RUN),
+        isStepEnabled: false,
         scriptName: 'test',
         workerBeforeAll: {
           shellCommand: 'yarn test-resources:up',
@@ -139,7 +138,7 @@ export default config({
     {
       // 6
       step: npmPublish({
-        isStepEnabled: Boolean(FULL_RUN) && !CI,
+        isStepEnabled: true && !CI,
         npmScopeAccess: NpmScopeAccess.public,
         registry: NPM_REGISTRY,
         publishAuth: {
