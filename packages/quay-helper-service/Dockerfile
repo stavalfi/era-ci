@@ -1,4 +1,4 @@
-FROM node:15.7.0-alpine3.10
+FROM quay.io/eraci/node:15.7.0-alpine3.10
 
 WORKDIR /usr/service
 
