@@ -15,6 +15,7 @@
     "start:prod": "node --unhandled-rejections=strict dist/src/index.js"
   },
   "dependencies": {
+    "@era-ci/quay-client": "^2.0.0",
     "compressing": "^1.5.1",
     "fastify": "^3.8.0",
     "got": "^11.8.1",
@@ -22,8 +23,5 @@
     "ioredis": "^4.19.4",
     "create-folder-structure": "^3.0.5",
     "pino-pretty": "^4.3.0"
-  },
-  "devDependencies": {
-    "@era-ci/task-queues": "^2.0.0"
   }
 }

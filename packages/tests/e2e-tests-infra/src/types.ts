@@ -106,6 +106,7 @@ export type CreateRepo = (
     | ((toActualName: ToActualName) => CreateRepoOptions<TaskQueueBase<any, any>>),
 ) => Promise<{
   repoPath: string
+  repoName: string
   gitHeadCommit: () => Promise<string>
   getImageTags: (packageName: string) => Promise<string[]>
   runCi: (options?: { processEnv?: NodeJS.ProcessEnv }) => Promise<RunCiResult>

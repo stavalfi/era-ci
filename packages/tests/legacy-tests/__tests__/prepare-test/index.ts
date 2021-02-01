@@ -91,7 +91,8 @@ export const newEnv: NewEnv = () => {
     }
 
     return {
-      gitHeadCommit: () => execa.command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath }).then(r => r.stdout),
+      gitHeadCommit: () =>
+        execa.command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath }).then(r => r.stdout.slice(0, 8)),
       repoPath,
       toActualName,
       getPackagePath: getPackagePath(repoPath, toActualName),

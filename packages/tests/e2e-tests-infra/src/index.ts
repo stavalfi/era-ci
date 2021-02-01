@@ -183,7 +183,7 @@ export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options =>
   const { repo, configurations = {}, dontAddReportSteps, logLevel = LogLevel.trace } =
     typeof options === 'function' ? options(toActualName) : options
 
-  const { repoPath } = await createGitRepo({
+  const { repoPath, repoName } = await createGitRepo({
     repo,
     gitServer: testFuncs.getResources().gitServer,
     toActualName,
@@ -239,8 +239,10 @@ export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options =>
   })
 
   return {
+    repoName,
     repoPath,
-    gitHeadCommit: () => execa.command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath }).then(r => r.stdout),
+    gitHeadCommit: () =>
+      execa.command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath }).then(r => r.stdout.slice(0, 8)),
     toActualName,
     getImageTags,
     runCi: runCi(testFuncs)({

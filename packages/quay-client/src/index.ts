@@ -1,82 +1,33 @@
-import { Log, TaskTimeoutEventEmitter } from '@era-ci/core'
 import { buildFullDockerImageName } from '@era-ci/utils'
+import { EventEmitter } from 'events'
 import got, { RequestError } from 'got'
 import HttpStatusCodes from 'http-status-codes'
-import path from 'path'
-import { AbortEventHandler } from './types'
-
-export { AbortEventHandler } from './types'
-
-export enum QuayBuildStatus {
-  waiting = 'waiting',
-  started = 'started', // this is not confirmed. can't find in the docs what it is
-  cancelled = 'cancelled', // this is not confirmed. can't find in the docs if this exists
-  complete = 'complete',
-  error = 'error',
-}
-
-export type QuayCreateRepoResult = { kind: 'image'; namespace: string; name: string }
-
-export type QuayNewBuildResult = {
-  status: unknown // {}
-  error: null
-  display_name: string
-  repository: { namespace: string; name: string }
-  subdirectory: string
-  started: string
-  tags: string[]
-  archive_url: string
-  pull_robot: null
-  trigger: null
-  trigger_metadata: unknown // {}
-  context: string
-  is_writer: true
-  phase: QuayBuildStatus
-  resource_key: null
-  manual_user: string
-  id: string
-  dockerfile_path: string
-}
-
-export type BuildTriggerResult = {
-  quayRepoName: string
-  quayBuildId: string
-  quayBuildName: string
-  quayBuildAddress: string
-  quayBuildLogsAddress: string
-  quayBuildStatus: QuayBuildStatus
-}
-
-export enum QuayNotificationEvents {
-  buildQueued = 'build_queued',
-  buildStart = 'build_start',
-  buildSuccess = 'build_success',
-  buildFailure = 'build_failure',
-  buildCancelled = 'build_cancelled',
-}
-
-export type CreateNotificationResult = {
-  event_config: Record<string, unknown>
-  uuid: string
-  title: string
-  number_of_failures: number
-  method: 'webhook'
-  config: {
-    url: string
-    template: string // it's JSON.strigify of request.body.config.template
-  }
-  event: QuayNotificationEvents
-}
+import {
+  AbortEventHandler,
+  BuildTriggerResult,
+  CreateNotificationResult,
+  NotificationsListResult,
+  QuayCreateRepoResult,
+  QuayNewBuildResult,
+  QuayNotificationEvents,
+  TaskTimeoutEventEmitter,
+} from './types'
+import urlJoin from 'url-join'
+export * from './types'
 
 export class QuayClient {
   constructor(
-    private readonly taskTimeoutEventEmitter: TaskTimeoutEventEmitter,
-    private readonly abortEventHandler: AbortEventHandler,
     private readonly quayAddress: string,
     private readonly quayToken: string,
     private readonly quayNamespace: string,
-    private readonly log: Log,
+    private readonly log: {
+      info: (s: string) => void
+      debug: (s: string) => void
+      error: (s: string, e: Error) => void
+    },
     private readonly processEnv: NodeJS.ProcessEnv,
+    private readonly taskTimeoutEventEmitter: TaskTimeoutEventEmitter = new EventEmitter({ captureRejections: true }),
+    private readonly abortEventHandler: AbortEventHandler = new EventEmitter({ captureRejections: true }),
   ) {}
 
   private async request<ResponseBody, RequestBody = unknown>(options: {
@@ -85,7 +36,8 @@ export class QuayClient {
     requestBody?: RequestBody
     taskId: string
   }): Promise<ResponseBody> {
-    const p = got[options.method]<ResponseBody>(`${this.quayAddress}/${options.api}`, {
+    const url = urlJoin(this.quayAddress, options.api)
+    const p = got[options.method]<ResponseBody>(url, {
       headers: {
         authorization: `Bearer ${this.quayToken}`,
       },
@@ -103,14 +55,20 @@ export class QuayClient {
       },
     })
 
-    this.abortEventHandler.once('closed', () => p.cancel())
-    this.taskTimeoutEventEmitter.once('timeout', taskId => {
+    const closed = () => p.cancel()
+    const timeout = (taskId: string) => {
       if (taskId === options.taskId) {
         p.cancel()
       }
-    })
+    }
 
-    return p
+    this.abortEventHandler.once('closed', closed)
+    this.taskTimeoutEventEmitter.once('timeout', timeout)
+
+    return p.finally(() => {
+      this.abortEventHandler.off('closed', closed)
+      this.taskTimeoutEventEmitter.off('timeout', timeout)
+    })
   }
 
   public async createRepo({
@@ -149,6 +107,7 @@ export class QuayClient {
           name: repoName,
         }
       } else {
+        this.log.error(`failed to create repo: "${repoName}" for package: "${packageName}"`, error)
         throw error
       }
     }
@@ -157,14 +116,22 @@ export class QuayClient {
   public async getBuildStatus({
     quayBuildId,
     taskId,
+    repoName,
   }: {
+    repoName: string
     quayBuildId: string
     taskId: string
   }): Promise<QuayNewBuildResult['phase']> {
     const quayBuildStatus = await this.request<QuayNewBuildResult>({
       taskId,
       method: 'get',
-      api: `api/v1/repository/build/${quayBuildId}/status`,
+      api: `api/v1/repository/${this.quayNamespace}/${repoName}/build/${quayBuildId}/status`,
+    }).catch(e => {
+      this.log.error(
+        `failed to get build-status for quay-repo: "${repoName}" .quay-build-id: "${quayBuildId}": "${e}"`,
+        e,
+      )
+      throw e
     })
 
     return quayBuildStatus.phase
@@ -173,8 +140,10 @@ export class QuayClient {
   public async cancelBuild({
     quayBuildId,
     packageName,
+    repoName,
     taskId,
   }: {
+    repoName: string
     quayBuildId: string
     packageName: string
     taskId: string
@@ -182,26 +151,25 @@ export class QuayClient {
     await this.request({
       taskId,
       method: 'delete',
-      api: `api/v1/repository/build/${quayBuildId}`,
+      api: `api/v1/repository/${this.quayNamespace}/${repoName}/build/${quayBuildId}`,
+    }).catch(e => {
+      this.log.error(`failed to cancel build for quay-repo: "${repoName}" .quay-build-id: "${quayBuildId}"`, e)
+      throw e
     })
 
     this.log.info(`canceled image-build for package: "${packageName}" in quay`)
   }
 
   public async triggerBuild({
-    gitRepoName,
     quayRepoName,
     relativeContextPath,
     relativeDockerfilePath,
     imageTags,
     packageName,
     archiveUrl,
-    commit,
     taskId,
   }: {
-    gitRepoName: string
     quayRepoName: string
-    commit: string
     packageName: string
     relativeContextPath: string
     relativeDockerfilePath: string
@@ -216,9 +184,12 @@ export class QuayClient {
       requestBody: {
         archive_url: archiveUrl,
         docker_tags: imageTags,
-        context: path.join(`${gitRepoName}-${commit}`, relativeContextPath),
-        dockerfile_path: path.join(`${gitRepoName}-${commit}`, relativeDockerfilePath),
+        context: relativeContextPath,
+        dockerfile_path: relativeDockerfilePath,
       },
+    }).catch(e => {
+      this.log.error(`failed to trigger build for quay-repo: "${quayRepoName}"`, e)
+      throw e
     })
 
     const result = {
@@ -244,23 +215,44 @@ export class QuayClient {
     return result
   }
 
+  public async getNotifications({
+    repoName,
+    org,
+    taskId,
+  }: {
+    org: string
+    repoName: string
+    taskId: string
+  }): Promise<NotificationsListResult> {
+    return this.request<NotificationsListResult>({
+      taskId,
+      method: 'get',
+      api: `api/v1/repository/${org}/${repoName}/notification/`,
+    }).catch(e => {
+      this.log.error(`failed to get all notifications of quay-repo: "${repoName}"`, e)
+      throw e
+    })
+  }
+
   public async createNotification({
     packageName,
     repoName,
     event,
+    org,
     webhookUrl,
     taskId,
   }: {
     webhookUrl: string
     packageName: string
     repoName: string
+    org: string
     event: QuayNotificationEvents
     taskId: string
   }): Promise<void> {
     await this.request<CreateNotificationResult>({
       taskId,
       method: 'post',
-      api: `api/v1/repository/${repoName}/notification/`,
+      api: `api/v1/repository/${org}/${repoName}/notification/`,
       requestBody: {
         config: { url: webhookUrl },
         event,
@@ -268,10 +260,13 @@ export class QuayClient {
         method: 'webhook',
         title: event,
       },
+    }).catch(e => {
+      this.log.error(`failed to create a notification for package: "${packageName}"`, e)
+      throw e
     })
 
-    this.log.verbose(
-      `created notification: ${event} for package: "${packageName}" - repository: "${buildFullDockerImageName({
+    this.log.debug(
+      `created notification: ${event} for quay-repo: "${repoName}" - repository: "${buildFullDockerImageName({
         dockerRegistry: this.quayAddress,
         imageName: repoName,
         dockerOrganizationName: this.quayNamespace,

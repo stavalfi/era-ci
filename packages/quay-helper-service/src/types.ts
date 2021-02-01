@@ -1,3 +1,9 @@
+export type QuayBuildStatusChangedTopicPayload = {
+  quayBuildId: string
+  quayBuildStatus: QuayBuildStatus
+  changeDateMs: number
+}
+
 export type QueryStringOptions =
   | {
       git_registry: 'bitbucket-cloud' | 'github'

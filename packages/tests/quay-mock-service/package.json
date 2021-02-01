@@ -11,7 +11,8 @@
   ],
   "types": "dist/src/index.d.ts",
   "scripts": {
-    "start:dev": "ts-node src/index.ts"
+    "start:dev": "ts-node src/index.ts",
+    "start:prod": "node --unhandled-rejections=strict dist/src/index.js"
   },
   "dependencies": {
     "@era-ci/utils": "^2.0.0",
@@ -22,6 +23,10 @@
     "fastify-rate-limit": "^4.0.3",
     "got": "^11.8.1",
     "http-status-codes": "^2.1.4",
-    "pino-pretty": "^4.3.0"
+    "pino-pretty": "^4.3.0",
+    "urllib": "^2.36.1"
+  },
+  "devDependencies": {
+    "@era-ci/quay-client": "^2.0.0"
   }
 }

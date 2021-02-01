@@ -21,7 +21,7 @@ test('ensure-retry-works-when-429-response.spec - multiple tasks', async () => {
       repoName: distructPackageJsonName(packageInfo.name).name,
       visibility: 'public',
       imageTags: [`1.0.${i}`],
-      relativeContextPath: '/',
+      relativeContextPath: '',
       relativeDockerfilePath: packageInfo.relativeDockerFilePath,
       taskTimeoutMs: 100_000,
     })),

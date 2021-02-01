@@ -35,17 +35,14 @@ test(`reproduce bug - flow hangs when there is a npm + docker publishes`, async 
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
           registry: getResources().dockerRegistry,
-          buildAndPushOnlyTempVersion: false,
         }),
       ]),
     },
   })
-  const { published, jsonReport } = await runCi()
+  const { published } = await runCi()
 
   expect(published.get('a')?.npm.versions).toEqual(['1.0.0'])
-  expect(published.get('b')?.docker.tags.sort()).toEqual(
-    [`artifact-hash-${jsonReport.artifacts[1].data.artifact.packageHash}`, await gitHeadCommit()].sort(),
-  )
+  expect(published.get('b')?.docker.tags).toEqual([await gitHeadCommit()])
 })
 
 test(`reproduce bug - steps are triggered in the wrong time when using waitUntilArtifactParentsFinishedParentSteps=false in one of the steps`, async () => {

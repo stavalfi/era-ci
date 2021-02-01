@@ -21,7 +21,6 @@ import { chooseTagAndPublish } from './utils'
 
 async function buildAndPublishArtifact({
   stepConfigurations,
-  repoPath,
   currentArtifact,
   taskQueue,
   tag,
@@ -32,11 +31,8 @@ async function buildAndPublishArtifact({
   const [task] = taskQueue.addTasksToQueue([
     {
       packageName: currentArtifact.data.artifact.packageJson.name,
-      relativeContextPath: '/',
-      relativeDockerfilePath: path.relative(
-        repoPath,
-        path.join(currentArtifact.data.artifact.packagePath, 'Dockerfile'),
-      ),
+      relativeContextPath: '',
+      relativeDockerfilePath: path.join(currentArtifact.data.artifact.relativePackagePath, 'Dockerfile'),
       imageTags: [tag],
       taskTimeoutMs: stepConfigurations.dockerfileBuildTimeoutMs,
       repoName: distructPackageJsonName(currentArtifact.data.artifact.packageJson.name).name,
@@ -88,13 +84,6 @@ export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, Qua
   stepName: 'quay-docker-publish',
   stepGroup: 'docker-publish',
   taskQueueClass: QuayBuildsTaskQueue,
-  normalizeStepConfigurations: async (config, options) => ({
-    ...config,
-    buildAndPushOnlyTempVersion:
-      'BUILD_AND_PUSH_ONLY_TEMP_VERSION' in options.processEnv
-        ? Boolean(options.processEnv['BUILD_AND_PUSH_ONLY_TEMP_VERSION'])
-        : config.buildAndPushOnlyTempVersion,
-  }),
   run: options => {
     return {
       globalConstrains: [skipIfStepIsDisabledConstrain()],

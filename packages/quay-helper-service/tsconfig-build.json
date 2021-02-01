@@ -6,7 +6,7 @@
   "include": ["src", "__tests__"],
   "references": [
     {
-      "path": "../task-queues/tsconfig-build.json"
+      "path": "../quay-client/tsconfig-build.json"
     }
   ]
 }

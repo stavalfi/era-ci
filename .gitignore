@@ -6,7 +6,6 @@ src/npm-ci
 *.iml
 .DS_Store
 .project
-dist
 node_modules
 .vscode
 packages/fed-build-flow-runner-cli/test/storage-internal/
@@ -31,3 +30,6 @@ compiled-era-ci-*
 lib1.js
 *.d.ts
 !declarations.d.ts
+dist/*
+packages/**/dist
+!dist/monorepo-docker-build-helper.js

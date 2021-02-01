@@ -1,11 +1,16 @@
 /* eslint-disable no-console */
 
-import type { QuayBuildStatusChangedTopicPayload, QuayNotificationEvents } from '@era-ci/task-queues'
+import { QuayClient } from '@era-ci/quay-client'
 import fastify from 'fastify'
 import Redis from 'ioredis'
 import { getConfig } from './config'
-import { QueryStringOptions } from './types'
-import { downloadTarGz, quayNotificationEventToBuildStatus } from './utils'
+import { QuayBuildStatus, QuayNotificationEvents, QueryStringOptions } from './types'
+import {
+  checkTarGzExist,
+  downloadTarGz,
+  quayNotificationEventToBuildStatus,
+  sendQuayNotificationInRedis,
+} from './utils'
 
 export async function startQuayHelperService(
   env: Record<string, string | undefined>,
@@ -15,7 +20,7 @@ export async function startQuayHelperService(
   const app = fastify({
     logger: {
       prettyPrint: true,
-      level: 'error',
+      level: env['ERA_TEST_MODE'] ? 'error' : 'info',
     },
   })
 
@@ -42,20 +47,104 @@ export async function startQuayHelperService(
     Querystring: QueryStringOptions
   }>('/download-git-repo-tar-gz', async (req, res) => res.send(await downloadTarGz(req.query, config.auth)))
 
+  app.head<{
+    Querystring: QueryStringOptions
+  }>('/download-git-repo-tar-gz', async (req, res) => res.send(await checkTarGzExist(req.query, config.auth)))
+
   app.post<{ Params: { event: QuayNotificationEvents }; Body: { build_id: string } }>(
     '/quay-build-notification/:event',
     async (req, res) => {
       const quayBuildStatus = quayNotificationEventToBuildStatus(req.params.event)
-      const { build_id } = req.body
-      const payload: QuayBuildStatusChangedTopicPayload = {
-        quayBuildId: build_id,
+      await sendQuayNotificationInRedis({
+        build_id: req.body.build_id,
+        config,
         quayBuildStatus,
-        changeDateMs: Date.now(),
-      }
-      await redisConnection.publish(config.quayBuildStatusChangedRedisTopic, JSON.stringify(payload))
+        log: app.log,
+        redisConnection,
+      })
       res.send()
     },
   )
+
+  app.post<{
+    Params: {}
+    Body: {
+      build_id: string
+      quayAddress: string
+      quayToken: string
+      quayNamespace: string
+      eraTaskId: string
+      quayRepoName: string
+    }
+  }>('/quay-build-notification-pulling', async (req, res) => {
+    res.send()
+
+    const quayClient = new QuayClient(
+      req.body.quayAddress,
+      req.body.quayToken,
+      req.body.quayNamespace,
+      {
+        error: app.log.error.bind(app.log),
+        info: app.log.info.bind(app.log),
+        debug: app.log.debug.bind(app.log),
+      },
+      env,
+    )
+
+    let failures404 = 0
+    let exitEarly = false
+    const getStatus = () =>
+      quayClient
+        .getBuildStatus({
+          quayBuildId: req.body.build_id,
+          repoName: req.body.quayRepoName,
+          taskId: req.body.eraTaskId,
+        })
+        .catch(error => {
+          if (env.ERA_TEST_MODE && error.code === 'ECONNREFUSED') {
+            // the test ended so quay-mock process finished
+            exitEarly = true
+            return null
+          }
+          if (error.message.includes('404')) {
+            // quay has a delay and they still don't know this build yet. let's wait
+            failures404++
+            return null
+          }
+        })
+
+    let status = await getStatus()
+    // it looks like quay has a bug and they don't report failure-status in webhook.
+    const sleepMs = env.ERA_TEST_MODE ? 100 : 2_000 // so we exit early as possible in tests
+    while (
+      status !== QuayBuildStatus.cancelled &&
+      status !== QuayBuildStatus.complete &&
+      status !== QuayBuildStatus.error
+    ) {
+      if (exitEarly) {
+        return
+      }
+      await new Promise(res => setTimeout(res, sleepMs))
+      status = await getStatus()
+      if (failures404 === 60) {
+        app.log.error(
+          `failed to pull build-status from quay because quay dont know this build-id: "${
+            req.body.build_id
+          }" (which they gave us). (we trying to ask quay every second during ${
+            (sleepMs * failures404) / 1_000
+          } seconds).`,
+        )
+        return
+      }
+    }
+    await sendQuayNotificationInRedis({
+      build_id: req.body.build_id,
+      config,
+      quayBuildStatus: status,
+      log: app.log,
+      redisConnection,
+    })
+  })
 
   const address = await app.listen(config.port, '0.0.0.0')
   console.log(`quay-helper-service: "${address}"`)

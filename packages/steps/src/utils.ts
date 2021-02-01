@@ -1,5 +1,5 @@
 import { TaskQueueBase, UserReturnValue, UserRunStepOptions } from '@era-ci/core'
-import { addTagToRemoteImage, listTags } from '@era-ci/image-registry-client'
+import { listTags } from '@era-ci/image-registry-client'
 import {
   Artifact,
   buildFullDockerImageName,
@@ -19,15 +19,12 @@ export async function chooseTagAndPublish<
     publish: (tag: string) => Promise<UserReturnValue>
   },
 ): Promise<UserReturnValue> {
-  const hashTag = `artifact-hash-${options.artifact.data.artifact.packageHash}`
-
   const tags = await listTags({
     registry: options.stepConfigurations.registry,
     auth: options.stepConfigurations.registryAuth,
     dockerOrg: options.stepConfigurations.dockerOrganizationName,
     repo: distructPackageJsonName(options.artifact.data.artifact.packageJson.name).name,
   })
-  const didHashPublished = tags.some(tag => tag === hashTag)
 
   const fullImageNameWithTag = (tag: string): string =>
     buildFullDockerImageName({
@@ -37,81 +34,60 @@ export async function chooseTagAndPublish<
       imageTag: tag,
     })
 
-  if (options.stepConfigurations.buildAndPushOnlyTempVersion) {
-    if (didHashPublished) {
-      return {
-        executionStatus: ExecutionStatus.aborted,
-        status: Status.skippedAsPassed,
-        errors: [],
-        notes: [`artifact already published: "${fullImageNameWithTag(hashTag)}"`],
-        returnValue: fullImageNameWithTag(hashTag),
+  const cacheKey = `${options.artifact.data.artifact.packageHash}-next-tag`
+  const newTagFromCache = await options.immutableCache.get({
+    key: cacheKey,
+    isBuffer: true,
+    mapper: r => {
+      if (typeof r !== 'string') {
+        throw new Error(
+          `bad value returned from redis-immutable-cache. expected image-tag, received: "${JSON.stringify(
+            r,
+            null,
+            2,
+          )}"`,
+        )
+      } else {
+        return r
       }
-    } else {
-      return options.publish(hashTag)
-    }
-  } else {
-    const cacheKey = `${options.artifact.data.artifact.packageHash}-next-tag`
-    const newTagFromCache = await options.immutableCache.get({
-      key: cacheKey,
-      isBuffer: true,
-      mapper: r => {
-        if (typeof r !== 'string') {
-          throw new Error(
-            `bad value returned from redis-immutable-cache. expected image-tag, received: "${JSON.stringify(
-              r,
-              null,
-              2,
-            )}"`,
-          )
-        } else {
-          return r
-        }
-      },
-    })
+    },
+  })
 
-    if (newTagFromCache && tags.includes(newTagFromCache.value)) {
-      return {
-        executionStatus: ExecutionStatus.aborted,
-        status: Status.skippedAsPassed,
-        errors: [],
-        notes: [
-          `artifact already published: "${fullImageNameWithTag(newTagFromCache.value)}" in flow: "${
-            newTagFromCache.flowId
-          }"`,
-        ],
-        returnValue: fullImageNameWithTag(newTagFromCache.value),
-      }
+  if (newTagFromCache && tags.includes(newTagFromCache.value)) {
+    return {
+      executionStatus: ExecutionStatus.aborted,
+      status: Status.skippedAsPassed,
+      errors: [],
+      notes: [
+        `artifact already published: "${fullImageNameWithTag(newTagFromCache.value)}" in flow: "${
+          newTagFromCache.flowId
+        }"`,
+      ],
+      returnValue: fullImageNameWithTag(newTagFromCache.value),
     }
-
-    let artifactStepResult: UserReturnValue
-    const newTag = options.gitRepoInfo.commit
-    if (didHashPublished) {
-      artifactStepResult = {
-        executionStatus: ExecutionStatus.aborted,
-        status: Status.skippedAsPassed,
-        errors: [],
-        notes: [`artifact already published: "${fullImageNameWithTag(newTag)}"`],
-        returnValue: fullImageNameWithTag(newTag),
-      }
-    } else {
-      artifactStepResult = await options.publish(hashTag)
-    }
-    if (artifactStepResult.status === Status.passed || artifactStepResult.status === Status.skippedAsPassed) {
-      await addTagToRemoteImage({
-        registry: options.stepConfigurations.registry,
-        auth: options.stepConfigurations.registryAuth,
-        dockerOrg: options.stepConfigurations.dockerOrganizationName,
-        repo: distructPackageJsonName(options.artifact.data.artifact.packageJson.name).name,
-        fromTag: hashTag,
-        toTag: newTag,
-      })
-      await options.immutableCache.set({
-        key: cacheKey,
-        value: newTag,
-        asBuffer: true,
-        ttl: options.immutableCache.ttls.ArtifactStepResult,
-      })
-    }
-    return artifactStepResult
   }
+
+  const newTag = options.gitRepoInfo.commit.slice(0, 8)
+  if (tags.includes(newTag)) {
+    return {
+      executionStatus: ExecutionStatus.aborted,
+      status: Status.skippedAsFailed,
+      notes: [
+        `there is already a docker-image with a tag equal to <current-git-head>. please commit your changes and try again`,
+      ],
+    }
+  }
+
+  const artifactStepResult = await options.publish(newTag)
+
+  if (artifactStepResult.status === Status.passed || artifactStepResult.status === Status.skippedAsPassed) {
+    await options.immutableCache.set({
+      key: cacheKey,
+      value: newTag,
+      asBuffer: true,
+      ttl: options.immutableCache.ttls.ArtifactStepResult,
+    })
+  }
+
+  return artifactStepResult
 }

@@ -120,13 +120,6 @@ export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, Loc
   stepName: 'docker-publish',
   stepGroup: 'docker-publish',
   taskQueueClass: LocalSequentalTaskQueue,
-  normalizeStepConfigurations: async (config, options) => ({
-    ...config,
-    buildAndPushOnlyTempVersion:
-      'BUILD_AND_PUSH_ONLY_TEMP_VERSION' in options.processEnv
-        ? Boolean(options.processEnv['BUILD_AND_PUSH_ONLY_TEMP_VERSION'])
-        : config.buildAndPushOnlyTempVersion,
-  }),
   run: options => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     waitUntilArtifactParentsFinishedParentSteps: options.stepConfigurations.imageInstallArtifactsFromNpmRegistry,
