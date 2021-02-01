@@ -11,14 +11,8 @@ export * from '@era-ci/task-queues'
 
 async function main(processArgv: string[]): Promise<void> {
   const argv = yargsParser(processArgv, {
-    number: [
-      'redis-url',
-      'quay-helper-service-port',
-      'quay-mock-service-port',
-      'docker-registry-url',
-      'docker-fake-org',
-      'docker-fake-token',
-    ],
+    number: ['quay-helper-service-port', 'quay-mock-service-port'],
+    string: ['redis-url', 'docker-registry-url', 'docker-fake-org', 'docker-fake-token'],
   })
 
   if (!argv['quay-helper-service-port']) {
