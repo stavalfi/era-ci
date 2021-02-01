@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  verdaccio:
+    image: 'verdaccio/verdaccio'
+    ports:
+      - '4873:4873'
+  redis:
+    image: 'redis'
+    ports:
+      - '6379:6379'
+  docker-registry:
+    image: 'registry:2'
+    ports:
+      - '5000:5000'

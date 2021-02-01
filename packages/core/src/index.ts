@@ -1,4 +1,4 @@
-// #!/usr/bin/env node --unhandled-rejections=strict
+#!/usr/bin/env node --unhandled-rejections=strict
 
 /// <reference path="../../../declarations.d.ts" />
 
