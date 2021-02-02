@@ -12,7 +12,7 @@
     "run-quay-helper-service": "PORT=9875 REDIS_ADDRESS=redis://localhost:36379 yarn workspace @era-ci/quay-helper-service start:prod",
     "run-quay-services": "ts-node run-quay-mock-and-helper-service.ts",
     "run-era-ci": "time node --trace-warnings --unhandled-rejections=strict packages/core/dist/src/index.js",
-    "run-era-ci:secrethub": "node_modules/@secrethub/cli/bin/secrethub run --ignore-missing-secrets -- yarn run-era-ci",
+    "run-era-ci:secrethub": "node_modules/@secrethub/cli/bin/secrethub run --no-masking --ignore-missing-secrets -- yarn run-era-ci",
     "run-task-worker": "time node --unhandled-rejections=strict packages/task-worker/dist/src/index.js",
     "run-task-worker:secrethub": "node_modules/@secrethub/cli/bin/secrethub run --ignore-missing-secrets -- yarn run-task-worker",
     "core:make-executable": "chmod +x packages/core/dist/src/index.js",
