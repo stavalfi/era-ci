@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "test": "jest"
+    "test": "#jest"
   },
   "dependencies": {
     "npm-login-noninteractive": "^0.1.4",
