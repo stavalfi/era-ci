@@ -30,6 +30,7 @@
     "redux": "^4.0.5",
     "rxjs": "^7.0.0-beta.10",
     "serialize-error": "^7.0.1",
+    "source-map-support": "^0.5.19",
     "strict-event-emitter-types": "^2.0.0",
     "superstruct": "^0.13.1"
   }

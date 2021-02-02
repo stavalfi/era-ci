@@ -1,3 +1,5 @@
+import 'source-map-support/register'
+
 import { LogLevel } from '@era-ci/core'
 import { winstonLogger } from '@era-ci/loggers'
 import BeeQueue from 'bee-queue'

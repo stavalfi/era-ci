@@ -2,6 +2,8 @@
 
 /// <reference path="../../../declarations.d.ts" />
 
+import 'source-map-support/register'
+
 import { startCli } from './configuration/cli'
 
 export * from './ci-logic'
