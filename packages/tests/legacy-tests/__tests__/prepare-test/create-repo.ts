@@ -5,6 +5,8 @@ import { Repo, TargetType, ToActualName, Package } from './types'
 import chance from 'chance'
 import path from 'path'
 import { PackageJson } from '@era-ci/utils'
+import { npmRegistryLogin } from '@era-ci/steps'
+import { Log, Logger } from '@era-ci/core'
 
 async function initializeGitRepo({
   gitServer,
@@ -125,12 +127,25 @@ export async function createRepo({
   repo,
   gitServer,
   gitIgnoreFiles,
+  npm,
+  createTestLogger,
 }: {
   repo: Repo
   gitServer: GitServer
   toActualName: ToActualName
   gitIgnoreFiles: Array<string>
+  npm: {
+    address: string
+    auth: {
+      username: string
+      password: string
+      email: string
+    }
+  }
+  createTestLogger: (repoPath: string) => Promise<Logger>
 }): Promise<{
+  testLogger: Logger
+  testLog: Log
   repoPath: string
   repoName: string
   repoOrg: string
@@ -169,7 +184,19 @@ ${gitIgnoreFiles.join('\n')}\
   const packagesFolderPath = path.join(repoPath, packagesFolderName)
   const subPackagesFolderPath = path.join(packagesFolderPath, subPackagesFolderName)
 
-  await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })
+  const testLogger = await createTestLogger(repoPath)
+  const testLog = testLogger.createLog('test-infra')
+
+  await npmRegistryLogin({
+    npmRegistry: npm.address,
+    npmRegistryPassword: npm.auth.password,
+    npmRegistryUsername: npm.auth.username,
+    npmRegistryEmail: npm.auth.email,
+    log: testLog,
+    repoPath,
+  })
+
+  await execa.command(`yarn install --registry ${npm.address}`, { cwd: repoPath, stdio: 'pipe' })
 
   await initializeGitRepo({
     gitServer,
@@ -179,6 +206,8 @@ ${gitIgnoreFiles.join('\n')}\
   })
 
   return {
+    testLogger,
+    testLog,
     repoPath,
     repoName,
     repoOrg,

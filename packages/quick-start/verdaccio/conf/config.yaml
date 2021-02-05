@@ -2,10 +2,12 @@ storage: ../storage
 auth:
   htpasswd:
     # generate htpasswd file: https://hostingcanada.org/htpasswd-generator/
-    ### username: username1
-    ### password: password1
+    ### username: 123
+    ### password: 123
+    ### username: username
+    ### password: password
     file: ../htpasswd
-uplinks:  
+uplinks:
   npmjs:
     url: https://registry.npmjs.org/
 packages:
@@ -16,4 +18,4 @@ packages:
     access: $authenticated
     publish: $authenticated
 logs:
-  - {type: stdout, format: pretty, level: http}
+  - { type: stdout, format: pretty, level: http }

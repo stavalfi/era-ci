@@ -14,7 +14,7 @@ configure your `era.config.ts` to point to these endpoints and enjoy :)
 p.s the docker-compose also setup npm-registry (verdaccio):
 
 ```
-npm-username: username1
-npm-password: password1
+npm-username: username
+npm-password: password
 email: any@email.com
 ```

@@ -9,7 +9,7 @@ import path from 'path'
 
 const { createRepo, getResources } = createTest()
 
-test.only('docker-artifact depends on published npm-artifact during docker-build', async () => {
+test('docker-artifact depends on published npm-artifact during docker-build', async () => {
   const hostIp = `172.17.0.1`
   const {
     npmRegistry: {

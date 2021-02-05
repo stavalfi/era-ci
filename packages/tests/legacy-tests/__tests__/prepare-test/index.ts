@@ -37,15 +37,14 @@ export const newEnv: NewEnv = () => {
 
     const { dockerRegistry, npmRegistry, gitServer, redisServerUrl } = testFuncs.getResources()
 
-    const { repoPath, repoName, repoOrg, subPackagesFolderPath } = await createRepo({
+    const { repoPath, repoName, repoOrg, subPackagesFolderPath, testLog, testLogger } = await createRepo({
       repo,
       gitServer,
       toActualName,
       gitIgnoreFiles: ['*.log'],
+      npm: testFuncs.getResources().npmRegistry,
+      createTestLogger: testFuncs.createTestLogger,
     })
-
-    const testLogger = await testFuncs.createTestLogger(repoPath)
-    const testLog = testLogger.createLog('test-infra')
 
     const getFlowLogs: GetFlowLogs = async ({ flowId, execaOptions }) => {
       return runNcExecutable({

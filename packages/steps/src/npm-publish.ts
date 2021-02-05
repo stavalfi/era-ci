@@ -152,7 +152,15 @@ export async function npmRegistryLogin({
   if (npmRegistry[npmRegistry.length - 1] === '/') {
     npmRegistry = npmRegistry.slice(0, npmRegistry.length - 1)
   }
-  // in tests/local-mock runs, we login to the npm-registry (verdaccio) in a different way:
+
+  // https://verdaccio.org/docs/en/cli-registry#yarn-1x
+  // yarn@1.x does not send the authorization header on yarn install if your packages requires authentication,
+  // by enabling always-auth will force yarn do it on each request.
+  await execa.command(`npm config set always-auth true `, {
+    stdio: 'ignore',
+    cwd: repoPath,
+  })
+
   await execa.command(require.resolve(`.bin/npm-login-noninteractive`), {
     stdio: 'ignore',
     cwd: repoPath,
