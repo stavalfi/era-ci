@@ -22,9 +22,9 @@ import chance from 'chance'
 
 const {
   NPM_REGISTRY = 'http://localhost:34873',
-  NPM_USERNAME = 'root',
-  NPM_PASSWORD = 'root',
-  NPM_EMAIL = 'root@root.root',
+  NPM_USERNAME = 'username',
+  NPM_PASSWORD = 'password',
+  NPM_EMAIL = 'any@email.com',
   QUAY_REGISTRY = `http://localhost:35000`,
   QUAY_SERVICE = `http://localhost:9001`,
   QUAY_ORG = 'org1',

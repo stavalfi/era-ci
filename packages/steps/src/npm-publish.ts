@@ -298,7 +298,6 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
           }),
         artifact => customConstrain({ currentArtifact: artifact }),
       ],
-      onAfterArtifacts: async () => execa.command(`npm logout --registry ${stepConfigurations.registry}`),
       onArtifact: async ({ artifact }) => {
         const newVersion = await calculateNextNewVersion({
           npmRegistry: stepConfigurations.registry,

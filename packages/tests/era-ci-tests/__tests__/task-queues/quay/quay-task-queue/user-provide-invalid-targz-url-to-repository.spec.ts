@@ -29,7 +29,7 @@ test('user provide tar gz to repository which is not exist - it can be because o
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10_000,
+      taskTimeoutMs: 100_000,
     },
   ])
 
