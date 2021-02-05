@@ -47,7 +47,7 @@ export default config({
         url: `https://api.github.com/repos/stavalfi/era-ci/tarball/${gitCommit}`,
         folderName: `stavalfi-era-ci-${gitCommit.slice(0, 7)}`,
       }),
-      quayService: QUAY_REGISTRY,
+      quayService: QUAY_SERVICE,
       dockerRegistry: QUAY_REGISTRY,
       quayNamespace: QUAY_ORG,
       quayToken: QUAY_ORG_TOKEN,

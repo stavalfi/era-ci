@@ -107,6 +107,7 @@ export async function buildDockerFile({
         imageTag,
       })
 
+      console.log('stav7', fs.readFileSync(path.join(extractedContextPath, dockerfile_path), 'utf-8'))
       const dockerBuildCommand = `docker build -f Dockerfile -t ${image} ${path.join(extractedContextPath, context)}`
       const p = execa.command(dockerBuildCommand, {
         cwd: path.dirname(path.join(extractedContextPath, dockerfile_path)),
