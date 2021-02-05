@@ -17,7 +17,7 @@ COPY ${quay_client_path}/tsconfig-build.json ./${quay_client_path}/tsconfig-buil
 COPY ${utils_path}/package.json ./${utils_path}/package.json
 COPY ${utils_path}/tsconfig-build.json ./${utils_path}/tsconfig-build.json
 
-RUN npx ts-node monorepo-docker-build-helper.ts remove-irrelevant-packages \
+RUN npx esbuild-runner monorepo-docker-build-helper.ts remove-irrelevant-packages \
     --keep-package-and-its-deps @era-ci/quay-helper-service \
     --remove-all-dev-deps-except typescript ts-node @types/*
 RUN yarn install
