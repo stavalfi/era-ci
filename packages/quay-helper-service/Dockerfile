@@ -18,13 +18,12 @@ COPY ${utils_path}/package.json ./${utils_path}/package.json
 COPY ${utils_path}/tsconfig-build.json ./${utils_path}/tsconfig-build.json
 
 RUN npx esbuild-runner monorepo-docker-build-helper.ts remove-irrelevant-packages \
-    --keep-package-and-its-deps @era-ci/quay-helper-service \
-    --remove-all-dev-deps-except typescript ts-node @types/*
+    --keep-package-and-its-deps @era-ci/quay-helper-service
+    
 RUN yarn install
 
 COPY ${package_path}/src ./${package_path}/src
 COPY ${quay_client_path}/src ./${quay_client_path}/src
 COPY ${utils_path}/src ./${utils_path}/src
-RUN yarn build
 
-CMD node --unhandled-rejections=strict ./packages/quay-helper-service/dist/src/index.js
+CMD yarn --cwd ./packages/quay-helper-service start:prod
