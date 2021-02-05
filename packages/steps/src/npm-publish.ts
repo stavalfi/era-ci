@@ -254,125 +254,132 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
   stepName: 'npm-publish',
   stepGroup: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: ({ stepConfigurations, repoPath, log, immutableCache, processEnv }) => ({
-    globalConstrains: [skipIfStepIsDisabledConstrain()],
-    artifactConstrains: [
-      artifact =>
-        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-          currentArtifact: artifact,
-          stepNameToSearchInCache: 'build-root',
-          skipAsPassedIfStepNotExists: true,
-        }),
-      artifact =>
-        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-          currentArtifact: artifact,
-          stepNameToSearchInCache: 'test',
-          skipAsPassedIfStepNotExists: true,
-        }),
-      artifact =>
-        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-          currentArtifact: artifact,
-          stepNameToSearchInCache: 'validate-packages',
-          skipAsPassedIfStepNotExists: true,
-        }),
-      artifact => customConstrain({ currentArtifact: artifact }),
-    ],
-    onBeforeArtifacts: async () =>
-      npmRegistryLogin({
+  run: async ({ stepConfigurations, repoPath, log, immutableCache }) => {
+    if (stepConfigurations.isStepEnabled) {
+      // we need to login before we run the constrains and before run the artifacts-logic
+      await npmRegistryLogin({
         npmRegistry: stepConfigurations.registry,
         npmRegistryPassword: stepConfigurations.publishAuth.password,
         npmRegistryEmail: stepConfigurations.publishAuth.email,
         npmRegistryUsername: stepConfigurations.publishAuth.username,
         repoPath,
         log,
-      }),
-    onAfterArtifacts: async () => execa.command(`npm logout --registry ${stepConfigurations.registry}`),
-    onArtifact: async ({ artifact }) => {
-      const newVersion = await calculateNextNewVersion({
-        npmRegistry: stepConfigurations.registry,
-        packageJson: artifact.data.artifact.packageJson,
-        packagePath: artifact.data.artifact.packagePath,
-        repoPath,
-        log,
       })
+    }
 
-      await setPackageVersion({
-        artifact: artifact.data.artifact,
-        fromVersion: artifact.data.artifact.packageJson.version,
-        toVersion: newVersion,
-      })
-
-      await execaCommand(
-        `yarn publish --registry ${stepConfigurations.registry} --non-interactive ${
-          artifact.data.artifact.packageJson.name?.includes('@') ? `--access ${stepConfigurations.npmScopeAccess}` : ''
-        }`,
-        {
-          stdio: 'pipe',
-          cwd: artifact.data.artifact.packagePath,
-          env: {
-            // npm need this env-var for auth - this is needed only for production publishing.
-            // in tests it doesn't do anything and we login manually to npm in tests.
-            NPM_AUTH_TOKEN: stepConfigurations.publishAuth.password,
-            NPM_PASSWORD: stepConfigurations.publishAuth.password,
-          },
+    return {
+      globalConstrains: [skipIfStepIsDisabledConstrain()],
+      artifactConstrains: [
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'build-root',
+            skipAsPassedIfStepNotExists: true,
+          }),
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'test',
+            skipAsPassedIfStepNotExists: true,
+          }),
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'validate-packages',
+            skipAsPassedIfStepNotExists: true,
+          }),
+        artifact => customConstrain({ currentArtifact: artifact }),
+      ],
+      onAfterArtifacts: async () => execa.command(`npm logout --registry ${stepConfigurations.registry}`),
+      onArtifact: async ({ artifact }) => {
+        const newVersion = await calculateNextNewVersion({
+          npmRegistry: stepConfigurations.registry,
+          packageJson: artifact.data.artifact.packageJson,
+          packagePath: artifact.data.artifact.packagePath,
+          repoPath,
           log,
-        },
-      )
-        .then(async () => {
-          // wait (up to a 2 minutes) until the package is available
-          for (let i = 0; i < 24; i++) {
-            try {
-              await execaCommand(
-                `npm view ${artifact.data.artifact.packageJson.name}@${newVersion} --registry ${stepConfigurations.registry}`,
-                {
-                  stdio: 'ignore',
-                  cwd: artifact.data.artifact.packagePath,
-                  env: {
-                    // npm need this env-var for auth - this is needed only for production publishing.
-                    // in tests it doesn't do anything and we login manually to npm in tests.
-                    NPM_AUTH_TOKEN: stepConfigurations.publishAuth.password,
-                    NPM_PASSWORD: stepConfigurations.publishAuth.password,
+        })
+
+        await setPackageVersion({
+          artifact: artifact.data.artifact,
+          fromVersion: artifact.data.artifact.packageJson.version,
+          toVersion: newVersion,
+        })
+
+        await execaCommand(
+          `yarn publish --registry ${stepConfigurations.registry} --non-interactive ${
+            artifact.data.artifact.packageJson.name?.includes('@')
+              ? `--access ${stepConfigurations.npmScopeAccess}`
+              : ''
+          }`,
+          {
+            stdio: 'pipe',
+            cwd: artifact.data.artifact.packagePath,
+            env: {
+              // npm need this env-var for auth - this is needed only for production publishing.
+              // in tests it doesn't do anything and we login manually to npm in tests.
+              NPM_AUTH_TOKEN: stepConfigurations.publishAuth.password,
+              NPM_PASSWORD: stepConfigurations.publishAuth.password,
+            },
+            log,
+          },
+        )
+          .then(async () => {
+            // wait (up to a 2 minutes) until the package is available
+            for (let i = 0; i < 24; i++) {
+              try {
+                await execaCommand(
+                  `npm view ${artifact.data.artifact.packageJson.name}@${newVersion} --registry ${stepConfigurations.registry}`,
+                  {
+                    stdio: 'ignore',
+                    cwd: artifact.data.artifact.packagePath,
+                    env: {
+                      // npm need this env-var for auth - this is needed only for production publishing.
+                      // in tests it doesn't do anything and we login manually to npm in tests.
+                      NPM_AUTH_TOKEN: stepConfigurations.publishAuth.password,
+                      NPM_PASSWORD: stepConfigurations.publishAuth.password,
+                    },
+                    log,
                   },
-                  log,
-                },
-              )
-              break
-            } catch (error) {
-              if (error.stderr.includes('E404')) {
-                await new Promise(res => setTimeout(res, 5_000))
-              } else {
-                throw error
+                )
+                break
+              } catch (error) {
+                if (error.stderr.includes('E404')) {
+                  await new Promise(res => setTimeout(res, 5_000))
+                } else {
+                  throw error
+                }
               }
             }
-          }
-        })
-        .then(() =>
-          immutableCache.set({
-            key: getVersionCacheKey({
-              artifactHash: artifact.data.artifact.packageHash,
-              artifactName: artifact.data.artifact.packageJson.name,
+          })
+          .then(() =>
+            immutableCache.set({
+              key: getVersionCacheKey({
+                artifactHash: artifact.data.artifact.packageHash,
+                artifactName: artifact.data.artifact.packageJson.name,
+              }),
+              value: newVersion,
+              asBuffer: true,
+              ttl: immutableCache.ttls.ArtifactStepResult,
             }),
-            value: newVersion,
-            asBuffer: true,
-            ttl: immutableCache.ttls.ArtifactStepResult,
-          }),
-        )
-        .finally(async () =>
-          // revert version to what it was before we changed it
-          setPackageVersion({
-            artifact: artifact.data.artifact,
-            fromVersion: newVersion,
-            toVersion: artifact.data.artifact.packageJson.version,
-          }),
-        )
+          )
+          .finally(async () =>
+            // revert version to what it was before we changed it
+            setPackageVersion({
+              artifact: artifact.data.artifact,
+              fromVersion: newVersion,
+              toVersion: artifact.data.artifact.packageJson.version,
+            }),
+          )
 
-      log.info(`published npm target: "${artifact.data.artifact.packageJson.name}@${newVersion}"`)
+        log.info(`published npm target: "${artifact.data.artifact.packageJson.name}@${newVersion}"`)
 
-      return {
-        notes: [`published: "${artifact.data.artifact.packageJson.name}@${newVersion}"`],
-        executionStatus: ExecutionStatus.done,
-        status: Status.passed,
-      }
-    },
-  }),
+        return {
+          notes: [`published: "${artifact.data.artifact.packageJson.name}@${newVersion}"`],
+          executionStatus: ExecutionStatus.done,
+          status: Status.passed,
+        }
+      },
+    }
+  },
 })

@@ -23,7 +23,7 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do n
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             waitUntilArtifactParentsFinishedParentSteps: true,
             onArtifact: async () => {
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
@@ -54,7 +54,7 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do 
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             waitUntilArtifactParentsFinishedParentSteps: false,
             onArtifact: async () => {
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
@@ -92,7 +92,7 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do n
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             waitUntilArtifactParentsFinishedParentSteps: true,
             onArtifact: async () => {
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
@@ -130,7 +130,7 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do 
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             waitUntilArtifactParentsFinishedParentSteps: false,
             onArtifact: async () => {
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
@@ -170,7 +170,7 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async 
           stepName: 'parent-step',
           stepGroup: 'parent-step',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async ({ artifact }) => {
               if (artifact.data.artifact.packageJson.name === toActualName('parent-artifact')) {
                 await sleep(3000)
@@ -183,7 +183,7 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async 
           stepName: 'child-step',
           stepGroup: 'child-step',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: ({ getState, steps, artifacts }) => ({
+          run: async ({ getState, steps, artifacts }) => ({
             waitUntilArtifactParentsFinishedParentSteps: true,
             onArtifact: async ({ artifact }) => {
               if (artifact.data.artifact.packageJson.name === toActualName('child-artifact')) {
@@ -231,7 +231,7 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait'
           stepName: 'parent-step',
           stepGroup: 'parent-step',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async ({ artifact }) => {
               if (artifact.data.artifact.packageJson.name === toActualName('parent-artifact')) {
                 await sleep(3000)
@@ -244,7 +244,7 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait'
           stepName: 'child-step',
           stepGroup: 'child-step',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             waitUntilArtifactParentsFinishedParentSteps: false,
             onArtifact: () => Promise.resolve(),
           }),

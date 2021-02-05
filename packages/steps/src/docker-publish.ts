@@ -120,59 +120,63 @@ export const dockerPublish = createStep<LocalSequentalTaskQueue, LocalDockerPubl
   stepName: 'docker-publish',
   stepGroup: 'docker-publish',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: options => ({
-    globalConstrains: [skipIfStepIsDisabledConstrain()],
-    waitUntilArtifactParentsFinishedParentSteps: options.stepConfigurations.imageInstallArtifactsFromNpmRegistry,
-    artifactConstrains: [
-      artifact =>
-        skipIfArtifactTargetTypeNotSupportedConstrain({
-          currentArtifact: artifact,
-          supportedTargetType: TargetType.docker,
-        }),
-      artifact =>
-        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-          currentArtifact: artifact,
-          stepNameToSearchInCache: 'build-root',
-          skipAsPassedIfStepNotExists: true,
-        }),
-      artifact =>
-        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-          currentArtifact: artifact,
-          stepNameToSearchInCache: 'test',
-          skipAsPassedIfStepNotExists: true,
-        }),
-      artifact =>
-        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-          currentArtifact: artifact,
-          stepNameToSearchInCache: 'validate-packages',
-          skipAsPassedIfStepNotExists: true,
-        }),
-    ],
-    onBeforeArtifacts: async () =>
-      dockerRegistryLogin({
+  run: async options => {
+    if (options.stepConfigurations.isStepEnabled) {
+      // we need to login before we run the constrains and before run the artifacts-logic
+      await dockerRegistryLogin({
         dockerRegistry: options.stepConfigurations.registry,
         registryAuth: options.stepConfigurations.registryAuth,
         repoPath: options.repoPath,
         log: options.log,
-      }),
-    onArtifact: async ({ artifact }) =>
-      chooseTagAndPublish({
-        ...options,
-        artifact,
-        publish: async tag => {
-          const fullImageNameWithTag = await publishPackage({
-            ...options,
+      })
+    }
+    return {
+      globalConstrains: [skipIfStepIsDisabledConstrain()],
+      waitUntilArtifactParentsFinishedParentSteps: options.stepConfigurations.imageInstallArtifactsFromNpmRegistry,
+      artifactConstrains: [
+        artifact =>
+          skipIfArtifactTargetTypeNotSupportedConstrain({
             currentArtifact: artifact,
-            tag,
-          })
-          return {
-            executionStatus: ExecutionStatus.done,
-            status: Status.passed,
-            errors: [],
-            notes: [`published docker-image: "${fullImageNameWithTag}"`],
-            returnValue: fullImageNameWithTag,
-          }
-        },
-      }),
-  }),
+            supportedTargetType: TargetType.docker,
+          }),
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'build-root',
+            skipAsPassedIfStepNotExists: true,
+          }),
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'test',
+            skipAsPassedIfStepNotExists: true,
+          }),
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'validate-packages',
+            skipAsPassedIfStepNotExists: true,
+          }),
+      ],
+      onArtifact: async ({ artifact }) =>
+        chooseTagAndPublish({
+          ...options,
+          artifact,
+          publish: async tag => {
+            const fullImageNameWithTag = await publishPackage({
+              ...options,
+              currentArtifact: artifact,
+              tag,
+            })
+            return {
+              executionStatus: ExecutionStatus.done,
+              status: Status.passed,
+              errors: [],
+              notes: [`published docker-image: "${fullImageNameWithTag}"`],
+              returnValue: fullImageNameWithTag,
+            }
+          },
+        }),
+    }
+  },
 })

@@ -9,7 +9,7 @@ export const validatePackages = createStep({
   stepName: 'validate-packages',
   stepGroup: 'validate-packages',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: ({ artifacts }) => ({
+  run: async ({ artifacts }) => ({
     waitUntilArtifactParentsFinishedParentSteps: false,
     onArtifact: async ({ artifact }) => {
       const problems: Array<string> = []

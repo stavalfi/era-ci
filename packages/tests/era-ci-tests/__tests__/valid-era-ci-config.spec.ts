@@ -53,7 +53,7 @@ test('should throw error if user forgot to declare a task-queue which one of the
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: MissingTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async () => ({ executionStatus: ExecutionStatus.done, status: Status.passed }),
           }),
         })(),

@@ -43,7 +43,7 @@ export const test = createStep<TaskWorkerTaskQueue, TestConfigurations>({
   stepName: 'test',
   stepGroup: 'test',
   taskQueueClass: TaskWorkerTaskQueue,
-  run: options => ({
+  run: async options => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     stepConstrains: [
       skipIfStepResultMissingOrFailedInCacheConstrain({

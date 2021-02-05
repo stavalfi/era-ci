@@ -84,7 +84,7 @@ export const quayDockerPublish = createStep<QuayBuildsTaskQueue, QuayDockerPubli
   stepName: 'quay-docker-publish',
   stepGroup: 'docker-publish',
   taskQueueClass: QuayBuildsTaskQueue,
-  run: options => {
+  run: async options => {
     return {
       globalConstrains: [skipIfStepIsDisabledConstrain()],
       waitUntilArtifactParentsFinishedParentSteps: options.stepConfigurations.imageInstallArtifactsFromNpmRegistry,

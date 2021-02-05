@@ -31,7 +31,7 @@ test('ensure constrain is called at most once', async () => {
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             artifactConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',
@@ -83,7 +83,7 @@ test('reproduce bug: ensure constrain is called at most once', async () => {
             stepName: 'step1',
             stepGroup: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
-            run: () => ({
+            run: async () => ({
               onArtifact: () => sleep(sleepMs / 2),
             }),
           })(),
@@ -94,7 +94,7 @@ test('reproduce bug: ensure constrain is called at most once', async () => {
             stepName: 'step2',
             stepGroup: 'step2',
             taskQueueClass: LocalSequentalTaskQueue,
-            run: () => ({
+            run: async () => ({
               onArtifact: () => Promise.resolve(),
             }),
           })(),
@@ -105,7 +105,7 @@ test('reproduce bug: ensure constrain is called at most once', async () => {
             stepName: 'step3',
             stepGroup: 'step3',
             taskQueueClass: LocalSequentalTaskQueue,
-            run: () => ({
+            run: async () => ({
               artifactConstrains: [
                 createConstrain({
                   constrainName: 'test-constrain',

@@ -216,12 +216,11 @@ export type ArtifactFunctions<StepConfigurations> = {
 
 export type RunStep<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations>,
-) =>
-  | ({
-      globalConstrains?: Array<Constrain<StepConfigurations>>
-    } & (StepFunctions<StepConfigurations> | ArtifactFunctions<StepConfigurations>))
-  | undefined
-  | void
+) => Promise<
+  {
+    globalConstrains?: Array<Constrain<StepConfigurations>>
+  } & (StepFunctions<StepConfigurations> | ArtifactFunctions<StepConfigurations>)
+>
 
 export type Step<TaskQueue extends TaskQueueBase<any, any>> = {
   stepName: string

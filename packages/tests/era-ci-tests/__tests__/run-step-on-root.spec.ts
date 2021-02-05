@@ -24,7 +24,7 @@ test('flow should pass because step pass', async () => {
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({ stepLogic: () => Promise.resolve() }),
+          run: async () => ({ stepLogic: () => Promise.resolve() }),
         })(),
       ]),
     },
@@ -63,7 +63,7 @@ test('step should pass in json-report', async () => {
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({ stepLogic: () => Promise.resolve() }),
+          run: async () => ({ stepLogic: () => Promise.resolve() }),
         })(),
       ]),
     },
@@ -130,7 +130,7 @@ test('flow should fail because step failed (without throwing error from the step
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             stepLogic: async () => ({
               executionStatus: ExecutionStatus.done,
               status: Status.failed,
@@ -204,7 +204,7 @@ test('flow should fail because step failed (while throwing error from the step)'
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             stepLogic: async () => {
               throw new Error('error123')
             },

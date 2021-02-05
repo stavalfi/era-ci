@@ -24,7 +24,7 @@ test('step should pass in json-report', async () => {
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async () => {
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
             },
@@ -127,7 +127,7 @@ test('flow should fail because step failed (without throwing error from the step
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async () => {
               return { executionStatus: ExecutionStatus.done, status: Status.failed }
             },
@@ -233,7 +233,7 @@ test('flow should fail because step failed (while throwing error from the step)'
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async () => {
               throw new Error('error123')
             },

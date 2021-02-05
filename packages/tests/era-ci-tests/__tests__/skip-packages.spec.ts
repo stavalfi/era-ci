@@ -26,7 +26,7 @@ test('return true and expect the step to run', async () => {
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             artifactConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',
@@ -107,7 +107,7 @@ test('return false and expect the step not to run', async () => {
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             artifactConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',
@@ -190,7 +190,7 @@ test('return false with notes and expect the step not to run with notes', async 
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             artifactConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',
@@ -273,7 +273,7 @@ test('return false with duplicate notes and expect the step not to run with out 
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             artifactConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',
@@ -357,7 +357,7 @@ test('reproduce bug - flow hangs when constrain allow package to run but artifac
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             globalConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',
@@ -406,7 +406,7 @@ test('constrain allow package to run but artifact eventually aborted as failed',
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             globalConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',

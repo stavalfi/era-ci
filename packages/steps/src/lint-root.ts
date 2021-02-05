@@ -12,7 +12,7 @@ export const lintRoot = createStep<TaskWorkerTaskQueue, { isStepEnabled: boolean
   stepName: 'lint-root',
   stepGroup: 'lint',
   taskQueueClass: TaskWorkerTaskQueue,
-  run: ({ repoPath, taskQueue, stepConfigurations }) => ({
+  run: async ({ repoPath, taskQueue, stepConfigurations }) => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     stepConstrains: [
       skipIfRootPackageJsonMissingScriptConstrain({

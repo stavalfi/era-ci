@@ -63,7 +63,7 @@ test('reproduce bug - wrong step statuses', async () => {
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async () => {
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
             },

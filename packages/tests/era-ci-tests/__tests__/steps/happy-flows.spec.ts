@@ -25,7 +25,7 @@ test('ensure onArtifact is called at most once', async () => {
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact,
           }),
         })(),
@@ -60,7 +60,7 @@ test('ensure onArtifact is called on child-step while parent-step did not finish
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async ({ artifact }) => {
               callsOrder.push(`step1-${artifact.index}`)
               if (artifact.index === 0) {
@@ -73,7 +73,7 @@ test('ensure onArtifact is called on child-step while parent-step did not finish
           stepName: 'step2',
           stepGroup: 'step2',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async ({ artifact }) => {
               callsOrder.push(`step2-${artifact.index}`)
             },

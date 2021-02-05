@@ -52,7 +52,7 @@ export const k8sGcloudDeployment = createStep<LocalSequentalTaskQueue, K8sGcloud
   stepName: 'k8s-gcloud-deployment',
   stepGroup: 'k8s-gcloud-deployment',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: ({ stepConfigurations, repoPath, log, getState, steps, artifacts }) => ({
+  run: async ({ stepConfigurations, repoPath, log, getState, steps, artifacts }) => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact =>

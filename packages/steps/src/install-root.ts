@@ -9,7 +9,7 @@ export const installRoot = createStep<LocalSequentalTaskQueue, { isStepEnabled: 
   stepName: 'install-root',
   stepGroup: 'install',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: ({ repoPath, log }) => ({
+  run: async ({ repoPath, log }) => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     stepConstrains: [
       skipIfStepResultMissingOrFailedInCacheConstrain({

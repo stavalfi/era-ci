@@ -11,7 +11,7 @@ export const buildRoot = createStep<TaskWorkerTaskQueue, { isStepEnabled: boolea
   stepName: 'build-root',
   stepGroup: 'build',
   taskQueueClass: TaskWorkerTaskQueue,
-  run: ({ stepConfigurations, repoPath, taskQueue }) => ({
+  run: async ({ stepConfigurations, repoPath, taskQueue }) => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     stepConstrains: [
       skipIfStepResultMissingOrFailedInCacheConstrain({

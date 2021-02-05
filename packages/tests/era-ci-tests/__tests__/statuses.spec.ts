@@ -24,7 +24,7 @@ test('passed,passed => passed', async () => {
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async () => ({ executionStatus: ExecutionStatus.done, status: Status.passed }),
           }),
         })(),
@@ -32,7 +32,7 @@ test('passed,passed => passed', async () => {
           stepName: 'step2',
           stepGroup: 'step2',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async () => ({ executionStatus: ExecutionStatus.done, status: Status.passed }),
           }),
         })(),

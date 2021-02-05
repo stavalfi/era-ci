@@ -296,7 +296,7 @@ export const cliTableReporter = createStep({
   stepName: 'cli-table-reporter',
   stepGroup: 'cli-table-reporter',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: options => ({
+  run: async options => ({
     stepConstrains: [
       skipIfStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: jsonReporterStepName,

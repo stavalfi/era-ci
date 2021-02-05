@@ -40,7 +40,8 @@ export function createStep<
           getState,
         }
 
-        const prepareResult = createStepOptions.run(userRunStepOptions) || { stepLogic: () => Promise.resolve() }
+        const prepareResult =
+          (await createStepOptions.run(userRunStepOptions)) || Promise.resolve({ stepLogic: () => Promise.resolve() })
 
         const { globalConstrains = [] } = prepareResult
 
