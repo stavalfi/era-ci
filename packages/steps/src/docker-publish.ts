@@ -59,7 +59,7 @@ async function publishPackage({
 }): Promise<string> {
   const fullImageNameNewVersion = buildFullDockerImageName({
     dockerOrganizationName: stepConfigurations.dockerOrganizationName,
-    dockerRegistry: stepConfigurations.registry,
+    dockerRegistry: stepConfigurations.dockerRegistry,
     imageName: currentArtifact.data.artifact.packageJson.name,
     imageTag: tag,
   })
@@ -124,8 +124,8 @@ export const dockerPublish = createStep<LocalSequentalTaskQueue, LocalDockerPubl
     if (options.stepConfigurations.isStepEnabled) {
       // we need to login before we run the constrains and before run the artifacts-logic
       await dockerRegistryLogin({
-        dockerRegistry: options.stepConfigurations.registry,
-        registryAuth: options.stepConfigurations.registryAuth,
+        dockerRegistry: options.stepConfigurations.dockerRegistry,
+        registryAuth: options.stepConfigurations.dockerRegistryAuth,
         repoPath: options.repoPath,
         log: options.log,
       })

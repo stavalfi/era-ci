@@ -20,8 +20,8 @@ export async function chooseTagAndPublish<
   },
 ): Promise<UserReturnValue> {
   const tags = await listTags({
-    registry: options.stepConfigurations.registry,
-    auth: options.stepConfigurations.registryAuth,
+    registry: options.stepConfigurations.dockerRegistry,
+    auth: options.stepConfigurations.dockerRegistryAuth,
     dockerOrg: options.stepConfigurations.dockerOrganizationName,
     repo: distructPackageJsonName(options.artifact.data.artifact.packageJson.name).name,
   })
@@ -29,7 +29,7 @@ export async function chooseTagAndPublish<
   const fullImageNameWithTag = (tag: string): string =>
     buildFullDockerImageName({
       dockerOrganizationName: options.stepConfigurations.dockerOrganizationName,
-      dockerRegistry: options.stepConfigurations.registry,
+      dockerRegistry: options.stepConfigurations.dockerRegistry,
       imageName: options.artifact.data.artifact.packageJson.name,
       imageTag: tag,
     })

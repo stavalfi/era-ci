@@ -52,7 +52,7 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
         dockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerRegistry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
         }),
       ]),
@@ -82,7 +82,7 @@ test('publish with semver-tag', async () => {
         dockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerRegistry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
         }),
       ]),
@@ -111,7 +111,7 @@ test('publish twice - expect that there is only one tag to the image in the regi
         dockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerRegistry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
         }),
       ]),
@@ -142,7 +142,7 @@ test('artifact package-json name has @ symbol', async () => {
         dockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerRegistry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
         }),
       ]),
@@ -176,7 +176,7 @@ we expect that the build will fail because of not, the image-tag will be overrid
         dockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerRegistry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
         }),
       ]),

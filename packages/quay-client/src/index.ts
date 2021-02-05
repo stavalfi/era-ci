@@ -17,7 +17,7 @@ export * from './types'
 
 export class QuayClient {
   constructor(
-    private readonly quayAddress: string,
+    private readonly quayService: string,
     private readonly quayToken: string,
     private readonly quayNamespace: string,
     private readonly log: {
@@ -36,7 +36,7 @@ export class QuayClient {
     requestBody?: RequestBody
     taskId: string
   }): Promise<ResponseBody> {
-    const url = urlJoin(this.quayAddress, options.api)
+    const url = urlJoin(this.quayService, options.api)
     const p = got[options.method]<ResponseBody>(url, {
       headers: {
         authorization: `Bearer ${this.quayToken}`,
@@ -96,7 +96,7 @@ export class QuayClient {
         },
       })
       this.log.info(
-        `created quay-repository: "${this.quayAddress}/repository/${r.namespace}/${r.name}" for package: "${packageName}" with visibility: "${visibility}"`,
+        `created quay-repository: "${this.quayService}/repository/${r.namespace}/${r.name}" for package: "${packageName}" with visibility: "${visibility}"`,
       )
       return r
     } catch (error) {
@@ -196,8 +196,8 @@ export class QuayClient {
       quayRepoName: buildInfo.repository.name,
       quayBuildId: buildInfo.id,
       quayBuildName: buildInfo.display_name,
-      quayBuildAddress: `${this.quayAddress}/repository/${buildInfo.repository.namespace}/${buildInfo.repository.name}/build/${buildInfo.id}`,
-      quayBuildLogsAddress: `${this.quayAddress}/buildlogs/${buildInfo.id}`,
+      quayBuildAddress: `${this.quayService}/repository/${buildInfo.repository.namespace}/${buildInfo.repository.name}/build/${buildInfo.id}`,
+      quayBuildLogsAddress: `${this.quayService}/buildlogs/${buildInfo.id}`,
       quayBuildStatus: buildInfo.phase,
     }
     this.log.info(
@@ -206,7 +206,7 @@ export class QuayClient {
           ? // in tests, docker-registry is not quay-server.
             `localhost:35000/${buildInfo.repository.namespace}/${buildInfo.repository.name}`
           : buildFullDockerImageName({
-              dockerRegistry: this.quayAddress,
+              dockerRegistry: this.quayService,
               imageName: buildInfo.repository.name,
               dockerOrganizationName: buildInfo.repository.namespace,
             })
@@ -267,7 +267,7 @@ export class QuayClient {
 
     this.log.debug(
       `created notification: ${event} for quay-repo: "${repoName}" - repository: "${buildFullDockerImageName({
-        dockerRegistry: this.quayAddress,
+        dockerRegistry: this.quayService,
         imageName: repoName,
         dockerOrganizationName: this.quayNamespace,
       })}"`,

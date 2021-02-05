@@ -70,7 +70,7 @@ export async function startQuayHelperService(
     Params: {}
     Body: {
       build_id: string
-      quayAddress: string
+      quayService: string
       quayToken: string
       quayNamespace: string
       eraTaskId: string
@@ -80,7 +80,7 @@ export async function startQuayHelperService(
     res.send()
 
     const quayClient = new QuayClient(
-      req.body.quayAddress,
+      req.body.quayService,
       req.body.quayToken,
       req.body.quayNamespace,
       {

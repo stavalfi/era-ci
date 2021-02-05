@@ -58,7 +58,7 @@ async function buildAndPublishArtifact({
 
       const fullImageNameNewVersion = buildFullDockerImageName({
         dockerOrganizationName: stepConfigurations.dockerOrganizationName,
-        dockerRegistry: stepConfigurations.registry,
+        dockerRegistry: stepConfigurations.dockerRegistry,
         imageName: currentArtifact.data.artifact.packageJson.name,
         imageTag: tag,
       })

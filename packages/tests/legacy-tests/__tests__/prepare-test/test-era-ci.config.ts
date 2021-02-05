@@ -58,8 +58,8 @@ const steps = createLinearStepsGraph([
   dockerPublish({
     isStepEnabled: Boolean(SHOULD_PUBLISH_DOCKER),
     dockerOrganizationName: DOCKER_ORGANIZATION_NAME!,
-    registry: DOCKER_REGISTRY!,
-    registryAuth: {
+    dockerRegistry: DOCKER_REGISTRY!,
+    dockerRegistryAuth: {
       username: DOCKER_HUB_USERNAME!,
       token: DOCKER_HUB_TOKEN!,
     },

@@ -72,7 +72,7 @@ export function beforeAfterEach(options?: {
 } {
   const testFuncs = createTest({
     startQuayHelperService: true,
-    startQuayMockService: true,
+    startQuayMockService: false,
   })
 
   let getResources: QuayTestResources
@@ -169,7 +169,8 @@ async function createTestDependencies(
           folderName,
         }
       }),
-    quayAddress: quayMockService.address,
+    dockerRegistry: testFuncs.getResources().dockerRegistry,
+    quayService: quayMockService.address,
     quayNamespace: testFuncs.getResources().quayNamespace,
     quayToken: testFuncs.getResources().quayToken,
     quayHelperServiceUrl: testFuncs.getResources().quayHelperService.address,

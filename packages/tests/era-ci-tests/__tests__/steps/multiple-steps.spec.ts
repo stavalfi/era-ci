@@ -34,7 +34,7 @@ test(`reproduce bug - flow hangs when there is a npm + docker publishes`, async 
         dockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerRegistry: getResources().dockerRegistry,
         }),
       ]),
     },

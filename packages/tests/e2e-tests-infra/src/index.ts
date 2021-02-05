@@ -148,7 +148,7 @@ const runCi = (testFuncs: TestFuncs) => ({
     npm: {
       npmRegistry: testFuncs.getResources().npmRegistry.address,
       npmRegistryEmail: testFuncs.getResources().npmRegistry.auth.email,
-      npmRegistryUsername: testFuncs.getResources().npmRegistry.auth.email,
+      npmRegistryUsername: testFuncs.getResources().npmRegistry.auth.username,
       npmRegistryPassword: testFuncs.getResources().npmRegistry.auth.password,
     },
   })
