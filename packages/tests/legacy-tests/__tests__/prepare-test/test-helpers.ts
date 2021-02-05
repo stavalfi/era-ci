@@ -71,8 +71,8 @@ export async function publishNpmPackageWithoutCi({
       email: string
     }
   }
-  repoPath: string
   toActualName: ToActualName
+  repoPath: string
   log: Log
 }): Promise<void> {
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
@@ -198,6 +198,8 @@ export const installAndRunNpmDependency = async ({
   createRepo,
   npmRegistry,
   dependencyName,
+  log,
+  repoPath,
 }: {
   toActualName: ToActualName
   npmRegistry: {
@@ -210,7 +212,17 @@ export const installAndRunNpmDependency = async ({
   }
   createRepo: CreateAndManageRepo
   dependencyName: string
+  repoPath: string
+  log: Log
 }): Promise<execa.ExecaChildProcess<string>> => {
+  await npmRegistryLogin({
+    npmRegistry: npmRegistry.address,
+    npmRegistryPassword: npmRegistry.auth.password,
+    npmRegistryUsername: npmRegistry.auth.username,
+    npmRegistryEmail: npmRegistry.auth.email,
+    log,
+    repoPath,
+  })
   const { getPackagePath } = await createRepo({
     packages: [
       {
@@ -334,12 +346,31 @@ export const deletePackage = async ({
   gitRepoAddress,
   toActualName,
   packageName,
+  log,
+  npmRegistry,
 }: {
   repoPath: string
   gitRepoAddress: string
   toActualName: ToActualName
   packageName: string
+  log: Log
+  npmRegistry: {
+    address: string
+    auth: {
+      username: string
+      password: string
+      email: string
+    }
+  }
 }): Promise<void> => {
+  await npmRegistryLogin({
+    npmRegistry: npmRegistry.address,
+    npmRegistryPassword: npmRegistry.auth.password,
+    npmRegistryUsername: npmRegistry.auth.username,
+    npmRegistryEmail: npmRegistry.auth.email,
+    log,
+    repoPath,
+  })
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
   await fse.remove(packagePath)
   await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })

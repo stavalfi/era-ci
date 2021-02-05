@@ -111,6 +111,8 @@ export const newEnv: NewEnv = () => {
           npmRegistry,
           toActualName,
           dependencyName,
+          log: testLog,
+          repoPath,
         }),
       publishNpmPackageWithoutCi: packageName =>
         publishNpmPackageWithoutCi({
@@ -166,6 +168,8 @@ export const newEnv: NewEnv = () => {
           repoPath,
           toActualName,
           packageName,
+          npmRegistry,
+          log: testLog,
         }),
       movePackageFolder: (packageName: string) =>
         movePackageFolder({

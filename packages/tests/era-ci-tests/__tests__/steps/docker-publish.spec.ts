@@ -9,10 +9,14 @@ import path from 'path'
 
 const { createRepo, getResources } = createTest()
 
-test('docker-artifact depends on published npm-artifact during docker-build', async () => {
-  // eslint-disable-next-line no-process-env
-  // const hostIp = process.env.GITHUB_RUN_NUMBER ? `172.17.0.1` : 'host.docker.internal' // it seems that 'host.docker.internal' stopped working for mac and now, `172.17.0.1` is working for mac.
+test.only('docker-artifact depends on published npm-artifact during docker-build', async () => {
   const hostIp = `172.17.0.1`
+  const {
+    npmRegistry: {
+      auth: { email, password, username },
+    },
+  } = getResources()
+  const registryAddress = getResources().npmRegistry.address.replace('localhost', hostIp)
   const { runCi, gitHeadCommit } = await createRepo(toActualName => ({
     repo: {
       packages: [
@@ -21,11 +25,9 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
           version: '1.0.0',
           additionalFiles: {
             Dockerfile: `\
-            FROM alpine
-            RUN apk add wget
-            RUN wget ${getResources().npmRegistry.address.replace('localhost', hostIp)}/${toActualName(
-              'b',
-            )}/-/${toActualName('b')}-2.0.0.tgz
+            FROM quay.io/eraci/node:15.7.0-alpine3.10
+            RUN NPM_USER=${username} NPM_PASS="${password}" NPM_EMAIL=${email} NPM_REGISTRY=${registryAddress} npx npm-login-noninteractive
+            RUN npm view ${toActualName('b')}@2.0.0 --registry ${registryAddress}
             CMD ["echo","hello"]
             `,
           },
