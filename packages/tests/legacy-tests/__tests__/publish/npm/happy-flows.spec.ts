@@ -110,7 +110,7 @@ test('multiple packages', async () => {
   expect(master.published.get('c')?.npm?.versions).toEqual(['3.0.0'])
 })
 
-test.only('1 package - validate publish content', async () => {
+test('1 package - validate publish content', async () => {
   const hash = chance().hash().slice(0, 8)
   const { runCi, installAndRunNpmDependency } = await createRepo({
     packages: [
