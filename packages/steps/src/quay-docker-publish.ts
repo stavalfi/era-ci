@@ -3,7 +3,7 @@ import {
   skipIfArtifactTargetTypeNotSupportedConstrain,
   skipIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
-import { createStepExperimental, toTaskEvent$, UserReturnValue, UserRunStepOptions } from '@era-ci/core'
+import { createStep, toTaskEvent$, UserReturnValue, UserRunStepOptions } from '@era-ci/core'
 import { QuayBuildsTaskQueue } from '@era-ci/task-queues'
 import {
   Artifact,
@@ -80,7 +80,7 @@ async function buildAndPublishArtifact({
   }
 }
 
-export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, QuayDockerPublishConfiguration>({
+export const quayDockerPublish = createStep<QuayBuildsTaskQueue, QuayDockerPublishConfiguration>({
   stepName: 'quay-docker-publish',
   stepGroup: 'docker-publish',
   taskQueueClass: QuayBuildsTaskQueue,

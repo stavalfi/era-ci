@@ -1,4 +1,4 @@
-import { ConstrainResultBase, ConstrainResultType, createConstrain, createStepExperimental } from '@era-ci/core'
+import { ConstrainResultBase, ConstrainResultType, createConstrain, createStep } from '@era-ci/core'
 import { createTest } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph, createTreeStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
@@ -27,7 +27,7 @@ test('ensure constrain is called at most once', async () => {
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
@@ -79,7 +79,7 @@ test('reproduce bug: ensure constrain is called at most once', async () => {
     configurations: {
       steps: createTreeStepsGraph([
         {
-          step: createStepExperimental({
+          step: createStep({
             stepName: 'step1',
             stepGroup: 'step1',
             taskQueueClass: LocalSequentalTaskQueue,
@@ -90,7 +90,7 @@ test('reproduce bug: ensure constrain is called at most once', async () => {
           children: [],
         },
         {
-          step: createStepExperimental({
+          step: createStep({
             stepName: 'step2',
             stepGroup: 'step2',
             taskQueueClass: LocalSequentalTaskQueue,
@@ -101,7 +101,7 @@ test('reproduce bug: ensure constrain is called at most once', async () => {
           children: [2],
         },
         {
-          step: createStepExperimental({
+          step: createStep({
             stepName: 'step3',
             stepGroup: 'step3',
             taskQueueClass: LocalSequentalTaskQueue,

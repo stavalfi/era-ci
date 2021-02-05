@@ -1,7 +1,7 @@
 import {
   AbortStepResultOfArtifacts,
   AbortStepsResultOfArtifact,
-  createStepExperimental,
+  createStep,
   DoneStepResultOfArtifacts,
   DoneStepsResultOfArtifact,
   ScheduledStepResultOfArtifacts,
@@ -279,7 +279,7 @@ function getJsonReport({
 
 export const jsonReporterStepName = 'json-reporter'
 
-export const jsonReporter = createStepExperimental({
+export const jsonReporter = createStep({
   stepName: jsonReporterStepName,
   stepGroup: 'json-reporter',
   taskQueueClass: LocalSequentalTaskQueue,

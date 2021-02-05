@@ -5,7 +5,7 @@ import {
   skipIfStepIsDisabledConstrain,
   skipIfStepResultMissingOrFailedInCacheConstrain,
 } from '@era-ci/constrains'
-import { createStepExperimental, toTaskEvent$ } from '@era-ci/core'
+import { createStep, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
 import {
   calculateCombinedStatus,
@@ -39,7 +39,7 @@ export type TestConfigurations = {
   }
 }
 
-export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfigurations>({
+export const test = createStep<TaskWorkerTaskQueue, TestConfigurations>({
   stepName: 'test',
   stepGroup: 'test',
   taskQueueClass: TaskWorkerTaskQueue,

@@ -1,4 +1,4 @@
-import { createStepExperimental, TaskQueueBase } from '@era-ci/core'
+import { createStep, TaskQueueBase } from '@era-ci/core'
 import { createTest } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { ExecutionStatus, Status } from '@era-ci/utils'
@@ -49,7 +49,7 @@ test('should throw error if user forgot to declare a task-queue which one of the
     configurations: {
       taskQueues: [], // we "forgot" to declare LocalSequentalTaskQueue so we expect an error.
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: MissingTaskQueue,

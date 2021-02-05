@@ -3,7 +3,7 @@ import {
   skipIfArtifactTargetTypeNotSupportedConstrain,
   skipIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
-import { createStepExperimental, Log, UserRunStepOptions } from '@era-ci/core'
+import { createStep, Log, UserRunStepOptions } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import {
   Artifact,
@@ -116,7 +116,7 @@ async function publishPackage({
   return fullImageNameNewVersion
 }
 
-export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, LocalDockerPublishConfiguration>({
+export const dockerPublish = createStep<LocalSequentalTaskQueue, LocalDockerPublishConfiguration>({
   stepName: 'docker-publish',
   stepGroup: 'docker-publish',
   taskQueueClass: LocalSequentalTaskQueue,

@@ -2,7 +2,7 @@ import {
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
   skipIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
-import { ConstrainResultType, createConstrain, createStepExperimental, Log } from '@era-ci/core'
+import { ConstrainResultType, createConstrain, createStep, Log } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import {
   Artifact,
@@ -250,7 +250,7 @@ const customConstrain = createConstrain<
 })
 
 // TODO: each step also supported to work without other steps -> we need to verify this in tests
-export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPublishConfiguration>({
+export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfiguration>({
   stepName: 'npm-publish',
   stepGroup: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,

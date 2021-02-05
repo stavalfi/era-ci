@@ -1,11 +1,11 @@
 import { skipIfStepIsDisabledConstrain, skipIfStepResultMissingOrFailedInCacheConstrain } from '@era-ci/constrains'
-import { createStepExperimental } from '@era-ci/core'
+import { createStep } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { execaCommand } from '@era-ci/utils'
 import fse from 'fs-extra'
 import path from 'path'
 
-export const installRoot = createStepExperimental<LocalSequentalTaskQueue, { isStepEnabled: boolean }>({
+export const installRoot = createStep<LocalSequentalTaskQueue, { isStepEnabled: boolean }>({
   stepName: 'install-root',
   stepGroup: 'install',
   taskQueueClass: LocalSequentalTaskQueue,

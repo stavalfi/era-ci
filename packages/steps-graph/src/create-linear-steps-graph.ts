@@ -1,8 +1,8 @@
-import { StepExperimental } from '@era-ci/core'
+import { Step } from '@era-ci/core'
 import { Steps } from './types'
 
 export function createLinearStepsGraph<TaskQueueConfigurations, TaskPayload>(
-  steps: Array<StepExperimental<any>>,
+  steps: Array<Step<any>>,
 ): Steps<TaskQueueConfigurations, TaskPayload> {
   return steps.map((step, i, array) => {
     const stepId = `${step.stepName}-${i}`

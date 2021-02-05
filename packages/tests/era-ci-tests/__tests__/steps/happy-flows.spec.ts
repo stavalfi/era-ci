@@ -1,4 +1,4 @@
-import { createStepExperimental } from '@era-ci/core'
+import { createStep } from '@era-ci/core'
 import { createTest } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
@@ -21,7 +21,7 @@ test('ensure onArtifact is called at most once', async () => {
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
@@ -56,7 +56,7 @@ test('ensure onArtifact is called on child-step while parent-step did not finish
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
@@ -69,7 +69,7 @@ test('ensure onArtifact is called on child-step while parent-step did not finish
             },
           }),
         })(),
-        createStepExperimental({
+        createStep({
           stepName: 'step2',
           stepGroup: 'step2',
           taskQueueClass: LocalSequentalTaskQueue,

@@ -4,11 +4,11 @@ import {
   skipIfStepResultMissingOrFailedInCacheConstrain,
   skipIfStepResultMissingOrPassedInCacheConstrain,
 } from '@era-ci/constrains'
-import { createStepExperimental, toTaskEvent$ } from '@era-ci/core'
+import { createStep, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, lastValueFrom } from '@era-ci/utils'
 
-export const lintRoot = createStepExperimental<TaskWorkerTaskQueue, { isStepEnabled: boolean; scriptName: string }>({
+export const lintRoot = createStep<TaskWorkerTaskQueue, { isStepEnabled: boolean; scriptName: string }>({
   stepName: 'lint-root',
   stepGroup: 'lint',
   taskQueueClass: TaskWorkerTaskQueue,

@@ -1,4 +1,4 @@
-import { createStepExperimental } from '@era-ci/core'
+import { createStep } from '@era-ci/core'
 import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { JsonReport } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
@@ -20,7 +20,7 @@ test('passed,passed => passed', async () => {
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
@@ -28,7 +28,7 @@ test('passed,passed => passed', async () => {
             onArtifact: async () => ({ executionStatus: ExecutionStatus.done, status: Status.passed }),
           }),
         })(),
-        createStepExperimental({
+        createStep({
           stepName: 'step2',
           stepGroup: 'step2',
           taskQueueClass: LocalSequentalTaskQueue,

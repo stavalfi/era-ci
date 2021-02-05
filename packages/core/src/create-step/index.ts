@@ -6,18 +6,18 @@ import { Actions, State } from '../steps-execution'
 import { ExecutionActionTypes } from '../steps-execution/actions'
 import { setupArtifactCallback } from './on-artifact'
 import { setupStepCallback } from './on-step'
-import { CreateStepOptionsExperimental, StepExperimental, UserRunStepOptions } from './types'
+import { CreateStepOptions, Step, UserRunStepOptions } from './types'
 import { artifactsEventsAbort } from './utils'
 
 export * from './types'
 export { stepToString, toStepsResultOfArtifactsByArtifact } from './utils'
 
-export function createStepExperimental<
+export function createStep<
   TaskQueue extends TaskQueueBase<any, any>,
   StepConfigurations = void,
   NormalizedStepConfigurations = StepConfigurations
->(createStepOptions: CreateStepOptionsExperimental<TaskQueue, StepConfigurations, NormalizedStepConfigurations>) {
-  return (stepConfigurations: StepConfigurations): StepExperimental<TaskQueue> => {
+>(createStepOptions: CreateStepOptions<TaskQueue, StepConfigurations, NormalizedStepConfigurations>) {
+  return (stepConfigurations: StepConfigurations): Step<TaskQueue> => {
     return {
       stepName: createStepOptions.stepName,
       stepGroup: createStepOptions.stepGroup,
