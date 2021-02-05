@@ -1,8 +1,8 @@
-version: "3"
+version: '3'
 
 services:
   verdaccio:
-    container_name: eraci-verdaccio
+    container_name: eraci-test-verdaccio
     image: verdaccio/verdaccio
     ports:
       - 34873:4873
@@ -10,12 +10,12 @@ services:
       - ./verdaccio/conf:/verdaccio/conf
       - ./verdaccio/htpasswd:/verdaccio/htpasswd
   redis:
-    container_name: eraci-redis
+    container_name: eraci-test-redis
     image: redis
     ports:
       - 36379:6379
   docker-registry:
-    container_name: eraci-docker-registry
+    container_name: eraci-test-docker-registry
     image: registry:2
     ports:
       - 35000:5000

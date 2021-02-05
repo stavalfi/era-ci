@@ -1,3 +1,4 @@
+import wtfnode from 'wtfnode'
 import { AbortedTask, DoneTask, RunningTask, ScheduledTask, toTaskEvent$ } from '@era-ci/core'
 import { isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { QuayBuildsTaskPayload } from '@era-ci/task-queues'
@@ -401,17 +402,21 @@ RUN sleep 10_000 # make sure that this task will not end
   ).toBeTruthy()
 })
 
+afterAll(() => wtfnode.dump())
+
 test('multiple tasks', async () => {
   const tasks = getResources().taskQueuesResources.queue.addTasksToQueue(
-    Object.values(getResources().packages).map((packageInfo, i) => ({
-      packageName: packageInfo.name,
-      repoName: distructPackageJsonName(packageInfo.name).name,
-      visibility: 'public',
-      imageTags: [`1.0.${i}`],
-      relativeContextPath: '',
-      relativeDockerfilePath: packageInfo.relativeDockerFilePath,
-      taskTimeoutMs: 40_000, // eventually, quay-mock-service process one request at a time, so we need to give a big timeout for each task.
-    })),
+    Object.values(getResources().packages)
+      .slice(0, 15)
+      .map((packageInfo, i) => ({
+        packageName: packageInfo.name,
+        repoName: distructPackageJsonName(packageInfo.name).name,
+        visibility: 'public',
+        imageTags: [`1.0.${i}`],
+        relativeContextPath: '',
+        relativeDockerfilePath: packageInfo.relativeDockerFilePath,
+        taskTimeoutMs: 40_000, // eventually, quay-mock-service process one request at a time, so we need to give a big timeout for each task.
+      })),
   )
 
   await lastValueFrom(
@@ -425,7 +430,7 @@ test('multiple tasks', async () => {
     ),
   )
 
-  for (const [i, packageInfo] of Object.values(getResources().packages).entries()) {
+  for (const [i, packageInfo] of [...Object.values(getResources().packages).entries()].slice(0, 15)) {
     await expect(getResources().getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])
   }
 })
