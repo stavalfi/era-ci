@@ -105,8 +105,8 @@ export default config({
     {
       // 4
       step: test({
-        isStepEnabled: false,
-        scriptName: 'test1',
+        isStepEnabled: true,
+        scriptName: 'test',
         workerBeforeAll: {
           shellCommand: 'yarn test-resources:up',
           cwd: __dirname,
