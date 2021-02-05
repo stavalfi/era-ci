@@ -145,6 +145,12 @@ const runCi = (testFuncs: TestFuncs) => ({
     testLogger,
     toOriginalName,
     repoPath,
+    npm: {
+      npmRegistry: testFuncs.getResources().npmRegistry.address,
+      npmRegistryEmail: testFuncs.getResources().npmRegistry.auth.email,
+      npmRegistryUsername: testFuncs.getResources().npmRegistry.auth.email,
+      npmRegistryPassword: testFuncs.getResources().npmRegistry.auth.password,
+    },
   })
 
   return {
@@ -188,18 +194,6 @@ export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options =>
     gitServer: testFuncs.getResources().gitServer,
     toActualName,
     gitIgnoreFiles: ['*.log'],
-  })
-
-  // only login to npm like this in tests. publishing in non-interactive mode is very buggy and tricky.
-  await execa.command(require.resolve(`.bin/npm-login-noninteractive`), {
-    stdio: 'ignore',
-    cwd: repoPath,
-    env: {
-      NPM_USER: testFuncs.getResources().npmRegistry.auth.username,
-      NPM_PASS: testFuncs.getResources().npmRegistry.auth.token,
-      NPM_EMAIL: testFuncs.getResources().npmRegistry.auth.email,
-      NPM_REGISTRY: testFuncs.getResources().npmRegistry.address,
-    },
   })
 
   const testLogger = await winstonLogger({

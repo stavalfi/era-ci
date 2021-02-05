@@ -16,10 +16,8 @@ import {
   Status,
   TargetType,
 } from '@era-ci/utils'
-import fse from 'fs-extra'
+import execa from 'execa'
 import _ from 'lodash'
-import os from 'os'
-import path from 'path'
 
 export enum NpmScopeAccess {
   public = 'public',
@@ -33,7 +31,7 @@ export type NpmPublishConfiguration = {
   publishAuth: {
     email: string
     username: string
-    token: string
+    password: string
   }
 }
 
@@ -138,19 +136,33 @@ async function isNpmVersionAlreadyPulished({
 
 export async function npmRegistryLogin({
   npmRegistry,
-  npmRegistryToken,
+  npmRegistryPassword,
   log,
-  processEnv,
+  npmRegistryEmail,
+  npmRegistryUsername,
+  repoPath,
 }: {
   npmRegistry: string
-  npmRegistryToken: string
+  npmRegistryUsername: string
+  npmRegistryEmail: string
+  npmRegistryPassword: string
   log: Log
-  processEnv: NodeJS.ProcessEnv
+  repoPath: string
 }): Promise<void> {
-  // in tests, we connect to the register in different way.
-  if (!processEnv['ERA_TEST_MODE']) {
-    await fse.writeFile(path.join(os.homedir(), '.npmrc'), `//${npmRegistry}/:_authToken=${npmRegistryToken}`)
+  if (npmRegistry[npmRegistry.length - 1] === '/') {
+    npmRegistry = npmRegistry.slice(0, npmRegistry.length - 1)
   }
+  // in tests/local-mock runs, we login to the npm-registry (verdaccio) in a different way:
+  await execa.command(require.resolve(`.bin/npm-login-noninteractive`), {
+    stdio: 'ignore',
+    cwd: repoPath,
+    env: {
+      NPM_USER: npmRegistryUsername,
+      NPM_PASS: npmRegistryPassword,
+      NPM_EMAIL: npmRegistryEmail,
+      NPM_REGISTRY: npmRegistry,
+    },
+  })
   log.info(`logged in to npm-registry: "${npmRegistry}"`)
 }
 
@@ -249,14 +261,12 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'build-root',
-
           skipAsPassedIfStepNotExists: true,
         }),
       artifact =>
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'test',
-
           skipAsPassedIfStepNotExists: true,
         }),
       artifact =>
@@ -270,10 +280,13 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
     onBeforeArtifacts: async () =>
       npmRegistryLogin({
         npmRegistry: stepConfigurations.registry,
-        npmRegistryToken: stepConfigurations.publishAuth.token,
+        npmRegistryPassword: stepConfigurations.publishAuth.password,
+        npmRegistryEmail: stepConfigurations.publishAuth.email,
+        npmRegistryUsername: stepConfigurations.publishAuth.username,
+        repoPath,
         log,
-        processEnv,
       }),
+    onAfterArtifacts: async () => execa.command(`npm logout --registry ${stepConfigurations.registry}`),
     onArtifact: async ({ artifact }) => {
       const newVersion = await calculateNextNewVersion({
         npmRegistry: stepConfigurations.registry,
@@ -294,13 +307,13 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
           artifact.data.artifact.packageJson.name?.includes('@') ? `--access ${stepConfigurations.npmScopeAccess}` : ''
         }`,
         {
-          stdio: 'inherit',
+          stdio: 'pipe',
           cwd: artifact.data.artifact.packagePath,
           env: {
             // npm need this env-var for auth - this is needed only for production publishing.
             // in tests it doesn't do anything and we login manually to npm in tests.
-            NPM_AUTH_TOKEN: stepConfigurations.publishAuth.token,
-            NPM_TOKEN: stepConfigurations.publishAuth.token,
+            NPM_AUTH_TOKEN: stepConfigurations.publishAuth.password,
+            NPM_PASSWORD: stepConfigurations.publishAuth.password,
           },
           log,
         },
@@ -317,8 +330,8 @@ export const npmPublish = createStepExperimental<LocalSequentalTaskQueue, NpmPub
                   env: {
                     // npm need this env-var for auth - this is needed only for production publishing.
                     // in tests it doesn't do anything and we login manually to npm in tests.
-                    NPM_AUTH_TOKEN: stepConfigurations.publishAuth.token,
-                    NPM_TOKEN: stepConfigurations.publishAuth.token,
+                    NPM_AUTH_TOKEN: stepConfigurations.publishAuth.password,
+                    NPM_PASSWORD: stepConfigurations.publishAuth.password,
                   },
                   log,
                 },

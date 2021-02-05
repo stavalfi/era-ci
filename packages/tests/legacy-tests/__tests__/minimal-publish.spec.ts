@@ -115,7 +115,7 @@ describe('skip publish of package that did not change from the last publish', ()
   })
 })
 
-test('multiple packages - publish again changed package', async () => {
+test.only('multiple packages - publish again changed package', async () => {
   const { runCi, addRandomFileToPackage } = await createRepo({
     packages: [
       {

@@ -44,18 +44,6 @@ export const newEnv: NewEnv = () => {
       gitIgnoreFiles: ['*.log'],
     })
 
-    // only login to npm like this in tests. publishing in non-interactive mode is very buggy and tricky.
-    await execa.command(require.resolve(`.bin/npm-login-noninteractive`), {
-      stdio: 'ignore',
-      cwd: repoPath,
-      env: {
-        NPM_USER: testFuncs.getResources().npmRegistry.auth.username,
-        NPM_PASS: testFuncs.getResources().npmRegistry.auth.token,
-        NPM_EMAIL: testFuncs.getResources().npmRegistry.auth.email,
-        NPM_REGISTRY: testFuncs.getResources().npmRegistry.address,
-      },
-    })
-
     const testLogger = await testFuncs.createTestLogger(repoPath)
     const testLog = testLogger.createLog('test-infra')
 

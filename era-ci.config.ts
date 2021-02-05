@@ -18,11 +18,12 @@ import {
   taskWorkerTaskQueue,
   quayBuildsTaskQueue,
 } from './packages/task-queues/dist/src/index'
+import chance from 'chance'
 
 const {
   NPM_REGISTRY = 'http://localhost:34873',
   NPM_USERNAME = 'root',
-  NPM_TOKEN = 'root',
+  NPM_PASSWORD = 'root',
   NPM_EMAIL = 'root@root.root',
   QUAY_REGISTRY = `http://localhost:9876`,
   QUAY_ORG = 'org1',
@@ -32,7 +33,7 @@ const {
   QUAY_HELPER_SERVICE_URL = 'http://localhost:9875',
   REDIS_ENDPOINT = 'redis://localhost:36379',
   REDIS_PASSWORD,
-  GITHUB_RUN_NUMBER = 'local-run',
+  GITHUB_RUN_NUMBER = chance().hash().slice(0, 8),
   CI,
   LOG_LEVEL = LogLevel.info,
   // eslint-disable-next-line no-process-env
@@ -56,7 +57,6 @@ export default config({
         },
       },
     }),
-    localSequentalTaskQueue(),
     taskWorkerTaskQueue({
       queueName: `queue-${GITHUB_RUN_NUMBER}`,
       redis: {
@@ -66,6 +66,7 @@ export default config({
         },
       },
     }),
+    localSequentalTaskQueue(),
   ],
   redis: {
     url: REDIS_ENDPOINT!,
@@ -82,12 +83,12 @@ export default config({
     {
       // 0
       step: validatePackages(),
-      children: [6],
+      children: [1],
     },
     {
       // 1
       step: installRoot({ isStepEnabled: true }),
-      children: [6],
+      children: [2, 3, 4, 5],
     },
     {
       // 2
@@ -103,7 +104,7 @@ export default config({
       // 4
       step: test({
         isStepEnabled: true,
-        scriptName: 'test',
+        scriptName: 'test1',
         workerBeforeAll: {
           shellCommand: 'yarn test-resources:up',
           cwd: __dirname,
@@ -138,13 +139,13 @@ export default config({
     {
       // 6
       step: npmPublish({
-        isStepEnabled: true && !CI,
+        isStepEnabled: !CI,
         npmScopeAccess: NpmScopeAccess.public,
         registry: NPM_REGISTRY,
         publishAuth: {
           email: NPM_EMAIL,
           username: NPM_USERNAME!,
-          token: NPM_TOKEN!,
+          password: NPM_PASSWORD!,
         },
       }),
       children: [7],

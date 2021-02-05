@@ -55,7 +55,7 @@ export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfiguratio
       artifact =>
         skipIfArtifactPackageJsonMissingScriptConstrain({
           currentArtifact: artifact,
-          scriptName: 'test',
+          scriptName: options.stepConfigurations.scriptName,
         }),
       artifact =>
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
@@ -142,7 +142,9 @@ export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfiguratio
                 groupId: `${options.flowId}-${options.currentStepInfo.data.stepInfo.stepId}`,
                 beforeAll: workerBeforeAll,
               },
-              taskName: `${artifact.data.artifact.packageJson.name}---tests`,
+              taskName: `${
+                artifact.data.artifact.packageJson.name
+              }---tests-${taskIndex.toString()}/${testGroups.length.toString()}`,
               task: {
                 shellCommand: `echo "sub-task ${taskIndex}/${testGroups.length}" && yarn run ${
                   options.stepConfigurations.scriptName

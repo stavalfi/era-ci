@@ -75,7 +75,7 @@ test('reproduce bug - wrong step statuses', async () => {
           registry: 'wont-be-used',
           publishAuth: {
             email: '',
-            token: '',
+            password: '',
             username: '',
           },
         }),

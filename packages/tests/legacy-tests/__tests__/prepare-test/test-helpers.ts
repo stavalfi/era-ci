@@ -67,7 +67,7 @@ export async function publishNpmPackageWithoutCi({
     address: string
     auth: {
       username: string
-      token: string
+      password: string
       email: string
     }
   }
@@ -78,11 +78,11 @@ export async function publishNpmPackageWithoutCi({
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
   await npmRegistryLogin({
     npmRegistry: npmRegistry.address,
-    npmRegistryToken: npmRegistry.auth.token,
+    npmRegistryPassword: npmRegistry.auth.password,
+    npmRegistryUsername: npmRegistry.auth.username,
+    npmRegistryEmail: npmRegistry.auth.email,
     log,
-    processEnv: {
-      ERA_TEST_MODE: 'true',
-    },
+    repoPath,
   })
   await execa.command(`npm publish --registry ${npmRegistry.address}`, {
     stdio: 'pipe',
@@ -143,7 +143,7 @@ export async function unpublishNpmPackage({
     address: string
     auth: {
       username: string
-      token: string
+      password: string
       email: string
     }
   }
@@ -154,11 +154,11 @@ export async function unpublishNpmPackage({
 }): Promise<void> {
   await npmRegistryLogin({
     npmRegistry: npmRegistry.address,
-    npmRegistryToken: npmRegistry.auth.token,
+    npmRegistryPassword: npmRegistry.auth.password,
+    npmRegistryUsername: npmRegistry.auth.username,
+    npmRegistryEmail: npmRegistry.auth.email,
     log,
-    processEnv: {
-      ERA_TEST_MODE: 'true',
-    },
+    repoPath,
   })
   await execa.command(
     `npm unpublish ${toActualName(packageName)}@${versionToUnpublish} --registry ${npmRegistry.address}`,
@@ -204,7 +204,7 @@ export const installAndRunNpmDependency = async ({
     address: string
     auth: {
       username: string
-      token: string
+      password: string
       email: string
     }
   }

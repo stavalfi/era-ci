@@ -1,4 +1,5 @@
 import { Logger } from '@era-ci/core'
+import { npmRegistryLogin } from '@era-ci/steps'
 import { listTags } from '@era-ci/image-registry-client'
 import { distructPackageJsonName, getPackages } from '@era-ci/utils'
 import execa from 'execa'
@@ -50,12 +51,26 @@ export const getPublishResult = (testFuncs: TestFuncs) => async ({
   toOriginalName,
   repoPath,
   testLogger,
+  npm,
 }: {
   toOriginalName: (artifactName: string) => string
   repoPath: string
   testLogger: Logger
+  npm: {
+    npmRegistry: string
+    npmRegistryUsername: string
+    npmRegistryEmail: string
+    npmRegistryPassword: string
+  }
 }): Promise<Map<string, ResultingArtifact>> => {
   const log = testLogger.createLog('test')
+
+  await npmRegistryLogin({
+    repoPath,
+    log,
+    ...npm,
+  })
+
   const packagesPaths = await getPackages({ repoPath, log })
   const packages = await Promise.all(
     packagesPaths

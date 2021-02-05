@@ -23,7 +23,7 @@ const {
   NPM_REGISTRY,
   NPM_EMAIL,
   NPM_USERNAME,
-  NPM_TOKEN,
+  NPM_PASSWORD,
   DOCKER_HUB_USERNAME,
   DOCKER_HUB_TOKEN,
   REDIS_ENDPOINT,
@@ -52,7 +52,7 @@ const steps = createLinearStepsGraph([
     publishAuth: {
       email: NPM_EMAIL!,
       username: NPM_USERNAME!,
-      token: NPM_TOKEN!,
+      password: NPM_PASSWORD!,
     },
   }),
   dockerPublish({

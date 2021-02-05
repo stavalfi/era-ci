@@ -213,7 +213,7 @@ function generateStepsErrorsReport(jsonReport: JsonReport): string {
     return ''
   }
 
-  let result = 'Errors in Packages:'
+  let result = 'Errors in steps:'
   for (const row of rows) {
     for (const error of row.errors) {
       result += '\n'

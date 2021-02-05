@@ -158,7 +158,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
 
     options.log.trace(
       `initialized ${QuayBuildsTaskQueue.name} with options: ${JSON.stringify(
-        _.omit(options, ['redisClient']),
+        _.omit(options, ['redisClient', 'processEnv']),
         null,
         2,
       )}`,
