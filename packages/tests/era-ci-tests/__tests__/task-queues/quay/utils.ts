@@ -72,7 +72,7 @@ export function beforeAfterEach(options?: {
 } {
   const testFuncs = createTest({
     startQuayHelperService: true,
-    startQuayMockService: true,
+    startQuayMockService: false,
   })
 
   let getResources: QuayTestResources
@@ -134,7 +134,7 @@ async function createTestDependencies(
     dockerRegistryAddress: testFuncs.getResources().dockerRegistry,
     namespace: testFuncs.getResources().quayNamespace,
     token: testFuncs.getResources().quayToken,
-    rateLimit: options?.quayMockService?.rateLimit || { max: 1000, timeWindowMs: 1000 * 1000 },
+    rateLimit: options?.quayMockService?.rateLimit || { max: 1_000_000_000, timeWindowMs: 1_000_000_000 },
   })
   testFuncs.getCleanups().cleanups.push(quayMockService.cleanup)
 
@@ -169,7 +169,8 @@ async function createTestDependencies(
           folderName,
         }
       }),
-    quayAddress: quayMockService.address,
+    dockerRegistry: testFuncs.getResources().dockerRegistry,
+    quayService: quayMockService.address,
     quayNamespace: testFuncs.getResources().quayNamespace,
     quayToken: testFuncs.getResources().quayToken,
     quayHelperServiceUrl: testFuncs.getResources().quayHelperService.address,

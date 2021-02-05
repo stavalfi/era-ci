@@ -66,7 +66,7 @@ export type TestResources = {
     address: string
     auth: {
       username: string
-      token: string
+      password: string
       email: string
     }
   }

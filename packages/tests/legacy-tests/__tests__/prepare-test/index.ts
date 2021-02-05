@@ -37,27 +37,14 @@ export const newEnv: NewEnv = () => {
 
     const { dockerRegistry, npmRegistry, gitServer, redisServerUrl } = testFuncs.getResources()
 
-    const { repoPath, repoName, repoOrg, subPackagesFolderPath } = await createRepo({
+    const { repoPath, repoName, repoOrg, subPackagesFolderPath, testLog, testLogger } = await createRepo({
       repo,
       gitServer,
       toActualName,
       gitIgnoreFiles: ['*.log'],
+      npm: testFuncs.getResources().npmRegistry,
+      createTestLogger: testFuncs.createTestLogger,
     })
-
-    // only login to npm like this in tests. publishing in non-interactive mode is very buggy and tricky.
-    await execa.command(require.resolve(`.bin/npm-login-noninteractive`), {
-      stdio: 'ignore',
-      cwd: repoPath,
-      env: {
-        NPM_USER: testFuncs.getResources().npmRegistry.auth.username,
-        NPM_PASS: testFuncs.getResources().npmRegistry.auth.token,
-        NPM_EMAIL: testFuncs.getResources().npmRegistry.auth.email,
-        NPM_REGISTRY: testFuncs.getResources().npmRegistry.address,
-      },
-    })
-
-    const testLogger = await testFuncs.createTestLogger(repoPath)
-    const testLog = testLogger.createLog('test-infra')
 
     const getFlowLogs: GetFlowLogs = async ({ flowId, execaOptions }) => {
       return runNcExecutable({
@@ -123,6 +110,8 @@ export const newEnv: NewEnv = () => {
           npmRegistry,
           toActualName,
           dependencyName,
+          log: testLog,
+          repoPath,
         }),
       publishNpmPackageWithoutCi: packageName =>
         publishNpmPackageWithoutCi({
@@ -178,6 +167,8 @@ export const newEnv: NewEnv = () => {
           repoPath,
           toActualName,
           packageName,
+          npmRegistry,
+          log: testLog,
         }),
       movePackageFolder: (packageName: string) =>
         movePackageFolder({

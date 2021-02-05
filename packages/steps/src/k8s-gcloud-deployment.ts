@@ -2,7 +2,7 @@ import {
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
   skipIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
-import { ConstrainResultType, createConstrain, createStepExperimental, getReturnValue } from '@era-ci/core'
+import { ConstrainResultType, createConstrain, createStep, getReturnValue } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { Artifact, execaCommand, ExecutionStatus, getPackageTargetTypes, Node, Status, TargetType } from '@era-ci/utils'
 import { createFile } from 'create-folder-structure'
@@ -48,11 +48,11 @@ const customConstrain = createConstrain<
   },
 })
 
-export const k8sGcloudDeployment = createStepExperimental<LocalSequentalTaskQueue, K8sGcloudDeploymentConfiguration>({
+export const k8sGcloudDeployment = createStep<LocalSequentalTaskQueue, K8sGcloudDeploymentConfiguration>({
   stepName: 'k8s-gcloud-deployment',
   stepGroup: 'k8s-gcloud-deployment',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: ({ stepConfigurations, repoPath, log, getState, steps, artifacts }) => ({
+  run: async ({ stepConfigurations, repoPath, log, getState, steps, artifacts }) => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     artifactConstrains: [
       artifact =>

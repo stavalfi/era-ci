@@ -15,11 +15,7 @@ export function formatLog(log: winston.Logform.TransformableInfo): string {
     returnLog += log.stack.replace(/\n/g, `\n[${logLevel}]\t`)
     final = `${returnLog}: `
   } else {
-    if (log.unknownErrorType) {
-      final = `${base}: ${log.message} - ${log.unknownErrorType}`
-    } else {
-      final = `${base}: ${log.message}`
-    }
+    final = `${base}: ${log.message}`
   }
   if (log.json && Object.keys(log.json).length > 0) {
     final += '\n'

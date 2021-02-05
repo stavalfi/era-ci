@@ -29,7 +29,7 @@ test('user provide tar gz to repository which is not exist - it can be because o
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10_000,
+      taskTimeoutMs: 100_000,
     },
   ])
 
@@ -48,7 +48,7 @@ test('user provide tar gz to repository which is not exist - it can be because o
   ])
 })
 
-test.only('reproduce bug: user provide tar gz to repository which is not exist - it can be because of unpushed commit or a typo or any other reason - ensure the task is not completed successfully', async () => {
+test('reproduce bug: user provide tar gz to repository which is not exist - it can be because of unpushed commit or a typo or any other reason - ensure the task is not completed successfully', async () => {
   const [{ taskId }] = getResources().taskQueuesResources.queue.addTasksToQueue([
     {
       packageName: getResources().packages.package1.name,

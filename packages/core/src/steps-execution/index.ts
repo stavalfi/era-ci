@@ -36,6 +36,10 @@ export async function runAllSteps(options: Options): Promise<State> {
     return store.getState()
   }
 
+  if (options.steps.length > 0 && options.artifacts.length > 0) {
+    options.log.info(`start to execute steps...`)
+  }
+
   const onActionArray = await Promise.all(
     options.steps.map(async s => {
       const taskQueue = findTaskQueue({ ...options, currentStepIndex: s.index })
@@ -70,10 +74,6 @@ export async function runAllSteps(options: Options): Promise<State> {
       tap(store.dispatch),
     ),
   )
-
-  if (options.steps.length > 0 && options.artifacts.length > 0) {
-    options.log.info(`start to execute steps...`)
-  }
 
   for (const step of store.getState().stepsResultOfArtifactsByStep) {
     store.dispatch({

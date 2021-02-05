@@ -1,4 +1,4 @@
-import { createStepExperimental } from '@era-ci/core'
+import { createStep } from '@era-ci/core'
 import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import {
   buildRoot,
@@ -59,11 +59,11 @@ test('reproduce bug - wrong step statuses', async () => {
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async () => {
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
             },
@@ -75,7 +75,7 @@ test('reproduce bug - wrong step statuses', async () => {
           registry: 'wont-be-used',
           publishAuth: {
             email: '',
-            token: '',
+            password: '',
             username: '',
           },
         }),

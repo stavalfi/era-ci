@@ -92,7 +92,6 @@ function updatePackageTsconfigBuildFile(graph: Workspaces, packageJsonName: stri
   tsconfigBuild.references = directDeps.map(dep => ({
     path: path.relative(graph[packageJsonName].location, path.join(graph[dep].location, 'tsconfig-build.json')),
   }))
-  debugger
   fs.writeFileSync(tsconfigBuildFilePath, JSON.stringify(tsconfigBuild, null, 2), 'utf-8')
 }
 

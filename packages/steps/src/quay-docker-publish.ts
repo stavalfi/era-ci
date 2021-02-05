@@ -1,9 +1,10 @@
 import {
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
   skipIfArtifactTargetTypeNotSupportedConstrain,
+  skipIfGitChangesNotCommitedConstrain,
   skipIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
-import { createStepExperimental, toTaskEvent$, UserReturnValue, UserRunStepOptions } from '@era-ci/core'
+import { createStep, toTaskEvent$, UserReturnValue, UserRunStepOptions } from '@era-ci/core'
 import { QuayBuildsTaskQueue } from '@era-ci/task-queues'
 import {
   Artifact,
@@ -58,7 +59,7 @@ async function buildAndPublishArtifact({
 
       const fullImageNameNewVersion = buildFullDockerImageName({
         dockerOrganizationName: stepConfigurations.dockerOrganizationName,
-        dockerRegistry: stepConfigurations.registry,
+        dockerRegistry: stepConfigurations.dockerRegistry,
         imageName: currentArtifact.data.artifact.packageJson.name,
         imageTag: tag,
       })
@@ -80,13 +81,13 @@ async function buildAndPublishArtifact({
   }
 }
 
-export const quayDockerPublish = createStepExperimental<QuayBuildsTaskQueue, QuayDockerPublishConfiguration>({
+export const quayDockerPublish = createStep<QuayBuildsTaskQueue, QuayDockerPublishConfiguration>({
   stepName: 'quay-docker-publish',
   stepGroup: 'docker-publish',
   taskQueueClass: QuayBuildsTaskQueue,
-  run: options => {
+  run: async options => {
     return {
-      globalConstrains: [skipIfStepIsDisabledConstrain()],
+      globalConstrains: [skipIfStepIsDisabledConstrain(), skipIfGitChangesNotCommitedConstrain()],
       waitUntilArtifactParentsFinishedParentSteps: options.stepConfigurations.imageInstallArtifactsFromNpmRegistry,
       artifactConstrains: [
         artifact =>

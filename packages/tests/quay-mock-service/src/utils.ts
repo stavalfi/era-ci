@@ -108,11 +108,6 @@ export async function buildDockerFile({
       })
 
       const dockerBuildCommand = `docker build -f Dockerfile -t ${image} ${path.join(extractedContextPath, context)}`
-      console.log('stav2', {
-        dockerBuildCommand,
-        extractedContextPath,
-        dockerfile_path,
-      })
       const p = execa.command(dockerBuildCommand, {
         cwd: path.dirname(path.join(extractedContextPath, dockerfile_path)),
         stdio: config.isTestMode ? 'pipe' : 'inherit',

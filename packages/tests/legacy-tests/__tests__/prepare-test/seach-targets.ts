@@ -1,7 +1,7 @@
 import { listTags } from '@era-ci/image-registry-client'
 import execa from 'execa'
 
-export async function latestNpmPackageDistTags(
+async function latestNpmPackageDistTags(
   packageName: string,
   npmRegistry: string,
 ): Promise<{ [key: string]: string } | undefined> {

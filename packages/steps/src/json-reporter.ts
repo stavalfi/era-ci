@@ -1,7 +1,7 @@
 import {
   AbortStepResultOfArtifacts,
   AbortStepsResultOfArtifact,
-  createStepExperimental,
+  createStep,
   DoneStepResultOfArtifacts,
   DoneStepsResultOfArtifact,
   ScheduledStepResultOfArtifacts,
@@ -279,11 +279,11 @@ function getJsonReport({
 
 export const jsonReporterStepName = 'json-reporter'
 
-export const jsonReporter = createStepExperimental({
+export const jsonReporter = createStep({
   stepName: jsonReporterStepName,
   stepGroup: 'json-reporter',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: ({ immutableCache, flowId, repoHash, startFlowMs, steps, artifacts, getState, currentStepInfo }) => ({
+  run: async ({ immutableCache, flowId, repoHash, startFlowMs, steps, artifacts, getState, currentStepInfo }) => ({
     stepLogic: async () => {
       const withoutThisStep = {
         steps: removeNodeFromGraph({ graph: steps, nodeIndexToRemove: currentStepInfo.index }),

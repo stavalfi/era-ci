@@ -5,7 +5,7 @@ import {
   skipIfStepIsDisabledConstrain,
   skipIfStepResultMissingOrFailedInCacheConstrain,
 } from '@era-ci/constrains'
-import { createStepExperimental, toTaskEvent$ } from '@era-ci/core'
+import { createStep, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
 import {
   calculateCombinedStatus,
@@ -39,11 +39,11 @@ export type TestConfigurations = {
   }
 }
 
-export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfigurations>({
+export const test = createStep<TaskWorkerTaskQueue, TestConfigurations>({
   stepName: 'test',
   stepGroup: 'test',
   taskQueueClass: TaskWorkerTaskQueue,
-  run: options => ({
+  run: async options => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     stepConstrains: [
       skipIfStepResultMissingOrFailedInCacheConstrain({
@@ -55,7 +55,7 @@ export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfiguratio
       artifact =>
         skipIfArtifactPackageJsonMissingScriptConstrain({
           currentArtifact: artifact,
-          scriptName: 'test',
+          scriptName: options.stepConfigurations.scriptName,
         }),
       artifact =>
         skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
@@ -142,7 +142,9 @@ export const test = createStepExperimental<TaskWorkerTaskQueue, TestConfiguratio
                 groupId: `${options.flowId}-${options.currentStepInfo.data.stepInfo.stepId}`,
                 beforeAll: workerBeforeAll,
               },
-              taskName: `${artifact.data.artifact.packageJson.name}---tests`,
+              taskName: `${
+                artifact.data.artifact.packageJson.name
+              }---tests-${taskIndex.toString()}/${testGroups.length.toString()}`,
               task: {
                 shellCommand: `echo "sub-task ${taskIndex}/${testGroups.length}" && yarn run ${
                   options.stepConfigurations.scriptName

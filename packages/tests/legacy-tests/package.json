@@ -7,7 +7,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "npm-login-noninteractive": "^0.1.4",
     "@era-ci/core": "^2.0.0",
     "@era-ci/e2e-tests-infra": "^2.0.0",
     "@era-ci/image-registry-client": "^2.0.0",

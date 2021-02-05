@@ -1,5 +1,5 @@
 import { skipIfStepResultMissingOrFailedInCacheConstrain } from '@era-ci/constrains'
-import { createStepExperimental, LogLevel, stepToString } from '@era-ci/core'
+import { createStep, LogLevel, stepToString } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import Table, { CellOptions } from 'cli-table3'
@@ -213,7 +213,7 @@ function generateStepsErrorsReport(jsonReport: JsonReport): string {
     return ''
   }
 
-  let result = 'Errors in Packages:'
+  let result = 'Errors in steps:'
   for (const row of rows) {
     for (const error of row.errors) {
       result += '\n'
@@ -292,11 +292,11 @@ function generateSummaryReport(jsonReport: JsonReport): string {
   return ciTable.toString()
 }
 
-export const cliTableReporter = createStepExperimental({
+export const cliTableReporter = createStep({
   stepName: 'cli-table-reporter',
   stepGroup: 'cli-table-reporter',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: options => ({
+  run: async options => ({
     stepConstrains: [
       skipIfStepResultMissingOrFailedInCacheConstrain({
         stepNameToSearchInCache: jsonReporterStepName,

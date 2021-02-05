@@ -10,9 +10,13 @@ import path from 'path'
 const { createRepo, getResources } = createTest()
 
 test('docker-artifact depends on published npm-artifact during docker-build', async () => {
-  // eslint-disable-next-line no-process-env
-  // const hostIp = process.env.GITHUB_RUN_NUMBER ? `172.17.0.1` : 'host.docker.internal' // it seems that 'host.docker.internal' stopped working for mac and now, `172.17.0.1` is working for mac.
   const hostIp = `172.17.0.1`
+  const {
+    npmRegistry: {
+      auth: { email, password, username },
+    },
+  } = getResources()
+  const registryAddress = getResources().npmRegistry.address.replace('localhost', hostIp)
   const { runCi, gitHeadCommit } = await createRepo(toActualName => ({
     repo: {
       packages: [
@@ -21,11 +25,9 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
           version: '1.0.0',
           additionalFiles: {
             Dockerfile: `\
-            FROM alpine
-            RUN apk add wget
-            RUN wget ${getResources().npmRegistry.address.replace('localhost', hostIp)}/${toActualName(
-              'b',
-            )}/-/${toActualName('b')}-2.0.0.tgz
+            FROM quay.io/eraci/node:15.7.0-alpine3.10
+            RUN NPM_USER=${username} NPM_PASS="${password}" NPM_EMAIL=${email} NPM_REGISTRY=${registryAddress} npx npm-login-noninteractive
+            RUN npm view ${toActualName('b')}@2.0.0 --registry ${registryAddress}
             CMD ["echo","hello"]
             `,
           },
@@ -52,7 +54,7 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
         dockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerRegistry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
         }),
       ]),
@@ -82,7 +84,7 @@ test('publish with semver-tag', async () => {
         dockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerRegistry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
         }),
       ]),
@@ -111,7 +113,7 @@ test('publish twice - expect that there is only one tag to the image in the regi
         dockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerRegistry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
         }),
       ]),
@@ -142,7 +144,7 @@ test('artifact package-json name has @ symbol', async () => {
         dockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerRegistry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
         }),
       ]),
@@ -176,7 +178,7 @@ we expect that the build will fail because of not, the image-tag will be overrid
         dockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          registry: getResources().dockerRegistry,
+          dockerRegistry: getResources().dockerRegistry,
           imageInstallArtifactsFromNpmRegistry: true,
         }),
       ]),

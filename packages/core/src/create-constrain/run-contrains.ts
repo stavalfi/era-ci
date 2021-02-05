@@ -1,7 +1,6 @@
 import { calculateCombinedStatus, ExecutionStatus, Status } from '@era-ci/utils'
 import _ from 'lodash'
 import { ErrorObject, serializeError } from 'serialize-error'
-import { LogLevel } from '../create-logger'
 import { UserRunStepOptions } from '../create-step'
 import { CombinedConstrainResult, Constrain, ConstrainResult, ConstrainResultType } from './types'
 
@@ -81,9 +80,6 @@ export const runConstrains = async <StepConfiguration>(
       }),
     }),
   })
-  if (options.log.logLevel === LogLevel.trace) {
-    combinedResult.combinedResult.errors.forEach(error => options.log.error(`${base} - error:`, error))
-  }
 
   return combinedResult
 }

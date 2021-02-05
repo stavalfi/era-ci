@@ -38,7 +38,8 @@ export type QuayBuildsTaskQueueConfigurations = {
     }
   }
   quayHelperServiceUrl: string
-  quayAddress: 'https://quay.io' | string
+  dockerRegistry: 'https://quay.io' | string // this value is not really used. it's here to show that in tests/local-mock runs, dockerRegistry!==quayService
+  quayService: 'https://quay.io' | string
   quayToken: string
   quayNamespace: string
   getCommitTarGzPublicAddress: (options: {
@@ -106,7 +107,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
     this.taskTimeoutEventEmitter.setMaxListeners(Infinity)
     this.queueStatusChanged.setMaxListeners(Infinity)
     this.quayClient = new QuayClient(
-      options.taskQueueConfigurations.quayAddress,
+      options.taskQueueConfigurations.quayService,
       options.taskQueueConfigurations.quayToken,
       options.taskQueueConfigurations.quayNamespace,
       options.log,
@@ -158,7 +159,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
 
     options.log.trace(
       `initialized ${QuayBuildsTaskQueue.name} with options: ${JSON.stringify(
-        _.omit(options, ['redisClient']),
+        _.omit(options, ['redisClient', 'processEnv']),
         null,
         2,
       )}`,
@@ -508,7 +509,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
         {
           json: {
             build_id: buildTriggerResult.quayBuildId,
-            quayAddress: this.options.taskQueueConfigurations.quayAddress,
+            quayService: this.options.taskQueueConfigurations.quayService,
             quayToken: this.options.taskQueueConfigurations.quayToken,
             quayNamespace: this.options.taskQueueConfigurations.quayNamespace,
             eraTaskId: task.taskInfo.taskId,
@@ -581,6 +582,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
 
     this.eventEmitter.removeAllListeners()
     this.taskTimeoutEventEmitter.removeAllListeners()
+    this.queueStatusChanged.removeAllListeners()
 
     await this.redisConnection.disconnect()
 

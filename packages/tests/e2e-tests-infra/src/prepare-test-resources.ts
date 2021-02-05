@@ -63,8 +63,8 @@ export function resourcesBeforeAfterEach(options: {
       npmRegistry: {
         address: `http://localhost:34873`,
         auth: {
-          username: 'root',
-          token: 'root',
+          username: 'username',
+          password: 'password',
           email: 'root@root.root',
         },
       },

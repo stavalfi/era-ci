@@ -307,18 +307,3 @@ export async function startQuayMockService(
     },
   }
 }
-
-// this is for local runs of the era-ci on itself
-if (require.main === module) {
-  startQuayMockService({
-    port: 9876,
-    isTestMode: false,
-    dockerRegistryAddress: `http://localhost:35000`,
-    namespace: 'org1',
-    token: 'fake-mock-quay-token',
-    rateLimit: {
-      max: 1000,
-      timeWindowMs: 1000,
-    },
-  })
-}

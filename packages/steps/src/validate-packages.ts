@@ -1,15 +1,15 @@
-import { createStepExperimental } from '@era-ci/core'
+import { createStep } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, getPackageTargetTypes, Status, TargetType } from '@era-ci/utils'
 import _ from 'lodash'
 import { IDependencyMap } from 'package-json-type'
 import semver from 'semver'
 
-export const validatePackages = createStepExperimental({
+export const validatePackages = createStep({
   stepName: 'validate-packages',
   stepGroup: 'validate-packages',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: ({ artifacts }) => ({
+  run: async ({ artifacts }) => ({
     waitUntilArtifactParentsFinishedParentSteps: false,
     onArtifact: async ({ artifact }) => {
       const problems: Array<string> = []

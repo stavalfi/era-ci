@@ -214,16 +214,15 @@ export type ArtifactFunctions<StepConfigurations> = {
   onAfterArtifacts?: () => Promise<void>
 }
 
-export type RunStepExperimental<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = (
+export type RunStep<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = (
   options: UserRunStepOptions<TaskQueue, StepConfigurations>,
-) =>
-  | ({
-      globalConstrains?: Array<Constrain<StepConfigurations>>
-    } & (StepFunctions<StepConfigurations> | ArtifactFunctions<StepConfigurations>))
-  | undefined
-  | void
+) => Promise<
+  {
+    globalConstrains?: Array<Constrain<StepConfigurations>>
+  } & (StepFunctions<StepConfigurations> | ArtifactFunctions<StepConfigurations>)
+>
 
-export type StepExperimental<TaskQueue extends TaskQueueBase<any, any>> = {
+export type Step<TaskQueue extends TaskQueueBase<any, any>> = {
   stepName: string
   stepGroup: string
   taskQueueClass: { new (options: TaskQueueOptions<unknown>): TaskQueue }
@@ -233,37 +232,7 @@ export type StepExperimental<TaskQueue extends TaskQueueBase<any, any>> = {
   ) => Promise<(action: Actions, getState: () => State) => Observable<Actions>>
 }
 
-export enum RunStrategy {
-  perArtifact = 'per-artifact',
-  allArtifacts = 'all-artfifacts',
-  root = 'root',
-  experimental = 'experimental',
-}
-
-export type Run<TaskQueue extends TaskQueueBase<any, any>, StepConfigurations> = {
-  onStepDone?: (options: UserRunStepOptions<TaskQueue, StepConfigurations>) => Promise<void>
-} & (
-  | {
-      runStrategy: RunStrategy.perArtifact
-      beforeAll?: (options: UserRunStepOptions<TaskQueue, StepConfigurations>) => Promise<void>
-      runStepOnArtifact: RunStepOnArtifact<TaskQueue, StepConfigurations>
-      afterAll?: (options: UserRunStepOptions<TaskQueue, StepConfigurations>) => Promise<void>
-    }
-  | {
-      runStrategy: RunStrategy.allArtifacts
-      runStepOnArtifacts: RunStepOnArtifacts<TaskQueue, StepConfigurations>
-    }
-  | {
-      runStrategy: RunStrategy.root
-      runStepOnRoot: RunStepOnRoot<TaskQueue, StepConfigurations>
-    }
-  | {
-      runStrategy: RunStrategy.experimental
-      runStepOnRoot: RunStepOnRoot<TaskQueue, StepConfigurations>
-    }
-)
-
-export type CreateStepOptionsExperimental<
+export type CreateStepOptions<
   TaskQueue extends TaskQueueBase<any, any>,
   StepConfigurations = void,
   NormalizedStepConfigurations = StepConfigurations
@@ -276,5 +245,5 @@ export type CreateStepOptionsExperimental<
   ) => Promise<NormalizedStepConfigurations>
 
   taskQueueClass: { new (options: TaskQueueOptions<any>, ...params: any[]): TaskQueue }
-  run: RunStepExperimental<TaskQueue, NormalizedStepConfigurations>
+  run: RunStep<TaskQueue, NormalizedStepConfigurations>
 }

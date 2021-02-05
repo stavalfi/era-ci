@@ -1,4 +1,4 @@
-import { ConstrainResultType, createConstrain, createStepExperimental } from '@era-ci/core'
+import { ConstrainResultType, createConstrain, createStep } from '@era-ci/core'
 import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { JsonReport } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
@@ -22,11 +22,11 @@ test('return true and expect the step to run', async () => {
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             artifactConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',
@@ -103,11 +103,11 @@ test('return false and expect the step not to run', async () => {
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             artifactConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',
@@ -186,11 +186,11 @@ test('return false with notes and expect the step not to run with notes', async 
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             artifactConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',
@@ -269,11 +269,11 @@ test('return false with duplicate notes and expect the step not to run with out 
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             artifactConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',
@@ -353,11 +353,11 @@ test('reproduce bug - flow hangs when constrain allow package to run but artifac
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             globalConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',
@@ -402,11 +402,11 @@ test('constrain allow package to run but artifact eventually aborted as failed',
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             globalConstrains: [
               createConstrain({
                 constrainName: 'test-constrain',

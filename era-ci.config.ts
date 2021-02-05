@@ -18,23 +18,26 @@ import {
   taskWorkerTaskQueue,
   quayBuildsTaskQueue,
 } from './packages/task-queues/dist/src/index'
+import chance from 'chance'
 
 const {
   NPM_REGISTRY = 'http://localhost:34873',
-  NPM_USERNAME = 'root',
-  NPM_TOKEN = 'root',
-  NPM_EMAIL = 'root@root.root',
-  QUAY_REGISTRY = `http://localhost:9876`,
+  NPM_USERNAME = 'username',
+  NPM_PASSWORD = 'password',
+  NPM_EMAIL = 'any@email.com',
+  QUAY_REGISTRY = `http://localhost:35000`,
+  QUAY_SERVICE = `http://localhost:9001`,
   QUAY_ORG = 'org1',
-  QUAY_ORG_TOKEN = 'fake-mock-quay-token',
+  QUAY_ORG_TOKEN = 'token1',
   QUAY_USERNAME,
   QUAY_USERNAME_TOKEN,
-  QUAY_HELPER_SERVICE_URL = 'http://localhost:9875',
+  QUAY_HELPER_SERVICE_URL = 'http://localhost:9000',
   REDIS_ENDPOINT = 'redis://localhost:36379',
   REDIS_PASSWORD,
-  GITHUB_RUN_NUMBER = 'local-run',
+  GITHUB_RUN_NUMBER = chance().hash().slice(0, 8),
   CI,
   LOG_LEVEL = LogLevel.info,
+  SKIP_TESTS,
   // eslint-disable-next-line no-process-env
 } = process.env
 
@@ -45,7 +48,8 @@ export default config({
         url: `https://api.github.com/repos/stavalfi/era-ci/tarball/${gitCommit}`,
         folderName: `stavalfi-era-ci-${gitCommit.slice(0, 7)}`,
       }),
-      quayAddress: QUAY_REGISTRY,
+      quayService: QUAY_SERVICE,
+      dockerRegistry: QUAY_REGISTRY,
       quayNamespace: QUAY_ORG,
       quayToken: QUAY_ORG_TOKEN,
       quayHelperServiceUrl: QUAY_HELPER_SERVICE_URL,
@@ -56,7 +60,6 @@ export default config({
         },
       },
     }),
-    localSequentalTaskQueue(),
     taskWorkerTaskQueue({
       queueName: `queue-${GITHUB_RUN_NUMBER}`,
       redis: {
@@ -66,6 +69,7 @@ export default config({
         },
       },
     }),
+    localSequentalTaskQueue(),
   ],
   redis: {
     url: REDIS_ENDPOINT!,
@@ -82,12 +86,12 @@ export default config({
     {
       // 0
       step: validatePackages(),
-      children: [6],
+      children: [1],
     },
     {
       // 1
       step: installRoot({ isStepEnabled: true }),
-      children: [6],
+      children: [2, 3, 4, 5],
     },
     {
       // 2
@@ -102,7 +106,7 @@ export default config({
     {
       // 4
       step: test({
-        isStepEnabled: true,
+        isStepEnabled: !SKIP_TESTS,
         scriptName: 'test',
         workerBeforeAll: {
           shellCommand: 'yarn test-resources:up',
@@ -127,8 +131,9 @@ export default config({
         dockerfileBuildTimeoutMs: 200_000,
         imagesVisibility: 'public',
         dockerOrganizationName: QUAY_ORG,
-        registry: QUAY_REGISTRY,
-        registryAuth: {
+        dockerRegistry: QUAY_REGISTRY,
+        quayService: QUAY_SERVICE,
+        dockerRegistryAuth: {
           username: QUAY_USERNAME!,
           token: QUAY_USERNAME_TOKEN!,
         },
@@ -138,13 +143,13 @@ export default config({
     {
       // 6
       step: npmPublish({
-        isStepEnabled: true && !CI,
+        isStepEnabled: !CI,
         npmScopeAccess: NpmScopeAccess.public,
         registry: NPM_REGISTRY,
         publishAuth: {
           email: NPM_EMAIL,
           username: NPM_USERNAME!,
-          token: NPM_TOKEN!,
+          password: NPM_PASSWORD!,
         },
       }),
       children: [7],

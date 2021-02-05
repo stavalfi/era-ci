@@ -1,7 +1,7 @@
 import { buildFullDockerImageName } from '@era-ci/utils'
-import { EventEmitter } from 'events'
 import got, { RequestError } from 'got'
 import HttpStatusCodes from 'http-status-codes'
+import urlJoin from 'url-join'
 import {
   AbortEventHandler,
   BuildTriggerResult,
@@ -12,12 +12,11 @@ import {
   QuayNotificationEvents,
   TaskTimeoutEventEmitter,
 } from './types'
-import urlJoin from 'url-join'
 export * from './types'
 
 export class QuayClient {
   constructor(
-    private readonly quayAddress: string,
+    private readonly quayService: string,
     private readonly quayToken: string,
     private readonly quayNamespace: string,
     private readonly log: {
@@ -26,8 +25,8 @@ export class QuayClient {
       error: (s: string, e: Error) => void
     },
     private readonly processEnv: NodeJS.ProcessEnv,
-    private readonly taskTimeoutEventEmitter: TaskTimeoutEventEmitter = new EventEmitter({ captureRejections: true }),
-    private readonly abortEventHandler: AbortEventHandler = new EventEmitter({ captureRejections: true }),
+    private readonly taskTimeoutEventEmitter: TaskTimeoutEventEmitter,
+    private readonly abortEventHandler: AbortEventHandler,
   ) {}
 
   private async request<ResponseBody, RequestBody = unknown>(options: {
@@ -36,7 +35,7 @@ export class QuayClient {
     requestBody?: RequestBody
     taskId: string
   }): Promise<ResponseBody> {
-    const url = urlJoin(this.quayAddress, options.api)
+    const url = urlJoin(this.quayService, options.api)
     const p = got[options.method]<ResponseBody>(url, {
       headers: {
         authorization: `Bearer ${this.quayToken}`,
@@ -48,7 +47,9 @@ export class QuayClient {
         calculateDelay: ({ error }) => {
           if (error instanceof RequestError && error.response?.statusCode === HttpStatusCodes.TOO_MANY_REQUESTS) {
             const wait = error.response?.headers['retry-after']
-            return wait === undefined ? 1000 : Number(wait)
+            const delay = wait === undefined ? 1000 : Number(wait)
+            const finalDelay = Math.min(delay, 3_000)
+            return finalDelay
           }
           return 0 // cancel the retry mechanism
         },
@@ -96,7 +97,7 @@ export class QuayClient {
         },
       })
       this.log.info(
-        `created quay-repository: "${this.quayAddress}/repository/${r.namespace}/${r.name}" for package: "${packageName}" with visibility: "${visibility}"`,
+        `created quay-repository: "${this.quayService}/repository/${r.namespace}/${r.name}" for package: "${packageName}" with visibility: "${visibility}"`,
       )
       return r
     } catch (error) {
@@ -196,8 +197,8 @@ export class QuayClient {
       quayRepoName: buildInfo.repository.name,
       quayBuildId: buildInfo.id,
       quayBuildName: buildInfo.display_name,
-      quayBuildAddress: `${this.quayAddress}/repository/${buildInfo.repository.namespace}/${buildInfo.repository.name}/build/${buildInfo.id}`,
-      quayBuildLogsAddress: `${this.quayAddress}/buildlogs/${buildInfo.id}`,
+      quayBuildAddress: `${this.quayService}/repository/${buildInfo.repository.namespace}/${buildInfo.repository.name}/build/${buildInfo.id}`,
+      quayBuildLogsAddress: `${this.quayService}/buildlogs/${buildInfo.id}`,
       quayBuildStatus: buildInfo.phase,
     }
     this.log.info(
@@ -206,7 +207,7 @@ export class QuayClient {
           ? // in tests, docker-registry is not quay-server.
             `localhost:35000/${buildInfo.repository.namespace}/${buildInfo.repository.name}`
           : buildFullDockerImageName({
-              dockerRegistry: this.quayAddress,
+              dockerRegistry: this.quayService,
               imageName: buildInfo.repository.name,
               dockerOrganizationName: buildInfo.repository.namespace,
             })
@@ -267,7 +268,7 @@ export class QuayClient {
 
     this.log.debug(
       `created notification: ${event} for quay-repo: "${repoName}" - repository: "${buildFullDockerImageName({
-        dockerRegistry: this.quayAddress,
+        dockerRegistry: this.quayService,
         imageName: repoName,
         dockerOrganizationName: this.quayNamespace,
       })}"`,

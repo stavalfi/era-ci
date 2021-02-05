@@ -6,3 +6,4 @@ export { skipIfStepIsDisabledConstrain } from './skip-if-step-is-disabled-constr
 export { skipIfRootPackageJsonMissingScriptConstrain } from './skip-if-root-package-json-missing-script-constrain'
 export { skipIfStepResultMissingOrFailedInCacheConstrain } from './skip-if-step-result-missing-or-failed-in-cache-constrain'
 export { skipIfStepResultMissingOrPassedInCacheConstrain } from './skip-if-step-result-missing-or-passed-in-cache-constrain'
+export { skipIfGitChangesNotCommitedConstrain } from './skip-if-git-changes-not-committed-constrain'

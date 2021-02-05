@@ -1,6 +1,14 @@
 /* eslint-disable no-console */
 
+// if we load this module with jest, the source map are corrupted
+// eslint-disable-next-line no-process-env
+if (!process.env.ERA_TEST_MODE) {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  require('source-map-support').install()
+}
+
 import { QuayClient } from '@era-ci/quay-client'
+import { EventEmitter } from 'events'
 import fastify from 'fastify'
 import Redis from 'ioredis'
 import { getConfig } from './config'
@@ -34,6 +42,9 @@ export async function startQuayHelperService(
     password: config.redisAuth?.password,
   })
   await redisConnection.connect()
+
+  const serverClosedEventEmitter = new EventEmitter()
+  serverClosedEventEmitter.setMaxListeners(Infinity)
 
   app.get('/', async (_req, res) => res.send('alive'))
 
@@ -70,7 +81,7 @@ export async function startQuayHelperService(
     Params: {}
     Body: {
       build_id: string
-      quayAddress: string
+      quayService: string
       quayToken: string
       quayNamespace: string
       eraTaskId: string
@@ -80,7 +91,7 @@ export async function startQuayHelperService(
     res.send()
 
     const quayClient = new QuayClient(
-      req.body.quayAddress,
+      req.body.quayService,
       req.body.quayToken,
       req.body.quayNamespace,
       {
@@ -89,6 +100,8 @@ export async function startQuayHelperService(
         debug: app.log.debug.bind(app.log),
       },
       env,
+      serverClosedEventEmitter,
+      serverClosedEventEmitter,
     )
 
     let failures404 = 0
@@ -157,8 +170,10 @@ export async function startQuayHelperService(
         return
       }
       closed = true
+      serverClosedEventEmitter.emit('closed')
       await app.close()
       await redisConnection.disconnect()
+      serverClosedEventEmitter.removeAllListeners()
       console.log(`closed quay-helper-service: "${address}"`)
     },
   }

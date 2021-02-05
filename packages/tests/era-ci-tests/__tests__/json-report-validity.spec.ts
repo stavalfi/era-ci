@@ -1,4 +1,4 @@
-import { createStepExperimental } from '@era-ci/core'
+import { createStep } from '@era-ci/core'
 import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { JsonReport } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
@@ -29,11 +29,11 @@ test('ensure ci dont fail when there are no artifacts', async () => {
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({ stepLogic: () => Promise.resolve() }),
+          run: async () => ({ stepLogic: () => Promise.resolve() }),
         })(),
       ]),
     },
@@ -172,11 +172,11 @@ test('reproduce bug - no packages hangs the flow', async () => {
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({ onArtifact: () => Promise.resolve() }),
+          run: async () => ({ onArtifact: () => Promise.resolve() }),
         })(),
       ]),
     },

@@ -1,4 +1,4 @@
-import { createStepExperimental, getResult, ExecutionActionTypes } from '@era-ci/core'
+import { createStep, getResult, ExecutionActionTypes } from '@era-ci/core'
 import { createTest } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
@@ -19,11 +19,11 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do n
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             waitUntilArtifactParentsFinishedParentSteps: true,
             onArtifact: async () => {
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
@@ -50,11 +50,11 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do 
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             waitUntilArtifactParentsFinishedParentSteps: false,
             onArtifact: async () => {
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
@@ -88,11 +88,11 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do n
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             waitUntilArtifactParentsFinishedParentSteps: true,
             onArtifact: async () => {
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
@@ -126,11 +126,11 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure it does not do 
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'step1',
           stepGroup: 'step1',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             waitUntilArtifactParentsFinishedParentSteps: false,
             onArtifact: async () => {
               return { executionStatus: ExecutionStatus.done, status: Status.passed }
@@ -166,11 +166,11 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async 
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'parent-step',
           stepGroup: 'parent-step',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async ({ artifact }) => {
               if (artifact.data.artifact.packageJson.name === toActualName('parent-artifact')) {
                 await sleep(3000)
@@ -179,11 +179,11 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure we wait', async 
             },
           }),
         })(),
-        createStepExperimental({
+        createStep({
           stepName: 'child-step',
           stepGroup: 'child-step',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: ({ getState, steps, artifacts }) => ({
+          run: async ({ getState, steps, artifacts }) => ({
             waitUntilArtifactParentsFinishedParentSteps: true,
             onArtifact: async ({ artifact }) => {
               if (artifact.data.artifact.packageJson.name === toActualName('child-artifact')) {
@@ -227,11 +227,11 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait'
     },
     configurations: {
       steps: createLinearStepsGraph([
-        createStepExperimental({
+        createStep({
           stepName: 'parent-step',
           stepGroup: 'parent-step',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             onArtifact: async ({ artifact }) => {
               if (artifact.data.artifact.packageJson.name === toActualName('parent-artifact')) {
                 await sleep(3000)
@@ -240,11 +240,11 @@ test('waitUntilArtifactParentsFinishedParentSteps=false - ensure we do not wait'
             },
           }),
         })(),
-        createStepExperimental({
+        createStep({
           stepName: 'child-step',
           stepGroup: 'child-step',
           taskQueueClass: LocalSequentalTaskQueue,
-          run: () => ({
+          run: async () => ({
             waitUntilArtifactParentsFinishedParentSteps: false,
             onArtifact: () => Promise.resolve(),
           }),

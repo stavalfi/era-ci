@@ -3,7 +3,7 @@ import {
   skipIfArtifactTargetTypeNotSupportedConstrain,
   skipIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
-import { createStepExperimental, Log, UserRunStepOptions } from '@era-ci/core'
+import { createStep, Log, UserRunStepOptions } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import {
   Artifact,
@@ -59,7 +59,7 @@ async function publishPackage({
 }): Promise<string> {
   const fullImageNameNewVersion = buildFullDockerImageName({
     dockerOrganizationName: stepConfigurations.dockerOrganizationName,
-    dockerRegistry: stepConfigurations.registry,
+    dockerRegistry: stepConfigurations.dockerRegistry,
     imageName: currentArtifact.data.artifact.packageJson.name,
     imageTag: tag,
   })
@@ -116,63 +116,67 @@ async function publishPackage({
   return fullImageNameNewVersion
 }
 
-export const dockerPublish = createStepExperimental<LocalSequentalTaskQueue, LocalDockerPublishConfiguration>({
+export const dockerPublish = createStep<LocalSequentalTaskQueue, LocalDockerPublishConfiguration>({
   stepName: 'docker-publish',
   stepGroup: 'docker-publish',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: options => ({
-    globalConstrains: [skipIfStepIsDisabledConstrain()],
-    waitUntilArtifactParentsFinishedParentSteps: options.stepConfigurations.imageInstallArtifactsFromNpmRegistry,
-    artifactConstrains: [
-      artifact =>
-        skipIfArtifactTargetTypeNotSupportedConstrain({
-          currentArtifact: artifact,
-          supportedTargetType: TargetType.docker,
-        }),
-      artifact =>
-        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-          currentArtifact: artifact,
-          stepNameToSearchInCache: 'build-root',
-          skipAsPassedIfStepNotExists: true,
-        }),
-      artifact =>
-        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-          currentArtifact: artifact,
-          stepNameToSearchInCache: 'test',
-          skipAsPassedIfStepNotExists: true,
-        }),
-      artifact =>
-        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-          currentArtifact: artifact,
-          stepNameToSearchInCache: 'validate-packages',
-          skipAsPassedIfStepNotExists: true,
-        }),
-    ],
-    onBeforeArtifacts: async () =>
-      dockerRegistryLogin({
-        dockerRegistry: options.stepConfigurations.registry,
-        registryAuth: options.stepConfigurations.registryAuth,
+  run: async options => {
+    if (options.stepConfigurations.isStepEnabled) {
+      // we need to login before we run the constrains and before run the artifacts-logic
+      await dockerRegistryLogin({
+        dockerRegistry: options.stepConfigurations.dockerRegistry,
+        registryAuth: options.stepConfigurations.dockerRegistryAuth,
         repoPath: options.repoPath,
         log: options.log,
-      }),
-    onArtifact: async ({ artifact }) =>
-      chooseTagAndPublish({
-        ...options,
-        artifact,
-        publish: async tag => {
-          const fullImageNameWithTag = await publishPackage({
-            ...options,
+      })
+    }
+    return {
+      globalConstrains: [skipIfStepIsDisabledConstrain()],
+      waitUntilArtifactParentsFinishedParentSteps: options.stepConfigurations.imageInstallArtifactsFromNpmRegistry,
+      artifactConstrains: [
+        artifact =>
+          skipIfArtifactTargetTypeNotSupportedConstrain({
             currentArtifact: artifact,
-            tag,
-          })
-          return {
-            executionStatus: ExecutionStatus.done,
-            status: Status.passed,
-            errors: [],
-            notes: [`published docker-image: "${fullImageNameWithTag}"`],
-            returnValue: fullImageNameWithTag,
-          }
-        },
-      }),
-  }),
+            supportedTargetType: TargetType.docker,
+          }),
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'build-root',
+            skipAsPassedIfStepNotExists: true,
+          }),
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'test',
+            skipAsPassedIfStepNotExists: true,
+          }),
+        artifact =>
+          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'validate-packages',
+            skipAsPassedIfStepNotExists: true,
+          }),
+      ],
+      onArtifact: async ({ artifact }) =>
+        chooseTagAndPublish({
+          ...options,
+          artifact,
+          publish: async tag => {
+            const fullImageNameWithTag = await publishPackage({
+              ...options,
+              currentArtifact: artifact,
+              tag,
+            })
+            return {
+              executionStatus: ExecutionStatus.done,
+              status: Status.passed,
+              errors: [],
+              notes: [`published docker-image: "${fullImageNameWithTag}"`],
+              returnValue: fullImageNameWithTag,
+            }
+          },
+        }),
+    }
+  },
 })

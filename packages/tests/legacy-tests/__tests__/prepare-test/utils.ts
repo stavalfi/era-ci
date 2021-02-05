@@ -1,5 +1,6 @@
 import { Logger } from '@era-ci/core'
 import { distructPackageJsonName, execaCommand } from '@era-ci/utils'
+import { npmRegistryLogin } from '@era-ci/steps'
 import execa, { StdioOption } from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
@@ -45,7 +46,7 @@ export async function runNcExecutable({
   testOptions?: TestOptions
   printFlowId?: string
   redisServerUrl: string
-  npmRegistry: { address: string; auth: { username: string; token: string; email: string } }
+  npmRegistry: { address: string; auth: { username: string; password: string; email: string } }
   dockerRegistry: string
   dockerOrganizationName: string
   testLogger: Logger
@@ -77,7 +78,7 @@ export async function runNcExecutable({
       NPM_REGISTRY: npmRegistry.address,
       NPM_EMAIL: npmRegistry.auth.email,
       NPM_USERNAME: npmRegistry.auth.username,
-      NPM_TOKEN: npmRegistry.auth.token,
+      NPM_PASSWORD: npmRegistry.auth.password,
       DOCKER_HUB_USERNAME: '',
       DOCKER_HUB_TOKEN: '',
       REDIS_ENDPOINT: redisServerUrl,
@@ -100,7 +101,7 @@ export async function runCiUsingConfigFile({
 }: {
   repoPath: string
   testOptions?: TestOptions
-  npmRegistry: { address: string; auth: { username: string; token: string; email: string } }
+  npmRegistry: { address: string; auth: { username: string; password: string; email: string } }
   dockerRegistry: string
   dockerOrganizationName: string
   toOriginalName: (packageName: string) => string
@@ -120,6 +121,14 @@ export async function runCiUsingConfigFile({
   })
 
   async function getPublishResult() {
+    await npmRegistryLogin({
+      npmRegistry: npmRegistry.address,
+      npmRegistryPassword: npmRegistry.auth.password,
+      npmRegistryUsername: npmRegistry.auth.username,
+      npmRegistryEmail: npmRegistry.auth.email,
+      log: testLogger.createLog('npm-login-for-tests', { disable: true }),
+      repoPath,
+    })
     // the test can add/remove/modify packages between the creation of the repo until
     // the call of the ci so we need to find all the packages again
     const packagesPaths = await getPackages(repoPath)
