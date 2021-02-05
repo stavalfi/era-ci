@@ -8,12 +8,17 @@
     "dist",
     "src",
     "__tests__",
-    "mock-docker-compose.yml"
+    "mock-docker-compose.yml",
+    "verdaccio"
   ],
   "bin": {
     "era-ci-mocks": "./dist/src/index.js"
   },
   "types": "dist/src/index.d.ts",
+  "scripts": {
+    "docker-compose:up": "docker-compose -f era-ci-mock-docker-compose.yml up -d --remove-orphans",
+    "docker-compose:down": "docker-compose -f era-ci-mock-docker-compose.yml down --remove-orphans"
+  },
   "dependencies": {
     "yargs-parser": "^20.2.4",
     "@era-ci/loggers": "^2.0.0",
