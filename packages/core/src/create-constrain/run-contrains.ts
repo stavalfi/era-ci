@@ -81,9 +81,6 @@ export const runConstrains = async <StepConfiguration>(
       }),
     }),
   })
-  if (options.log.logLevel === LogLevel.trace) {
-    combinedResult.combinedResult.errors.forEach(error => options.log.error(`${base} - error:`, error))
-  }
 
   return combinedResult
 }
