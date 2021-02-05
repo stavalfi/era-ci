@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 
 import { QuayClient } from '@era-ci/quay-client'
+import { EventEmitter } from 'events'
 import fastify from 'fastify'
 import Redis from 'ioredis'
 import { getConfig } from './config'
@@ -34,6 +35,9 @@ export async function startQuayHelperService(
     password: config.redisAuth?.password,
   })
   await redisConnection.connect()
+
+  const serverClosedEventEmitter = new EventEmitter()
+  serverClosedEventEmitter.setMaxListeners(Infinity)
 
   app.get('/', async (_req, res) => res.send('alive'))
 
@@ -89,6 +93,8 @@ export async function startQuayHelperService(
         debug: app.log.debug.bind(app.log),
       },
       env,
+      serverClosedEventEmitter,
+      serverClosedEventEmitter,
     )
 
     let failures404 = 0
@@ -157,8 +163,10 @@ export async function startQuayHelperService(
         return
       }
       closed = true
+      serverClosedEventEmitter.emit('closed')
       await app.close()
       await redisConnection.disconnect()
+      serverClosedEventEmitter.removeAllListeners()
       console.log(`closed quay-helper-service: "${address}"`)
     },
   }

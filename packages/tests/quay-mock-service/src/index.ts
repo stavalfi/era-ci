@@ -40,6 +40,8 @@ export async function startQuayMockService(
     },
   })
 
+  console.log('stav5', config.rateLimit)
+
   app.register(fastifyRateLimiter, {
     max: config.rateLimit.max,
     timeWindow: config.rateLimit.timeWindowMs,

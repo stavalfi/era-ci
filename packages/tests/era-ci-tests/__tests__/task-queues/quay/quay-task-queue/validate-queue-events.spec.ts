@@ -1,4 +1,3 @@
-import wtfnode from 'wtfnode'
 import { AbortedTask, DoneTask, RunningTask, ScheduledTask, toTaskEvent$ } from '@era-ci/core'
 import { isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { QuayBuildsTaskPayload } from '@era-ci/task-queues'
@@ -401,8 +400,6 @@ RUN sleep 10_000 # make sure that this task will not end
     }),
   ).toBeTruthy()
 })
-
-afterAll(() => wtfnode.dump())
 
 test('multiple tasks', async () => {
   const tasks = getResources().taskQueuesResources.queue.addTasksToQueue(

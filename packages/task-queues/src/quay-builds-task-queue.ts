@@ -582,6 +582,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
 
     this.eventEmitter.removeAllListeners()
     this.taskTimeoutEventEmitter.removeAllListeners()
+    this.queueStatusChanged.removeAllListeners()
 
     await this.redisConnection.disconnect()
 

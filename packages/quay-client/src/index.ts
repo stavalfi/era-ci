@@ -1,7 +1,7 @@
 import { buildFullDockerImageName } from '@era-ci/utils'
-import { EventEmitter } from 'events'
 import got, { RequestError } from 'got'
 import HttpStatusCodes from 'http-status-codes'
+import urlJoin from 'url-join'
 import {
   AbortEventHandler,
   BuildTriggerResult,
@@ -12,7 +12,6 @@ import {
   QuayNotificationEvents,
   TaskTimeoutEventEmitter,
 } from './types'
-import urlJoin from 'url-join'
 export * from './types'
 
 export class QuayClient {
@@ -26,8 +25,8 @@ export class QuayClient {
       error: (s: string, e: Error) => void
     },
     private readonly processEnv: NodeJS.ProcessEnv,
-    private readonly taskTimeoutEventEmitter: TaskTimeoutEventEmitter = new EventEmitter({ captureRejections: true }),
-    private readonly abortEventHandler: AbortEventHandler = new EventEmitter({ captureRejections: true }),
+    private readonly taskTimeoutEventEmitter: TaskTimeoutEventEmitter,
+    private readonly abortEventHandler: AbortEventHandler,
   ) {}
 
   private async request<ResponseBody, RequestBody = unknown>(options: {
@@ -48,7 +47,9 @@ export class QuayClient {
         calculateDelay: ({ error }) => {
           if (error instanceof RequestError && error.response?.statusCode === HttpStatusCodes.TOO_MANY_REQUESTS) {
             const wait = error.response?.headers['retry-after']
-            return wait === undefined ? 1000 : Number(wait)
+            const delay = wait === undefined ? 1000 : Number(wait)
+            const finalDelay = Math.min(delay, 3_000)
+            return finalDelay
           }
           return 0 // cancel the retry mechanism
         },
