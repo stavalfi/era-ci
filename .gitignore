@@ -30,6 +30,5 @@ compiled-era-ci-*
 lib1.js
 *.d.ts
 !declarations.d.ts
-dist/*
-packages/**/dist
-!dist/monorepo-docker-build-helper.js
+dist
+packages/quick-start/verdaccio/storage
