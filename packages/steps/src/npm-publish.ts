@@ -157,12 +157,12 @@ export async function npmRegistryLogin({
   // yarn@1.x does not send the authorization header on yarn install if your packages requires authentication,
   // by enabling always-auth will force yarn do it on each request.
   await execa.command(`npm config set always-auth true `, {
-    stdio: 'ignore',
+    stdio: 'pipe',
     cwd: repoPath,
   })
 
   await execa.command(require.resolve(`.bin/npm-login-noninteractive`), {
-    stdio: 'ignore',
+    stdio: 'pipe',
     cwd: repoPath,
     env: {
       NPM_USER: npmRegistryUsername,
