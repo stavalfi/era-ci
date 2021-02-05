@@ -46,6 +46,8 @@ export async function startQuayHelperService(
   const serverClosedEventEmitter = new EventEmitter()
   serverClosedEventEmitter.setMaxListeners(Infinity)
 
+  let closed = false
+
   app.get('/', async (_req, res) => res.send('alive'))
 
   /**
@@ -114,7 +116,7 @@ export async function startQuayHelperService(
           taskId: req.body.eraTaskId,
         })
         .catch(error => {
-          if (env.ERA_TEST_MODE && error.code === 'ECONNREFUSED') {
+          if (closed || (env.ERA_TEST_MODE && ['ECONNRESET', 'ECONNREFUSED'].includes(error.code))) {
             // the test ended so quay-mock process finished
             exitEarly = true
             return null
@@ -162,7 +164,6 @@ export async function startQuayHelperService(
   const address = await app.listen(config.port, '0.0.0.0')
   console.log(`quay-helper-service: "${address}"`)
 
-  let closed = false
   return {
     address,
     cleanup: async () => {
