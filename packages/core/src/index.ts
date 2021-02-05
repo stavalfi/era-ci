@@ -2,6 +2,13 @@
 
 /// <reference path="../../../declarations.d.ts" />
 
+// if we load this module with jest, the source map are corrupted
+// eslint-disable-next-line no-process-env
+if (!process.env.ERA_TEST_MODE) {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  require('source-map-support').install()
+}
+
 import { startCli } from './configuration/cli'
 
 export * from './ci-logic'

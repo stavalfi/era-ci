@@ -37,6 +37,7 @@ const {
   GITHUB_RUN_NUMBER = chance().hash().slice(0, 8),
   CI,
   LOG_LEVEL = LogLevel.info,
+  SKIP_TESTS,
   // eslint-disable-next-line no-process-env
 } = process.env
 
@@ -105,7 +106,7 @@ export default config({
     {
       // 4
       step: test({
-        isStepEnabled: true,
+        isStepEnabled: !SKIP_TESTS,
         scriptName: 'test',
         workerBeforeAll: {
           shellCommand: 'yarn test-resources:up',

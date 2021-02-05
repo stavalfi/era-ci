@@ -13,3 +13,5 @@ function timeout() {
 }
 
 jest.setTimeout(timeout())
+
+process.env.ERA_TEST_MODE = 'true'
