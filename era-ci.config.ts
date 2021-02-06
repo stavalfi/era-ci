@@ -91,12 +91,12 @@ export default config({
     {
       // 1
       step: installRoot({ isStepEnabled: true }),
-      children: [2, 3, 4, 5],
+      children: [2, 3, 4, 5, 6],
     },
     {
       // 2
       step: lintRoot({ isStepEnabled: true, scriptName: 'lint:code' }),
-      children: [6],
+      children: [7],
     },
     {
       // 3
@@ -140,7 +140,7 @@ export default config({
           token: QUAY_USERNAME_TOKEN!,
         },
       }),
-      children: [6],
+      children: [7],
     },
     {
       // 6

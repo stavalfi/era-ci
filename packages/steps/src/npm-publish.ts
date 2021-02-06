@@ -12,12 +12,14 @@ import {
   getPackageTargetTypes,
   Node,
   PackageJson,
-  setPackageVersion,
   Status,
   TargetType,
 } from '@era-ci/utils'
+import chance from 'chance'
 import execa from 'execa'
-import _ from 'lodash'
+import fse from 'fs-extra'
+import os from 'os'
+import path from 'path'
 
 export enum NpmScopeAccess {
   public = 'public',
@@ -57,7 +59,7 @@ async function getNpmhighestVersionInfo({
 > {
   try {
     const command = `npm view ${packageName} --json --registry ${npmRegistry}`
-    log.verbose(`searching the latest tag and hash: "${command}"`)
+    log.verbose(`searching the latest tag: "${command}"`)
     const result = await execaCommand(command, { cwd: repoPath, stdio: 'pipe', log })
     const resultJson = JSON.parse(result.stdout) || {}
     const allVersions: Array<string> = resultJson['versions'] || []
@@ -68,9 +70,7 @@ async function getNpmhighestVersionInfo({
       highestVersion,
       allVersions,
     }
-    log.verbose(
-      `latest tag and hash for "${packageName}" are: "${JSON.stringify(_.omit(latest, ['allVersions']), null, 2)}"`,
-    )
+    log.verbose(`latest tag for "${packageName}" is: "${latest.highestVersion}"`)
     return latest
   } catch (e) {
     if (e.message.includes('code E404')) {
@@ -262,7 +262,7 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
   stepName: 'npm-publish',
   stepGroup: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async ({ stepConfigurations, repoPath, log, immutableCache }) => {
+  run: async ({ stepConfigurations, repoPath, log, immutableCache, logger }) => {
     if (stepConfigurations.isStepEnabled) {
       // we need to login before we run the constrains and before run the artifacts-logic
       await npmRegistryLogin({
@@ -307,49 +307,48 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
           log,
         })
 
-        await setPackageVersion({
-          artifact: artifact.data.artifact,
-          fromVersion: artifact.data.artifact.packageJson.version,
-          toVersion: newVersion,
-        })
+        log.info(`publising npm target with new version: "${artifact.data.artifact.packageJson.name}@${newVersion}"`)
+
+        // copy the package to different temp-dir on the OS because the publish phase
+        // mutate the package.json and we don't want this while other steps are running right now.
+        // USECASE: when quay-docker-publish runs, it will fail if the git-repo is dirty.
+
+        const copiedPackagePathToPublish = path.join(
+          os.tmpdir(),
+          `copied-${artifact.data.artifact.packageJson.name}-${chance().hash().slice(0, 8)}`,
+        )
+        await fse.copy(artifact.data.artifact.packagePath, copiedPackagePathToPublish)
 
         await execaCommand(
-          `yarn publish --registry ${stepConfigurations.registry} --non-interactive ${
+          `yarn publish --registry ${stepConfigurations.registry} --non-interactive --new-version ${newVersion} ${
             artifact.data.artifact.packageJson.name?.includes('@')
               ? `--access ${stepConfigurations.npmScopeAccess}`
               : ''
           }`,
           {
             stdio: 'pipe',
-            cwd: artifact.data.artifact.packagePath,
+            cwd: copiedPackagePathToPublish,
             log,
           },
         )
           .then(async () => {
             // wait (up to a 2 minutes) until the package is available
             for (let i = 0; i < 24; i++) {
-              try {
-                await execaCommand(
-                  `npm view ${artifact.data.artifact.packageJson.name}@${newVersion} --registry ${stepConfigurations.registry}`,
-                  {
-                    stdio: 'ignore',
-                    cwd: artifact.data.artifact.packagePath,
-                    env: {
-                      // npm need this env-var for auth - this is needed only for production publishing.
-                      // in tests it doesn't do anything and we login manually to npm in tests.
-                      NPM_AUTH_TOKEN: stepConfigurations.publishAuth.password,
-                      NPM_PASSWORD: stepConfigurations.publishAuth.password,
-                    },
-                    log,
-                  },
-                )
+              const npmhighestVersionInfo = await getNpmhighestVersionInfo({
+                packageName: artifact.data.artifact.packageJson.name,
+                npmRegistry: stepConfigurations.registry,
+                repoPath,
+                log: logger.createLog('wait-until-package-published', { disable: true }),
+              })
+              if (npmhighestVersionInfo?.highestVersion === newVersion) {
                 break
-              } catch (error) {
-                if (error.stderr.includes('E404')) {
-                  await new Promise(res => setTimeout(res, 5_000))
-                } else {
-                  throw error
+              } else {
+                if (i === 0) {
+                  log.info(
+                    `waiting until the npm-reigstry will confirm this publish: "${artifact.data.artifact.packageJson.name}@${newVersion}" (it may take few minutes)......`,
+                  )
                 }
+                await new Promise(res => setTimeout(res, 5_000))
               }
             }
           })
@@ -362,14 +361,6 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
               value: newVersion,
               asBuffer: true,
               ttl: immutableCache.ttls.ArtifactStepResult,
-            }),
-          )
-          .finally(async () =>
-            // revert version to what it was before we changed it
-            setPackageVersion({
-              artifact: artifact.data.artifact,
-              fromVersion: newVersion,
-              toVersion: artifact.data.artifact.packageJson.version,
             }),
           )
 
