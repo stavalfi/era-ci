@@ -11,6 +11,7 @@
   ],
   "types": "dist/src/index.d.ts",
   "dependencies": {
+    "chance": "^1.1.5",
     "npm-login-noninteractive": "^0.1.4",
     "@era-ci/constrains": "^2.0.0",
     "@era-ci/core": "^2.0.0",

@@ -6,7 +6,7 @@ import _ from 'lodash'
 import path from 'path'
 import { firstValueFrom as first, lastValueFrom as last, Observable } from 'rxjs'
 import semver from 'semver'
-import { Artifact, ExecutionStatus, GitRepoInfo, PackageJson, Status, TargetType, UnionArrayValues } from './types'
+import { ExecutionStatus, GitRepoInfo, PackageJson, Status, TargetType, UnionArrayValues } from './types'
 
 export function firstValueFrom<T>(source: Observable<T>): Promise<T> {
   return first(source)
@@ -181,29 +181,6 @@ export function distructPackageJsonName(packageJsonName: string): { name: string
     return { scope, name }
   } else {
     return { name: packageJsonName }
-  }
-}
-
-export const setPackageVersion = async ({
-  toVersion,
-  artifact,
-  fromVersion,
-}: {
-  fromVersion: string
-  toVersion: string
-  artifact: Artifact
-}): Promise<void> => {
-  const packageJsonPath = path.join(artifact.packagePath, 'package.json')
-  const packageJsonAsString = await fs.promises.readFile(packageJsonPath, 'utf-8')
-  const from = `"version": "${fromVersion}"`
-  const to = `"version": "${toVersion}"`
-  if (packageJsonAsString.includes(from)) {
-    const updatedPackageJson = packageJsonAsString.replace(from, to)
-    await fs.promises.writeFile(packageJsonPath, updatedPackageJson, 'utf-8')
-  } else {
-    throw new Error(
-      `could not find the following substring in package.json: '${from}'. is there any missing/extra spaces? package.json as string: ${packageJsonAsString}`,
-    )
   }
 }
 
