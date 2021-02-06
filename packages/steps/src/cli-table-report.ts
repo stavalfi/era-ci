@@ -56,7 +56,10 @@ function generatePackagesStatusReport(jsonReport: JsonReport, logLevel: LogLevel
 
   function getRows() {
     return jsonReport.stepsResultOfArtifactsByArtifact.slice().map(node => ({
-      packageName: node.data.artifact.packageJson.name,
+      packageName:
+        logLevel === LogLevel.info
+          ? node.data.artifact.packageJson.name
+          : `${node.data.artifact.packageJson.name} (${node.data.artifact.packageHash})`,
       stepsStatus: node.data.stepsResult.slice().map(s => {
         if (
           s.data.artifactStepResult.executionStatus === ExecutionStatus.done ||
@@ -103,11 +106,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport, logLevel: LogLevel
   const rowsInTableFormat = rows.flatMap(row => {
     return [
       [
-        ...[
-          row.packageName,
-          ...row.stepsStatus,
-          row.duration ? `${row.artifactStatus} (${row.duration})` : row.artifactStatus,
-        ].map<CellOptions>((content, i) => ({
+        ...[row.packageName, ...row.stepsStatus, row.artifactStatus].map<CellOptions>((content, i) => ({
           rowSpan: Object.keys(row.notes).length || 1,
           vAlign: 'center',
           hAlign: i === 0 ? 'left' : 'center',
