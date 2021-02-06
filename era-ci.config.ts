@@ -148,7 +148,7 @@ export default config({
         isStepEnabled: !CI,
         npmScopeAccess: NpmScopeAccess.public,
         registry: NPM_REGISTRY,
-        publishAuth: {
+        registryAuth: {
           email: NPM_EMAIL,
           username: NPM_USERNAME!,
           password: NPM_PASSWORD!,

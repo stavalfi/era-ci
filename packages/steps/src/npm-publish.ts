@@ -28,7 +28,7 @@ export type NpmPublishConfiguration = {
   isStepEnabled: boolean
   registry: string
   npmScopeAccess: NpmScopeAccess
-  publishAuth: {
+  registryAuth: {
     email: string
     username: string
     password: string
@@ -267,9 +267,9 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
       // we need to login before we run the constrains and before run the artifacts-logic
       await npmRegistryLogin({
         npmRegistry: stepConfigurations.registry,
-        npmRegistryPassword: stepConfigurations.publishAuth.password,
-        npmRegistryEmail: stepConfigurations.publishAuth.email,
-        npmRegistryUsername: stepConfigurations.publishAuth.username,
+        npmRegistryPassword: stepConfigurations.registryAuth.password,
+        npmRegistryEmail: stepConfigurations.registryAuth.email,
+        npmRegistryUsername: stepConfigurations.registryAuth.username,
         repoPath,
         log,
       })

@@ -49,7 +49,7 @@ const steps = createLinearStepsGraph([
     isStepEnabled: Boolean(SHOULD_PUBLISH_NPM),
     npmScopeAccess: NpmScopeAccess.public,
     registry: NPM_REGISTRY!,
-    publishAuth: {
+    registryAuth: {
       email: NPM_EMAIL!,
       username: NPM_USERNAME!,
       password: NPM_PASSWORD!,
