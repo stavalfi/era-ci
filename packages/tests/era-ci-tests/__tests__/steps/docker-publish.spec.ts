@@ -49,7 +49,7 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
           isStepEnabled: true,
           npmScopeAccess: NpmScopeAccess.public,
           registry: getResources().npmRegistry.address,
-          publishAuth: getResources().npmRegistry.auth,
+          registryAuth: getResources().npmRegistry.auth,
         }),
         dockerPublish({
           isStepEnabled: true,

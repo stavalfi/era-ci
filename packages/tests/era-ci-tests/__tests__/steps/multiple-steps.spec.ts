@@ -29,7 +29,7 @@ test(`reproduce bug - flow hangs when there is a npm + docker publishes`, async 
           isStepEnabled: true,
           npmScopeAccess: NpmScopeAccess.public,
           registry: getResources().npmRegistry.address,
-          publishAuth: getResources().npmRegistry.auth,
+          registryAuth: getResources().npmRegistry.auth,
         }),
         dockerPublish({
           isStepEnabled: true,
@@ -65,7 +65,7 @@ test(`reproduce bug - steps are triggered in the wrong time when using waitUntil
           isStepEnabled: true,
           npmScopeAccess: NpmScopeAccess.public,
           registry: getResources().npmRegistry.address,
-          publishAuth: getResources().npmRegistry.auth,
+          registryAuth: getResources().npmRegistry.auth,
         }),
       ]),
     },
