@@ -56,10 +56,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport, logLevel: LogLevel
 
   function getRows() {
     return jsonReport.stepsResultOfArtifactsByArtifact.slice().map(node => ({
-      packageName:
-        logLevel === LogLevel.info
-          ? node.data.artifact.packageJson.name
-          : `${node.data.artifact.packageJson.name} (${node.data.artifact.packageHash})`,
+      packageName: node.data.artifact.packageJson.name,
       stepsStatus: node.data.stepsResult.slice().map(s => {
         if (
           s.data.artifactStepResult.executionStatus === ExecutionStatus.done ||
