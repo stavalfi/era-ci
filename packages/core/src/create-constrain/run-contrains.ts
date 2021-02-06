@@ -5,6 +5,33 @@ import { UserRunStepOptions } from '../create-step'
 import { CombinedConstrainResult, Constrain, ConstrainResult, ConstrainResultType } from './types'
 
 export function getCombinedResult(individualConstrainsResults: ConstrainResult[]): CombinedConstrainResult {
+  const shouldSkipAsPassedConstrains = individualConstrainsResults.filter(
+    c => c.resultType === ConstrainResultType.shouldSkip && c.result.status === Status.skippedAsPassed,
+  )
+  const ignoreConstrains = individualConstrainsResults.filter(
+    c => c.resultType === ConstrainResultType.ignoreThisConstrain,
+  )
+  if (shouldSkipAsPassedConstrains.length > 0) {
+    // if there are some constrains which identified a problem and choose to skip-as-passed,
+    // we prefer to "ignore" the results of the other constrains (even if they chose to skip-as-fail)
+    // USECASE: quay-docker-publish step is disabled and git repo is dirty,
+    // so it should skip as passed but because the git-repo is dirty, it will skip as failed.
+    const combined = [...shouldSkipAsPassedConstrains, ...ignoreConstrains]
+    const notes = _.uniq(_.flatMapDeep(combined.map(r => r.result.notes)))
+    const errors = _.flatMapDeep<ErrorObject>(combined.map(r => r.result.errors))
+
+    return {
+      combinedResultType: ConstrainResultType.shouldSkip,
+      combinedResult: {
+        notes,
+        errors,
+        executionStatus: ExecutionStatus.aborted,
+        status: Status.skippedAsPassed,
+      },
+      individualResults: combined,
+    }
+  }
+
   const canRun = individualConstrainsResults.every(x =>
     [ConstrainResultType.shouldRun, ConstrainResultType.ignoreThisConstrain].includes(x.resultType),
   )
