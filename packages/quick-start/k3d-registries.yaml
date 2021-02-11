@@ -1,0 +1,4 @@
+mirrors:
+  'localhost:35000':
+    endpoint:
+      - http://172.17.0.1:35000 # the url of the docker registry from the docker-compose

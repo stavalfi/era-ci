@@ -16,6 +16,10 @@
   },
   "types": "dist/src/index.d.ts",
   "scripts": {
+    "resources:up": "yarn docker-compose:up && yarn create-k3d-cluster",
+    "resources:down": "yarn docker-compose:down && yarn delete-k3d-cluster",
+    "create-k3d-cluster": "k3d cluster create era-ci-test --volume $(pwd)/k3d-registries.yaml:/etc/rancher/k3s/registries.yaml --wait",
+    "delete-k3d-cluster": "k3d cluster delete era-ci-test",
     "docker-compose:up": "docker-compose -f era-ci-mock-docker-compose.yml up -d --remove-orphans",
     "docker-compose:down": "docker-compose -f era-ci-mock-docker-compose.yml down --remove-orphans",
     "start-mocks": "yarn era-ci-mocks --redis-url localhost:36379 --quay-helper-service-port 9000 --quay-mock-service-port 9001 --docker-registry-url localhost:35000 --docker-fake-org org1 --docker-fake-token token1"

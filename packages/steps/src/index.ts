@@ -10,7 +10,7 @@ export {
   jsonReporterCacheKey,
   jsonReportToString,
 } from './json-reporter'
-export { k8sGcloudDeployment } from './k8s-gcloud-deployment'
+export { k8sDeployment } from './k8s-deployment'
 export { lintRoot } from './lint-root'
 export { npmPublish, npmRegistryLogin, NpmScopeAccess } from './npm-publish'
 export { test } from './test'
