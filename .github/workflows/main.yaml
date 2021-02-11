@@ -15,6 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: install k3d
+        run: curl -s https://raw.githubusercontent.com/rancher/k3d/main/install.sh | bash
+
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:

@@ -18,8 +18,8 @@
     "build": "yarn build:tsc",
     "clean": "yarn build:tsc --clean",
     "build:watch": "yarn build:tsc --watch",
-    "test-resources:up": "yarn workspace @era-ci/quick-start docker-compose:up",
-    "test-resources:down": "yarn workspace @era-ci/quick-start docker-compose:down",
+    "test-resources:up": "yarn workspace @era-ci/quick-start resources:up",
+    "test-resources:down": "yarn workspace @era-ci/quick-start resources:down",
     "test-resources:reset": "yarn test-resources:down && yarn test-resources:up"
   },
   "repository": {

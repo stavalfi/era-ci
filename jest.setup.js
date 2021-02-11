@@ -9,7 +9,7 @@ function timeout() {
   if (process.env.CI) {
     return 100 * 1000
   }
-  return 30 * 1000
+  return 300 * 1000
 }
 
 jest.setTimeout(timeout())
