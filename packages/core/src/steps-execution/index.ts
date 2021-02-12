@@ -68,8 +68,8 @@ export async function runAllSteps(options: Options): Promise<State> {
 
   const flowFinishedPromise = lastValueFrom(
     actions$.pipe(
-      tap(action => logAction({ log: options.log, action })),
       sendRedisCommands(),
+      tap(action => logAction({ log: options.log, action })),
       mergeMap(action => merge(...onActionArray.map(onAction => onAction(action, store.getState)))),
       tap(store.dispatch),
     ),

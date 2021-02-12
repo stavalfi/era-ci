@@ -82,8 +82,8 @@ export const runConstrains = async <StepConfiguration>(
         result: {
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsFailed,
-          notes: [],
           errors: [serializeError(error)],
+          notes: [`see attached error`],
         },
         constrainOptions,
       }))

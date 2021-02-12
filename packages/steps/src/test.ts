@@ -1,7 +1,7 @@
 import {
   skipIfArtifactPackageJsonMissingScriptConstrain,
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
-  skipIfArtifactStepResultMissingOrPassedInCacheConstrain,
+  skipIfArtifactStepResultPassedInCacheConstrain,
   skipIfStepIsDisabledConstrain,
   skipIfStepResultMissingOrFailedInCacheConstrain,
 } from '@era-ci/constrains'
@@ -63,7 +63,7 @@ export const test = createStep<TaskWorkerTaskQueue, TestConfigurations>({
           stepNameToSearchInCache: 'test',
         }),
       artifact =>
-        skipIfArtifactStepResultMissingOrPassedInCacheConstrain({
+        skipIfArtifactStepResultPassedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'test',
         }),

@@ -15,6 +15,7 @@
   },
   "types": "dist/src/index.d.ts",
   "dependencies": {
+    "pretty-ms": "^7.0.0",
     "source-map-support": "0.5.19",
     "@era-ci/core": "^2.0.0",
     "@era-ci/loggers": "^2.0.0",
