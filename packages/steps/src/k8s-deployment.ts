@@ -75,7 +75,9 @@ enum DeploymentStatus {
 function getUpdatedDeploymentStatus({
   reDeploymentResult,
   updatedDeployment,
+  log,
 }: {
+  log: Log
   reDeploymentResult: k8s.V1Deployment
   updatedDeployment: k8s.V1Deployment
 }): { newReplicaSetName?: string } & (
@@ -133,10 +135,8 @@ function getUpdatedDeploymentStatus({
       updatedDeployment.status.replicas === updatedDeployment.status.updatedReplicas &&
       updatedDeployment.status.replicas === updatedDeployment.status.availableReplicas
     ) {
-      // eslint-disable-next-line no-console
-      console.log('stav1', JSON.stringify(reDeploymentResult, null, 2))
-      // eslint-disable-next-line no-console
-      console.log('stav2', JSON.stringify(updatedDeployment, null, 2))
+      log.info(`stav1: ${JSON.stringify(reDeploymentResult, null, 2)}`)
+      log.info(`stav2: ${JSON.stringify(updatedDeployment, null, 2)}`)
       return { status: DeploymentStatus.Succees, newReplicaSetName: extractReplicaSetName(updatedDeployment)! }
     }
   }
@@ -295,11 +295,13 @@ const waitDeploymentReady = ({
   k8sNamesapce,
   reDeploymentResult,
   failDeplomentOnPodError,
+  log,
 }: {
   kc: k8s.KubeConfig
   k8sNamesapce: string
   reDeploymentResult: k8s.V1Deployment
   failDeplomentOnPodError: boolean
+  log: Log
 }) => {
   const watch = new k8s.Watch(kc)
   let abortDeploymentWatch: { abort: () => void }
@@ -344,6 +346,7 @@ const waitDeploymentReady = ({
                   const result = getUpdatedDeploymentStatus({
                     reDeploymentResult,
                     updatedDeployment,
+                    log,
                   })
                   switch (result.status) {
                     case DeploymentStatus.NotReadYet:
@@ -466,6 +469,7 @@ async function deployAndWait({
     k8sNamesapce,
     kc,
     failDeplomentOnPodError,
+    log,
   })
 
   const result = await deploymentWatch.startWatch()
