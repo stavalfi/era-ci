@@ -2,7 +2,7 @@ import {
   skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
   skipIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
-import { ConstrainResultType, createConstrain, createStep, getReturnValue } from '@era-ci/core'
+import { ConstrainResultType, createConstrain, createStep, getReturnValue, Log, UserReturnValue } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { Artifact, ExecutionStatus, getPackageTargetTypes, Node, Status, TargetType } from '@era-ci/utils'
 import * as k8s from '@kubernetes/client-node'
@@ -16,6 +16,7 @@ export type k8sDeploymentConfiguration = {
   artifactNameToDeploymentName: (options: { artifactName: string }) => string
   artifactNameToContainerName: (options: { artifactName: string }) => string
   ignorePackageNames?: string[]
+  failDeplomentOnPodError: boolean
 }
 
 const customConstrain = createConstrain<
@@ -51,13 +52,24 @@ const customConstrain = createConstrain<
   },
 })
 
+function extractReplicaSetName(deployment: k8s.V1Deployment): string | undefined {
+  const replicateSetCondition = deployment.status?.conditions?.find(c =>
+    ['NewReplicaSetAvailable', 'ReplicaSetUpdated'].includes(c.reason ?? ''),
+  )
+  // I don't like it as much as you do but I couldn't find a better thread-safe way to do it:
+  // https://github.com/kubernetes/kubectl/issues/1022#issuecomment-778195073
+  const replicateSetName = replicateSetCondition?.message?.match(/ReplicaSet "(.*)"/)?.[1]
+  return replicateSetName
+}
+
 enum DeploymentStatus {
-  NotReadYet = 'NotReadYet',
-  ThereWasAddtionalDeployment = 'there-was-addtional-deployment',
-  Timeout = 'timeout',
-  Succees = 'success',
-  deleted = 'deployment-deleted',
-  created = 'deployment-created',
+  NotReadYet = 'deployment---NotReadYet',
+  PodFailed = 'deployment---pod-failed',
+  ThereWasAddtionalDeployment = 'deployment---there-was-addtional-deployment',
+  Timeout = 'deployment---timeout',
+  Succees = 'deployment---success',
+  deleted = 'deployment---deleted',
+  created = 'deployment---created',
 }
 
 function getUpdatedDeploymentStatus({
@@ -66,11 +78,13 @@ function getUpdatedDeploymentStatus({
 }: {
   reDeploymentResult: k8s.V1Deployment
   updatedDeployment: k8s.V1Deployment
-}):
+}): { newReplicaSetName?: string } & (
   | {
-      status: DeploymentStatus.Succees | DeploymentStatus.Timeout | DeploymentStatus.NotReadYet
+      status: DeploymentStatus.Succees | DeploymentStatus.NotReadYet
     }
-  | { status: DeploymentStatus.ThereWasAddtionalDeployment; newDeploymentGeneration: number } {
+  | { status: DeploymentStatus.Timeout; replicateSetNameWithTimeout: string }
+  | { status: DeploymentStatus.ThereWasAddtionalDeployment; newDeploymentGeneration: number }
+) {
   // https://stackoverflow.com/questions/47100389/what-is-the-difference-between-a-resourceversion-and-a-generation/66092577#66092577
   // generation === the id of the replicateSet which a deployment should track on.
   // observedGeneration === the id of the replicateSet which a deployment track on right now.
@@ -91,7 +105,11 @@ function getUpdatedDeploymentStatus({
   }
 
   if (currentGeneration > generationToTrackOn) {
-    return { status: DeploymentStatus.ThereWasAddtionalDeployment, newDeploymentGeneration: currentGeneration }
+    return {
+      status: DeploymentStatus.ThereWasAddtionalDeployment,
+      newDeploymentGeneration: currentGeneration,
+      newReplicaSetName: extractReplicaSetName(updatedDeployment)!,
+    }
   }
 
   // the following is a copy-paste from GO to NodeJS from kubectl source code to understand if the deployment passed or failed:
@@ -101,7 +119,11 @@ function getUpdatedDeploymentStatus({
     const progressingCondition = updatedDeployment.status?.conditions?.find(c => c.type === 'Progressing')
     // https://github.com/uswitch/kubernetes-autoscaler/blob/master/cluster-autoscaler/vendor/k8s.io/kubernetes/pkg/kubectl/util/deployment/deployment.go#L52
     if (progressingCondition?.reason === 'ProgressDeadlineExceeded') {
-      return { status: DeploymentStatus.Timeout }
+      return {
+        status: DeploymentStatus.Timeout,
+        replicateSetNameWithTimeout: extractReplicaSetName(updatedDeployment)!,
+        newReplicaSetName: extractReplicaSetName(updatedDeployment)!,
+      }
     }
     if (
       updatedDeployment.spec?.replicas !== undefined &&
@@ -111,18 +133,22 @@ function getUpdatedDeploymentStatus({
       updatedDeployment.status.replicas === updatedDeployment.status.updatedReplicas &&
       updatedDeployment.status.replicas === updatedDeployment.status.availableReplicas
     ) {
-      return { status: DeploymentStatus.Succees }
+      // eslint-disable-next-line no-console
+      console.log('stav1', JSON.stringify(reDeploymentResult, null, 2))
+      // eslint-disable-next-line no-console
+      console.log('stav2', JSON.stringify(updatedDeployment, null, 2))
+      return { status: DeploymentStatus.Succees, newReplicaSetName: extractReplicaSetName(updatedDeployment)! }
     }
   }
 
-  return { status: DeploymentStatus.NotReadYet }
+  return { status: DeploymentStatus.NotReadYet, newReplicaSetName: extractReplicaSetName(updatedDeployment) }
 }
 
 const deploy = async ({
   changeCause,
   containerName,
   deploymentApi,
-  newFullImageName,
+  fullImageName,
   deploymentName,
   k8sNamesapce,
 }: {
@@ -130,7 +156,7 @@ const deploy = async ({
   deploymentName: string
   deploymentApi: k8s.AppsV1Api
   containerName: string
-  newFullImageName: string
+  fullImageName: string
   k8sNamesapce: string
 }): Promise<k8s.V1Deployment> => {
   try {
@@ -147,7 +173,7 @@ const deploy = async ({
             containers: [
               {
                 name: containerName,
-                image: newFullImageName,
+                image: fullImageName,
               },
             ],
           },
@@ -172,111 +198,355 @@ const deploy = async ({
   }
 }
 
-export type K8sResource =
-  | k8s.V1Service
-  | k8s.V1Deployment
-  | k8s.V1beta1CronJob
-  | k8s.V1Namespace
-  | k8s.V1Pod
-  | k8s.V1Role
-  | k8s.V1RoleBinding
-  | k8s.V1ClusterRole
-  | k8s.V1ClusterRoleBinding
+enum PodStatus {
+  failed = 'pod---NotReadYet',
+  somethingElse = 'pod---something-else',
+}
 
-const waitDeploymentReady = async ({
+enum PodFailureReason {
+  ImagePullBackOff = 'ImagePullBackOff',
+  CrashLoopBackOff = 'CrashLoopBackOff',
+}
+
+type PodWatchResult =
+  | { status: PodStatus.somethingElse }
+  | { status: PodStatus.failed; reason: PodFailureReason; podName: string }
+
+// this function is the best implementation I could think of on how to identify that a pod failed.
+// I probably missed alot of other reasons but that's ok because 99% of the time, it will be
+// because of image not available or a code-bug in the image and we identity it here.
+// for any other reason, to make sure that Era-ci don't hangs while one of the pods failed:
+// specify 'progressDeadlineSeconds' in the deployment and the deployment-watch will cancel & revert the deployment.
+const waitPodFailure = ({
+  kc,
+  k8sNamesapce,
+  replicaSetPodsToWatch,
+}: {
+  kc: k8s.KubeConfig
+  k8sNamesapce: string
+  replicaSetPodsToWatch: string
+}) => {
+  const watch = new k8s.Watch(kc)
+  let watchResponse: { abort: () => void }
+  return {
+    abortWatch: () => watchResponse.abort(),
+    startWatch: () =>
+      new Promise<PodWatchResult>((res, rej) => {
+        if (watchResponse) {
+          return rej('watch already started')
+        }
+        watch
+          .watch(
+            `/api/v1/namespaces/${k8sNamesapce}/pods`,
+            {},
+            // NOTE: don't throw from this function because k8s-client will just hangs forever
+            (type: string, updatedPod?: k8s.V1Pod) => {
+              const isPodBelongsToReplicaSet = updatedPod?.metadata?.ownerReferences?.some(
+                o => o.kind === 'ReplicaSet' && o.name === replicaSetPodsToWatch,
+              )
+              if (!updatedPod || !isPodBelongsToReplicaSet) {
+                return
+              }
+              switch (type) {
+                case 'DELETED':
+                  break
+                case 'ADDED':
+                case 'MODIFIED': {
+                  const failure = updatedPod.status?.containerStatuses?.find(s =>
+                    ['ImagePullBackOff', 'CrashLoopBackOff'].includes(s.state?.waiting?.reason ?? ''),
+                  )
+                  if (failure) {
+                    watchResponse.abort()
+                    res({
+                      status: PodStatus.failed,
+                      reason: failure.state?.waiting?.reason! as PodFailureReason,
+                      podName: updatedPod.metadata?.name!,
+                    })
+                  }
+                  break
+                }
+              }
+            },
+            function done() {
+              // if we are here, it means that we closed the watch from this function or the deployment-watch finished/failed first
+              res({ status: PodStatus.somethingElse })
+            },
+            function error(error: unknown) {
+              rej(error)
+            },
+          )
+          .then(r => {
+            watchResponse = r
+          })
+      }),
+  }
+}
+
+type DeploymentWatchResult =
+  | {
+      status: DeploymentStatus.Succees | DeploymentStatus.created | DeploymentStatus.deleted
+    }
+  | { status: DeploymentStatus.Timeout; replicateSetNameWithTimeout: string }
+  | { status: DeploymentStatus.ThereWasAddtionalDeployment; newDeploymentGeneration: number }
+  | { status: DeploymentStatus.PodFailed; reason: PodFailureReason; podName: string }
+
+const waitDeploymentReady = ({
   kc,
   k8sNamesapce,
   reDeploymentResult,
+  failDeplomentOnPodError,
 }: {
   kc: k8s.KubeConfig
   k8sNamesapce: string
   reDeploymentResult: k8s.V1Deployment
+  failDeplomentOnPodError: boolean
 }) => {
-  // more info: https://kubernetes.io/docs/reference/using-api/api-concepts/#efficient-detection-of-changes
-  // const { resourceVersion } = deployment.metadata ?? {}
-  // if (!resourceVersion) {
-  //   throw new Error(`can't track on changes of the deployment because resourceVersion is missing`)
-  // }
   const watch = new k8s.Watch(kc)
-  return new Promise<
-    | {
-        status:
-          | DeploymentStatus.Succees
-          | DeploymentStatus.Timeout
-          | DeploymentStatus.created
-          | DeploymentStatus.deleted
-      }
-    | { status: DeploymentStatus.ThereWasAddtionalDeployment; newDeploymentGeneration: number }
-  >((res, rej) => {
-    let watchResponse: { abort: () => void }
-    const requestedDeploymentRevision = reDeploymentResult.metadata?.annotations?.['deployment.kubernetes.io/revision']
-    const initialDeploymentResourceRevision = reDeploymentResult.metadata?.resourceVersion
-    if (!initialDeploymentResourceRevision) {
-      throw new Error(`we can't be here20`)
-    }
-    if (!requestedDeploymentRevision) {
-      throw new Error(`we can't be here21`)
-    }
-    watch
-      .watch(
-        `/apis/apps/v1/namespaces/${k8sNamesapce}/deployments`,
-        {
-          resourceVersion: initialDeploymentResourceRevision,
-        },
-        // NOTE: don't throw from this function because k8s-client will just hangs forever
-        (type: string, updatedDeployment: k8s.V1Deployment) => {
-          if (updatedDeployment.metadata?.name !== reDeploymentResult.metadata?.name) {
-            return
-          }
-          switch (type) {
-            case 'DELETED':
-              watchResponse.abort()
-              res({ status: DeploymentStatus.deleted })
-              break
-            case 'ADDED':
-              watchResponse.abort()
-              res({ status: DeploymentStatus.created })
-              break
-            case 'MODIFIED': {
-              const result = getUpdatedDeploymentStatus({
-                reDeploymentResult,
-                updatedDeployment,
-              })
-              switch (result.status) {
-                case DeploymentStatus.NotReadYet:
-                  break
-                case DeploymentStatus.ThereWasAddtionalDeployment:
-                  watchResponse.abort()
-                  res({
-                    status: result.status,
-                    newDeploymentGeneration: result.newDeploymentGeneration,
-                  })
-                  break
-                case DeploymentStatus.Succees:
-                case DeploymentStatus.Timeout:
-                  watchResponse.abort()
-                  res({
-                    status: result.status,
-                  })
+  let abortDeploymentWatch: { abort: () => void }
+  let abortPodWatch: () => void
+  return {
+    abortWatch: () => abortDeploymentWatch.abort(),
+    startWatch: () =>
+      new Promise<DeploymentWatchResult>((res, rej) => {
+        if (abortDeploymentWatch) {
+          return rej('watch already started')
+        }
+        const requestedDeploymentRevision =
+          reDeploymentResult.metadata?.annotations?.['deployment.kubernetes.io/revision']
+        const initialDeploymentResourceRevision = reDeploymentResult.metadata?.resourceVersion
+        if (!initialDeploymentResourceRevision) {
+          throw new Error(`we can't be here20`)
+        }
+        if (!requestedDeploymentRevision) {
+          throw new Error(`we can't be here21`)
+        }
+        watch
+          .watch(
+            `/apis/apps/v1/namespaces/${k8sNamesapce}/deployments`,
+            {
+              resourceVersion: initialDeploymentResourceRevision,
+            },
+            // NOTE: don't throw from this function because k8s-client will just hangs forever
+            async (type: string, updatedDeployment?: k8s.V1Deployment) => {
+              if (!updatedDeployment || updatedDeployment.metadata?.name !== reDeploymentResult.metadata?.name) {
+                return
               }
-            }
-          }
-        },
-        function done() {
-          rej(
-            new Error(
-              `k8s-watch has ended but we didn't recognize that the deployment "${reDeploymentResult.metadata?.name}" passed`,
-            ),
+              switch (type) {
+                case 'DELETED':
+                  abortDeploymentWatch.abort()
+                  res({ status: DeploymentStatus.deleted })
+                  break
+                case 'ADDED':
+                  abortDeploymentWatch.abort()
+                  res({ status: DeploymentStatus.created })
+                  break
+                case 'MODIFIED': {
+                  const result = getUpdatedDeploymentStatus({
+                    reDeploymentResult,
+                    updatedDeployment,
+                  })
+                  switch (result.status) {
+                    case DeploymentStatus.NotReadYet:
+                      if (result.newReplicaSetName && !abortPodWatch && failDeplomentOnPodError) {
+                        const podWatch = waitPodFailure({
+                          k8sNamesapce,
+                          kc,
+                          replicaSetPodsToWatch: result.newReplicaSetName,
+                        })
+                        abortPodWatch = podWatch.abortWatch
+                        const podResult = await podWatch.startWatch()
+                        if (podResult.status === PodStatus.failed) {
+                          abortDeploymentWatch.abort()
+                          return res({
+                            status: DeploymentStatus.PodFailed,
+                            podName: podResult.podName,
+                            reason: podResult.reason,
+                          })
+                        }
+                      }
+                      return
+                    case DeploymentStatus.ThereWasAddtionalDeployment:
+                      abortDeploymentWatch.abort()
+                      if (abortPodWatch) {
+                        abortPodWatch()
+                      }
+                      res({
+                        status: result.status,
+                        newDeploymentGeneration: result.newDeploymentGeneration,
+                      })
+                      return
+                    case DeploymentStatus.Succees:
+                      abortDeploymentWatch.abort()
+                      if (abortPodWatch) {
+                        abortPodWatch()
+                      }
+                      res({
+                        status: result.status,
+                      })
+                      return
+                    case DeploymentStatus.Timeout:
+                      abortDeploymentWatch.abort()
+                      if (abortPodWatch) {
+                        abortPodWatch()
+                      }
+                      res({
+                        status: result.status,
+                        replicateSetNameWithTimeout: result.replicateSetNameWithTimeout,
+                      })
+                      return
+                  }
+                }
+              }
+            },
+            function done() {
+              rej(
+                new Error(
+                  `if we are here, it means that we already resolved the promise so the rejection will be ignored. if you see this error, then it means you found a bug.`,
+                ),
+              )
+            },
+            function error(error: unknown) {
+              rej(error)
+            },
           )
-        },
-        function error(error: unknown) {
-          rej(error)
-        },
-      )
-      .then(r => {
-        watchResponse = r
-      })
+          .then(r => {
+            abortDeploymentWatch = r
+          })
+      }),
+  }
+}
+
+async function deployAndWait({
+  log,
+  changeCause,
+  deploymentName,
+  k8sNamesapce,
+  newFullImageName,
+  deploymentApi,
+  containerName,
+  kc,
+  failDeplomentOnPodError,
+}: {
+  containerName: string
+  changeCause: string
+  newFullImageName: string
+  deploymentApi: k8s.AppsV1Api
+  deploymentName: string
+  k8sNamesapce: string
+  log: Log
+  kc: k8s.KubeConfig
+  failDeplomentOnPodError: boolean
+}): Promise<UserReturnValue | undefined | void> {
+  log.info(`trying to deploy image: "${newFullImageName}" in deployment: "${deploymentName}"`)
+
+  const reDeploymentResult = await deploy({
+    changeCause,
+    containerName,
+    fullImageName: newFullImageName,
+    deploymentApi,
+    deploymentName,
+    k8sNamesapce,
   })
+
+  if (reDeploymentResult.metadata?.generation === reDeploymentResult.status?.observedGeneration) {
+    return {
+      executionStatus: ExecutionStatus.aborted,
+      status: Status.skippedAsPassed,
+      notes: [`nothing new to deploy`],
+    }
+  }
+
+  const newReplicaSetName = extractReplicaSetName(reDeploymentResult)
+  if (!newReplicaSetName) {
+    throw new Error(`can't find replicaSet name of the deployment`)
+  }
+
+  const deploymentWatch = waitDeploymentReady({
+    reDeploymentResult,
+    k8sNamesapce,
+    kc,
+    failDeplomentOnPodError,
+  })
+
+  const result = await deploymentWatch.startWatch()
+
+  switch (result.status) {
+    case DeploymentStatus.PodFailed: {
+      const note = `failed to deploy. reason: pod: "${result.podName}" failed to run. \
+manually check the problem, commit a fix and run the CI again`
+
+      log.error(note)
+
+      return {
+        executionStatus: ExecutionStatus.done,
+        status: Status.failed,
+        notes: [note],
+      }
+    }
+    case DeploymentStatus.Succees: {
+      const note = `successfully deployd image: "${newFullImageName}"`
+
+      log.info(note)
+
+      return {
+        executionStatus: ExecutionStatus.done,
+        status: Status.passed,
+        notes: [note],
+      }
+    }
+    case DeploymentStatus.ThereWasAddtionalDeployment: {
+      const note = `failed to deploy. reason: there was a new deployment while \
+waiting until the requested deployment will be ready. requested-deployment-generation: "${reDeploymentResult.metadata?.generation}". \
+new-deployment-generation: "${result.newDeploymentGeneration}". for more help - run: \
+"kubectl rollout history -n ${k8sNamesapce} deploy ${reDeploymentResult.metadata?.name}"`
+
+      log.error(note)
+
+      return {
+        executionStatus: ExecutionStatus.done,
+        status: Status.failed,
+        notes: [note],
+      }
+    }
+    case DeploymentStatus.created: {
+      const note = `failed to deploy. reason: the deployment was deleted \
+and recreated while the CI was running. please check it out and run the CI again after it is finished`
+
+      log.error(note)
+
+      return {
+        executionStatus: ExecutionStatus.done,
+        status: Status.failed,
+        notes: [note],
+      }
+    }
+    case DeploymentStatus.deleted: {
+      const note = `failed to deploy. reason: the deployment was deleted. \
+please check it out and run the CI again after it is finished`
+
+      log.error(note)
+
+      return {
+        executionStatus: ExecutionStatus.done,
+        status: Status.failed,
+        notes: [note],
+      }
+    }
+    case DeploymentStatus.Timeout: {
+      const timeoutSeconds = reDeploymentResult.spec?.progressDeadlineSeconds!
+
+      const note = `failed to deploy. reason: the specified timeout (progressDeadlineSeconds) \
+was reached: "${timeoutSeconds}" seconds. manually check the problem, commit a fix and run the CI again`
+
+      log.error(note)
+
+      return {
+        executionStatus: ExecutionStatus.done,
+        status: Status.failed,
+        notes: [note],
+      }
+    }
+  }
 }
 
 export const k8sDeployment = createStep<
@@ -291,7 +561,7 @@ export const k8sDeployment = createStep<
     ...config,
     ignorePackageNames: config.ignorePackageNames ?? [],
   }),
-  run: async ({ stepConfigurations, getState, steps, artifacts }) => {
+  run: async ({ stepConfigurations, getState, steps, artifacts, log }) => {
     const kc = new k8s.KubeConfig()
     kc.loadFromString(Buffer.from(stepConfigurations.kubeConfigBase64, 'base64').toString())
     const deploymentApi = kc.makeApiClient(k8s.AppsV1Api)
@@ -303,11 +573,11 @@ export const k8sDeployment = createStep<
           skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'docker-publish',
-
             skipAsPassedIfStepNotExists: false,
           }),
         artifact => customConstrain({ currentArtifact: artifact }),
       ],
+      onBeforeArtifacts: async () => log.info(`starting to deploy to k8s. Please don't stop the CI manually!`),
       onArtifact: async ({ artifact }) => {
         const artifactName = artifact.data.artifact.packageJson.name
         const deploymentName = stepConfigurations.artifactNameToDeploymentName({ artifactName })
@@ -322,57 +592,17 @@ export const k8sDeployment = createStep<
           mapper: _.identity,
         })
 
-        const reDeploymentResult = await deploy({
-          changeCause: `era-ci automation - to image (image-name:<git-revision>): ${newFullImageName}`,
-          containerName,
-          newFullImageName,
-          deploymentApi,
-          deploymentName,
-          k8sNamesapce: stepConfigurations.k8sNamesapce,
-        })
-
-        const result = await waitDeploymentReady({
-          reDeploymentResult,
-          k8sNamesapce: stepConfigurations.k8sNamesapce,
+        return deployAndWait({
           kc,
+          deploymentApi,
+          changeCause: `era-ci automation - to image (image-name:<version=git-revision>): ${newFullImageName}`,
+          log,
+          newFullImageName,
+          k8sNamesapce: stepConfigurations.k8sNamesapce,
+          deploymentName,
+          containerName,
+          failDeplomentOnPodError: stepConfigurations.failDeplomentOnPodError,
         })
-
-        switch (result.status) {
-          case DeploymentStatus.Succees:
-            return
-          case DeploymentStatus.ThereWasAddtionalDeployment:
-            return {
-              executionStatus: ExecutionStatus.done,
-              status: Status.failed,
-              notes: [
-                `there was a new deployment while waiting until the reuqets deployment will be ready ready.\
-                 requested-deployment-generation: "${reDeploymentResult.metadata?.generation}". new-deployment-generation: "${result.newDeploymentGeneration}".\
-                 for more help - run: "kubectl rollout history -n ${stepConfigurations.k8sNamesapce} deploy ${reDeploymentResult.metadata?.name}"`,
-              ],
-            }
-          case DeploymentStatus.created:
-            return {
-              executionStatus: ExecutionStatus.done,
-              status: Status.failed,
-              notes: [
-                `the deployment was deleted and recreated while the CI was running. please check it out and run the CI again`,
-              ],
-            }
-          case DeploymentStatus.deleted:
-            return {
-              executionStatus: ExecutionStatus.done,
-              status: Status.failed,
-              notes: [`the deployment was deleted`],
-            }
-          case DeploymentStatus.Timeout:
-            return {
-              executionStatus: ExecutionStatus.done,
-              status: Status.failed,
-              notes: [
-                `deployment timeout. run: "kubectl describe deploy ${reDeploymentResult.metadata?.name}". look for odd behavior`,
-              ],
-            }
-        }
       },
     }
   },
