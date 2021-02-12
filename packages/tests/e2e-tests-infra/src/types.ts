@@ -1,4 +1,4 @@
-import { Config, Logger, LogLevel, RedisFlowEvent, TaskQueueBase } from '@era-ci/core'
+import { Config, Log, Logger, LogLevel, RedisFlowEvent, TaskQueueBase } from '@era-ci/core'
 import { JsonReport } from '@era-ci/steps'
 import { Graph, PackageJson, StepInfo, TargetType } from '@era-ci/utils'
 import { FolderStructure } from 'create-folder-structure'
@@ -6,6 +6,7 @@ import { Redis } from 'ioredis'
 import { IDependencyMap } from 'package-json-type'
 import { DeepPartial } from 'ts-essentials'
 import { GitServer } from './git-server-testkit'
+import { AppsV1Api, V1Deployment } from '@kubernetes/client-node'
 
 export type TestWithContextType = {
   resources: TestResources
@@ -27,6 +28,7 @@ export type GetCleanups = () => {
 }
 
 export type TestFuncs = {
+  k8sHelpers: K8sHelpers
   sleep: (ms: number) => Promise<void>
   getProcessEnv: () => TestProcessEnv
   getResources: () => TestResources
@@ -79,6 +81,10 @@ export type TestResources = {
   quayToken: string
   quayBuildStatusChangedRedisTopic: string
   redisFlowEventsSubscriptionsConnection: Redis
+  k8s: {
+    kubeConfigBase64: string
+    deploymentApi: AppsV1Api
+  }
 }
 
 export type ToActualName = (name: string) => string
@@ -105,6 +111,7 @@ export type CreateRepo = (
     | CreateRepoOptions<TaskQueueBase<any, any>>
     | ((toActualName: ToActualName) => CreateRepoOptions<TaskQueueBase<any, any>>),
 ) => Promise<{
+  testLog: Log
   repoPath: string
   repoName: string
   gitHeadCommit: () => Promise<string>
@@ -125,3 +132,18 @@ export type RunCiResult = {
 }
 
 type Deployment = { address: string; cleanup: () => Promise<unknown> }
+
+export type CreateK8sDeployment = (options: {
+  namespaceName: string
+  deploymentName: string
+  podName: string
+  containerName: string
+  fullImageName: string
+  portInContainer: number
+  labels: { app: string }
+  progressDeadlineSeconds?: number
+}) => Promise<V1Deployment>
+
+export type FindPodName = (deploymentName: string) => Promise<string | undefined>
+
+export type K8sHelpers = { createK8sDeployment: CreateK8sDeployment; findPodName: FindPodName }

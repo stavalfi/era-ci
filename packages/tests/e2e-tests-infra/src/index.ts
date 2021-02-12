@@ -17,19 +17,19 @@ import { ExecutionStatus, Status } from '@era-ci/utils'
 import chance from 'chance'
 import execa from 'execa'
 import fse from 'fs-extra'
+import Redis from 'ioredis'
 import path from 'path'
 import { createGitRepo } from './create-git-repo'
 import { resourcesBeforeAfterEach } from './prepare-test-resources'
 import { getPublishResult } from './seach-targets'
 import { Cleanup, CreateRepo, GetCleanups, RunCiResult, TestFuncs, TestProcessEnv, TestResources } from './types'
-import { addReportToStepsAsLastNodes } from './utils'
-import Redis from 'ioredis'
+import { addReportToStepsAsLastNodes, k8sHelpers } from './utils'
 
 export { createGitRepo } from './create-git-repo'
-export { resourcesBeforeAfterEach } from './prepare-test-resources'
-export { CreateRepo, DeepPartial, TestResources, TestWithContextType, TestFuncs } from './types'
-export { isDeepSubset } from './utils'
 export { GitServer } from './git-server-testkit'
+export { resourcesBeforeAfterEach } from './prepare-test-resources'
+export { CreateRepo, DeepPartial, TestFuncs, TestResources, TestWithContextType } from './types'
+export { isDeepSubset } from './utils'
 
 const getJsonReport = (testFuncs: TestFuncs) => async ({
   flowId,
@@ -233,6 +233,7 @@ export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options =>
   })
 
   return {
+    testLog: testLogger.createLog('test'),
     repoName,
     repoPath,
     gitHeadCommit: () =>
@@ -332,6 +333,7 @@ export function createTest(options?: {
   })
 
   const testFuncs: TestFuncs = {
+    k8sHelpers: k8sHelpers({ getResources, getCleanups, createTestLogger }),
     sleep: sleep(getCleanups),
     createRedisConnection: createRedisConnection({ getResources, getCleanups }),
     getProcessEnv,

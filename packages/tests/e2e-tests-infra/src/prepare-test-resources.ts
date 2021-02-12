@@ -5,6 +5,36 @@ import chance from 'chance'
 import Redis from 'ioredis'
 import { starGittServer } from './git-server-testkit'
 import { GetCleanups, TestProcessEnv, TestResources } from './types'
+import * as k8s from '@kubernetes/client-node'
+import path from 'path'
+import fs from 'fs'
+import os from 'os'
+
+async function k8sResources(): Promise<{
+  kubeConfigBase64: string
+  deploymentApi: k8s.AppsV1Api
+}> {
+  const kc = new k8s.KubeConfig()
+  const kubeConfigFile = await fs.promises.readFile(path.join(os.homedir(), '.kube', 'config'), 'utf-8')
+  if (!kubeConfigFile.includes('current-context: k3d-era-ci-test')) {
+    const currentConetxt = kubeConfigFile.split('current-context: ')[1].split('\n')[0]
+    throw new Error(
+      `for extra precution to avoid running era-ci tests on your production k8s cluster, \
+we only allow to run era-ci tests on k3d and set the cluster name to "default". please change your current-context. current-context: "${currentConetxt}"`,
+    )
+  }
+
+  const kubeConfigBase64 = Buffer.from(kubeConfigFile).toString('base64')
+
+  kc.loadFromString(kubeConfigFile)
+
+  const deploymentApi = kc.makeApiClient(k8s.AppsV1Api)
+
+  return {
+    kubeConfigBase64,
+    deploymentApi,
+  }
+}
 
 export function resourcesBeforeAfterEach(options: {
   getProcessEnv: () => TestProcessEnv
@@ -25,7 +55,8 @@ export function resourcesBeforeAfterEach(options: {
       lazyConnect: true,
     })
 
-    const [quayMockService, quayHelperService, gitServer] = await Promise.all([
+    const [k8s, quayMockService, quayHelperService, gitServer] = await Promise.all([
+      k8sResources(),
       options?.startQuayMockService
         ? await startQuayMockService({
             isTestMode: true,
@@ -60,6 +91,7 @@ export function resourcesBeforeAfterEach(options: {
     })
 
     resources = {
+      k8s,
       npmRegistry: {
         address: `http://localhost:34873`,
         auth: {

@@ -1,8 +1,11 @@
-import { Config, TaskQueueBase } from '@era-ci/core'
+import { Config, Logger, TaskQueueBase } from '@era-ci/core'
 import { cliTableReporter, jsonReporter } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
+import { V1Pod } from '@kubernetes/client-node'
 import _ from 'lodash'
-import { DeepPartial } from './types'
+import { execaCommand } from '@era-ci/utils'
+import { CreateK8sDeployment, DeepPartial, FindPodName, GetCleanups, K8sHelpers, TestResources } from './types'
+import os from 'os'
 
 function isDeepSubsetOf<T = unknown>({
   subset,
@@ -142,4 +145,81 @@ export function addReportToStepsAsLastNodes(
   })
 
   return [...stepsCopy, ...additionalSteps]
+}
+
+export const k8sHelpers = ({
+  getCleanups,
+  getResources,
+  createTestLogger,
+}: {
+  getCleanups: GetCleanups
+  getResources: () => TestResources
+  createTestLogger: (repoPath: string) => Promise<Logger>
+}): K8sHelpers => {
+  const createK8sDeployment: CreateK8sDeployment = options =>
+    getResources()
+      .k8s.deploymentApi.createNamespacedDeployment(options.namespaceName, {
+        apiVersion: 'apps/v1',
+        kind: 'Deployment',
+        metadata: {
+          name: options.deploymentName,
+          labels: options.labels,
+        },
+        spec: {
+          progressDeadlineSeconds: options.progressDeadlineSeconds,
+          replicas: 1,
+          selector: {
+            matchLabels: options.labels,
+          },
+          template: {
+            metadata: {
+              name: options.podName,
+              labels: options.labels,
+            },
+            spec: {
+              terminationGracePeriodSeconds: 2,
+              containers: [
+                {
+                  name: options.containerName,
+                  image: options.fullImageName,
+                  ports: [
+                    {
+                      containerPort: options.portInContainer,
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      })
+      .then(
+        r => {
+          // getCleanups().cleanups.push(() =>
+          //   getResources().k8s.deploymentApi.deleteNamespacedDeployment(r.body.metadata?.name!, options.namespaceName),
+          // )
+          return r.body
+        },
+        error => {
+          throw JSON.stringify(error.response, null, 2)
+        },
+      )
+
+  const findPodName: FindPodName = async (deploymentName: string): Promise<string | undefined> => {
+    const testLogger = await createTestLogger(os.tmpdir())
+
+    const { stdout: podListJsonString } = await execaCommand(
+      `kubectl get pods -l=app=${deploymentName} --output json`,
+      {
+        log: testLogger.createLog('test'),
+        stdio: 'pipe',
+      },
+    )
+    const pods: V1Pod[] = JSON.parse(podListJsonString).items
+    // the crushed pod with the new image may not deleted yet so we search the valid pod which is running
+    return pods.find(pod => pod.status?.conditions?.some(c => c.type === 'Ready' && c.status === 'True'))?.metadata
+      ?.name
+  }
+
+  return { createK8sDeployment, findPodName }
 }
