@@ -1,11 +1,11 @@
 import { ConstrainResultType, createConstrain } from '@era-ci/core'
 import { didPassOrSkippedAsPassed, ExecutionStatus, Status } from '@era-ci/utils'
 
-export const skipIfStepResultMissingOrPassedInCacheConstrain = createConstrain<{
+export const skipIfStepResultPassedInCacheConstrain = createConstrain<{
   stepNameToSearchInCache: string
   skipAsPassedIfStepNotExists?: boolean
 }>({
-  constrainName: 'skip-if-step-result-missing-or-passed-in-cache-constrain',
+  constrainName: 'skip-if-step-result-passed-in-cache-constrain',
   constrain: async ({
     immutableCache,
     currentStepInfo,
@@ -46,10 +46,12 @@ export const skipIfStepResultMissingOrPassedInCacheConstrain = createConstrain<{
 
     if (!actualStepResult) {
       return {
-        resultType: ConstrainResultType.ignoreThisConstrain,
+        resultType: ConstrainResultType.shouldSkip,
         result: {
+          executionStatus: ExecutionStatus.aborted,
+          status: Status.skippedAsFailed,
           errors: [],
-          notes: [],
+          notes: [`step result of: "${stepName}" doesn't exists in cache`],
         },
       }
     }

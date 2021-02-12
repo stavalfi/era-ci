@@ -5,6 +5,7 @@ import chance from 'chance'
 import Redis from 'ioredis'
 import { serializeError } from 'serialize-error'
 import { StartWorkerOptions, WorkerConfig, WorkerState, WorkerTask } from './types'
+import prettyMs from 'pretty-ms'
 
 export const amountOfWrokersKey = (queueName: string) => `${queueName}--amount-of-workers`
 export const isFlowFinishedKey = (queueName: string) => `${queueName}--is-flow-finished`
@@ -83,6 +84,7 @@ export const processTask = ({
     const { group, task } = job.data
     if (group) {
       if (!tasksByGroupId.get(group.groupId)) {
+        const startBeforeAllMs = Date.now()
         taskLog.info('----------------------------------')
         taskLog.info(`executing before-all: "${group.beforeAll.shellCommand}". cwd: "${group.beforeAll.cwd}"`)
         taskLog.info('----------------------------------')
@@ -101,8 +103,11 @@ export const processTask = ({
           }
         })
 
+        const durationMs = Date.now() - startBeforeAllMs
         taskLog.info('----------------------------------')
-        taskLog.info(`ended before-all: "${group.beforeAll.shellCommand}" - passed: ${!result.failed}.`)
+        taskLog.info(
+          `ended before-all: "${group.beforeAll.shellCommand}" - passed: ${!result.failed} (${prettyMs(durationMs)})`,
+        )
         taskLog.info('----------------------------------')
 
         tasksByGroupId.set(group.groupId, {
@@ -149,6 +154,7 @@ export const processTask = ({
       }
     }
 
+    const startTaskMs = Date.now()
     taskLog.info('----------------------------------')
     taskLog.info(`started task: "${task.shellCommand}". cwd: "${task.cwd}"`)
     taskLog.info('----------------------------------')
@@ -168,8 +174,10 @@ export const processTask = ({
       }
     })
 
+    const durationMs = Date.now() - startTaskMs
+
     taskLog.info('----------------------------------')
-    taskLog.info(`ended task: "${task.shellCommand}" - passed: ${!result.failed}`)
+    taskLog.info(`ended task: "${task.shellCommand}" - passed: ${!result.failed} (${prettyMs(durationMs)})`)
     taskLog.info('----------------------------------')
 
     if (result.failed) {

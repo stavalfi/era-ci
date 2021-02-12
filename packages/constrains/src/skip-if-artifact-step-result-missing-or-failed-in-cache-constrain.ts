@@ -48,10 +48,12 @@ export const skipIfArtifactStepResultMissingOrFailedInCacheConstrain = createCon
 
     if (!actualStepResult) {
       return {
-        resultType: ConstrainResultType.ignoreThisConstrain,
+        resultType: ConstrainResultType.shouldSkip,
         result: {
+          executionStatus: ExecutionStatus.aborted,
+          status: Status.skippedAsFailed,
           errors: [],
-          notes: [],
+          notes: [`step result of: "${stepName}" doesn't exists in cache`],
         },
       }
     }

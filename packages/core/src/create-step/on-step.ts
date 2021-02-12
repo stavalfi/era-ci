@@ -113,7 +113,7 @@ export async function setupStepCallback<TaskQueue extends TaskQueueBase<any, any
                       executionStatus: ExecutionStatus.done,
                       status: Status.failed,
                       errors: [serializeError(error)],
-                      notes: [],
+                      notes: [`see attached error`],
                     },
                   },
                 }),

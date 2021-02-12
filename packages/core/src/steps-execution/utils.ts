@@ -37,7 +37,8 @@ export function buildRedisCommands(options: {
   const redisCommands: string[][] = []
   if (
     options.action.type === ExecutionActionTypes.artifactStep &&
-    options.action.payload.artifactStepResult.executionStatus === ExecutionStatus.done
+    (options.action.payload.artifactStepResult.executionStatus === ExecutionStatus.done ||
+      options.action.payload.artifactStepResult.executionStatus === ExecutionStatus.aborted)
   ) {
     redisCommands.push(
       options.immutableCache.step.setArtifactStepResultResipe({
@@ -49,7 +50,8 @@ export function buildRedisCommands(options: {
   }
   if (
     options.action.type === ExecutionActionTypes.step &&
-    options.action.payload.stepResult.executionStatus === ExecutionStatus.done
+    (options.action.payload.stepResult.executionStatus === ExecutionStatus.done ||
+      options.action.payload.stepResult.executionStatus === ExecutionStatus.aborted)
   ) {
     redisCommands.push(
       options.immutableCache.step.setStepResultResipe({
