@@ -2,7 +2,7 @@ import {
   skipIfRootPackageJsonMissingScriptConstrain,
   skipIfStepIsDisabledConstrain,
   skipIfStepResultMissingOrFailedInCacheConstrain,
-  skipIfStepResultMissingOrPassedInCacheConstrain,
+  skipIfStepResultPassedInCacheConstrain,
 } from '@era-ci/constrains'
 import { createStep, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
@@ -12,13 +12,13 @@ export const lintRoot = createStep<TaskWorkerTaskQueue, { isStepEnabled: boolean
   stepName: 'lint-root',
   stepGroup: 'lint',
   taskQueueClass: TaskWorkerTaskQueue,
-  run: async ({ repoPath, taskQueue, stepConfigurations }) => ({
+  run: async ({ repoPath, taskQueue, stepConfigurations, log }) => ({
     globalConstrains: [skipIfStepIsDisabledConstrain()],
     stepConstrains: [
       skipIfRootPackageJsonMissingScriptConstrain({
         scriptName: stepConfigurations.scriptName,
       }),
-      skipIfStepResultMissingOrPassedInCacheConstrain({
+      skipIfStepResultPassedInCacheConstrain({
         stepNameToSearchInCache: 'lint-root',
         skipAsPassedIfStepNotExists: true,
       }),
@@ -49,8 +49,10 @@ export const lintRoot = createStep<TaskWorkerTaskQueue, { isStepEnabled: boolean
         case ExecutionStatus.running:
           throw new Error(`we can't be here15`)
         case ExecutionStatus.aborted:
+          log.info(`lint passed`)
           return taskResult.taskResult
         case ExecutionStatus.done: {
+          log.error(`failed to run lint`)
           return taskResult.taskResult
         }
       }
