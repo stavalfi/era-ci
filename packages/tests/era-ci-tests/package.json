@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "test": "jest packages/tests/era-ci-tests/__tests__/steps/k8s-deployment/happy-flows.spec.ts"
+    "test": "jest"
   },
   "devDependencies": {
     "@kubernetes/client-node": "^0.13.2",
