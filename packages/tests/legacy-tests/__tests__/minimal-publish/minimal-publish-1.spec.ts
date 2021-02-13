@@ -68,7 +68,7 @@ describe('skip publish of package that did not change from the last publish', ()
     expect(master2.published.get('a')?.docker?.tags).toEqual(expect.arrayContaining([await gitHeadCommit()]))
   })
 
-  test('publish failed we will try to publish again in the nest flow even when the package-hash did not change', async () => {
+  test('publish failed, then we will try to publish again in the next flow even (while the package-hash did not change)', async () => {
     const aPublish = await manageStepResult()
     const { runCi } = await createRepo({
       packages: [
