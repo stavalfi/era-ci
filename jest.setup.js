@@ -7,7 +7,7 @@ function timeout() {
     return 1000 * 1000
   }
   if (process.env.CI) {
-    return 100 * 1000
+    return 40 * 1000
   }
   return 300 * 1000
 }
