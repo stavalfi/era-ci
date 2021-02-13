@@ -129,7 +129,7 @@ test('era-ci try to redeploy a deployment which does not exist', async () => {
   expect(flowLogs).toEqual(expect.stringContaining(`deployments.apps \\"${toActualName('a2')}\\" not found`))
 })
 
-test.only('failDeplomentOnPodError=true - redeploy to k8s fails because the new image throw exceptions - ensure the ci notify about a pod error', async () => {
+test('failDeplomentOnPodError=true - redeploy to k8s fails because the new image throw exceptions - ensure the ci notify about a pod error', async () => {
   const { runCi, toActualName } = await createRepo(toActualName => ({
     repo: {
       packages: [

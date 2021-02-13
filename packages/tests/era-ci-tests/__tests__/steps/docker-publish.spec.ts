@@ -26,8 +26,8 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
           additionalFiles: {
             Dockerfile: `\
             FROM quay.io/eraci/node:15.7.0-alpine3.10
-            RUN NPM_USER=${username} NPM_PASS="${password}" NPM_EMAIL=${email} NPM_REGISTRY=${registryAddress} npx npm-login-noninteractive
-            RUN npm view ${toActualName('b')}@2.0.0 --registry ${registryAddress}
+            RUN NPM_USER=${username} NPM_PASS="${password}" NPM_EMAIL=${email} NPM_REGISTRY=${registryAddress} npx npm-login-noninteractive && \
+npm view ${toActualName('b')}@2.0.0 --registry ${registryAddress}
             CMD ["echo","hello"]
             `,
           },
