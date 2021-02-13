@@ -78,7 +78,7 @@ test('redeploy to k8s and ensure the new image is running', async () => {
   expect(stdout).toEqual('alive123')
 })
 
-test.skip('era-ci try to redeploy a deployment which does not exist', async () => {
+test('era-ci try to redeploy a deployment which does not exist', async () => {
   const { runCi, toActualName } = await createRepo(toActualName => ({
     repo: {
       packages: [
@@ -183,13 +183,25 @@ test('failDeplomentOnPodError=true - redeploy to k8s fails because the new image
     portInContainer: 80,
   })
 
-  const { passed, flowLogs } = await runCi()
+  const { passed, jsonReport } = await runCi()
   expect(passed).toBeFalsy()
-  expect(flowLogs).toEqual(
+
+  const notes: string[] = _.get(jsonReport, [
+    'stepsResultOfArtifactsByStep',
+    1,
+    'data',
+    'artifactsResult',
+    0,
+    'data',
+    'artifactStepResult',
+    'notes',
+  ])
+
+  expect(notes).toEqual([
     expect.stringMatching(
       /failed to deploy. reason: pod: "(.*)" failed to run\. manually check the problem, commit a fix and run the CI again/,
     ),
-  )
+  ])
 })
 
 test('failDeplomentOnPodError=false, progressDeadlineSeconds=8 - redeploy to k8s fails because the new image throw exceptions -  ensure the ci notify about a deployment timeout', async () => {
