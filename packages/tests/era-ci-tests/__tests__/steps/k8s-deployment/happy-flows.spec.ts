@@ -13,7 +13,7 @@ test('redeploy to k8s and ensure the new image is running', async () => {
     repo: {
       packages: [
         {
-          name: 'a',
+          name: 'a1',
           version: '1.0.0',
           src: {
             'index.js': `
@@ -27,7 +27,7 @@ test('redeploy to k8s and ensure the new image is running', async () => {
             FROM quay.io/eraci/node:15.7.0-alpine3.10
             WORKDIR /usr/service
             RUN apk add curl # we install it to ensure (at the end of the test) the correct image is running 
-            COPY packages/${toActualName('a')}/src/ src/
+            COPY packages/${toActualName('a1')}/src/ src/
             CMD node ./src/index.js
             `,
           },
@@ -58,18 +58,18 @@ test('redeploy to k8s and ensure the new image is running', async () => {
   // this deployment will be redeployed to different image (from the dockerfile above)
   await k8sHelpers.createK8sDeployment({
     namespaceName: 'default',
-    containerName: toActualName('a'),
-    deploymentName: toActualName('a'),
+    containerName: toActualName('a1'),
+    deploymentName: toActualName('a1'),
     fullImageName: 'nginx:1.18.0-alpine',
-    labels: { app: toActualName('a') },
-    podName: toActualName('a'),
+    labels: { app: toActualName('a1') },
+    podName: toActualName('a1'),
     portInContainer: 80,
   })
 
   const { passed } = await runCi()
   expect(passed).toBeTruthy()
 
-  const podName = await k8sHelpers.findPodName(toActualName('a'))
+  const podName = await k8sHelpers.findPodName(toActualName('a1'))
 
   const { stdout } = await execaCommand(`kubectl exec ${podName} -- curl localhost:80`, {
     log: testLog,
@@ -83,7 +83,7 @@ test('era-ci try to redeploy a deployment which does not exist', async () => {
     repo: {
       packages: [
         {
-          name: 'a',
+          name: 'a2',
           version: '1.0.0',
           src: {
             'index.js': `
@@ -96,7 +96,7 @@ test('era-ci try to redeploy a deployment which does not exist', async () => {
             Dockerfile: `\
             FROM quay.io/eraci/node:15.7.0-alpine3.10
             WORKDIR /usr/service
-            COPY packages/${toActualName('a')}/src/ src/
+            COPY packages/${toActualName('a2')}/src/ src/
             CMD node ./src/index.js
             `,
           },
@@ -126,7 +126,7 @@ test('era-ci try to redeploy a deployment which does not exist', async () => {
 
   const { passed, flowLogs } = await runCi()
   expect(passed).toBeFalsy()
-  expect(flowLogs).toEqual(expect.stringContaining(`deployments.apps \\"${toActualName('a')}\\" not found`))
+  expect(flowLogs).toEqual(expect.stringContaining(`deployments.apps \\"${toActualName('a2')}\\" not found`))
 })
 
 test('failDeplomentOnPodError=true - redeploy to k8s fails because the new image throw exceptions - ensure the ci notify about a pod error', async () => {
@@ -134,7 +134,7 @@ test('failDeplomentOnPodError=true - redeploy to k8s fails because the new image
     repo: {
       packages: [
         {
-          name: 'a',
+          name: 'a3',
           version: '1.0.0',
           src: {
             'index.js': 'throw new Error("error-123")',
@@ -144,7 +144,7 @@ test('failDeplomentOnPodError=true - redeploy to k8s fails because the new image
             FROM quay.io/eraci/node:15.7.0-alpine3.10
             WORKDIR /usr/service
             RUN apk add curl # we install it to ensure (at the end of the test) the correct image is running 
-            COPY packages/${toActualName('a')}/src/ src/
+            COPY packages/${toActualName('a3')}/src/ src/
             CMD node ./src/index.js
             `,
           },
@@ -175,11 +175,11 @@ test('failDeplomentOnPodError=true - redeploy to k8s fails because the new image
   // this deployment will be redeployed to different image (from the dockerfile above)
   await k8sHelpers.createK8sDeployment({
     namespaceName: 'default',
-    containerName: toActualName('a'),
-    deploymentName: toActualName('a'),
+    containerName: toActualName('a3'),
+    deploymentName: toActualName('a3'),
     fullImageName: 'nginx:1.18.0-alpine',
-    labels: { app: toActualName('a') },
-    podName: toActualName('a'),
+    labels: { app: toActualName('a3') },
+    podName: toActualName('a3'),
     portInContainer: 80,
   })
 
@@ -197,7 +197,7 @@ test('failDeplomentOnPodError=false, progressDeadlineSeconds=8 - redeploy to k8s
     repo: {
       packages: [
         {
-          name: 'a',
+          name: 'a4',
           version: '1.0.0',
           src: {
             'index.js': 'throw new Error("error-123")',
@@ -207,7 +207,7 @@ test('failDeplomentOnPodError=false, progressDeadlineSeconds=8 - redeploy to k8s
             FROM quay.io/eraci/node:15.7.0-alpine3.10
             WORKDIR /usr/service
             RUN apk add curl # we install it to ensure (at the end of the test) the correct image is running 
-            COPY packages/${toActualName('a')}/src/ src/
+            COPY packages/${toActualName('a4')}/src/ src/
             CMD node ./src/index.js
             `,
           },
@@ -238,11 +238,11 @@ test('failDeplomentOnPodError=false, progressDeadlineSeconds=8 - redeploy to k8s
   // this deployment will be redeployed to different image (from the dockerfile above)
   await k8sHelpers.createK8sDeployment({
     namespaceName: 'default',
-    containerName: toActualName('a'),
-    deploymentName: toActualName('a'),
+    containerName: toActualName('a4'),
+    deploymentName: toActualName('a4'),
     fullImageName: 'nginx:1.18.0-alpine',
-    labels: { app: toActualName('a') },
-    podName: toActualName('a'),
+    labels: { app: toActualName('a4') },
+    podName: toActualName('a4'),
     portInContainer: 80,
     progressDeadlineSeconds: 8,
   })
@@ -271,7 +271,7 @@ test('running the flow again will cause to redeploy to k8s the same image again 
     repo: {
       packages: [
         {
-          name: 'a',
+          name: 'a5',
           version: '1.0.0',
           src: {
             'index.js': `
@@ -285,7 +285,7 @@ test('running the flow again will cause to redeploy to k8s the same image again 
             FROM quay.io/eraci/node:15.7.0-alpine3.10
             WORKDIR /usr/service
             RUN apk add curl # we install it to ensure (at the end of the test) the correct image is running 
-            COPY packages/${toActualName('a')}/src/ src/
+            COPY packages/${toActualName('a5')}/src/ src/
             CMD node ./src/index.js
             `,
           },
@@ -316,11 +316,11 @@ test('running the flow again will cause to redeploy to k8s the same image again 
   // this deployment will be redeployed to different image (from the dockerfile above)
   await k8sHelpers.createK8sDeployment({
     namespaceName: 'default',
-    containerName: toActualName('a'),
-    deploymentName: toActualName('a'),
+    containerName: toActualName('a5'),
+    deploymentName: toActualName('a5'),
     fullImageName: 'nginx:1.18.0-alpine',
-    labels: { app: toActualName('a') },
-    podName: toActualName('a'),
+    labels: { app: toActualName('a5') },
+    podName: toActualName('a5'),
     portInContainer: 80,
   })
 

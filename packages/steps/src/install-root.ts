@@ -1,4 +1,7 @@
-import { skipIfStepIsDisabledConstrain, skipIfStepResultMissingOrFailedInCacheConstrain } from '@era-ci/constrains'
+import {
+  skipAsPassedIfStepIsDisabledConstrain,
+  skipAsFailedIfStepResultFailedInCacheConstrain,
+} from '@era-ci/constrains'
 import { createStep } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { execaCommand } from '@era-ci/utils'
@@ -10,9 +13,9 @@ export const installRoot = createStep<LocalSequentalTaskQueue, { isStepEnabled: 
   stepGroup: 'install',
   taskQueueClass: LocalSequentalTaskQueue,
   run: async ({ repoPath, log }) => ({
-    globalConstrains: [skipIfStepIsDisabledConstrain()],
+    globalConstrains: [skipAsPassedIfStepIsDisabledConstrain()],
     stepConstrains: [
-      skipIfStepResultMissingOrFailedInCacheConstrain({
+      skipAsFailedIfStepResultFailedInCacheConstrain({
         stepNameToSearchInCache: 'validate-packages',
         skipAsPassedIfStepNotExists: true,
       }),

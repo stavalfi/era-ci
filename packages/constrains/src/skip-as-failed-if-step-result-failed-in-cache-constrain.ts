@@ -1,17 +1,17 @@
 import { ConstrainResultType, createConstrain } from '@era-ci/core'
 import { didPassOrSkippedAsPassed, ExecutionStatus, Status } from '@era-ci/utils'
 
-export const skipIfStepResultPassedInCacheConstrain = createConstrain<{
+export const skipAsFailedIfStepResultFailedInCacheConstrain = createConstrain<{
   stepNameToSearchInCache: string
   skipAsPassedIfStepNotExists?: boolean
 }>({
-  constrainName: 'skip-if-step-result-passed-in-cache-constrain',
+  constrainName: 'skip-as-failed-if-step-result-failed-in-cache-constrain',
   constrain: async ({
     immutableCache,
     currentStepInfo,
     steps,
     flowId,
-    constrainConfigurations: { skipAsPassedIfStepNotExists = true, stepNameToSearchInCache },
+    constrainConfigurations: { stepNameToSearchInCache, skipAsPassedIfStepNotExists = true },
   }) => {
     const stepName = stepNameToSearchInCache
     const step = steps.find(step => step.data.stepInfo.stepName === stepName)
@@ -46,32 +46,38 @@ export const skipIfStepResultPassedInCacheConstrain = createConstrain<{
 
     if (!actualStepResult) {
       return {
-        resultType: ConstrainResultType.shouldSkip,
+        resultType: ConstrainResultType.ignoreThisConstrain,
         result: {
-          executionStatus: ExecutionStatus.aborted,
-          status: Status.skippedAsFailed,
           errors: [],
-          notes: [`step result of: "${stepName}" doesn't exists in cache`],
+          notes: [`artifact-step-result of: "${stepName}" doesn't exists in cache`],
         },
       }
     }
 
     if (didPassOrSkippedAsPassed(actualStepResult.stepResult.status)) {
+      return {
+        resultType: ConstrainResultType.ignoreThisConstrain,
+        result: {
+          errors: [],
+          notes: [],
+        },
+      }
+    } else {
       const isResultFromThisFlow = flowId === actualStepResult.flowId
       const isThisStep = currentStepInfo.data.stepInfo.stepId === step.data.stepInfo.stepId
       const notes: string[] = []
       if (isResultFromThisFlow && isThisStep) {
         // we are running the ci again and nothing was changed in the repo
-        notes.push(`step already passed`)
+        notes.push(`step already failed`)
       }
       if (isResultFromThisFlow && !isThisStep) {
-        notes.push(`step: "${step.data.stepInfo.displayName}" passed`)
+        notes.push(`step: "${step.data.stepInfo.displayName}" failed`)
       }
       if (!isResultFromThisFlow && isThisStep) {
-        notes.push(`step already passed in flow: "${actualStepResult.flowId}"`)
+        notes.push(`step already failed in flow: "${actualStepResult.flowId}"`)
       }
       if (!isResultFromThisFlow && !isThisStep) {
-        notes.push(`step: "${step.data.stepInfo.displayName}" passed in flow: "${actualStepResult.flowId}"`)
+        notes.push(`step: "${step.data.stepInfo.displayName}" failed in flow: "${actualStepResult.flowId}"`)
       }
       return {
         resultType: ConstrainResultType.shouldSkip,
@@ -79,15 +85,7 @@ export const skipIfStepResultPassedInCacheConstrain = createConstrain<{
           errors: [],
           notes,
           executionStatus: ExecutionStatus.aborted,
-          status: Status.skippedAsPassed,
-        },
-      }
-    } else {
-      return {
-        resultType: ConstrainResultType.ignoreThisConstrain,
-        result: {
-          errors: [],
-          notes: [],
+          status: Status.skippedAsFailed,
         },
       }
     }

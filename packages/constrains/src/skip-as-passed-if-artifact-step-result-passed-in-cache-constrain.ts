@@ -1,17 +1,18 @@
 import { ConstrainResultType, createConstrain } from '@era-ci/core'
-import { didPassOrSkippedAsPassed, ExecutionStatus, Status } from '@era-ci/utils'
+import { Artifact, didPassOrSkippedAsPassed, ExecutionStatus, Node, Status } from '@era-ci/utils'
 
-export const skipIfStepResultMissingOrFailedInCacheConstrain = createConstrain<{
+export const skipAsPassedIfArtifactStepResultPassedInCacheConstrain = createConstrain<{
   stepNameToSearchInCache: string
   skipAsPassedIfStepNotExists?: boolean
+  currentArtifact: Node<{ artifact: Artifact }>
 }>({
-  constrainName: 'skip-if-step-result-missing-or-failed-in-cache-constrain',
+  constrainName: 'skip-as-passed-if-artifact-step-result-passed-in-cache-constrain',
   constrain: async ({
     immutableCache,
     currentStepInfo,
     steps,
     flowId,
-    constrainConfigurations: { stepNameToSearchInCache, skipAsPassedIfStepNotExists = true },
+    constrainConfigurations: { currentArtifact, skipAsPassedIfStepNotExists = true, stepNameToSearchInCache },
   }) => {
     const stepName = stepNameToSearchInCache
     const step = steps.find(step => step.data.stepInfo.stepName === stepName)
@@ -40,46 +41,39 @@ export const skipIfStepResultMissingOrFailedInCacheConstrain = createConstrain<{
       }
     }
 
-    const actualStepResult = await immutableCache.step.getStepResult({
+    const actualStepResult = await immutableCache.step.getArtifactStepResult({
       stepId: step.data.stepInfo.stepId,
+      artifactHash: currentArtifact.data.artifact.packageHash,
     })
 
     if (!actualStepResult) {
       return {
-        resultType: ConstrainResultType.shouldSkip,
+        resultType: ConstrainResultType.ignoreThisConstrain,
         result: {
-          executionStatus: ExecutionStatus.aborted,
-          status: Status.skippedAsFailed,
           errors: [],
-          notes: [`step result of: "${stepName}" doesn't exists in cache`],
+          notes: [
+            `artifact-step-result of: "${stepName}" - "${currentArtifact.data.artifact.packageJson.name}" doesn't exists in cache`,
+          ],
         },
       }
     }
 
-    if (didPassOrSkippedAsPassed(actualStepResult.stepResult.status)) {
-      return {
-        resultType: ConstrainResultType.ignoreThisConstrain,
-        result: {
-          errors: [],
-          notes: [],
-        },
-      }
-    } else {
+    if (didPassOrSkippedAsPassed(actualStepResult.artifactStepResult.status)) {
       const isResultFromThisFlow = flowId === actualStepResult.flowId
       const isThisStep = currentStepInfo.data.stepInfo.stepId === step.data.stepInfo.stepId
       const notes: string[] = []
       if (isResultFromThisFlow && isThisStep) {
         // we are running the ci again and nothing was changed in the repo
-        notes.push(`step already failed`)
+        notes.push(`step already passed`)
       }
       if (isResultFromThisFlow && !isThisStep) {
-        notes.push(`step: "${step.data.stepInfo.displayName}" failed`)
+        notes.push(`step: "${step.data.stepInfo.displayName}" passed`)
       }
       if (!isResultFromThisFlow && isThisStep) {
-        notes.push(`step already failed in flow: "${actualStepResult.flowId}"`)
+        notes.push(`step already passed in flow: "${actualStepResult.flowId}"`)
       }
       if (!isResultFromThisFlow && !isThisStep) {
-        notes.push(`step: "${step.data.stepInfo.displayName}" failed in flow: "${actualStepResult.flowId}"`)
+        notes.push(`step: "${step.data.stepInfo.displayName}" passed in flow: "${actualStepResult.flowId}"`)
       }
       return {
         resultType: ConstrainResultType.shouldSkip,
@@ -87,7 +81,15 @@ export const skipIfStepResultMissingOrFailedInCacheConstrain = createConstrain<{
           errors: [],
           notes,
           executionStatus: ExecutionStatus.aborted,
-          status: Status.skippedAsFailed,
+          status: Status.skippedAsPassed,
+        },
+      }
+    } else {
+      return {
+        resultType: ConstrainResultType.ignoreThisConstrain,
+        result: {
+          errors: [],
+          notes: [],
         },
       }
     }

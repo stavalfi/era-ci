@@ -1,10 +1,11 @@
 import {
-  skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
-  skipIfStepIsDisabledConstrain,
+  skipAsFailedIfArtifactStepResultFailedInCacheConstrain,
+  skipAsPassedIfArtifactTargetTypeNotSupportedConstrain,
+  skipAsPassedIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
 import { ConstrainResultType, createConstrain, createStep, getReturnValue, Log, UserReturnValue } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
-import { Artifact, ExecutionStatus, getPackageTargetTypes, Node, Status, TargetType } from '@era-ci/utils'
+import { Artifact, ExecutionStatus, Node, Status, TargetType } from '@era-ci/utils'
 import * as k8s from '@kubernetes/client-node'
 import _ from 'lodash'
 import { DeepPartial } from 'ts-essentials'
@@ -18,39 +19,6 @@ export type k8sDeploymentConfiguration = {
   ignorePackageNames?: string[]
   failDeplomentOnPodError: boolean
 }
-
-const customConstrain = createConstrain<
-  { currentArtifact: Node<{ artifact: Artifact }> },
-  { currentArtifact: Node<{ artifact: Artifact }> },
-  Required<k8sDeploymentConfiguration>
->({
-  constrainName: 'custom-constrain',
-  constrain: async ({ constrainConfigurations: { currentArtifact }, stepConfigurations }) => {
-    const targetTypes = await getPackageTargetTypes(
-      currentArtifact.data.artifact.packagePath,
-      currentArtifact.data.artifact.packageJson,
-    )
-    if (
-      !targetTypes.includes(TargetType.docker) ||
-      stepConfigurations.ignorePackageNames.includes(currentArtifact.data.artifact.packageJson.name)
-    ) {
-      return {
-        resultType: ConstrainResultType.shouldSkip,
-        result: {
-          errors: [],
-          notes: [],
-          executionStatus: ExecutionStatus.aborted,
-          status: Status.skippedAsPassed,
-        },
-      }
-    }
-
-    return {
-      resultType: ConstrainResultType.ignoreThisConstrain,
-      result: { errors: [], notes: [] },
-    }
-  },
-})
 
 function extractReplicaSetName(deployment: k8s.V1Deployment): string | undefined {
   const replicateSetCondition = deployment.status?.conditions?.find(c =>
@@ -553,6 +521,32 @@ was reached: "${timeoutSeconds}" seconds. manually check the problem, commit a f
   }
 }
 
+const skipAsPassedIfPackageIsIgnoredFromDeployConstrain = createConstrain<
+  { currentArtifact: Node<{ artifact: Artifact }> },
+  { currentArtifact: Node<{ artifact: Artifact }> },
+  Required<k8sDeploymentConfiguration>
+>({
+  constrainName: 'skip-as-passed-if-package-is-ignored-from-deploy-constrain',
+  constrain: async ({ constrainConfigurations: { currentArtifact }, stepConfigurations }) => {
+    if (stepConfigurations.ignorePackageNames.includes(currentArtifact.data.artifact.packageJson.name)) {
+      return {
+        resultType: ConstrainResultType.shouldSkip,
+        result: {
+          errors: [],
+          notes: [],
+          executionStatus: ExecutionStatus.aborted,
+          status: Status.skippedAsPassed,
+        },
+      }
+    }
+
+    return {
+      resultType: ConstrainResultType.ignoreThisConstrain,
+      result: { errors: [], notes: [] },
+    }
+  },
+})
+
 export const k8sDeployment = createStep<
   LocalSequentalTaskQueue,
   k8sDeploymentConfiguration,
@@ -571,15 +565,23 @@ export const k8sDeployment = createStep<
     const deploymentApi = kc.makeApiClient(k8s.AppsV1Api)
 
     return {
-      globalConstrains: [skipIfStepIsDisabledConstrain()],
+      globalConstrains: [skipAsPassedIfStepIsDisabledConstrain()],
       artifactConstrains: [
         artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          skipAsPassedIfArtifactTargetTypeNotSupportedConstrain({
+            currentArtifact: artifact,
+            supportedTargetType: TargetType.docker,
+          }),
+        artifact =>
+          skipAsFailedIfArtifactStepResultFailedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'docker-publish',
             skipAsPassedIfStepNotExists: false,
           }),
-        artifact => customConstrain({ currentArtifact: artifact }),
+        artifact =>
+          skipAsPassedIfPackageIsIgnoredFromDeployConstrain({
+            currentArtifact: artifact,
+          }),
       ],
       onBeforeArtifacts: async () => log.info(`starting to deploy to k8s. Please don't stop the CI manually!`),
       onArtifact: async ({ artifact }) => {

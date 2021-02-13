@@ -1,9 +1,9 @@
 import {
-  skipIfArtifactPackageJsonMissingScriptConstrain,
-  skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
-  skipIfArtifactStepResultPassedInCacheConstrain,
-  skipIfStepIsDisabledConstrain,
-  skipIfStepResultMissingOrFailedInCacheConstrain,
+  skipAsPassedIfArtifactPackageJsonMissingScriptConstrain,
+  skipAsFailedIfArtifactStepResultFailedInCacheConstrain,
+  skipAsPassedIfArtifactStepResultPassedInCacheConstrain,
+  skipAsPassedIfStepIsDisabledConstrain,
+  skipAsFailedIfStepResultFailedInCacheConstrain,
 } from '@era-ci/constrains'
 import { createStep, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
@@ -44,26 +44,26 @@ export const test = createStep<TaskWorkerTaskQueue, TestConfigurations>({
   stepGroup: 'test',
   taskQueueClass: TaskWorkerTaskQueue,
   run: async options => ({
-    globalConstrains: [skipIfStepIsDisabledConstrain()],
+    globalConstrains: [skipAsPassedIfStepIsDisabledConstrain()],
     stepConstrains: [
-      skipIfStepResultMissingOrFailedInCacheConstrain({
+      skipAsFailedIfStepResultFailedInCacheConstrain({
         stepNameToSearchInCache: 'install-root',
         skipAsPassedIfStepNotExists: true,
       }),
     ],
     artifactConstrains: [
       artifact =>
-        skipIfArtifactPackageJsonMissingScriptConstrain({
+        skipAsPassedIfArtifactPackageJsonMissingScriptConstrain({
           currentArtifact: artifact,
           scriptName: options.stepConfigurations.scriptName,
         }),
       artifact =>
-        skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+        skipAsFailedIfArtifactStepResultFailedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'test',
         }),
       artifact =>
-        skipIfArtifactStepResultPassedInCacheConstrain({
+        skipAsPassedIfArtifactStepResultPassedInCacheConstrain({
           currentArtifact: artifact,
           stepNameToSearchInCache: 'test',
         }),
