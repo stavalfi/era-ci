@@ -78,7 +78,7 @@ test('redeploy to k8s and ensure the new image is running', async () => {
   expect(stdout).toEqual('alive123')
 })
 
-test('era-ci try to redeploy a deployment which does not exist', async () => {
+test.skip('era-ci try to redeploy a deployment which does not exist', async () => {
   const { runCi, toActualName } = await createRepo(toActualName => ({
     repo: {
       packages: [
