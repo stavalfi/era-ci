@@ -116,15 +116,15 @@ export default config({
               cwd: __dirname,
             }
           : undefined,
-        // splitTestsToMultipleVms: {
-        //   totalWorkers: 10,
-        //   relativeGlobToSearchTestFiles: '__tests__/**/*.spec.ts',
-        //   startIndexingFromZero: true,
-        //   env: {
-        //     indexKeyEnvName: 'CI_NODE_INDEX',
-        //     totalVmsEnvKeyName: 'CI_NODE_TOTAL',
-        //   },
-        // },
+        splitTestsToMultipleVms: {
+          totalWorkers: 10,
+          relativeGlobToSearchTestFiles: '__tests__/**/*.spec.ts',
+          startIndexingFromZero: true,
+          env: {
+            indexKeyEnvName: 'CI_NODE_INDEX',
+            totalVmsEnvKeyName: 'CI_NODE_TOTAL',
+          },
+        },
       }),
       children: [6],
     },
