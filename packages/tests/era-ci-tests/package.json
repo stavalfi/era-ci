@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "test": "jest"
+    "test": "jest packages/tests/era-ci-tests/__tests__/steps/k8s-deployment"
   },
   "devDependencies": {
     "@kubernetes/client-node": "^0.13.2",

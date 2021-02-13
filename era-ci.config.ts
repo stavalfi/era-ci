@@ -114,15 +114,15 @@ export default config({
           shellCommand: 'yarn test-resources:reset',
           cwd: __dirname,
         },
-        splitTestsToMultipleVms: {
-          totalWorkers: 10,
-          relativeGlobToSearchTestFiles: '__tests__/**/*.spec.ts',
-          startIndexingFromZero: true,
-          env: {
-            indexKeyEnvName: 'CI_NODE_INDEX',
-            totalVmsEnvKeyName: 'CI_NODE_TOTAL',
-          },
-        },
+        // splitTestsToMultipleVms: {
+        //   totalWorkers: 10,
+        //   relativeGlobToSearchTestFiles: '__tests__/**/*.spec.ts',
+        //   startIndexingFromZero: true,
+        //   env: {
+        //     indexKeyEnvName: 'CI_NODE_INDEX',
+        //     totalVmsEnvKeyName: 'CI_NODE_TOTAL',
+        //   },
+        // },
       }),
       children: [6],
     },
