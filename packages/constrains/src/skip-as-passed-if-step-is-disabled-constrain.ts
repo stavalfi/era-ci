@@ -1,11 +1,10 @@
 import { ConstrainResultType, createConstrain } from '@era-ci/core'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 
-export const skipIfRootPackageJsonMissingScriptConstrain = createConstrain<{ scriptName: string }>({
-  constrainName: 'skip-if-root-package-json-missing-script-constrain',
-  constrain: async ({ constrainConfigurations, rootPackageJson }) => {
-    const scriptName = constrainConfigurations.scriptName
-    if (rootPackageJson.scripts && scriptName in rootPackageJson.scripts && rootPackageJson.scripts[scriptName]) {
+export const skipAsPassedIfStepIsDisabledConstrain = createConstrain<void, void, { isStepEnabled: boolean }>({
+  constrainName: 'skip-as-passed-if-step-is-disabled-constrain',
+  constrain: async ({ stepConfigurations }) => {
+    if (stepConfigurations.isStepEnabled) {
       return {
         resultType: ConstrainResultType.ignoreThisConstrain,
         result: {
@@ -20,7 +19,7 @@ export const skipIfRootPackageJsonMissingScriptConstrain = createConstrain<{ scr
           errors: [],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsPassed,
-          notes: [`skipping because missing script: "${scriptName}" in root package.json`],
+          notes: [`step is disabled`],
         },
       }
     }

@@ -1,8 +1,8 @@
 import {
-  skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
-  skipIfArtifactTargetTypeNotSupportedConstrain,
-  skipIfGitChangesNotCommitedConstrain,
-  skipIfStepIsDisabledConstrain,
+  skipAsFailedIfArtifactStepResultFailedInCacheConstrain,
+  skipAsPassedIfArtifactTargetTypeNotSupportedConstrain,
+  skipAsFailedIfGitChangesNotCommitedConstrain,
+  skipAsPassedIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
 import { createStep, toTaskEvent$, UserReturnValue, UserRunStepOptions } from '@era-ci/core'
 import { QuayBuildsTaskQueue } from '@era-ci/task-queues'
@@ -87,23 +87,23 @@ export const quayDockerPublish = createStep<QuayBuildsTaskQueue, QuayDockerPubli
   taskQueueClass: QuayBuildsTaskQueue,
   run: async options => {
     return {
-      globalConstrains: [skipIfStepIsDisabledConstrain(), skipIfGitChangesNotCommitedConstrain()],
+      globalConstrains: [skipAsPassedIfStepIsDisabledConstrain(), skipAsFailedIfGitChangesNotCommitedConstrain()],
       waitUntilArtifactParentsFinishedParentSteps: options.stepConfigurations.imageInstallArtifactsFromNpmRegistry,
       artifactConstrains: [
         artifact =>
-          skipIfArtifactTargetTypeNotSupportedConstrain({
+          skipAsPassedIfArtifactTargetTypeNotSupportedConstrain({
             currentArtifact: artifact,
             supportedTargetType: TargetType.docker,
           }),
         artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          skipAsFailedIfArtifactStepResultFailedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'build',
 
             skipAsPassedIfStepNotExists: true,
           }),
         artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          skipAsFailedIfArtifactStepResultFailedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'test',
 

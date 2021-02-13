@@ -1,11 +1,11 @@
 import { ConstrainResultType, createConstrain } from '@era-ci/core'
 import { Artifact, ExecutionStatus, Node, Status } from '@era-ci/utils'
 
-export const skipIfArtifactPackageJsonMissingScriptConstrain = createConstrain<{
+export const skipAsPassedIfArtifactPackageJsonMissingScriptConstrain = createConstrain<{
   scriptName: string
   currentArtifact: Node<{ artifact: Artifact }>
 }>({
-  constrainName: 'skip-if-artifact-package-json-missing-script-constrain',
+  constrainName: 'skip-as-passed-if-artifact-package-json-missing-script-constrain',
   constrain: async ({ constrainConfigurations: { currentArtifact, scriptName } }) => {
     if (
       currentArtifact.data.artifact.packageJson.scripts &&

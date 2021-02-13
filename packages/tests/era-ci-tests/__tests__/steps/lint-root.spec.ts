@@ -10,7 +10,7 @@ import path from 'path'
 
 const { createRepo, getResources } = createTest()
 
-test('ensure lint-root runs', async () => {
+test.only('ensure lint-root runs', async () => {
   const { runCi } = await createRepo({
     repo: {
       rootPackageJson: {

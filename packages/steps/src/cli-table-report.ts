@@ -1,4 +1,7 @@
-import { skipIfStepResultMissingOrFailedInCacheConstrain } from '@era-ci/constrains'
+import {
+  skipAsFailedIfStepResultFailedInCacheConstrain,
+  skipAsFailedIfStepResultMissingInCacheConstrain,
+} from '@era-ci/constrains'
 import { createStep, LogLevel, stepToString } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
@@ -294,7 +297,11 @@ export const cliTableReporter = createStep({
   taskQueueClass: LocalSequentalTaskQueue,
   run: async options => ({
     stepConstrains: [
-      skipIfStepResultMissingOrFailedInCacheConstrain({
+      skipAsFailedIfStepResultMissingInCacheConstrain({
+        stepNameToSearchInCache: jsonReporterStepName,
+        skipAsPassedIfStepNotExists: false,
+      }),
+      skipAsFailedIfStepResultFailedInCacheConstrain({
         stepNameToSearchInCache: jsonReporterStepName,
         skipAsPassedIfStepNotExists: false,
       }),

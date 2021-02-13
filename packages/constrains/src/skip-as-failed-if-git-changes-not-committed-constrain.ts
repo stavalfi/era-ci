@@ -1,8 +1,8 @@
 import { ConstrainResultType, createConstrain } from '@era-ci/core'
 import { ExecutionStatus, Status, execaCommand } from '@era-ci/utils'
 
-export const skipIfGitChangesNotCommitedConstrain = createConstrain<void, void, { isStepEnabled: boolean }>({
-  constrainName: 'skip-if-step-is-disabled-constrain',
+export const skipAsFailedIfGitChangesNotCommitedConstrain = createConstrain<void, void, { isStepEnabled: boolean }>({
+  constrainName: 'skip-as-failed-if-step-is-disabled-constrain',
   constrain: async ({ repoPath, log }) => {
     const diffIsEmpty = await execaCommand(`git diff-index --quiet HEAD --`, {
       stdio: 'ignore',

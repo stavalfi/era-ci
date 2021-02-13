@@ -1,18 +1,17 @@
 import { ConstrainResultType, createConstrain } from '@era-ci/core'
-import { Artifact, didPassOrSkippedAsPassed, ExecutionStatus, Node, Status } from '@era-ci/utils'
+import { didPassOrSkippedAsPassed, ExecutionStatus, Status } from '@era-ci/utils'
 
-export const skipIfArtifactStepResultPassedInCacheConstrain = createConstrain<{
+export const skipAsPassedIfStepResultPassedInCacheConstrain = createConstrain<{
   stepNameToSearchInCache: string
   skipAsPassedIfStepNotExists?: boolean
-  currentArtifact: Node<{ artifact: Artifact }>
 }>({
-  constrainName: 'skip-if-artifact-step-result-passed-in-cache-constrain',
+  constrainName: 'skip-as-passed-if-step-result-passed-in-cache-constrain',
   constrain: async ({
     immutableCache,
     currentStepInfo,
     steps,
     flowId,
-    constrainConfigurations: { currentArtifact, skipAsPassedIfStepNotExists = true, stepNameToSearchInCache },
+    constrainConfigurations: { skipAsPassedIfStepNotExists = true, stepNameToSearchInCache },
   }) => {
     const stepName = stepNameToSearchInCache
     const step = steps.find(step => step.data.stepInfo.stepName === stepName)
@@ -41,24 +40,21 @@ export const skipIfArtifactStepResultPassedInCacheConstrain = createConstrain<{
       }
     }
 
-    const actualStepResult = await immutableCache.step.getArtifactStepResult({
+    const actualStepResult = await immutableCache.step.getStepResult({
       stepId: step.data.stepInfo.stepId,
-      artifactHash: currentArtifact.data.artifact.packageHash,
     })
 
     if (!actualStepResult) {
       return {
-        resultType: ConstrainResultType.shouldSkip,
+        resultType: ConstrainResultType.ignoreThisConstrain,
         result: {
-          executionStatus: ExecutionStatus.aborted,
-          status: Status.skippedAsFailed,
           errors: [],
-          notes: [`step result of: "${stepName}" doesn't exists in cache`],
+          notes: [`artifact-step-result of: "${stepName}" doesn't exists in cache`],
         },
       }
     }
 
-    if (didPassOrSkippedAsPassed(actualStepResult.artifactStepResult.status)) {
+    if (didPassOrSkippedAsPassed(actualStepResult.stepResult.status)) {
       const isResultFromThisFlow = flowId === actualStepResult.flowId
       const isThisStep = currentStepInfo.data.stepInfo.stepId === step.data.stepInfo.stepId
       const notes: string[] = []

@@ -1,11 +1,11 @@
 import { ConstrainResultType, createConstrain } from '@era-ci/core'
 import { ExecutionStatus, Status, TargetType, getPackageTargetTypes, Artifact, Node } from '@era-ci/utils'
 
-export const skipIfArtifactTargetTypeNotSupportedConstrain = createConstrain<{
+export const skipAsPassedIfArtifactTargetTypeNotSupportedConstrain = createConstrain<{
   supportedTargetType: TargetType
   currentArtifact: Node<{ artifact: Artifact }>
 }>({
-  constrainName: 'skip-if-artifact-target-type-not-supported-constain',
+  constrainName: 'skip-as-passed-if-artifact-target-type-not-supported-constain',
   constrain: async ({ constrainConfigurations: { currentArtifact, supportedTargetType } }) => {
     const targetTypes = await getPackageTargetTypes(
       currentArtifact.data.artifact.packagePath,

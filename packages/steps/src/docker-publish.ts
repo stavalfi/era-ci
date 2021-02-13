@@ -1,7 +1,7 @@
 import {
-  skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
-  skipIfArtifactTargetTypeNotSupportedConstrain,
-  skipIfStepIsDisabledConstrain,
+  skipAsFailedIfArtifactStepResultFailedInCacheConstrain,
+  skipAsPassedIfArtifactTargetTypeNotSupportedConstrain,
+  skipAsPassedIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
 import { createStep, Log, UserRunStepOptions } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
@@ -131,30 +131,30 @@ export const dockerPublish = createStep<LocalSequentalTaskQueue, LocalDockerPubl
       })
     }
     return {
-      globalConstrains: [skipIfStepIsDisabledConstrain()],
+      globalConstrains: [skipAsPassedIfStepIsDisabledConstrain()],
       waitUntilArtifactParentsFinishedParentSteps: options.stepConfigurations.imageInstallArtifactsFromNpmRegistry,
       artifactConstrains: [
         artifact =>
-          skipIfArtifactTargetTypeNotSupportedConstrain({
+          skipAsPassedIfArtifactTargetTypeNotSupportedConstrain({
             currentArtifact: artifact,
             supportedTargetType: TargetType.docker,
           }),
         artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          skipAsFailedIfArtifactStepResultFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'validate-packages',
+            skipAsPassedIfStepNotExists: true,
+          }),
+        artifact =>
+          skipAsFailedIfArtifactStepResultFailedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'build-root',
             skipAsPassedIfStepNotExists: true,
           }),
         artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          skipAsFailedIfArtifactStepResultFailedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'test',
-            skipAsPassedIfStepNotExists: true,
-          }),
-        artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
-            currentArtifact: artifact,
-            stepNameToSearchInCache: 'validate-packages',
             skipAsPassedIfStepNotExists: true,
           }),
       ],

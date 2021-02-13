@@ -1,6 +1,6 @@
 import {
-  skipIfArtifactStepResultMissingOrFailedInCacheConstrain,
-  skipIfStepIsDisabledConstrain,
+  skipAsFailedIfArtifactStepResultFailedInCacheConstrain,
+  skipAsPassedIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
 import { ConstrainResultType, createConstrain, createStep, Log } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
@@ -59,7 +59,9 @@ async function getNpmhighestVersionInfo({
 > {
   try {
     const command = `npm view ${packageName} --json --registry ${npmRegistry}`
+
     log.verbose(`searching the latest tag: "${command}"`)
+
     const result = await execaCommand(command, { cwd: repoPath, stdio: 'pipe', log })
     const resultJson = JSON.parse(result.stdout) || {}
     const allVersions: Array<string> = resultJson['versions'] || []
@@ -276,22 +278,22 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
     }
 
     return {
-      globalConstrains: [skipIfStepIsDisabledConstrain()],
+      globalConstrains: [skipAsPassedIfStepIsDisabledConstrain()],
       artifactConstrains: [
         artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          skipAsFailedIfArtifactStepResultFailedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'build-root',
             skipAsPassedIfStepNotExists: true,
           }),
         artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          skipAsFailedIfArtifactStepResultFailedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'test',
             skipAsPassedIfStepNotExists: true,
           }),
         artifact =>
-          skipIfArtifactStepResultMissingOrFailedInCacheConstrain({
+          skipAsFailedIfArtifactStepResultFailedInCacheConstrain({
             currentArtifact: artifact,
             stepNameToSearchInCache: 'validate-packages',
             skipAsPassedIfStepNotExists: true,
