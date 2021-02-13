@@ -108,12 +108,14 @@ export default config({
       step: test({
         isStepEnabled: !SKIP_TESTS,
         scriptName: 'test',
-        workerBeforeAll: {
-          // for some reason, sometimes, github gives us VMs which are already used and has the containers still
-          // running from previous build, so we use test-resources:reset to kill any leftovers from previous builds.
-          shellCommand: 'yarn test-resources:reset',
-          cwd: __dirname,
-        },
+        workerBeforeAll: CI
+          ? {
+              // for some reason, sometimes, github gives us VMs which are already used and has the containers still
+              // running from previous build, so we use test-resources:reset to kill any leftovers from previous builds.
+              shellCommand: 'yarn test-resources:reset',
+              cwd: __dirname,
+            }
+          : undefined,
         // splitTestsToMultipleVms: {
         //   totalWorkers: 10,
         //   relativeGlobToSearchTestFiles: '__tests__/**/*.spec.ts',
