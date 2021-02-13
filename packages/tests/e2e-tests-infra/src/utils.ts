@@ -195,9 +195,9 @@ export const k8sHelpers = ({
       })
       .then(
         r => {
-          getCleanups().cleanups.push(() =>
-            getResources().k8s.deploymentApi.deleteNamespacedDeployment(r.body.metadata?.name!, options.namespaceName),
-          )
+          // getCleanups().cleanups.push(() =>
+          //   getResources().k8s.deploymentApi.deleteNamespacedDeployment(r.body.metadata?.name!, options.namespaceName),
+          // )
           return r.body
         },
         error => {

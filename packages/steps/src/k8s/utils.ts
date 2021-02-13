@@ -23,12 +23,12 @@ function extractPodContainersErrors(pod: k8s.V1Pod): PodFailureReason[] {
 
 function extractReplicaSetName(deployment: k8s.V1Deployment): string | undefined {
   const replicateSetCondition = deployment.status?.conditions?.find(c =>
-    ['NewReplicaSetAvailable', 'ReplicaSetUpdated'].includes(c.reason ?? ''),
+    ['NewReplicaSetAvailable', 'ReplicaSetUpdated', 'replicateSetCondition'].includes(c.reason ?? ''),
   )
-  // I don't like it as much as you do but I couldn't find a better thread-safe way to do it:
+  // I don't like it as much as you do but I couldn't find a better thread-safe way to know what
+  // is the current replica-set name which belongs to a deployment:
   // https://github.com/kubernetes/kubectl/issues/1022#issuecomment-778195073
-  const replicateSetName = replicateSetCondition?.message?.match(/ReplicaSet "(.*)"/)?.[1]
-  return replicateSetName
+  return replicateSetCondition?.message?.match(/"(.*)"/)?.[1]
 }
 
 function getUpdatedDeploymentStatus({
@@ -95,8 +95,10 @@ function getUpdatedDeploymentStatus({
       updatedDeployment.status.replicas === updatedDeployment.status.updatedReplicas &&
       updatedDeployment.status.replicas === updatedDeployment.status.availableReplicas
     ) {
-      // log.info(`stav1: ${JSON.stringify(reDeploymentResult, null, 2)}`)
-      // log.info(`stav2: ${JSON.stringify(updatedDeployment, null, 2)}`)
+      // @ts-ignore
+      log.info(`stav1`, reDeploymentResult)
+      // @ts-ignore
+      log.info(`stav2`, updatedDeployment)
       return { status: DeploymentStatus.Succees, newReplicaSetName: extractReplicaSetName(updatedDeployment)! }
     }
   }
@@ -414,7 +416,7 @@ async function waitForDeploymentResult({
       kc,
     }).pipe(
       concatMap<DeploymentEvent, Observable<DeploymentWatchResult>>(event => {
-        // console.log('stav1', event.eventType, JSON.stringify(event.resource, null, 2))
+        log.info('stav3', event)
         switch (event.eventType) {
           case WatchEventType.Added:
             return of({ status: DeploymentStatus.added })
@@ -440,7 +442,7 @@ async function waitForDeploymentResult({
                   }).pipe(
                     scan(
                       (acc: { podsReady: k8s.V1Pod[]; podError?: k8s.V1Pod }, event) => {
-                        // console.log('stav2', event.eventType, JSON.stringify(event.resource, null, 2))
+                        log.info('stav4', event)
                         switch (event.eventType) {
                           case WatchEventType.Deleted:
                             return {
