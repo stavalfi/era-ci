@@ -32,3 +32,4 @@ lib1.js
 !declarations.d.ts
 dist
 packages/quick-start/verdaccio/storage
+.history

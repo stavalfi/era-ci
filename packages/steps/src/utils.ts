@@ -85,7 +85,7 @@ export async function chooseTagAndPublish<
       key: cacheKey,
       value: newTag,
       asBuffer: true,
-      ttl: options.immutableCache.ttls.ArtifactStepResult,
+      ttl: options.immutableCache.ttls.ArtifactStepResults,
     })
   }
 

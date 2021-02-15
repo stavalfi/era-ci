@@ -21,14 +21,23 @@ function extractPodContainersErrors(pod: k8s.V1Pod): PodFailureReason[] {
   )
 }
 
-function extractReplicaSetName(deployment: k8s.V1Deployment): string | undefined {
+function extractReplicaSetName(deployment: k8s.V1Deployment, log: Log): string | undefined {
   const replicateSetCondition = deployment.status?.conditions?.find(c =>
-    ['NewReplicaSetAvailable', 'ReplicaSetUpdated', 'replicateSetCondition'].includes(c.reason ?? ''),
+    ['NewReplicaSetAvailable', 'ReplicaSetUpdated', 'replicateSetCondition', 'NewReplicaSetCreated'].includes(
+      c.reason ?? '',
+    ),
   )
+
   // I don't like it as much as you do but I couldn't find a better thread-safe way to know what
   // is the current replica-set name which belongs to a deployment:
   // https://github.com/kubernetes/kubectl/issues/1022#issuecomment-778195073
-  return replicateSetCondition?.message?.match(/"(.*)"/)?.[1]
+  const replicaSetName = replicateSetCondition?.message?.match(/"(.*)"/)?.[1]
+  if (replicateSetCondition) {
+    log.trace(`extracted replicaSetName: "${replicaSetName}"`, { message: replicateSetCondition?.message })
+  } else {
+    log.trace(`could not extract replicaSetName from deployment: `, { deployment })
+  }
+  return replicaSetName
 }
 
 function getUpdatedDeploymentStatus({
@@ -69,7 +78,7 @@ function getUpdatedDeploymentStatus({
     return {
       status: DeploymentStatus.ThereWasAddtionalDeployment,
       newDeploymentGeneration: currentGeneration,
-      newReplicaSetName: extractReplicaSetName(updatedDeployment)!,
+      newReplicaSetName: extractReplicaSetName(updatedDeployment, log)!,
     }
   }
 
@@ -83,8 +92,8 @@ function getUpdatedDeploymentStatus({
     if (progressingCondition?.reason === 'ProgressDeadlineExceeded') {
       return {
         status: DeploymentStatus.Timeout,
-        replicateSetNameWithTimeout: extractReplicaSetName(updatedDeployment)!,
-        newReplicaSetName: extractReplicaSetName(updatedDeployment)!,
+        replicateSetNameWithTimeout: extractReplicaSetName(updatedDeployment, log)!,
+        newReplicaSetName: extractReplicaSetName(updatedDeployment, log)!,
       }
     }
     if (
@@ -99,11 +108,11 @@ function getUpdatedDeploymentStatus({
       log.info(`stav1`, reDeploymentResult)
       // @ts-ignore
       log.info(`stav2`, updatedDeployment)
-      return { status: DeploymentStatus.Succees, newReplicaSetName: extractReplicaSetName(updatedDeployment)! }
+      return { status: DeploymentStatus.Succees, newReplicaSetName: extractReplicaSetName(updatedDeployment, log)! }
     }
   }
 
-  return { status: DeploymentStatus.NotReadyYet, newReplicaSetName: extractReplicaSetName(updatedDeployment) }
+  return { status: DeploymentStatus.NotReadyYet, newReplicaSetName: extractReplicaSetName(updatedDeployment, log) }
 }
 
 const deploy = async ({
@@ -568,7 +577,7 @@ export async function deployAndWait({
     }
   }
 
-  const newReplicaSetName = extractReplicaSetName(reDeploymentResult)
+  const newReplicaSetName = extractReplicaSetName(reDeploymentResult, log)
   if (!newReplicaSetName) {
     throw new Error(`can't find replicaSet name of the deployment`)
   }

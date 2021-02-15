@@ -18,9 +18,13 @@
     "build": "yarn build:tsc",
     "clean": "yarn build:tsc --clean",
     "build:watch": "yarn build:tsc --watch",
-    "test-resources:up": "yarn workspace @era-ci/quick-start resources:up",
-    "test-resources:down": "yarn workspace @era-ci/quick-start resources:down",
-    "test-resources:reset": "yarn test-resources:down && yarn test-resources:up"
+    "docker-resources:up": "yarn workspace @era-ci/quick-start docker-compose:up",
+    "docker-resources:down": "yarn workspace @era-ci/quick-start docker-compose:down",
+    "docker-resources:reset": "yarn docker-resources:down && yarn docker-resources:up",
+    "k8s-resources:up": "yarn workspace @era-ci/quick-start create-k8s-cluster",
+    "k8s-resources:down": "yarn workspace @era-ci/quick-start delete-k8s-cluster",
+    "k8s-resources:reset": "yarn k8s-resources:down && yarn k8s-resources:up",
+    "all-resources:reset": "yarn docker-resources:reset && yarn k8s-resources:reset"
   },
   "repository": {
     "url": "https://github.com/stavalfi/era-ci"

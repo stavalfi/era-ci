@@ -1,43 +1,50 @@
-import { AbortResult, Artifact, DoneResult, ExecutionStatus, Graph, Status } from '@era-ci/utils'
+import { AbortResult, Artifact, DoneResult, ExecutionStatus, Graph, Result, Status } from '@era-ci/utils'
 import _ from 'lodash'
-import NodeCache from 'node-cache'
-import { array, enums, number, object, optional, string, type, validate } from 'superstruct'
+import { object, string, validate } from 'superstruct'
 import { Log } from './create-logger'
 import { RedisClient } from './redis-client'
 
+export type ArtifactStepCacheResult<R extends Result> = {
+  flowId: string
+  repoHash: string
+  artifactStepResult: R
+}
+
+export type StepCacheResult<R extends Result> = {
+  flowId: string
+  repoHash: string
+  stepResult: R
+}
+
+export type ArtifactStepResults = {
+  all: ArtifactStepCacheResult<Result>[]
+  passed: ArtifactStepCacheResult<DoneResult<Status.passed>>[]
+  skippedAsPassed: ArtifactStepCacheResult<AbortResult<Status.skippedAsPassed>>[]
+  skippedAsFailed: ArtifactStepCacheResult<AbortResult<Status.skippedAsFailed>>[]
+  failed: ArtifactStepCacheResult<DoneResult<Status.failed> | AbortResult<Status.failed>>[]
+}
+
+export type StepResults = {
+  all: StepCacheResult<Result>[]
+  passed: StepCacheResult<DoneResult<Status.passed>>[]
+  skippedAsPassed: StepCacheResult<AbortResult<Status.skippedAsPassed>>[]
+  skippedAsFailed: StepCacheResult<AbortResult<Status.skippedAsFailed>>[]
+  failed: StepCacheResult<DoneResult<Status.failed> | AbortResult<Status.failed>>[]
+}
+
 export type ImmutableCache = {
   step: {
-    didStepRun: (options: { stepId: string; artifactHash: string }) => Promise<boolean>
-    getArtifactStepResult: (options: {
-      stepId: string
-      artifactHash: string
-    }) => Promise<
-      | {
-          flowId: string
-          repoHash: string
-          artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
-        }
-      | undefined
-    >
+    getArtifactStepResults: (options: { stepId: string; artifactHash: string }) => Promise<ArtifactStepResults>
     setArtifactStepResultResipe: (options: {
       stepId: string
       artifactHash: string
-      artifactStepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
-    }) => ['set', string, string, 'ex', string, 'nx']
-    getStepResult: (options: {
-      stepId: string
-    }) => Promise<
-      | {
-          flowId: string
-          repoHash: string
-          stepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
-        }
-      | undefined
-    >
+      artifactStepResult: Result
+    }) => [['sadd', string, string], ['expire', string, string]]
+    getStepResults: (options: { stepId: string }) => Promise<StepResults>
     setStepResultResipe: (options: {
       stepId: string
-      stepResult: DoneResult | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
-    }) => ['set', string, string, 'ex', string, 'nx']
+      stepResult: Result
+    }) => [['sadd', string, string], ['expire', string, string]]
   }
   get: <T>(options: {
     key: string
@@ -47,11 +54,17 @@ export type ImmutableCache = {
   set: (options: { key: string; value: string; asBuffer: boolean; ttl: number }) => Promise<void>
   has: (key: string) => Promise<boolean>
   ttls: {
-    ArtifactStepResult: number
+    ArtifactStepResults: number
     flowLogs: number
   }
   cleanup: () => Promise<unknown>
 }
+
+const getResultSchema = object({
+  flowId: string(),
+  repoHash: string(),
+  value: string(),
+})
 
 export async function createImmutableCache({
   repoHash,
@@ -67,30 +80,33 @@ export async function createImmutableCache({
   artifacts: Graph<{ artifact: Artifact }>
   ttls: ImmutableCache['ttls']
 }): Promise<ImmutableCache> {
-  const nodeCache = new NodeCache()
+  const toFlowValueString = (value: string) =>
+    // TODO: add runtime types check here
+    JSON.stringify({ flowId, repoHash, value })
+  const toFlowValueJson = (value: string) => {
+    const [error, parsedResult] = validate(JSON.parse(value), getResultSchema)
+    if (parsedResult) {
+      return {
+        flowId: parsedResult.flowId,
+        repoHash: parsedResult.repoHash,
+        value: parsedResult.value,
+      }
+    } else {
+      throw new Error(
+        `(1) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${value}"`,
+      )
+    }
+  }
 
   async function set(options: { key: string; value: string; asBuffer: boolean; ttl: number }): Promise<void> {
-    const stirgifiedValue = JSON.stringify({
-      flowId,
-      repoHash,
-      value: options.value,
-    })
-
     await redisClient.set({
       allowOverride: false,
       key: options.key,
       ttl: options.ttl,
-      value: stirgifiedValue,
+      value: toFlowValueString(options.value),
       asBuffer: options.asBuffer,
     })
-    nodeCache.set(options.key, stirgifiedValue)
   }
-
-  const getResultSchema = object({
-    flowId: string(),
-    repoHash: string(),
-    value: string(),
-  })
 
   async function get<T>({
     key,
@@ -101,153 +117,127 @@ export async function createImmutableCache({
     isBuffer: boolean
     mapper: (result: string) => T
   }): Promise<{ flowId: string; repoHash: string; value: T } | undefined> {
-    const strigifiedJson = nodeCache.get<string>(key) ?? (await redisClient.get({ key, isBuffer, mapper: _.identity }))
+    const strigifiedJson = await redisClient.get({ key, isBuffer, mapper: _.identity })
     if (strigifiedJson === undefined) {
       return undefined
     }
-    const [error, parsedResult] = validate(JSON.parse(strigifiedJson), getResultSchema)
-    if (parsedResult) {
-      return {
-        flowId: parsedResult.flowId,
-        repoHash: parsedResult.repoHash,
-        value: mapper(parsedResult.value),
-      }
-    } else {
-      throw new Error(
-        `(1) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${strigifiedJson}"`,
-      )
+    const flowValueJson = toFlowValueJson(strigifiedJson)
+    return {
+      flowId: flowValueJson.flowId,
+      repoHash: flowValueJson.repoHash,
+      value: mapper(flowValueJson.value),
     }
   }
 
   async function has(key: string): Promise<boolean> {
-    return nodeCache.has(key) || (await redisClient.has(key))
+    return redisClient.has(key)
   }
 
-  function toArtifactStepResultKey({ artifactHash, stepId }: { stepId: string; artifactHash: string }) {
+  function toArtifactStepResultsKey({ artifactHash, stepId }: { stepId: string; artifactHash: string }) {
     return `${stepId}-${artifactHash}`
   }
 
-  function toStepResultKey({ repoHash, stepId }: { repoHash: string; stepId: string }) {
+  function toStepResultsKey({ stepId }: { stepId: string }) {
     return `${repoHash}-${stepId}`
   }
 
-  const resultSchema = object({
-    executionStatus: enums([ExecutionStatus.done, ExecutionStatus.aborted]),
-    status: enums(Object.values(Status)),
-    durationMs: optional(number()),
-    returnValue: optional(string()),
-    notes: array(string()),
-    errors: array(
-      type({
-        name: optional(string()),
-        stack: optional(string()),
-        message: optional(string()),
-        code: optional(string()),
-      }),
-    ),
-  })
-
   const step: ImmutableCache['step'] = {
-    didStepRun: options => has(toArtifactStepResultKey({ stepId: options.stepId, artifactHash: options.artifactHash })),
-    getArtifactStepResult: async ({ stepId, artifactHash }) => {
-      const artifactStepResult = await get({
-        key: toArtifactStepResultKey({ stepId, artifactHash }),
-        isBuffer: false,
-        mapper: r => {
-          if (typeof r !== 'string') {
-            throw new Error(
-              `(2) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
-            )
-          }
-
-          const [error, parsedResult] = validate(JSON.parse(r), resultSchema)
-          if (parsedResult) {
-            return parsedResult
-          } else {
-            throw new Error(
-              `(3) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
-            )
-          }
-        },
-      })
-      if (!artifactStepResult) {
-        return undefined
-      }
-
+    getArtifactStepResults: async ({ stepId, artifactHash }) => {
+      const results = await redisClient.connection.smembers(toArtifactStepResultsKey({ stepId, artifactHash }))
+      const all: ArtifactStepCacheResult<Result>[] = results.map(toFlowValueJson).map(r =>
+        // TODO: add runtime types check here
+        ({
+          flowId: r.flowId,
+          repoHash: r.repoHash,
+          // TODO: add runtime types check here
+          artifactStepResult: JSON.parse(r.value),
+        }),
+      )
       return {
-        flowId: artifactStepResult.flowId,
-        repoHash: artifactStepResult.repoHash,
-        artifactStepResult: artifactStepResult.value as
-          | DoneResult
-          | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>,
+        all,
+        passed: all.filter(
+          r =>
+            r.artifactStepResult.executionStatus === ExecutionStatus.done &&
+            r.artifactStepResult.status === Status.passed,
+        ) as ArtifactStepCacheResult<DoneResult<Status.passed>>[],
+        skippedAsPassed: all.filter(
+          r =>
+            r.artifactStepResult.executionStatus === ExecutionStatus.aborted &&
+            r.artifactStepResult.status === Status.skippedAsPassed,
+        ) as ArtifactStepCacheResult<AbortResult<Status.skippedAsPassed>>[],
+        skippedAsFailed: all.filter(
+          r =>
+            r.artifactStepResult.executionStatus === ExecutionStatus.aborted &&
+            r.artifactStepResult.status === Status.skippedAsFailed,
+        ) as ArtifactStepCacheResult<AbortResult<Status.skippedAsFailed>>[],
+        failed: all.filter(
+          r =>
+            (r.artifactStepResult.executionStatus === ExecutionStatus.done ||
+              r.artifactStepResult.executionStatus === ExecutionStatus.aborted) &&
+            r.artifactStepResult.status === Status.failed,
+        ) as ArtifactStepCacheResult<DoneResult<Status.failed> | AbortResult<Status.failed>>[],
       }
     },
     setArtifactStepResultResipe: ({ artifactHash, stepId, artifactStepResult }) => {
+      const key = toArtifactStepResultsKey({ stepId, artifactHash })
       return [
-        'set',
-        toArtifactStepResultKey({ stepId, artifactHash }),
-        JSON.stringify({
-          flowId,
-          repoHash,
-          value: JSON.stringify(artifactStepResult),
-        }),
-        'ex',
-        ttls.ArtifactStepResult.toString(),
-        'nx',
+        [
+          'sadd',
+          key,
+          // TODO: add runtime types check here
+          toFlowValueString(JSON.stringify(artifactStepResult)),
+        ],
+        ['expire', key, ttls.ArtifactStepResults.toString()],
       ]
     },
-    getStepResult: async ({ stepId }) => {
-      const stepResult = await get({
-        key: toStepResultKey({ stepId, repoHash }),
-        isBuffer: false,
-        mapper: r => {
-          if (typeof r !== 'string') {
-            throw new Error(
-              `(2) cache.get returned a data with an invalid type. expected string, actual: "${typeof r}". data: "${r}"`,
-            )
-          }
-
-          const [error, parsedResult] = validate(JSON.parse(r), resultSchema)
-          if (parsedResult) {
-            return parsedResult
-          } else {
-            throw new Error(
-              `(3) cache.get returned a data with an invalid schema. validation-error: "${error}". data: "${r}"`,
-            )
-          }
-        },
-      })
-      if (!stepResult) {
-        return undefined
-      }
-
+    getStepResults: async ({ stepId }) => {
+      const results = await redisClient.connection.smembers(toStepResultsKey({ stepId }))
+      const all: StepCacheResult<Result>[] = results.map(toFlowValueJson).map(r =>
+        // TODO: add runtime types check here
+        ({
+          flowId: r.flowId,
+          repoHash: r.repoHash,
+          // TODO: add runtime types check here
+          stepResult: JSON.parse(r.value),
+        }),
+      )
       return {
-        flowId: stepResult.flowId,
-        repoHash: stepResult.repoHash,
-        stepResult: stepResult.value as
-          | DoneResult
-          | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>,
+        all,
+        passed: all.filter(
+          r => r.stepResult.executionStatus === ExecutionStatus.done && r.stepResult.status === Status.passed,
+        ) as StepCacheResult<DoneResult<Status.passed>>[],
+        skippedAsPassed: all.filter(
+          r =>
+            r.stepResult.executionStatus === ExecutionStatus.aborted && r.stepResult.status === Status.skippedAsPassed,
+        ) as StepCacheResult<AbortResult<Status.skippedAsPassed>>[],
+        skippedAsFailed: all.filter(
+          r =>
+            r.stepResult.executionStatus === ExecutionStatus.aborted && r.stepResult.status === Status.skippedAsFailed,
+        ) as StepCacheResult<AbortResult<Status.skippedAsFailed>>[],
+        failed: all.filter(
+          r =>
+            (r.stepResult.executionStatus === ExecutionStatus.done ||
+              r.stepResult.executionStatus === ExecutionStatus.aborted) &&
+            r.stepResult.status === Status.failed,
+        ) as StepCacheResult<DoneResult<Status.failed> | AbortResult<Status.failed>>[],
       }
     },
     setStepResultResipe: ({ stepId, stepResult }) => {
+      const key = toStepResultsKey({ stepId })
       return [
-        'set',
-        toStepResultKey({ stepId, repoHash }),
-        JSON.stringify({
-          flowId,
-          repoHash,
-          value: JSON.stringify(stepResult),
-        }),
-        'ex',
-        ttls.ArtifactStepResult.toString(),
-        'nx',
+        [
+          'sadd',
+          key,
+          // TODO: add runtime types check here
+          toFlowValueString(JSON.stringify(stepResult)),
+        ],
+        ['expire', key, ttls.ArtifactStepResults.toString()],
       ]
     },
   }
 
   const cleanup = async () => {
-    await nodeCache.close()
-    log.debug(`closed node-cache`)
+    log.debug(`closed immutable-cache`)
   }
 
   return {

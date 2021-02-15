@@ -1,5 +1,5 @@
 import { ConstrainResultType, createConstrain } from '@era-ci/core'
-import { didPassOrSkippedAsPassed, ExecutionStatus, Status } from '@era-ci/utils'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 
 export const skipAsPassedIfStepResultPassedInCacheConstrain = createConstrain<{
   stepNameToSearchInCache: string
@@ -40,11 +40,11 @@ export const skipAsPassedIfStepResultPassedInCacheConstrain = createConstrain<{
       }
     }
 
-    const actualStepResult = await immutableCache.step.getStepResult({
+    const stepResult = await immutableCache.step.getStepResults({
       stepId: step.data.stepInfo.stepId,
     })
 
-    if (!actualStepResult) {
+    if (stepResult.all.length === 0) {
       return {
         resultType: ConstrainResultType.ignoreThisConstrain,
         result: {
@@ -54,22 +54,20 @@ export const skipAsPassedIfStepResultPassedInCacheConstrain = createConstrain<{
       }
     }
 
-    if (didPassOrSkippedAsPassed(actualStepResult.stepResult.status)) {
-      const isResultFromThisFlow = flowId === actualStepResult.flowId
-      const isThisStep = currentStepInfo.data.stepInfo.stepId === step.data.stepInfo.stepId
+    if (stepResult.passed.length > 0 || stepResult.skippedAsPassed.length > 0) {
       const notes: string[] = []
-      if (isResultFromThisFlow && isThisStep) {
-        // we are running the ci again and nothing was changed in the repo
-        notes.push(`step already passed`)
-      }
-      if (isResultFromThisFlow && !isThisStep) {
-        notes.push(`step: "${step.data.stepInfo.displayName}" passed`)
-      }
-      if (!isResultFromThisFlow && isThisStep) {
-        notes.push(`step already passed in flow: "${actualStepResult.flowId}"`)
-      }
-      if (!isResultFromThisFlow && !isThisStep) {
-        notes.push(`step: "${step.data.stepInfo.displayName}" passed in flow: "${actualStepResult.flowId}"`)
+      if (stepResult.passed.length > 0) {
+        notes.push(
+          `step: "${step.data.stepInfo.displayName}" passed in flows: ${stepResult.passed
+            .map(f => f.flowId)
+            .join(',')}`,
+        )
+      } else {
+        notes.push(
+          `step: "${step.data.stepInfo.displayName}" passed in flows: ${stepResult.skippedAsPassed
+            .map(f => f.flowId)
+            .join(',')}`,
+        )
       }
       return {
         resultType: ConstrainResultType.shouldSkip,

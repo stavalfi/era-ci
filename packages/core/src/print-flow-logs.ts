@@ -36,8 +36,8 @@ export async function printFlowLogs<TaskQueue>(options: {
       log: logger.createLog('cache'),
       redisClient,
       ttls: {
-        ArtifactStepResult: 1000 * 60 * 60 * 24 * 7,
-        flowLogs: 1000 * 60 * 60 * 24 * 7,
+        ArtifactStepResults: -1, // it won't be used here
+        flowLogs: -1, // it won't be used here
       },
     })
     cleanups.push(immutableCache.cleanup)

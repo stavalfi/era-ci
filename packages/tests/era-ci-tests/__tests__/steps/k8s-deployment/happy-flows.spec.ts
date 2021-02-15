@@ -6,7 +6,7 @@ import { execaCommand, ExecutionStatus, Status } from '@era-ci/utils'
 import expect from 'expect'
 import _ from 'lodash'
 
-const { createRepo, getResources, k8sHelpers } = createTest()
+const { createRepo, getResources, k8sHelpers } = createTest({ isK8sTestFile: true })
 
 test('redeploy to k8s and ensure the new image is running', async () => {
   const { runCi, toActualName, testLog } = await createRepo(toActualName => ({

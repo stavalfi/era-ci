@@ -10,29 +10,40 @@ import path from 'path'
 import fs from 'fs'
 import os from 'os'
 
-async function k8sResources(): Promise<{
+async function k8sResources(
+  isK8sTestFile?: boolean,
+): Promise<{
   kubeConfigBase64: string
   deploymentApi: k8s.AppsV1Api
 }> {
   const kc = new k8s.KubeConfig()
-  const kubeConfigFile = await fs.promises.readFile(path.join(os.homedir(), '.kube', 'config'), 'utf-8')
-  if (!kubeConfigFile.includes('current-context: k3d-era-ci-test')) {
-    const currentConetxt = kubeConfigFile.split('current-context: ')[1].split('\n')[0]
-    throw new Error(
-      `for extra precution to avoid running era-ci tests on your production k8s cluster, \
-we only allow to run era-ci tests on k3d and set the cluster name to "default". please change your current-context. current-context: "${currentConetxt}"`,
-    )
-  }
 
-  const kubeConfigBase64 = Buffer.from(kubeConfigFile).toString('base64')
+  if (isK8sTestFile) {
+    const kubeConfigFile = await fs.promises.readFile(path.join(os.homedir(), '.kube', 'config'), 'utf-8')
+    if (!kubeConfigFile.includes('current-context: k3d-era-ci-test')) {
+      const currentConetxt = kubeConfigFile.split('current-context: ')[1].split('\n')[0]
+      throw new Error(
+        `for extra precution to avoid running era-ci tests on your production k8s cluster, \
+        we only allow to run era-ci tests on k3d and set the cluster name to "default". please change your current-context. current-context: "${currentConetxt}"`,
+      )
+    }
 
-  kc.loadFromString(kubeConfigFile)
+    const kubeConfigBase64 = Buffer.from(kubeConfigFile).toString('base64')
 
-  const deploymentApi = kc.makeApiClient(k8s.AppsV1Api)
+    kc.loadFromString(kubeConfigFile)
 
-  return {
-    kubeConfigBase64,
-    deploymentApi,
+    return {
+      kubeConfigBase64,
+      deploymentApi: kc.makeApiClient(k8s.AppsV1Api),
+    }
+  } else {
+    return {
+      kubeConfigBase64: 'invalid-kubeconfig-file',
+      // if you see this, it means that you are running k8s tests. run: const .... = createTest({ isK8sTestFile: true })
+      // test-file example: packages/tests/era-ci-tests/__tests__/steps/k8s-deployment/happy-flows.spec.ts
+      // @ts-expect-error
+      deploymentApi: null,
+    }
   }
 }
 
@@ -41,6 +52,7 @@ export function resourcesBeforeAfterEach(options: {
   getCleanups: GetCleanups
   startQuayHelperService?: boolean
   startQuayMockService?: boolean
+  isK8sTestFile?: boolean
 }): () => TestResources {
   let resources: TestResources
 
@@ -56,7 +68,7 @@ export function resourcesBeforeAfterEach(options: {
     })
 
     const [k8s, quayMockService, quayHelperService, gitServer] = await Promise.all([
-      k8sResources(),
+      k8sResources(options.isK8sTestFile),
       options?.startQuayMockService
         ? await startQuayMockService({
             isTestMode: true,

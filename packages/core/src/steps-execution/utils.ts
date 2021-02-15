@@ -35,26 +35,18 @@ export function buildRedisCommands(options: {
   action: Actions
 }): string[][] {
   const redisCommands: string[][] = []
-  if (
-    options.action.type === ExecutionActionTypes.artifactStep &&
-    (options.action.payload.artifactStepResult.executionStatus === ExecutionStatus.done ||
-      options.action.payload.artifactStepResult.executionStatus === ExecutionStatus.aborted)
-  ) {
+  if (options.action.type === ExecutionActionTypes.artifactStep) {
     redisCommands.push(
-      options.immutableCache.step.setArtifactStepResultResipe({
+      ...options.immutableCache.step.setArtifactStepResultResipe({
         stepId: options.action.payload.step.data.stepInfo.stepId,
         artifactHash: options.action.payload.artifact.data.artifact.packageHash,
         artifactStepResult: options.action.payload.artifactStepResult,
       }),
     )
   }
-  if (
-    options.action.type === ExecutionActionTypes.step &&
-    (options.action.payload.stepResult.executionStatus === ExecutionStatus.done ||
-      options.action.payload.stepResult.executionStatus === ExecutionStatus.aborted)
-  ) {
+  if (options.action.type === ExecutionActionTypes.step) {
     redisCommands.push(
-      options.immutableCache.step.setStepResultResipe({
+      ...options.immutableCache.step.setStepResultResipe({
         stepId: options.action.payload.step.data.stepInfo.stepId,
         stepResult: options.action.payload.stepResult,
       }),
