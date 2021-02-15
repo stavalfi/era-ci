@@ -55,7 +55,7 @@ const getJsonReport = (testFuncs: TestFuncs) => async ({
     log: testLogger.createLog('cache'),
     redisClient,
     ttls: {
-      ArtifactStepResult: 1000 * 60 * 60 * 24 * 7,
+      ArtifactStepResults: 1000 * 60 * 60 * 24 * 7,
       flowLogs: 1000 * 60 * 60 * 24 * 7,
     },
   })
@@ -323,6 +323,7 @@ const createTestLogger = async (repoPath: string) =>
 export function createTest(options?: {
   startQuayHelperService?: boolean
   startQuayMockService?: boolean
+  isK8sTestFile?: boolean
 }): TestFuncs & { createRepo: CreateRepo } {
   const getCleanups = beforeAfterCleanups()
   const getProcessEnv = processEnvBeforeAfterEach()

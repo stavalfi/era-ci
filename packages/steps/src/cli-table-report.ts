@@ -1,7 +1,4 @@
-import {
-  skipAsFailedIfStepResultFailedInCacheConstrain,
-  skipAsFailedIfStepResultMissingInCacheConstrain,
-} from '@era-ci/constrains'
+import { skipAsFailedIfStepResultFailedInCacheConstrain } from '@era-ci/constrains'
 import { createStep, LogLevel, stepToString } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
@@ -297,10 +294,6 @@ export const cliTableReporter = createStep({
   taskQueueClass: LocalSequentalTaskQueue,
   run: async options => ({
     stepConstrains: [
-      skipAsFailedIfStepResultMissingInCacheConstrain({
-        stepNameToSearchInCache: jsonReporterStepName,
-        skipAsPassedIfStepNotExists: false,
-      }),
       skipAsFailedIfStepResultFailedInCacheConstrain({
         stepNameToSearchInCache: jsonReporterStepName,
         skipAsPassedIfStepNotExists: false,
@@ -310,7 +303,9 @@ export const cliTableReporter = createStep({
       const jsonReporterStepId = options.steps.find(s => s.data.stepInfo.stepName === jsonReporterStepName)?.data
         .stepInfo.stepId
       if (!jsonReporterStepId) {
-        throw new Error(`cli-table-reporter can't find json-reporter-step-id. is it part of the flow?`)
+        throw new Error(
+          `cli-table-reporter can't find json-reporter step. is it part of the flow? is it running before cli-table-reporter step?`,
+        )
       }
 
       const jsonReportResult = await options.immutableCache.get({

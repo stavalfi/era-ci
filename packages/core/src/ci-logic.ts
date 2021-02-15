@@ -77,7 +77,7 @@ export async function ci(options: {
       log: logger.createLog('cache'),
       redisClient,
       ttls: {
-        ArtifactStepResult: 1000 * 60 * 60 * 24 * 7, // 1w
+        ArtifactStepResults: 1000 * 60 * 60 * 24 * 30, // 1 month
         flowLogs: 1000 * 60 * 30, // 30m
       },
     })

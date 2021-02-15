@@ -1,5 +1,5 @@
 import { ConstrainResultType, createConstrain } from '@era-ci/core'
-import { didPassOrSkippedAsPassed, ExecutionStatus, Status } from '@era-ci/utils'
+import { ExecutionStatus, Status } from '@era-ci/utils'
 
 export const skipAsFailedIfStepResultFailedInCacheConstrain = createConstrain<{
   stepNameToSearchInCache: string
@@ -40,11 +40,11 @@ export const skipAsFailedIfStepResultFailedInCacheConstrain = createConstrain<{
       }
     }
 
-    const actualStepResult = await immutableCache.step.getStepResult({
+    const stepResult = await immutableCache.step.getStepResults({
       stepId: step.data.stepInfo.stepId,
     })
 
-    if (!actualStepResult) {
+    if (stepResult.all.length === 0) {
       return {
         resultType: ConstrainResultType.ignoreThisConstrain,
         result: {
@@ -54,31 +54,22 @@ export const skipAsFailedIfStepResultFailedInCacheConstrain = createConstrain<{
       }
     }
 
-    if (didPassOrSkippedAsPassed(actualStepResult.stepResult.status)) {
-      return {
-        resultType: ConstrainResultType.ignoreThisConstrain,
-        result: {
-          errors: [],
-          notes: [],
-        },
-      }
-    } else {
-      const isResultFromThisFlow = flowId === actualStepResult.flowId
-      const isThisStep = currentStepInfo.data.stepInfo.stepId === step.data.stepInfo.stepId
+    if (stepResult.failed.length > 0 || stepResult.skippedAsFailed.length > 0) {
       const notes: string[] = []
-      if (isResultFromThisFlow && isThisStep) {
-        // we are running the ci again and nothing was changed in the repo
-        notes.push(`step already failed`)
+      if (stepResult.failed.length > 0) {
+        notes.push(
+          `step: "${step.data.stepInfo.displayName}" failed in flows: ${stepResult.failed
+            .map(f => f.flowId)
+            .join(',')}`,
+        )
+      } else {
+        notes.push(
+          `step: "${step.data.stepInfo.displayName}" failed in flows: ${stepResult.skippedAsFailed
+            .map(f => f.flowId)
+            .join(',')}`,
+        )
       }
-      if (isResultFromThisFlow && !isThisStep) {
-        notes.push(`step: "${step.data.stepInfo.displayName}" failed`)
-      }
-      if (!isResultFromThisFlow && isThisStep) {
-        notes.push(`step already failed in flow: "${actualStepResult.flowId}"`)
-      }
-      if (!isResultFromThisFlow && !isThisStep) {
-        notes.push(`step: "${step.data.stepInfo.displayName}" failed in flow: "${actualStepResult.flowId}"`)
-      }
+
       return {
         resultType: ConstrainResultType.shouldSkip,
         result: {
@@ -86,6 +77,14 @@ export const skipAsFailedIfStepResultFailedInCacheConstrain = createConstrain<{
           notes,
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsFailed,
+        },
+      }
+    } else {
+      return {
+        resultType: ConstrainResultType.ignoreThisConstrain,
+        result: {
+          errors: [],
+          notes: [],
         },
       }
     }

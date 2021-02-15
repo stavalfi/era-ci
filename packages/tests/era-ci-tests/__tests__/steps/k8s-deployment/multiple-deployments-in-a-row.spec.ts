@@ -8,7 +8,7 @@ import fs from 'fs'
 import _ from 'lodash'
 import path from 'path'
 
-const { createRepo, getResources, k8sHelpers } = createTest()
+const { createRepo, getResources, k8sHelpers } = createTest({ isK8sTestFile: true })
 
 test('2 deployments - all succeed', async () => {
   const { runCi, toActualName, testLog, repoPath } = await createRepo(toActualName => ({

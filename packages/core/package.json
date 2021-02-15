@@ -27,7 +27,6 @@
     "fs-extra": "^9.0.0",
     "immer": "^8.0.1",
     "lodash": "4.17.20",
-    "node-cache": "^5.1.2",
     "redux": "^4.0.5",
     "rxjs": "^7.0.0-beta.10",
     "serialize-error": "^7.0.1",

@@ -112,7 +112,7 @@ export default config({
           ? {
               // for some reason, sometimes, github gives us VMs which are already used and has the containers still
               // running from previous build, so we use test-resources:reset to kill any leftovers from previous builds.
-              shellCommand: 'yarn test-resources:reset',
+              shellCommand: 'yarn all-resources:reset',
               cwd: __dirname,
             }
           : undefined,

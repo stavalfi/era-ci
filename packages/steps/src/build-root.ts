@@ -2,7 +2,6 @@ import {
   skipAsPassedIfRootPackageJsonMissingScriptConstrain,
   skipAsPassedIfStepIsDisabledConstrain,
   skipAsFailedIfStepResultFailedInCacheConstrain,
-  skipAsFailedIfStepResultMissingInCacheConstrain,
 } from '@era-ci/constrains'
 import { createStep, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
@@ -15,10 +14,6 @@ export const buildRoot = createStep<TaskWorkerTaskQueue, { isStepEnabled: boolea
   run: async ({ stepConfigurations, repoPath, taskQueue }) => ({
     globalConstrains: [skipAsPassedIfStepIsDisabledConstrain()],
     stepConstrains: [
-      skipAsFailedIfStepResultMissingInCacheConstrain({
-        stepNameToSearchInCache: 'install-root',
-        skipAsPassedIfStepNotExists: true,
-      }),
       skipAsFailedIfStepResultFailedInCacheConstrain({
         stepNameToSearchInCache: 'install-root',
         skipAsPassedIfStepNotExists: true,

@@ -58,9 +58,9 @@ export enum ExecutionStatus {
   aborted = 'aborted',
 }
 
-export type DoneResult = {
+export type DoneResult<S = Status.passed | Status.failed> = {
   executionStatus: ExecutionStatus.done
-  status: Status.passed | Status.failed
+  status: S
   durationMs: number
   notes: Array<string>
   errors: Array<ErrorObject>
@@ -83,6 +83,12 @@ export type RunningResult = {
 export type ScheduledResult = {
   executionStatus: ExecutionStatus.scheduled
 }
+
+export type Result =
+  | RunningResult
+  | ScheduledResult
+  | DoneResult
+  | AbortResult<Status.skippedAsFailed | Status.skippedAsPassed | Status.failed>
 
 // ---------------------
 

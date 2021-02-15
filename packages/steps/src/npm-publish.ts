@@ -362,7 +362,7 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
               }),
               value: newVersion,
               asBuffer: true,
-              ttl: immutableCache.ttls.ArtifactStepResult,
+              ttl: immutableCache.ttls.ArtifactStepResults,
             }),
           )
 
