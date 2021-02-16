@@ -1,11 +1,12 @@
 import {
+  skipAsFailedIfStepResultFailedInCacheConstrain,
   skipAsPassedIfRootPackageJsonMissingScriptConstrain,
   skipAsPassedIfStepIsDisabledConstrain,
-  skipAsFailedIfStepResultFailedInCacheConstrain,
 } from '@era-ci/constrains'
 import { createStep, toTaskEvent$ } from '@era-ci/core'
 import { TaskWorkerTaskQueue } from '@era-ci/task-queues'
-import { ExecutionStatus, lastValueFrom } from '@era-ci/utils'
+import { ExecutionStatus } from '@era-ci/utils'
+import { lastValueFrom } from 'rxjs'
 
 export const buildRoot = createStep<TaskWorkerTaskQueue, { isStepEnabled: boolean; scriptName: string }>({
   stepName: 'build-root',

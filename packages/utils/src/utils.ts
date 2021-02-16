@@ -4,17 +4,8 @@ import gitRemoteOriginUrl from 'git-remote-origin-url'
 import gitUrlParse from 'git-url-parse'
 import _ from 'lodash'
 import path from 'path'
-import { firstValueFrom as first, lastValueFrom as last, Observable } from 'rxjs'
 import semver from 'semver'
 import { ExecutionStatus, GitRepoInfo, PackageJson, Status, TargetType, UnionArrayValues } from './types'
-
-export function firstValueFrom<T>(source: Observable<T>): Promise<T> {
-  return first(source)
-}
-
-export function lastValueFrom<T>(source: Observable<T>): Promise<T> {
-  return last(source)
-}
 
 export const didPassOrSkippedAsPassed = (status: Status): boolean =>
   [Status.passed, Status.skippedAsPassed].includes(status)
