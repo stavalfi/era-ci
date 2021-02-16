@@ -1,4 +1,4 @@
 node_modules
-tests
 __tests__
 .history
+dist

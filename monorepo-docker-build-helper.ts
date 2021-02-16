@@ -29,11 +29,11 @@ type PackageJson = {
 }
 
 enum Actions {
-  removeIrrelevantPackages = 'remove-irrelevant-packages',
+  removeAllDevDepsNotRelatedTo = 'remove-all-dev-deps-not-related-to',
 }
 
 function getGraph(repoPath: string): Workspaces {
-  const result = execSync(`yarn workspaces --json info`, { cwd: repoPath }).toString()
+  const result = execSync('yarn workspaces --json info', { cwd: repoPath }).toString()
   return JSON.parse(JSON.parse(result).data)
 }
 
@@ -62,7 +62,7 @@ function findAllRecursiveDepsOfPackage(graph: Workspaces, packageJsonName: strin
   return results
 }
 
-// remove packages which are devDeps from tsconfig.json/paths section
+// remove packages which are devDeps from tsconfig.json/paths
 function updateMainTsconfigFile(repoPath: string, graph: Workspaces, deps: string[]): void {
   const tsconfigBuildFilePath = path.join(repoPath, 'tsconfig.json')
   const tsconfigBuild = JSON.parse(fs.readFileSync(tsconfigBuildFilePath, 'utf-8')) as Tsconfig
@@ -113,15 +113,6 @@ function updateAllTsconfigBuildFiles(repoPath: string, graph: Workspaces, packag
   }
 }
 
-function keepOnlyNeededPackages(repoPath: string, graph: Workspaces, packageJsonName: string): void {
-  const deps = findAllRecursiveDepsOfPackage(graph, packageJsonName)
-  for (const dep of Object.keys(graph)) {
-    if (!deps.includes(dep)) {
-      execSync(`rm -rf ${graph[dep].location}`, { cwd: repoPath })
-    }
-  }
-}
-
 function deleteDevDepsFromPackageJson(packageJsonPath: string, expectDevDeps: string[]) {
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
   packageJson.devDependencies = Object.fromEntries(
@@ -140,14 +131,9 @@ function deleteDevDepsFromPackageJson(packageJsonPath: string, expectDevDeps: st
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2), 'utf-8')
 }
 
-function deleteAllDevDeps(
-  repoPath: string,
-  graph: Workspaces,
-  packageJsonNameToKeep: string,
-  expectDevDeps: string[],
-): void {
+function deleteAllDevDeps(repoPath: string, graph: Workspaces, packageJsonName: string, expectDevDeps: string[]): void {
   deleteDevDepsFromPackageJson(path.join(repoPath, 'package.json'), expectDevDeps)
-  const deps = findAllRecursiveDepsOfPackage(graph, packageJsonNameToKeep)
+  const deps = findAllRecursiveDepsOfPackage(graph, packageJsonName)
   for (const dep of deps) {
     deleteDevDepsFromPackageJson(path.join(repoPath, graph[dep].location, 'package.json'), expectDevDeps)
   }
@@ -159,30 +145,24 @@ async function main(argv: string[]) {
   const graph = getGraph(repoPath)
 
   switch (action as Actions) {
-    case Actions.removeIrrelevantPackages: {
-      const [param1 = '--keep-package-and-its-deps', packageJsonNameToKeep, param2, ...expectDevDepsNames] = params
-      if (param1 !== '--keep-package-and-its-deps') {
-        throw new Error(`second param must be "--keep-package-and-its-deps"`)
+    case Actions.removeAllDevDepsNotRelatedTo: {
+      const [packageName, expectDepsParam, expectDevDepsNames = ''] = params
+      if (!graph[packageName]) {
+        throw new Error('first param must be a name of a package inside the monorepo')
       }
-      if (param2 && param2 !== '--remove-all-dev-deps-except') {
-        throw new Error(`forth param must be nothing or "--remove-all-dev-deps-except"`)
+      if (expectDepsParam && expectDepsParam !== '--except-deps') {
+        throw new Error('second param must be "--except-deps"')
       }
-      if (!graph[packageJsonNameToKeep]) {
-        throw new Error(`packageJsonName: "${packageJsonNameToKeep}" was not found in this monorepo`)
-      }
+      const expectDevDepsNamesArray = expectDepsParam ? expectDevDepsNames.split(',') : []
 
-      if (param2 === '--remove-all-dev-deps-except') {
-        deleteAllDevDeps(repoPath, graph, packageJsonNameToKeep, expectDevDepsNames)
-      }
-
-      updateAllTsconfigBuildFiles(repoPath, graph, packageJsonNameToKeep)
-      keepOnlyNeededPackages(repoPath, graph, packageJsonNameToKeep)
-      updateMainTsconfigFile(repoPath, graph, findAllRecursiveDepsOfPackage(graph, packageJsonNameToKeep))
+      deleteAllDevDeps(repoPath, graph, packageName, expectDevDepsNamesArray)
+      updateAllTsconfigBuildFiles(repoPath, graph, packageName)
+      updateMainTsconfigFile(repoPath, graph, findAllRecursiveDepsOfPackage(graph, packageName))
 
       break
     }
     default:
-      throw new Error(`Action: "${action}" is not supported`)
+      throw new Error(`Action: "${action}" is not supported. supported actions: ${Object.values(Actions)}`)
   }
 }
 
