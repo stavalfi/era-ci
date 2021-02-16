@@ -321,18 +321,16 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
         )
         await fse.copy(artifact.data.artifact.packagePath, copiedPackagePathToPublish)
 
-        await execaCommand(
-          `yarn publish --registry ${stepConfigurations.registry} --non-interactive --new-version ${newVersion} ${
-            artifact.data.artifact.packageJson.name?.includes('@')
-              ? `--access ${stepConfigurations.npmScopeAccess}`
-              : ''
-          }`,
-          {
-            stdio: 'pipe',
-            cwd: copiedPackagePathToPublish,
-            log,
-          },
-        )
+        const withAcess = artifact.data.artifact.packageJson.name?.includes('@')
+          ? `--access ${stepConfigurations.npmScopeAccess}`
+          : ''
+
+        const publishCommand = `yarn publish --registry ${stepConfigurations.registry} --non-interactive --new-version ${newVersion} ${withAcess}`
+        await execaCommand(publishCommand, {
+          stdio: 'pipe',
+          cwd: copiedPackagePathToPublish,
+          log,
+        })
           .then(async () => {
             // wait (up to a 2 minutes) until the package is available
             for (let i = 0; i < 24; i++) {

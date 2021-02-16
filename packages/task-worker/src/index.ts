@@ -30,14 +30,14 @@ export function config(config: WorkerConfig): WorkerConfig {
 
 export async function main(processEnv: NodeJS.ProcessEnv, processArgv: string[]): Promise<void> {
   const argv = yargsParser(processArgv, {
-    string: ['repo-path'],
+    string: ['repo-path', 'config-file'],
     default: {
       'repo-path': process.cwd(),
     },
   })
 
   const repoPath = argv['repo-path']
-  const configFilePath = path.join(repoPath, 'task-worker.config.ts')
+  const configFilePath = argv['config-file'] ?? path.join(repoPath, 'task-worker.config.ts')
   const config = await parseConfig(configFilePath)
 
   const connectionsCleanups: (() => Promise<unknown>)[] = []
