@@ -1,8 +1,8 @@
 import { toTaskEvent$ } from '@era-ci/core'
-import { distructPackageJsonName, lastValueFrom } from '@era-ci/utils'
-import { merge } from 'rxjs'
-import { beforeAfterEach } from '../utils'
+import { distructPackageJsonName } from '@era-ci/utils'
 import expect from 'expect'
+import { lastValueFrom, merge } from 'rxjs'
+import { beforeAfterEach } from '../utils'
 
 const { getResources } = beforeAfterEach({
   quayMockService: {
