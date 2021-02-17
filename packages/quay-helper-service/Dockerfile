@@ -21,7 +21,7 @@ COPY ${utils_path}/tsconfig-build.json ./${utils_path}/tsconfig-build.json
 COPY packages/monorepo-helper-cli/src ./packages/monorepo-helper-cli/src
 
 RUN npx esbuild-runner@1.3.2 \
-    packages/monorepo-helper-cli/src/index.ts remove-all-dev-deps-not-related-to --repo-path ${pwd} @era-ci/quay-helper-service --except-deps typescript,@types/* && \
+    packages/monorepo-helper-cli/src/index.ts remove-all-dev-deps-not-related-to --repo-path /usr/service @era-ci/quay-helper-service --except-deps typescript,@types/* && \
     yarn install
 
 COPY ${package_path}/src ./${package_path}/src
