@@ -16,6 +16,7 @@
     "baseUrl": "packages",
     "paths": {
       "@era-ci/core": ["core/src/index.ts"],
+      "@era-ci/monorepo-helper-cli": ["monorepo-helper-cli/src/index.ts"],
       "@era-ci/quick-start": ["quick-start/src/index.ts"],
       "@era-ci/task-worker": ["task-worker/src/index.ts"],
       "@era-ci/quay-client": ["quay-client/src/index.ts"],
