@@ -1,4 +1,4 @@
-#!/usr/bin/env node --unhandled-rejections=strict
+#! /usr/bin/env node
 
 import { startQuayHelperService } from '@era-ci/quay-helper-service'
 import { startQuayMockService } from '@era-ci/quay-mock-service'
