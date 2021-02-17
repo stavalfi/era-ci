@@ -1,3 +1,5 @@
+#!/usr/bin/env node --unhandled-rejections=strict
+
 import { generateDockerfiles } from './generate-docker-files'
 import { deleteAllDevDeps, updateAllTsconfigBuildFiles, updateMainTsconfigFile } from './remoev-dev-deps'
 import { Actions, Workspaces } from './types'
