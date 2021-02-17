@@ -10,7 +10,7 @@
     "__tests__"
   ],
   "bin": {
-    "monorepo-helper": "./dist/src/index.js"
+    "monorepo-helper": "dist/src/index.js"
   },
   "types": "dist/src/index.d.ts",
   "scripts": {
