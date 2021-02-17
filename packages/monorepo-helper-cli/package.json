@@ -1,0 +1,19 @@
+{
+  "name": "@era-ci/monorepo-helper-cli",
+  "version": "2.0.0",
+  "license": "UNLICENSED",
+  "main": "dist/src/index.js",
+  "private": false,
+  "files": [
+    "dist",
+    "src",
+    "__tests__"
+  ],
+  "bin": {
+    "monorepo-helper": "./dist/src/index.js"
+  },
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "start:prod": "node --unhandled-rejections=strict dist/src/index.js"
+  }
+}
