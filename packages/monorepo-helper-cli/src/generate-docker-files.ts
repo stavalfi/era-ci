@@ -40,7 +40,10 @@ FROM quay.io/eraci/node:15.7.0-alpine3.10
 
 WORKDIR /usr/service
 
-COPY yarn.lock package.json tsconfig.json tsconfig-build.json ./
+# this line is because of 'highwayhash'
+RUN apk add make g++ python3 py3-pip
+
+COPY yarn.lock package.json tsconfig.json tsconfig-build.json declarations.d.ts ./
 
 ${args}
 
