@@ -4,7 +4,7 @@ import { array, func, is, number, object, optional, string, validate } from 'sup
 import { TaskQueueBase } from '../create-task-queue'
 import { Config } from './types'
 import chance from 'chance'
-import fse from 'fs-extra'
+import fs from 'fs'
 
 /**
  * ensures type safty of task-queues by only allowing steps thats uses task-queues which are declared in `task-queues` array.
@@ -75,7 +75,7 @@ export async function readNcConfigurationFile<TaskQueue>(ciConfigFilePath: strin
   const result = (await import(outputFilePath)).default
   const configuration = result.default ?? result
 
-  await fse.remove(outputFilePath).catch(() => {
+  await fs.promises.unlink(outputFilePath).catch(() => {
     // ignore error
   })
 

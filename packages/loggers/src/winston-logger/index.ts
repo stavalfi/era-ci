@@ -1,5 +1,5 @@
 import { createLogger, Log, LogLevel } from '@era-ci/core'
-import fse from 'fs-extra'
+import fs from 'fs'
 import path from 'path'
 import winston from 'winston'
 import { createConsoleTransport, createFileTransport, defaultFormat, noFormat } from './transports'
@@ -47,7 +47,7 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
     }
   },
   initializeLogger: async ({ loggerConfigurations }) => {
-    await fse.remove(loggerConfigurations.logFilePath)
+    await fs.promises.unlink(loggerConfigurations.logFilePath)
     const mainLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [

@@ -4,7 +4,7 @@ import { buildFullDockerImageName } from '@era-ci/utils'
 import chance from 'chance'
 import { createFile } from 'create-folder-structure'
 import execa from 'execa'
-import fse from 'fs-extra'
+import fs from 'fs'
 import Redis from 'ioredis'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
@@ -14,7 +14,8 @@ import { getPackagePath, getPackages, ignore } from './utils'
 export async function manageStepResult() {
   const assertionFilePath = await createFile()
 
-  const writeToFile = (expectedContentInLog: string) => fse.writeFile(assertionFilePath, expectedContentInLog)
+  const writeToFile = (expectedContentInLog: string) =>
+    fs.promises.writeFile(assertionFilePath, expectedContentInLog, 'utf-8')
 
   const content = `content-${chance().hash().slice(0, 8)}`
 
@@ -183,7 +184,7 @@ export const addRandomFileToPackage = ({
     throw new Error(`package "${packageName}" not found in [${packagesPath.join(', ')}]`)
   }
   const filePath = path.join(packagePath, `random-file-${chance().hash().slice(0, 8)}`)
-  await fse.writeFile(filePath, '')
+  await fs.promises.writeFile(filePath, '', 'utf-8')
 
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
   return filePath
@@ -248,7 +249,7 @@ export const addRandomFileToRoot = async ({
   gitRepoAddress: string
 }): Promise<string> => {
   const filePath = path.join(repoPath, `random-file-${chance().hash().slice(0, 8)}`)
-  await fse.writeFile(filePath, '')
+  await fs.promises.writeFile(filePath, '', 'utf-8')
 
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
   return filePath
@@ -268,10 +269,10 @@ export const modifyPackageJson = async ({
   modification: (packageJson: IPackageJson) => IPackageJson
 }): Promise<void> => {
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
-  const before: IPackageJson = await fse.readJson(path.join(packagePath, 'package.json'))
+  const before: IPackageJson = JSON.parse(await fs.promises.readFile(path.join(packagePath, 'package.json'), 'utf-8'))
   const after = modification(before)
-  await fse.remove(path.join(packagePath, 'package.json'))
-  await fse.writeFile(path.join(packagePath, 'package.json'), JSON.stringify(after, null, 2))
+  await fs.promises.unlink(path.join(packagePath, 'package.json'))
+  await fs.promises.writeFile(path.join(packagePath, 'package.json'), JSON.stringify(after, null, 2), 'utf-8')
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
 }
 
@@ -288,7 +289,7 @@ export const renamePackageFolder = async ({
 }): Promise<string> => {
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
   const newPackagePath = path.join(packagePath, '..', `${packageName}-rename-${chance().hash().slice(0, 8)}`)
-  await fse.rename(packagePath, newPackagePath)
+  await fs.promises.rename(packagePath, newPackagePath)
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
   return newPackagePath
 }
@@ -308,7 +309,7 @@ export const movePackageFolder = async ({
 }): Promise<string> => {
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
   const newPackagePath = path.join(newParentDirPath, path.basename(packagePath))
-  await fse.move(packagePath, newPackagePath)
+  await fs.promises.rename(packagePath, newPackagePath)
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
   return newPackagePath
 }
@@ -326,7 +327,7 @@ export const createNewPackage = async ({
   newNpmPackage: MinimalNpmPackage
   createUnderFolderPath: string
 }): Promise<void> => {
-  await fse.writeFile(
+  await fs.promises.writeFile(
     path.join(createUnderFolderPath, 'package.json'),
     JSON.stringify(
       {
@@ -336,6 +337,7 @@ export const createNewPackage = async ({
       null,
       2,
     ),
+    'utf-8',
   )
   await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
@@ -372,7 +374,7 @@ export const deletePackage = async ({
     repoPath,
   })
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
-  await fse.remove(packagePath)
+  await fs.promises.rmdir(packagePath)
   await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
 }

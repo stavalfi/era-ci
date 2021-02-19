@@ -1,6 +1,6 @@
 import execa from 'execa'
 import path from 'path'
-import fse from 'fs-extra'
+import fs from 'fs'
 import chance from 'chance'
 import { Describe, is, number, object, optional, string, validate } from 'superstruct'
 import { WorkerConfig } from './types'
@@ -42,7 +42,7 @@ export async function parseConfig(ciConfigFilePath: string): Promise<WorkerConfi
   const result = (await import(outputFilePath)).default
   const configuration = result.default ?? result
 
-  await fse.remove(outputFilePath).catch(() => {
+  await fs.promises.unlink(outputFilePath).catch(() => {
     // ignore error
   })
 

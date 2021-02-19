@@ -259,7 +259,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
           executionStatus: ExecutionStatus.done,
           durationMs: Date.now() - task.startTaskMs,
           errors: [],
-          notes: [`build-logs: "${task.quayBuildLogsAddress}"`],
+          notes: [`build: "${task.quayBuildAddress}"`],
           status: Status.failed,
         },
       })

@@ -16,7 +16,7 @@ import { localSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import chance from 'chance'
 import execa from 'execa'
-import fse from 'fs-extra'
+import fs from 'fs'
 import Redis from 'ioredis'
 import path from 'path'
 import { createGitRepo } from './create-git-repo'
@@ -156,7 +156,7 @@ const runCi = (testFuncs: TestFuncs) => ({
   return {
     flowId,
     logFilePath,
-    flowLogs: await fse.readFile(logFilePath, 'utf-8'),
+    flowLogs: await fs.promises.readFile(logFilePath, 'utf-8'),
     steps,
     published,
     jsonReport: jsonReport || {

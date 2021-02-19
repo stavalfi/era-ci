@@ -1,6 +1,6 @@
 import { Cleanup, getGitRepoInfo, getPackages, Graph, PackageJson, StepInfo, toFlowLogsContentKey } from '@era-ci/utils'
 import chance from 'chance'
-import fse from 'fs-extra'
+import fs from 'fs'
 import path from 'path'
 import { calculateArtifactsHash } from './artifacts-hash'
 import { Config } from './configuration'
@@ -102,7 +102,9 @@ export async function ci(options: {
 
     steps = options.config.steps.map(s => ({ ...s, data: { stepInfo: s.data.stepInfo } }))
 
-    const rootPackageJson: PackageJson = await fse.readJson(path.join(options.repoPath, 'package.json'))
+    const rootPackageJson: PackageJson = JSON.parse(
+      await fs.promises.readFile(path.join(options.repoPath, 'package.json'), 'utf-8'),
+    )
 
     const state = await runAllSteps({
       log,
@@ -138,7 +140,7 @@ export async function ci(options: {
   if (immutableCache && logger) {
     await immutableCache.set({
       key: toFlowLogsContentKey(flowId),
-      value: await fse.readFile(logger.logFilePath, 'utf-8'),
+      value: await fs.promises.readFile(logger.logFilePath, 'utf-8'),
       asBuffer: true,
       ttl: immutableCache.ttls.flowLogs,
     })

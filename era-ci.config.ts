@@ -45,6 +45,7 @@ export default config({
   taskQueues: [
     quayBuildsTaskQueue({
       getCommitTarGzPublicAddress: async ({ gitCommit }: { gitCommit: string }) => ({
+        // https://api.github.com/repos/stavalfi/era-ci/tarball/master
         url: `https://api.github.com/repos/stavalfi/era-ci/tarball/${gitCommit}`,
         folderName: `stavalfi-era-ci-${gitCommit.slice(0, 7)}`,
       }),

@@ -15,7 +15,7 @@ import { ExecutionStatus, PackageJson, Status, TargetType } from '@era-ci/utils'
 import chance from 'chance'
 import execa from 'execa'
 import expect from 'expect'
-import fse from 'fs-extra'
+import fs from 'fs'
 import path from 'path'
 
 const { createRepo, getResources } = createTest()
@@ -295,8 +295,8 @@ test.skip(`two runs - if a depends on b, a.package.json.dep.b.version should be 
   expect(aDeps2[toActualName('b')]).toEqual('1.0.1') // <<-- this is the purpose of this test
 
   // ensure we don't mutate the repository
-  const aPackageJson: PackageJson = await fse.readJSON(
-    path.join(repoPath, 'packages', toActualName('a'), 'package.json'),
+  const aPackageJson: PackageJson = JSON.parse(
+    await fs.promises.readFile(path.join(repoPath, 'packages', toActualName('a'), 'package.json'), 'utf-8'),
   )
   expect(aPackageJson.dependencies?.[toActualName('b')]).toEqual('1.0.0')
 })

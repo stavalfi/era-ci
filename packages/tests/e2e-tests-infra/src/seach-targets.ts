@@ -3,7 +3,7 @@ import { npmRegistryLogin } from '@era-ci/steps'
 import { listTags } from '@era-ci/image-registry-client'
 import { distructPackageJsonName, getPackages } from '@era-ci/utils'
 import execa from 'execa'
-import fse from 'fs-extra'
+import fs from 'fs'
 import path from 'path'
 import semver from 'semver'
 import { ResultingArtifact, TestFuncs } from './types'
@@ -74,7 +74,7 @@ export const getPublishResult = (testFuncs: TestFuncs) => async ({
   const packagesPaths = await getPackages({ repoPath, log })
   const packages = await Promise.all(
     packagesPaths
-      .map(packagePath => fse.readJSONSync(path.join(packagePath, 'package.json')).name)
+      .map(packagePath => JSON.parse(fs.readFileSync(path.join(packagePath, 'package.json'), 'utf-8')).name)
       .map<Promise<[string, ResultingArtifact]>>(async (packageName: string) => {
         const [versions, highestVersion, tags] = await Promise.all([
           publishedNpmPackageVersions(packageName, testFuncs.getResources().npmRegistry.address),
