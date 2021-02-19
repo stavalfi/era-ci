@@ -82,8 +82,8 @@ function getUpdatedDeploymentStatus({
       updatedDeployment.status.replicas === updatedDeployment.status.updatedReplicas &&
       updatedDeployment.status.replicas === updatedDeployment.status.availableReplicas
     ) {
-      // log.info(`stav1`, reDeploymentResult)
-      // log.info(`stav2`, updatedDeployment)
+      log.info(`stav1`, { reDeploymentResult })
+      log.info(`stav2`, { updatedDeployment })
       return { status: DeploymentStatus.Succees }
     }
   }
@@ -403,7 +403,7 @@ async function waitForDeploymentResult({
       kc,
     }).pipe(
       concatMap<DeploymentEvent, Observable<DeploymentWatchResult>>(event => {
-        // log.info('stav3', event)
+        log.info('stav3', event)
         switch (event.eventType) {
           case WatchEventType.Added:
             return of({ status: DeploymentStatus.added })
@@ -433,7 +433,7 @@ async function waitForDeploymentResult({
                       }).pipe(
                         scan(
                           (acc: { podsReady: k8s.V1Pod[]; podError?: k8s.V1Pod }, event) => {
-                            // log.info('stav4', event)
+                            log.info('stav4', event)
                             switch (event.eventType) {
                               case WatchEventType.Deleted:
                                 return {
