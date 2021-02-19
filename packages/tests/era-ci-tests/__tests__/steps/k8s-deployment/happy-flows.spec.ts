@@ -55,7 +55,7 @@ test('redeploy to k8s and ensure the new image is running', async () => {
     },
   }))
 
-  // this deployment will be redeployed to different image (from the dockerfile above)
+  // this deployment will be redeployed to different image (from the Dockerfile above)
   await k8sHelpers.createK8sDeployment({
     namespaceName: 'default',
     containerName: toActualName('a1'),
@@ -172,7 +172,7 @@ test('failDeplomentOnPodError=true - redeploy to k8s fails because the new image
     },
   }))
 
-  // this deployment will be redeployed to different image (from the dockerfile above)
+  // this deployment will be redeployed to different image (from the Dockerfile above)
   await k8sHelpers.createK8sDeployment({
     namespaceName: 'default',
     containerName: toActualName('a3'),
@@ -247,7 +247,7 @@ test('failDeplomentOnPodError=false, progressDeadlineSeconds=8 - redeploy to k8s
     },
   }))
 
-  // this deployment will be redeployed to different image (from the dockerfile above)
+  // this deployment will be redeployed to different image (from the Dockerfile above)
   await k8sHelpers.createK8sDeployment({
     namespaceName: 'default',
     containerName: toActualName('a4'),
@@ -325,7 +325,7 @@ test('running the flow again will cause to redeploy to k8s the same image again 
     },
   }))
 
-  // this deployment will be redeployed to different image (from the dockerfile above)
+  // this deployment will be redeployed to different image (from the Dockerfile above)
   await k8sHelpers.createK8sDeployment({
     namespaceName: 'default',
     containerName: toActualName('a5'),

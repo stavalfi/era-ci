@@ -61,7 +61,7 @@ Optionally, you can skip the publish/deploy steps when you are in PR using `is-c
 
 ##### Determine Package Target Type (by this order)
 
-- Docker package - the package contains a `dockerfile` file.
+- Docker package - the package contains a `Dockerfile` file.
 
 - Public (or scoped-restricted) npm package - in the package.json of a package, if `"private": false`, it means that this package is public. if the name contains a scope (`@company/<package-name>`), you can configure NC to make the access level of the package to restricted under your organization account in npm registry.
 
@@ -86,7 +86,7 @@ Optionally, you can skip the publish/deploy steps when you are in PR using `is-c
 4. publish - if the package is:
 
 - public (or scoped-restricted) npm package - NC will run `yarn publish` to the specified registry with a new version.
-- docker package - NC will build the dockerfile and run `docker push` to the specified docker registry.
+- docker package - NC will build the Dockerfile and run `docker push` to the specified docker registry.
 
 5. deployment - in `era-ci.config.ts` there is a deployment section for each tagret which is optional. each section has 3 functions:
 

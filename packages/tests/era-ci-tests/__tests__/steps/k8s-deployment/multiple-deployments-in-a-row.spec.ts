@@ -57,7 +57,7 @@ test('2 deployments - all succeed', async () => {
     },
   }))
 
-  // this deployment will be redeployed to different image (from the dockerfile above)
+  // this deployment will be redeployed to different image (from the Dockerfile above)
   await k8sHelpers.createK8sDeployment({
     namespaceName: 'default',
     containerName: toActualName('a'),
@@ -139,7 +139,7 @@ test('2 deployments - first succeed, second fail because of code-bug in the imag
     },
   }))
 
-  // this deployment will be redeployed to different image (from the dockerfile above)
+  // this deployment will be redeployed to different image (from the Dockerfile above)
   await k8sHelpers.createK8sDeployment({
     namespaceName: 'default',
     containerName: toActualName('a'),

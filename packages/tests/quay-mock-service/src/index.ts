@@ -257,7 +257,7 @@ export async function startQuayMockService(
 
     const build = db.namespaces[req.params.namespace].repos[req.params.repoName].builds[buildId]
 
-    console.log(`build-id: "${buildId}" - start building dockerfile`)
+    console.log(`build-id: "${buildId}" - start building Dockerfile`)
 
     await res.send({
       status: '',
