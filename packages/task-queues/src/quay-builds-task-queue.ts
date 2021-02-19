@@ -517,7 +517,11 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
           },
         },
       )
-    } catch (error: unknown) {
+    } catch (error) {
+      if (this.options.processEnv['IS_TEST_MODE'] && ['ECONNRESET', 'ECONNREFUSED'].includes(error.code)) {
+        sendAbortEvent({ notes: [`test is over and the quay-mock service shutdown. aborting quay-build`], errors: [] })
+        return
+      }
       if (buildTriggerResult) {
         await this.quayClient
           .cancelBuild({
