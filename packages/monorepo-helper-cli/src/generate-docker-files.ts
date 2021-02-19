@@ -26,16 +26,6 @@ COPY \${${packageNameToArg(dep)}_path}/tsconfig-build.json ./\${${packageNameToA
     .join('\n\n')
 
   const dockerfile = `\
-FROM quay.io/eraci/alpine-git:v2.30.0 as git_commit_hash
-
-WORKDIR /usr/git-info
-
-COPY .git ./.git
-
-RUN echo $(git rev-parse --short HEAD) > short-commit-hash
-
-####
-
 FROM quay.io/eraci/node:15.7.0-alpine3.10
 
 WORKDIR /usr/service
@@ -56,8 +46,6 @@ RUN npx @era-ci/monorepo-helper-cli remove-all-dev-deps-not-related-to --repo-pa
 ${secondCopies}
 
 RUN yarn build
-
-COPY --from=git_commit_hash /usr/git-info/short-commit-hash ./short-commit-hash
 
 CMD yarn workspace ${packageJsonName} start:prod\
 `
