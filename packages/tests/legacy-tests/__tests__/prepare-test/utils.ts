@@ -2,7 +2,7 @@ import { Logger } from '@era-ci/core'
 import { distructPackageJsonName, execaCommand } from '@era-ci/utils'
 import { npmRegistryLogin } from '@era-ci/steps'
 import execa, { StdioOption } from 'execa'
-import fse from 'fs-extra'
+import fs from 'fs'
 import path from 'path'
 import { latestNpmPackageVersion, publishedDockerImageTags, publishedNpmPackageVersions } from './seach-targets'
 import { CiResults, ResultingArtifact, TestOptions, ToActualName } from './types'
@@ -134,7 +134,7 @@ export async function runCiUsingConfigFile({
     const packagesPaths = await getPackages(repoPath)
     const packages = await Promise.all(
       packagesPaths
-        .map(packagePath => fse.readJSONSync(path.join(packagePath, 'package.json')).name)
+        .map(packagePath => JSON.parse(fs.readFileSync(path.join(packagePath, 'package.json'), 'utf-8')).name)
         .map<Promise<[string, ResultingArtifact]>>(async (packageName: string) => {
           const [versions, highestVersion, tags] = await Promise.all([
             publishedNpmPackageVersions(packageName, npmRegistry.address),
@@ -167,7 +167,7 @@ export async function runCiUsingConfigFile({
     return published
   }
 
-  const ncLogfileContent = await fse.readFile(path.join(repoPath, 'era-ci.log'), 'utf-8')
+  const ncLogfileContent = await fs.promises.readFile(path.join(repoPath, 'era-ci.log'), 'utf-8')
 
   const flowIdResult = ncLogfileContent.match(/flow-id: "(.*)"/)
   let flowId: string | undefined

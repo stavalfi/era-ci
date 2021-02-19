@@ -5,7 +5,7 @@ import {
 import { createStep } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { execaCommand, ExecutionStatus, Status } from '@era-ci/utils'
-import fse from 'fs-extra'
+import fs from 'fs'
 import path from 'path'
 
 export const installRoot = createStep<LocalSequentalTaskQueue, { isStepEnabled: boolean }>({
@@ -21,7 +21,7 @@ export const installRoot = createStep<LocalSequentalTaskQueue, { isStepEnabled: 
       }),
     ],
     stepLogic: async () => {
-      const isExists = fse.existsSync(path.join(repoPath, 'yarn.lock'))
+      const isExists = fs.existsSync(path.join(repoPath, 'yarn.lock'))
 
       if (!isExists) {
         throw new Error(`project must have yarn.lock file in the root folder of the repository`)

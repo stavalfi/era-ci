@@ -157,8 +157,8 @@ export async function getGitRepoInfo(
   })
   return {
     auth: {
-      username: '1',
-      token: gitInfo.token,
+      username: 'not-supported-yet',
+      token: 'not-supported-yet',
     },
     commit: headCommit,
     repoName: gitInfo.name,

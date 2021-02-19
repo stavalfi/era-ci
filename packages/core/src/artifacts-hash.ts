@@ -1,6 +1,6 @@
 import { Artifact, execaCommand, Graph, INVALIDATE_CACHE_HASH, PackageJson } from '@era-ci/utils'
 import crypto from 'crypto'
-import fse from 'fs-extra'
+import fs from 'fs'
 import _ from 'lodash'
 import path from 'path'
 import { Log } from './create-logger'
@@ -67,7 +67,7 @@ async function calculateHashOfFiles(packagePath: string, filesPath: Array<string
     await Promise.all(
       filesPath.map(async filePath => ({
         filePath,
-        fileContent: await fse.readFile(filePath, 'utf-8'),
+        fileContent: await fs.promises.readFile(filePath, 'utf-8'),
       })),
     )
   ).reduce((hasher, { filePath, fileContent }) => {
@@ -106,10 +106,12 @@ export async function calculateArtifactsHash({
     .split('\n')
     .map(relativeFilePath => path.join(repoPath, relativeFilePath))
     // remove uncommnited deleted files from the list of existing files
-    .filter(filePath => fse.pathExistsSync(filePath))
+    .filter(filePath => fs.existsSync(filePath))
 
   const packageJsons: PackageJson[] = await Promise.all(
-    packagesPath.map(async packagePath => fse.readJson(path.join(packagePath, 'package.json'))),
+    packagesPath.map(async packagePath =>
+      JSON.parse(await fs.promises.readFile(path.join(packagePath, 'package.json'), 'utf-8')),
+    ),
   )
 
   const isolatedPackageHash = await Promise.all(
