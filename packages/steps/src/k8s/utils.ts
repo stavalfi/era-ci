@@ -1,7 +1,8 @@
 import { Log, UserReturnValue } from '@era-ci/core'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import * as k8s from '@kubernetes/client-node'
-import { EMPTY, firstValueFrom, Observable, of } from 'rxjs'
+import _ from 'lodash'
+import { EMPTY, firstValueFrom, Observable, of, defer } from 'rxjs'
 import { concatMap, filter, first, map, scan } from 'rxjs/operators'
 import { DeepPartial } from 'ts-essentials'
 import {
@@ -21,25 +22,6 @@ function extractPodContainersErrors(pod: k8s.V1Pod): PodFailureReason[] {
   )
 }
 
-function extractReplicaSetName(deployment: k8s.V1Deployment, log: Log): string | undefined {
-  const replicateSetCondition = deployment.status?.conditions?.find(c =>
-    ['NewReplicaSetAvailable', 'ReplicaSetUpdated', 'replicateSetCondition', 'NewReplicaSetCreated'].includes(
-      c.reason ?? '',
-    ),
-  )
-
-  // I don't like it as much as you do but I couldn't find a better thread-safe way to know what
-  // is the current replica-set name which belongs to a deployment:
-  // https://github.com/kubernetes/kubectl/issues/1022#issuecomment-778195073
-  const replicaSetName = replicateSetCondition?.message?.match(/"(.*)"/)?.[1]
-  if (replicateSetCondition) {
-    log.trace(`extracted replicaSetName: "${replicaSetName}"`, { message: replicateSetCondition?.message })
-  } else {
-    log.trace(`could not extract replicaSetName from deployment: `, { deployment })
-  }
-  return replicaSetName
-}
-
 function getUpdatedDeploymentStatus({
   reDeploymentResult,
   updatedDeployment,
@@ -48,13 +30,12 @@ function getUpdatedDeploymentStatus({
   log: Log
   reDeploymentResult: k8s.V1Deployment
   updatedDeployment: k8s.V1Deployment
-}): { newReplicaSetName?: string } & (
+}):
   | {
       status: DeploymentStatus.Succees | DeploymentStatus.NotReadyYet
     }
-  | { status: DeploymentStatus.Timeout; replicateSetNameWithTimeout: string }
-  | { status: DeploymentStatus.ThereWasAddtionalDeployment; newDeploymentGeneration: number }
-) {
+  | { status: DeploymentStatus.Timeout }
+  | { status: DeploymentStatus.ThereWasAddtionalDeployment; newDeploymentGeneration: number } {
   // https://stackoverflow.com/questions/47100389/what-is-the-difference-between-a-resourceversion-and-a-generation/66092577#66092577
   // generation === the id of the replicateSet which a deployment should track on.
   // observedGeneration === the id of the replicateSet which a deployment track on right now.
@@ -78,7 +59,6 @@ function getUpdatedDeploymentStatus({
     return {
       status: DeploymentStatus.ThereWasAddtionalDeployment,
       newDeploymentGeneration: currentGeneration,
-      newReplicaSetName: extractReplicaSetName(updatedDeployment, log)!,
     }
   }
 
@@ -92,8 +72,6 @@ function getUpdatedDeploymentStatus({
     if (progressingCondition?.reason === 'ProgressDeadlineExceeded') {
       return {
         status: DeploymentStatus.Timeout,
-        replicateSetNameWithTimeout: extractReplicaSetName(updatedDeployment, log)!,
-        newReplicaSetName: extractReplicaSetName(updatedDeployment, log)!,
       }
     }
     if (
@@ -104,15 +82,13 @@ function getUpdatedDeploymentStatus({
       updatedDeployment.status.replicas === updatedDeployment.status.updatedReplicas &&
       updatedDeployment.status.replicas === updatedDeployment.status.availableReplicas
     ) {
-      // @ts-ignore
-      log.info(`stav1`, reDeploymentResult)
-      // @ts-ignore
-      log.info(`stav2`, updatedDeployment)
-      return { status: DeploymentStatus.Succees, newReplicaSetName: extractReplicaSetName(updatedDeployment, log)! }
+      // log.info(`stav1`, reDeploymentResult)
+      // log.info(`stav2`, updatedDeployment)
+      return { status: DeploymentStatus.Succees }
     }
   }
 
-  return { status: DeploymentStatus.NotReadyYet, newReplicaSetName: extractReplicaSetName(updatedDeployment, log) }
+  return { status: DeploymentStatus.NotReadyYet }
 }
 
 const deploy = async ({
@@ -410,12 +386,14 @@ async function waitForDeploymentResult({
   log,
   kc,
   failDeplomentOnPodError,
+  deploymentApi,
 }: {
   reDeploymentResult: k8s.V1Deployment
   k8sNamesapce: string
   log: Log
   kc: k8s.KubeConfig
   failDeplomentOnPodError: boolean
+  deploymentApi: k8s.AppsV1Api
 }) {
   let listenToPodsEvents = false
   return firstValueFrom(
@@ -425,111 +403,121 @@ async function waitForDeploymentResult({
       kc,
     }).pipe(
       concatMap<DeploymentEvent, Observable<DeploymentWatchResult>>(event => {
-        log.info('stav3', event)
+        // log.info('stav3', event)
         switch (event.eventType) {
           case WatchEventType.Added:
             return of({ status: DeploymentStatus.added })
           case WatchEventType.Deleted:
             return of({ status: DeploymentStatus.deleted })
           case WatchEventType.Modified: {
-            const result = getUpdatedDeploymentStatus({
-              reDeploymentResult,
-              updatedDeployment: event.resource,
-              log,
-            })
-            switch (result.status) {
-              case DeploymentStatus.NotReadyYet:
-                if (listenToPodsEvents || !result.newReplicaSetName || !failDeplomentOnPodError) {
-                  return EMPTY
-                } else {
-                  listenToPodsEvents = true
-                  // need to make sure that the pods are actually in ready state
-                  return getPodsEvents$({
-                    k8sNamesapce,
-                    kc,
-                    replicaSetPodsToWatch: result.newReplicaSetName,
-                  }).pipe(
-                    scan(
-                      (acc: { podsReady: k8s.V1Pod[]; podError?: k8s.V1Pod }, event) => {
-                        log.info('stav4', event)
-                        switch (event.eventType) {
-                          case WatchEventType.Deleted:
-                            return {
-                              podsReady: acc.podsReady.filter(p => p.metadata?.name !== event.resource.metadata?.name),
-                              podError:
-                                acc.podError?.metadata?.name === event.resource.metadata?.name
-                                  ? undefined
-                                  : acc.podError,
-                            }
-                          case WatchEventType.Added:
-                          case WatchEventType.Modified:
-                            if (acc.podError?.metadata?.name === event.resource.metadata?.name) {
-                              return acc
-                            }
-                            if (
-                              event.resource.status?.containerStatuses?.every(
-                                c => c.ready && c.state?.running?.startedAt,
-                              )
-                            ) {
-                              if (acc.podsReady.some(p => p.metadata?.name === event.resource.metadata?.name)) {
-                                return acc
-                              } else {
-                                const podsReady = [...acc.podsReady, event.resource]
-                                log.info(
-                                  `deployment: "${reDeploymentResult.metadata?.name}" - ${podsReady.length}/${reDeploymentResult.spec?.replicas} pods are ready`,
-                                )
+            return defer(() =>
+              findReplicaSetOfDeployment({ deploymentApi, deployment: event.resource, k8sNamesapce }),
+            ).pipe(
+              concatMap<k8s.V1ReplicaSet, Observable<DeploymentWatchResult>>(updatedDeploymentReplicaSet => {
+                const result = getUpdatedDeploymentStatus({
+                  reDeploymentResult,
+                  updatedDeployment: event.resource,
+                  log,
+                })
+                switch (result.status) {
+                  case DeploymentStatus.NotReadyYet:
+                    if (listenToPodsEvents || !failDeplomentOnPodError) {
+                      return EMPTY
+                    } else {
+                      listenToPodsEvents = true
+                      // need to make sure that the pods are actually in ready state
+                      return getPodsEvents$({
+                        k8sNamesapce,
+                        kc,
+                        replicaSetPodsToWatch: updatedDeploymentReplicaSet.metadata?.name!,
+                      }).pipe(
+                        scan(
+                          (acc: { podsReady: k8s.V1Pod[]; podError?: k8s.V1Pod }, event) => {
+                            // log.info('stav4', event)
+                            switch (event.eventType) {
+                              case WatchEventType.Deleted:
                                 return {
-                                  ...acc,
-                                  podsReady,
+                                  podsReady: acc.podsReady.filter(
+                                    p => p.metadata?.name !== event.resource.metadata?.name,
+                                  ),
+                                  podError:
+                                    acc.podError?.metadata?.name === event.resource.metadata?.name
+                                      ? undefined
+                                      : acc.podError,
                                 }
-                              }
+                              case WatchEventType.Added:
+                              case WatchEventType.Modified:
+                                if (acc.podError?.metadata?.name === event.resource.metadata?.name) {
+                                  return acc
+                                }
+                                if (
+                                  event.resource.status?.containerStatuses?.every(
+                                    c => c.ready && c.state?.running?.startedAt,
+                                  )
+                                ) {
+                                  if (acc.podsReady.some(p => p.metadata?.name === event.resource.metadata?.name)) {
+                                    return acc
+                                  } else {
+                                    const podsReady = [...acc.podsReady, event.resource]
+                                    log.info(
+                                      `deployment: "${reDeploymentResult.metadata?.name}" - ${podsReady.length}/${reDeploymentResult.spec?.replicas} pods are ready`,
+                                    )
+                                    return {
+                                      ...acc,
+                                      podsReady,
+                                    }
+                                  }
+                                }
+                                if (extractPodContainersErrors(event.resource).length > 0) {
+                                  return {
+                                    ...acc,
+                                    podError: event.resource,
+                                  }
+                                }
+                                return acc
                             }
-                            if (extractPodContainersErrors(event.resource).length > 0) {
-                              return {
-                                ...acc,
-                                podError: event.resource,
-                              }
+                          },
+                          {
+                            podsReady: [],
+                          },
+                        ),
+                        filter(
+                          acc => Boolean(acc.podError) || acc.podsReady.length === reDeploymentResult.spec?.replicas,
+                        ),
+                        first(),
+                        map(acc => {
+                          if (acc.podError) {
+                            return {
+                              status: DeploymentStatus.PodFailed,
+                              podName: acc.podError.metadata?.name!,
+                              reasons: extractPodContainersErrors(acc.podError),
                             }
-                            return acc
-                        }
-                      },
-                      {
-                        podsReady: [],
-                      },
-                    ),
-                    filter(acc => Boolean(acc.podError) || acc.podsReady.length === reDeploymentResult.spec?.replicas),
-                    first(),
-                    map(acc => {
-                      if (acc.podError) {
-                        return {
-                          status: DeploymentStatus.PodFailed,
-                          podName: acc.podError.metadata?.name!,
-                          reasons: extractPodContainersErrors(acc.podError),
-                        }
-                      } else {
-                        return {
-                          status: DeploymentStatus.Succees,
-                        }
-                      }
-                    }),
-                  )
+                          } else {
+                            return {
+                              status: DeploymentStatus.Succees,
+                            }
+                          }
+                        }),
+                      )
+                    }
+                  case DeploymentStatus.ThereWasAddtionalDeployment:
+                    return of({
+                      status: result.status,
+                      newDeploymentGeneration: result.newDeploymentGeneration,
+                    })
+                  case DeploymentStatus.Timeout:
+                    return of({
+                      status: result.status,
+                      replicateSetNameWithTimeout: updatedDeploymentReplicaSet.metadata?.name!,
+                    })
+                  case DeploymentStatus.Succees: {
+                    return of({
+                      status: DeploymentStatus.Succees,
+                    })
+                  }
                 }
-              case DeploymentStatus.ThereWasAddtionalDeployment:
-                return of({
-                  status: result.status,
-                  newDeploymentGeneration: result.newDeploymentGeneration,
-                })
-              case DeploymentStatus.Timeout:
-                return of({
-                  status: result.status,
-                  replicateSetNameWithTimeout: result.replicateSetNameWithTimeout,
-                })
-              case DeploymentStatus.Succees: {
-                return of({
-                  status: DeploymentStatus.Succees,
-                })
-              }
-            }
+              }),
+            )
           }
         }
       }),
@@ -537,6 +525,50 @@ async function waitForDeploymentResult({
   )
 }
 
+// implementation details:
+// 1. only if we edit the deployment.spec.metadata, k8s will create new deployment automatically and create new replicaSet.
+// 2. from (1) we learn that there can be at most one replcaSet with the same `deployment.spec?.template`.
+// 3. there is an edge case which may contain more than one replicaSet with same `deployment.spec?.template` but it is covered
+//    because we use the same algorithm as kubectl. more info:
+//    https://github.com/kubernetes/kubernetes/blob/9e5fcc49ec568f222a5274f443903d89fec3e591/pkg/controller/deployment/util/deployment_util.go#L649
+async function findReplicaSetOfDeployment({
+  k8sNamesapce,
+  deployment,
+  deploymentApi,
+}: {
+  deployment: k8s.V1Deployment
+  k8sNamesapce: string
+  deploymentApi: k8s.AppsV1Api
+}): Promise<k8s.V1ReplicaSet> {
+  const replicaSets = await deploymentApi.listNamespacedReplicaSet(k8sNamesapce).then(
+    r => r.body.items,
+    e => Promise.reject(new Error(`failed to change deployment image. error: ${JSON.stringify(e.response, null, 2)}`)),
+  )
+
+  const replicaSet = replicaSets
+    // why we sort: https://github.com/kubernetes/kubernetes/blob/9e5fcc49ec568f222a5274f443903d89fec3e591/pkg/controller/deployment/util/deployment_util.go#L646
+    .sort(
+      // [1,5,3] -> [5,3,1]
+      (a, b) => b.metadata?.creationTimestamp?.getTime()! - a.metadata?.creationTimestamp?.getTime()!,
+    )
+    .find(replicaSet => {
+      // how to find the newest deployment's replicaSet:
+      // https://github.com/kubernetes/kubernetes/blob/cea1d4e20b4a7886d8ff65f34c6d4f95efcb4742/staging/src/k8s.io/api/apps/v1beta1/types.go#L403
+      const withoutPodHashLabel = _.omit(replicaSet, ['spec.template.metadata.labels.pod-template-hash'])
+      return _.isEqual(
+        // it doesn't work without parse+strigify, maybe there is some hidden props which are not present when trying to debug it with console.log
+        JSON.parse(JSON.stringify(deployment.spec?.template)),
+        JSON.parse(JSON.stringify(withoutPodHashLabel.spec?.template)),
+      )
+    })
+
+  if (!replicaSet) {
+    throw new Error(`could not find replicaSet of deployment: "${deployment.metadata?.name}"`)
+  }
+  return replicaSet
+}
+
+// NOTE: this function is heavily counting on the fact that there is at most one deployment at any given time
 export async function deployAndWait({
   log,
   changeCause,
@@ -577,17 +609,13 @@ export async function deployAndWait({
     }
   }
 
-  const newReplicaSetName = extractReplicaSetName(reDeploymentResult, log)
-  if (!newReplicaSetName) {
-    throw new Error(`can't find replicaSet name of the deployment`)
-  }
-
   const deploymentResult = await waitForDeploymentResult({
     reDeploymentResult,
     k8sNamesapce,
     log,
     failDeplomentOnPodError,
     kc,
+    deploymentApi,
   })
 
   return processDeploymentResult({
