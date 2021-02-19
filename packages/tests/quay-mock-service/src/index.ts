@@ -1,5 +1,7 @@
 /* eslint-disable no-console */
 
+import { NotificationsListResult } from '@era-ci/quay-client'
+import { queue } from 'async'
 import chance from 'chance'
 import fastify from 'fastify'
 import fastifyRateLimiter from 'fastify-rate-limit'
@@ -17,7 +19,6 @@ import {
   TriggerBuildRequest,
   TriggerBuildResponse,
 } from './types'
-import { NotificationsListResult } from '@era-ci/quay-client'
 import { buildDockerFile } from './utils'
 
 export {
@@ -63,6 +64,18 @@ export async function startQuayMockService(
   }
 
   const cleanups: (() => Promise<unknown>)[] = []
+
+  const taskQueues = queue<() => Promise<unknown>>(async task => {
+    await task()
+  }, 1)
+
+  cleanups.push(async () => {
+    if (!taskQueues.idle()) {
+      // drain will not resolve if the queue is empty so we drain if it's not empty
+      await taskQueues.drain()
+    }
+    taskQueues.kill()
+  })
 
   app.get<{
     Params: never
@@ -280,15 +293,17 @@ export async function startQuayMockService(
       dockerfile_path: req.body.dockerfile_path,
     })
 
-    await buildDockerFile({
-      ...req.body,
-      ...req.params,
-      build,
-      buildId,
-      cleanups,
-      db,
-      config,
-    })
+    taskQueues.push(() =>
+      buildDockerFile({
+        ...req.body,
+        ...req.params,
+        build,
+        buildId,
+        cleanups,
+        db,
+        config,
+      }),
+    )
   })
 
   const address = await app.listen(config.port ?? 0)

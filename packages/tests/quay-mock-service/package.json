@@ -12,6 +12,7 @@
   "types": "dist/src/index.d.ts",
   "dependencies": {
     "@era-ci/utils": "^2.0.0",
+    "async": "^3.2.0",
     "compressing": "^1.5.1",
     "create-folder-structure": "^3.0.5",
     "execa": "^4.0.1",
