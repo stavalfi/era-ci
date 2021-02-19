@@ -128,7 +128,7 @@ test('multiple packages - no problems - step should pass', async () => {
   expect(published.get('b')?.docker.tags).toEqual([await gitHeadCommit()])
 })
 
-test('expect the step to be failed if the dockerfile has an error', async () => {
+test('expect the step to be failed if the Dockerfile has an error', async () => {
   const { runCi, repoPath, repoName, gitHeadCommit } = await createRepo({
     repo: {
       packages: [

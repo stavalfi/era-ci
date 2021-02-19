@@ -307,7 +307,7 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
   await expect(getResources().getImageTags(getResources().packages.package2.name)).resolves.toEqual([])
 })
 
-test('abort event is fired for running tasks - while dockerfile is built', async () => {
+test('abort event is fired for running tasks - while Dockerfile is built', async () => {
   const aborted = sinon.fake()
 
   getResources().taskQueuesResources.queue.eventEmitter.addListener(ExecutionStatus.aborted, aborted)

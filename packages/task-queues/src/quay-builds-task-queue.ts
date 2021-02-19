@@ -300,7 +300,7 @@ export class QuayBuildsTaskQueue implements TaskQueueBase<QuayBuildsTaskQueueCon
       }
       if (fs.lstatSync(p2).isDirectory()) {
         throw new Error(
-          `relativeDockerfilePath points to a direcotry instead of a dockerfile. received: "${taskOptions.relativeDockerfilePath}"`,
+          `relativeDockerfilePath points to a direcotry instead of a Dockerfile. received: "${taskOptions.relativeDockerfilePath}"`,
         )
       }
 
