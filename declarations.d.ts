@@ -11,7 +11,7 @@ declare module 'glob-gitignore' {
 
   export function glob(
     glob: string[],
-    options?: { absolute?: boolean; cwd?: string; ignore?: Ignore },
+    options?: { absolute?: boolean; cwd?: string; nodir?: boolean; ignore?: Ignore },
   ): Promise<string[]>
 }
 

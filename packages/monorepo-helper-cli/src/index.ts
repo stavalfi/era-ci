@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 import { generateDockerfiles } from './generate-docker-files'
-import { deleteAllDevDeps, updateAllTsconfigBuildFiles, updateMainTsconfigFile } from './remoev-dev-deps'
+import { deleteAllDevDeps, updateAllTsconfigBuildFiles, updateMainTsconfigFile } from './remove-dev-deps'
 import { Actions, Workspaces } from './types'
 import { findAllRecursiveDepsOfPackage, getGraph } from './utils'
 

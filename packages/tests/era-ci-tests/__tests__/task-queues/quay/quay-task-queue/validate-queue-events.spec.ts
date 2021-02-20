@@ -264,7 +264,7 @@ RUN exit 1
       },
     }),
   ).toBeTruthy()
-  expect(done.taskResult.notes[0]).toMatch('build-logs:')
+  expect(done.taskResult.notes[0]).toMatch('build:')
 })
 
 test('abort event is fired for all tasks when queue is cleaned (before the tasks are executed)', async () => {
