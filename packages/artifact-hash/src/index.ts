@@ -89,6 +89,7 @@ export async function calculateArtifactsHash({
   const repoFilesPath = await glob(['**'], {
     cwd: repoPath,
     absolute: true,
+    nodir: true,
     ignore: ignore().add(parseGitIgnore(await fs.promises.readFile(path.join(repoPath, '.gitignore'), 'utf-8'))),
   })
 
