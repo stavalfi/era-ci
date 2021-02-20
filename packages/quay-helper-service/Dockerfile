@@ -7,7 +7,6 @@ COPY yarn.lock package.json tsconfig.json tsconfig-build.json ./
 ARG package_path=packages/quay-helper-service
 ARG quay_client_path=packages/quay-client
 ARG utils_path=packages/utils
-ARG mono_repo_helper_path=packages/monorepo-helper-cli
 
 COPY ${package_path}/package.json ./${package_path}/package.json
 COPY ${package_path}/tsconfig-build.json ./${package_path}/tsconfig-build.json
@@ -18,10 +17,10 @@ COPY ${quay_client_path}/tsconfig-build.json ./${quay_client_path}/tsconfig-buil
 COPY ${utils_path}/package.json ./${utils_path}/package.json
 COPY ${utils_path}/tsconfig-build.json ./${utils_path}/tsconfig-build.json
 
-COPY packages/monorepo-helper-cli/src ./packages/monorepo-helper-cli/src
-
-RUN npx esbuild-runner@1.3.2 \
-    packages/monorepo-helper-cli/src/index.ts remove-all-dev-deps-not-related-to --repo-path /usr/service @era-ci/quay-helper-service --except-deps typescript,@types/* && \
+# NOTE: this line will install @era-ci/monorepo-helper-cli from the last build (we can "fix" it by 
+# building image-step after quay-step, but it will make the build longer in 1-2 minutes)
+RUN npx @era-ci/monorepo-helper-cli remove-all-dev-deps-not-related-to --repo-path /usr/service @era-ci/quay-helper-service\
+        --except-deps typescript,@types/* && \
     yarn install
 
 COPY ${package_path}/src ./${package_path}/src
