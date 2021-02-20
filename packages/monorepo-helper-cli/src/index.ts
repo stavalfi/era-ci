@@ -1,5 +1,7 @@
 #! /usr/bin/env node
 
+import { calculateArtifactsHash } from '@era-ci/artifact-hash'
+import path from 'path'
 import { generateDockerfiles } from './generate-docker-files'
 import { deleteAllDevDeps, updateAllTsconfigBuildFiles, updateMainTsconfigFile } from './remove-dev-deps'
 import { Actions, Workspaces } from './types'
@@ -42,6 +44,19 @@ async function evaluateAction({
         throw new Error(`3'th param must be a name of a package inside the monorepo`)
       }
       return generateDockerfiles(repoPath, graph, [packageName])
+    }
+    case Actions.calculateArtifactHash: {
+      const [packageName] = params
+      if (!graph[packageName]) {
+        throw new Error(`3'th param must be a name of a package inside the monorepo`)
+      }
+      const { artifacts } = await calculateArtifactsHash({
+        repoPath,
+        packagesPath: Object.values(graph).map(n => path.join(repoPath, n.location)),
+      })
+      // eslint-disable-next-line no-console
+      console.log(artifacts.find(a => a.data.artifact.packageJson.name === packageName)?.data.artifact.packageHash!)
+      return
     }
     default:
       throw new Error(`Action: "${action}" is not supported. supported actions: ${Object.values(Actions)}`)

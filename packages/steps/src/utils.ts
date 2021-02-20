@@ -34,7 +34,8 @@ export async function chooseTagAndPublish<
       imageTag: tag,
     })
 
-  const cacheKey = `${options.artifact.data.artifact.packageHash}-next-tag`
+  // do not change this key. other packages may use it and they don't want to depend on any package for imorting it
+  const cacheKey = `image-tag-of-${options.artifact.data.artifact.packageHash}`
   const newTagFromCache = await options.immutableCache.get({
     key: cacheKey,
     isBuffer: true,
