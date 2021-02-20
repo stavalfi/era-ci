@@ -11,7 +11,7 @@
   ],
   "types": "dist/src/index.d.ts",
   "dependencies": {
-    "glob": "^7.1.6",
+    "parse-gitignore": "^1.0.1",
     "glob-gitignore": "^1.0.14",
     "ignore": "^5.1.8"
   },
