@@ -15,5 +15,8 @@
   "types": "dist/src/index.d.ts",
   "scripts": {
     "start:prod": "node --unhandled-rejections=strict dist/src/index.js"
+  },
+  "dependencies": {
+    "@era-ci/artifact-hash": "^2.0.0"
   }
 }

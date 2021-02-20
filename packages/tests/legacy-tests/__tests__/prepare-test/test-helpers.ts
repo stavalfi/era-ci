@@ -374,7 +374,7 @@ export const deletePackage = async ({
     repoPath,
   })
   const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
-  await fs.promises.rmdir(packagePath)
+  await fs.promises.rm(packagePath, { recursive: true })
   await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
 }
