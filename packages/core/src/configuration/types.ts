@@ -1,10 +1,10 @@
-import { Graph, StepInfo } from '@era-ci/utils'
-import { Observable } from 'rxjs'
-import { CreateLogger } from '../create-logger'
-import { RunStepOptions } from '../create-step'
-import { CreateTaskQueue, TaskQueueBase, TaskQueueOptions } from '../create-task-queue'
-import { RedisConfiguration } from '../redis-client'
-import { Actions, State } from '../steps-execution'
+import type { Graph, StepInfo } from '@era-ci/utils'
+import type { Observable } from 'rxjs'
+import type { CreateLogger } from '../create-logger'
+import type { RunStepOptions } from '../create-step'
+import type { CreateTaskQueue, TaskQueueBase, TaskQueueOptions } from '../create-task-queue'
+import type { RedisConfiguration } from '../redis-client'
+import type { Actions, State } from '../steps-execution'
 
 export type Config<TaskQueueConfigurations> = {
   redis: RedisConfiguration

@@ -6,6 +6,9 @@
       "path": "packages/utils/tsconfig-build.json"
     },
     {
+      "path": "packages/artifact-hash/tsconfig-build.json"
+    },
+    {
       "path": "packages/monorepo-helper-cli/tsconfig-build.json"
     },
     {

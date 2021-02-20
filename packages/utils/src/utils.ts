@@ -5,7 +5,8 @@ import gitUrlParse from 'git-url-parse'
 import _ from 'lodash'
 import path from 'path'
 import semver from 'semver'
-import { ExecutionStatus, GitRepoInfo, PackageJson, Status, TargetType, UnionArrayValues } from './types'
+import { TargetType } from './enums'
+import { ExecutionStatus, GitRepoInfo, PackageJson, Status, UnionArrayValues } from './types'
 
 export const didPassOrSkippedAsPassed = (status: Status): boolean =>
   [Status.passed, Status.skippedAsPassed].includes(status)
@@ -60,7 +61,6 @@ export function calculateExecutionStatus<ExecutionStatusArray extends ExecutionS
 export const toFlowLogsContentKey = (flowId: string): string => `flow-logs-content-${flowId}`
 
 export const MISSING_FLOW_ID_ERROR = `flow-id was not found`
-export const INVALIDATE_CACHE_HASH = '1'
 
 type SupportedExecaCommandOptions = Omit<execa.Options, 'stderr' | 'stdout' | 'all' | 'stdin'> &
   Required<Pick<execa.Options, 'stdio'>> & {

@@ -1,5 +1,5 @@
 import { Cleanup, getPackages, MISSING_FLOW_ID_ERROR, toFlowLogsContentKey } from '@era-ci/utils'
-import { calculateArtifactsHash } from './artifacts-hash'
+import { calculateArtifactsHash } from '@era-ci/artifact-hash'
 import { Config } from './configuration'
 import { Log } from './create-logger'
 import { createImmutableCache } from './immutable-cache'
@@ -23,7 +23,6 @@ export async function printFlowLogs<TaskQueue>(options: {
     const { artifacts } = await calculateArtifactsHash({
       repoPath: options.repoPath,
       packagesPath,
-      log: logger.createLog('calculate-hashes'),
     })
 
     const redisClient = await connectToRedis({ config: options.config.redis, logger })

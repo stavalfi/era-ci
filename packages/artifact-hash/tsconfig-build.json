@@ -7,9 +7,6 @@
   "references": [
     {
       "path": "../utils/tsconfig-build.json"
-    },
-    {
-      "path": "../artifact-hash/tsconfig-build.json"
     }
   ]
 }

@@ -1,6 +1,6 @@
 import { AbortResult, Status } from '@era-ci/utils'
-import { ErrorObject } from 'serialize-error'
-import { UserRunStepOptions } from '../create-step'
+import type { ErrorObject } from 'serialize-error'
+import type { UserRunStepOptions } from '../create-step'
 
 export enum ConstrainResultType {
   shouldRun = 'should-run',

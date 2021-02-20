@@ -1,8 +1,8 @@
+import { calculateArtifactsHash } from '@era-ci/artifact-hash'
 import { Cleanup, getGitRepoInfo, getPackages, Graph, PackageJson, StepInfo, toFlowLogsContentKey } from '@era-ci/utils'
 import chance from 'chance'
 import fs from 'fs'
 import path from 'path'
-import { calculateArtifactsHash } from './artifacts-hash'
 import { Config } from './configuration'
 import { Log, Logger } from './create-logger'
 import { TaskQueueBase } from './create-task-queue'
@@ -59,10 +59,19 @@ export async function ci(options: {
     const { artifacts, repoHash: rh } = await calculateArtifactsHash({
       repoPath: options.repoPath,
       packagesPath,
-      log: logger.createLog('calculate-hashes'),
     })
 
     repoHash = rh
+
+    log.verbose('calculated hashes to every package in the monorepo:')
+    log.verbose(`root-files -> ${rh}`)
+    log.verbose(`${artifacts.length} packages:`)
+    artifacts.forEach(node =>
+      log!.verbose(
+        `${node.data.artifact.relativePackagePath} (${node.data.artifact.packageJson.name}) -> ${node.data.artifact.packageHash}`,
+      ),
+    )
+    log.verbose('---------------------------------------------------')
 
     const redisClient = await connectToRedis({
       config: options.config.redis,
