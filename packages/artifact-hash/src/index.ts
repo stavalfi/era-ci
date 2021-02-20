@@ -1,22 +1,16 @@
-import { Artifact, execaCommand, Graph, INVALIDATE_CACHE_HASH, PackageJson } from '@era-ci/utils'
+/// <reference path="../../../declarations.d.ts" />
+
+import type { Artifact, Graph, PackageJson } from '@era-ci/utils'
 import crypto from 'crypto'
 import fs from 'fs'
-import _ from 'lodash'
+import { glob } from 'glob-gitignore'
+import ignore from 'ignore'
+import parseGitIgnore from 'parse-gitignore'
 import path from 'path'
-import { Log } from './create-logger'
 
 const isInParent = (parent: string, child: string) => {
   const relative = path.relative(parent, child)
   return relative && !relative.startsWith('..') && !path.isAbsolute(relative)
-}
-
-export type PackageHashInfo = {
-  relativePackagePath: string
-  packagePath: string
-  packageHash: string
-  packageJson: PackageJson
-  parents: PackageHashInfo[] // who I depend on
-  children: Array<string> // who depends on me
 }
 
 function combineHashes(hashes: Array<string>): string {
@@ -34,8 +28,7 @@ function calculateConbinedHashes(
   rootFilesHash: string,
   artifacts: Graph<{ artifact: Artifact }>,
 ): Graph<{ artifact: Artifact }> {
-  const artifactsClone = _.cloneDeep(artifacts)
-  const heads = artifactsClone.filter(a => a.parentsIndexes.length === 0)
+  const heads = artifacts.filter(a => a.parentsIndexes.length === 0)
   const queue = heads
 
   const seen = new Set<number>()
@@ -49,17 +42,17 @@ function calculateConbinedHashes(
     const combinedHash = combineHashes([
       rootFilesHash,
       oldPackageHash,
-      ...artifact.parentsIndexes.map(parentIndex => artifactsClone[parentIndex].data.artifact.packageHash),
+      ...artifact.parentsIndexes.map(parentIndex => artifacts[parentIndex].data.artifact.packageHash),
     ])
     artifact.data.artifact.packageHash = combinedHash
     artifact.childrenIndexes.forEach(childIndex => {
       if (!seen.has(childIndex)) {
-        queue.push(artifactsClone[childIndex])
+        queue.push(artifacts[childIndex])
       }
     })
   }
 
-  return artifactsClone
+  return artifacts
 }
 
 async function calculateHashOfFiles(packagePath: string, filesPath: Array<string>): Promise<string> {
@@ -76,7 +69,6 @@ async function calculateHashOfFiles(packagePath: string, filesPath: Array<string
     hasher.update(fileContent)
     return hasher
   }, crypto.createHash('sha224'))
-  hasher.update(INVALIDATE_CACHE_HASH)
   return Buffer.from(hasher.digest()).toString('hex').slice(0, 8)
 }
 
@@ -85,28 +77,20 @@ const isRootFile = (repoPath: string, filePath: string) => !filePath.includes(pa
 export async function calculateArtifactsHash({
   repoPath,
   packagesPath,
-  log,
 }: {
   repoPath: string
   packagesPath: Array<string>
-  log: Log
 }): Promise<{
   artifacts: Graph<{
     artifact: { relativePackagePath: string; packagePath: string; packageHash: string; packageJson: PackageJson }
   }>
   repoHash: string
 }> {
-  const repoFilesPathResult = await execaCommand('git ls-tree -r --name-only HEAD', {
+  const repoFilesPath = await glob(['**'], {
     cwd: repoPath,
-    stdio: 'pipe',
-    log,
+    absolute: true,
+    ignore: ignore().add(parseGitIgnore(await fs.promises.readFile(path.join(repoPath, '.gitignore'), 'utf-8'))),
   })
-
-  const repoFilesPath = repoFilesPathResult.stdout
-    .split('\n')
-    .map(relativeFilePath => path.join(repoPath, relativeFilePath))
-    // remove uncommnited deleted files from the list of existing files
-    .filter(filePath => fs.existsSync(filePath))
 
   const packageJsons: PackageJson[] = await Promise.all(
     packagesPath.map(async packagePath =>
@@ -166,14 +150,5 @@ export async function calculateArtifactsHash({
 
   const repoHash = combineHashes([rootFilesHash, ...artifactsWithCombinedHash.map(p => p.data.artifact.packageHash)])
 
-  log.verbose('calculated hashes to every package in the monorepo:')
-  log.verbose(`root-files -> ${rootFilesHash}`)
-  log.verbose(`${artifactsWithCombinedHash.length} packages:`)
-  artifactsWithCombinedHash.forEach(node =>
-    log.verbose(
-      `${node.data.artifact.relativePackagePath} (${node.data.artifact.packageJson.name}) -> ${node.data.artifact.packageHash}`,
-    ),
-  )
-  log.verbose('---------------------------------------------------')
   return { repoHash, artifacts: artifactsWithCombinedHash }
 }

@@ -1,7 +1,7 @@
 import { calculateCombinedStatus, ExecutionStatus, Status } from '@era-ci/utils'
 import _ from 'lodash'
 import { ErrorObject, serializeError } from 'serialize-error'
-import { UserRunStepOptions } from '../create-step'
+import type { UserRunStepOptions } from '../create-step'
 import { CombinedConstrainResult, Constrain, ConstrainResult, ConstrainResultType } from './types'
 
 export function getCombinedResult(individualConstrainsResults: ConstrainResult[]): CombinedConstrainResult {

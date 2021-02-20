@@ -12,7 +12,7 @@ import {
   StepInfo,
 } from '@era-ci/utils'
 import _ from 'lodash'
-import { State } from './steps-execution'
+import type { State } from './steps-execution'
 
 export function getEventsTopicName(env: NodeJS.ProcessEnv): string {
   const topic = 'era-ci-events'

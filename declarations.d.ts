@@ -6,6 +6,15 @@ declare module 'redis-url-parse' {
   export default function (redisUrl: string): { host: string; port: number; database: string; password: string }
 }
 
+declare module 'glob-gitignore' {
+  import type { Ignore } from 'ignore'
+
+  export function glob(
+    glob: string[],
+    options?: { absolute?: boolean; cwd?: string; ignore?: Ignore },
+  ): Promise<string[]>
+}
+
 declare module 'docker-registry-client' {
   export function createClientV2(options: {
     name: string

@@ -1,5 +1,5 @@
-import { IDependencyMap, IScriptsMap } from 'package-json-type'
-import { ErrorObject } from 'serialize-error'
+import type { IDependencyMap, IScriptsMap } from 'package-json-type'
+import type { ErrorObject } from 'serialize-error'
 
 export type Cleanup = () => Promise<unknown>
 
@@ -100,9 +100,4 @@ export type GitRepoInfo = {
     username?: string
     token?: string
   }
-}
-
-export enum TargetType {
-  docker = 'docker',
-  npm = 'npm',
 }
