@@ -2,7 +2,7 @@ FROM quay.io/eraci/node:15.7.0-alpine3.10
 
 WORKDIR /usr/service
 
-COPY yarn.lock package.json tsconfig.json tsconfig-build.json ./
+COPY yarn.lock package.json tsconfig.json tsconfig-build.json declarations.d.ts ./
 
 ARG package_path=packages/quay-helper-service
 ARG quay_client_path=packages/quay-client
@@ -21,7 +21,8 @@ COPY ${utils_path}/tsconfig-build.json ./${utils_path}/tsconfig-build.json
 # building image-step after quay-step, but it will make the build longer in 1-2 minutes)
 RUN npx @era-ci/monorepo-helper-cli remove-all-dev-deps-not-related-to --repo-path /usr/service @era-ci/quay-helper-service\
         --except-deps typescript,@types/* && \
-    yarn install
+    # ignore husky auto-install 
+    yarn install --ignore-scripts
 
 COPY ${package_path}/src ./${package_path}/src
 COPY ${quay_client_path}/src ./${quay_client_path}/src
