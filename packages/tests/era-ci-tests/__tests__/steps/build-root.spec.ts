@@ -19,6 +19,11 @@ test('should pass without notes', async () => {
           version: '1.0.0',
         },
       ],
+      rootPackageJson: {
+        scripts: {
+          build: 'echo building...',
+        },
+      },
     },
     configurations: {
       taskQueues: [
@@ -41,9 +46,7 @@ test('should pass without notes', async () => {
 
   const { jsonReport } = await runCi()
 
-  expect(jsonReport.stepsResultOfArtifactsByArtifact[0].data.stepsResult[0].data.artifactStepResult).toMatchObject<
-    DeepPartial<Result>
-  >({
+  expect(jsonReport.stepsResultOfArtifactsByStep[1].data.stepResult).toMatchObject<DeepPartial<Result>>({
     executionStatus: ExecutionStatus.done,
     status: Status.passed,
     notes: [],
@@ -51,7 +54,7 @@ test('should pass without notes', async () => {
   })
 })
 
-test.only('install failed so build should skip-as-failed', async () => {
+test('install failed so build-step should skip-as-failed', async () => {
   const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [
@@ -60,6 +63,11 @@ test.only('install failed so build should skip-as-failed', async () => {
           version: '1.0.0',
         },
       ],
+      rootPackageJson: {
+        scripts: {
+          build: 'echo building...',
+        },
+      },
     },
     configurations: {
       taskQueues: [
@@ -85,12 +93,59 @@ test.only('install failed so build should skip-as-failed', async () => {
 
   const { jsonReport } = await runCi()
 
-  expect(jsonReport.stepsResultOfArtifactsByArtifact[0].data.stepsResult[1].data.artifactStepResult).toMatchObject<
-    DeepPartial<Result>
-  >({
+  expect(jsonReport.stepsResultOfArtifactsByStep[1].data.stepResult).toMatchObject<DeepPartial<Result>>({
     executionStatus: ExecutionStatus.aborted,
     status: Status.skippedAsFailed,
     notes: [`step: "${jsonReport.steps[0].data.stepInfo.displayName}" failed in flow: this-flow`],
+    errors: [],
+  })
+})
+
+test.only('reproduce bug: first-flow: install failed so build-step should skip-as-failed, second-flow: build-step should have a note that the install-step failed in this flow (also)', async () => {
+  const { runCi, repoPath } = await createRepo({
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+        },
+      ],
+      rootPackageJson: {
+        scripts: {
+          build: 'echo building...',
+        },
+      },
+    },
+    configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName: `queue-${chance().hash().slice(0, 8)}`,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        installRoot({ isStepEnabled: true }),
+        buildRoot({
+          isStepEnabled: true,
+          scriptName: 'build',
+        }),
+      ]),
+    },
+  })
+
+  // it will cause the install-step to fail
+  await fs.promises.writeFile(path.join(repoPath, 'uncommited-new-file'), 'lalala', 'utf-8')
+
+  const flow1 = await runCi()
+
+  const { jsonReport } = await runCi()
+
+  expect(jsonReport.stepsResultOfArtifactsByStep[1].data.stepResult).toMatchObject<DeepPartial<Result>>({
+    executionStatus: ExecutionStatus.aborted,
+    status: Status.skippedAsFailed,
+    notes: [`step: "${jsonReport.steps[0].data.stepInfo.displayName}" failed in flows: ${flow1.flowId},this-flow`],
     errors: [],
   })
 })
