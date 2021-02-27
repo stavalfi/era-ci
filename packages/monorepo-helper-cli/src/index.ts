@@ -32,7 +32,7 @@ async function evaluateAction({
 
       deleteAllDevDeps(repoPath, graph, packageName, expectDevDepsNamesArray)
       updateAllTsconfigBuildFiles(repoPath, graph, packageName)
-      updateMainTsconfigFile(repoPath, graph, findAllRecursiveDepsOfPackage(repoPath, graph, packageName))
+      updateMainTsconfigFile(repoPath, graph, findAllRecursiveDepsOfPackage(graph, packageName))
 
       break
     }
