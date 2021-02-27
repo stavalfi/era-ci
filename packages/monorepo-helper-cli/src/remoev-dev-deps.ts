@@ -48,10 +48,10 @@ function updateMainTsconfigBuildFile(repoPath: string, graph: WorkspacesInfo, de
 }
 
 export function updateAllTsconfigBuildFiles(repoPath: string, graph: WorkspacesInfo, packageJsonName: string): void {
-  const deps = findAllRecursiveDepsOfPackage(repoPath, graph, packageJsonName)
+  const deps = findAllRecursiveDepsOfPackage(graph, packageJsonName)
   updateMainTsconfigBuildFile(repoPath, graph, deps)
   for (const dep of deps) {
-    updatePackageTsconfigBuildFile(graph, dep, findAllRecursiveDepsOfPackage(repoPath, graph, dep))
+    updatePackageTsconfigBuildFile(graph, dep, findAllRecursiveDepsOfPackage(graph, dep))
   }
 }
 
@@ -80,8 +80,8 @@ export function deleteAllDevDeps(
   expectDevDeps: string[],
 ): void {
   deleteDevDepsFromPackageJson(path.join(repoPath, 'package.json'), expectDevDeps)
-  const deps = findAllRecursiveDepsOfPackage(repoPath, graph, packageJsonName)
+  const deps = findAllRecursiveDepsOfPackage(graph, packageJsonName)
   for (const dep of deps) {
-    deleteDevDepsFromPackageJson(path.join(repoPath, graph[dep].location, 'package.json'), expectDevDeps)
+    deleteDevDepsFromPackageJson(path.join(graph[dep].location, 'package.json'), expectDevDeps)
   }
 }

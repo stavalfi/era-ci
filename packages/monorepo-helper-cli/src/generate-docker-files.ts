@@ -6,8 +6,8 @@ import { WorkspacesInfo } from '@era-ci/utils'
 const packageNameToArg = (packageName: string) =>
   packageName.split('/')[packageName.split('/').length - 1].split('-').join('_')
 
-function generateDockerfile(repoPath: string, graph: WorkspacesInfo, packageJsonName: string): string {
-  const deps = findAllRecursiveDepsOfPackage(repoPath, graph, packageJsonName)
+function generateDockerfile(graph: WorkspacesInfo, packageJsonName: string): string {
+  const deps = findAllRecursiveDepsOfPackage(graph, packageJsonName)
 
   const args = deps.map(dep => `ARG ${packageNameToArg(dep)}_path=${graph[dep].location}`).join('\n')
 
@@ -58,13 +58,11 @@ export async function generateDockerfiles(
   graph: WorkspacesInfo,
   packageJsonNames: string[],
 ): Promise<void> {
-  const filtered = packageJsonNames.filter(p => fs.existsSync(path.join(repoPath, graph[p].location, 'Dockerfile')))
+  const filtered = packageJsonNames.filter(p => fs.existsSync(path.join(graph[p].location, 'Dockerfile')))
 
-  const dockerfiles = filtered.map(p => generateDockerfile(repoPath, graph, p))
+  const dockerfiles = filtered.map(p => generateDockerfile(graph, p))
 
   await Promise.all(
-    filtered.map((p, i) =>
-      fs.promises.writeFile(path.join(repoPath, graph[p].location, 'Dockerfile'), dockerfiles[i], 'utf-8'),
-    ),
+    filtered.map((p, i) => fs.promises.writeFile(path.join(graph[p].location, 'Dockerfile'), dockerfiles[i], 'utf-8')),
   )
 }
