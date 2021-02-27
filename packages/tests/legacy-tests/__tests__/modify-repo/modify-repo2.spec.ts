@@ -1,44 +1,10 @@
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import { newEnv } from '../prepare-test'
 import { TargetType } from '../prepare-test/types'
 
 const { createRepo } = newEnv()
 
-test(`no publish if the package folder moved`, async () => {
-  const { runCi, movePackageFolder } = await createRepo({
-    packages: [
-      {
-        name: 'a',
-        version: '1.0.0',
-        targetType: TargetType.npm,
-      },
-    ],
-  })
-
-  await runCi({
-    targetsInfo: {
-      npm: {
-        shouldPublish: true,
-        shouldDeploy: false,
-      },
-    },
-  })
-
-  await movePackageFolder('a')
-
-  const master2 = await runCi({
-    targetsInfo: {
-      npm: {
-        shouldPublish: true,
-        shouldDeploy: false,
-      },
-    },
-  })
-
-  expect(master2.published.get('a')?.npm?.versions).toEqual(['1.0.0'])
-})
-
-test(`no publish of other packages if a package was deleted`, async () => {
+test(`there is no addtional publish of other packages if a package was deleted`, async () => {
   const { runCi, deletePackage } = await createRepo({
     packages: [
       {
@@ -58,7 +24,6 @@ test(`no publish of other packages if a package was deleted`, async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -69,7 +34,6 @@ test(`no publish of other packages if a package was deleted`, async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -77,7 +41,7 @@ test(`no publish of other packages if a package was deleted`, async () => {
   expect(master2.published.get('b')?.npm?.versions).toEqual(['2.0.0'])
 })
 
-test(`no publish of other packages if addtional package was created`, async () => {
+test(`there is no addtional publish of other packages if addtional package was created (because yarn.lock will be modified)`, async () => {
   const { runCi, createNewPackage } = await createRepo({
     packages: [
       {
@@ -92,7 +56,6 @@ test(`no publish of other packages if addtional package was created`, async () =
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -107,7 +70,6 @@ test(`no publish of other packages if addtional package was created`, async () =
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })

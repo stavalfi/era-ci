@@ -1,6 +1,29 @@
 import type { IDependencyMap, IScriptsMap } from 'package-json-type'
 import type { ErrorObject } from 'serialize-error'
 
+export type WorkspaceInfo = Yarn2Workspace
+
+export type WorkspacesInfo = {
+  [packageJsonName: string]: WorkspaceInfo
+}
+
+export type Yarn1Workspace = {
+  location: string // relative-path
+  workspaceDependencies: string[]
+  mismatchedWorkspaceDependencies: []
+}
+
+export type Yarn1Workspaces = {
+  [packageJsonName: string]: Yarn1Workspace
+}
+
+export type Yarn2Workspace = {
+  name: string
+  location: string
+  workspaceDependencies: string[]
+  mismatchedWorkspaceDependencies: []
+}
+
 export type Cleanup = () => Promise<unknown>
 
 export type PackageJson = {
@@ -13,6 +36,10 @@ export type PackageJson = {
   devDependencies?: IDependencyMap
   peerDependencies?: IDependencyMap
   main?: string
+  publishConfig?: {
+    access?: 'public' | 'restricted'
+    registry?: string
+  }
 }
 
 export type Node<T> = {

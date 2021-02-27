@@ -9,19 +9,16 @@ import { TaskQueueBase } from './create-task-queue'
 import { createImmutableCache, ImmutableCache } from './immutable-cache'
 import { connectToRedis } from './redis-client'
 import { runAllSteps } from './steps-execution'
+import { CiResult } from './types'
 import { getExitCode } from './utils'
+
+export { CiResult }
 
 export async function ci(options: {
   repoPath: string
   config: Config<TaskQueueBase<any, any>>
   processEnv: NodeJS.ProcessEnv
-}): Promise<{
-  flowId: string
-  repoHash?: string
-  steps?: Graph<{ stepInfo: StepInfo }>
-  passed: boolean
-  fatalError: boolean
-}> {
+}): Promise<CiResult> {
   process.stdout.setMaxListeners(Infinity)
   process.stderr.setMaxListeners(Infinity)
 
@@ -46,8 +43,13 @@ export async function ci(options: {
     log.info(`Starting CI - flow-id: "${flowId}"`)
     log.info(`directory: "${options.repoPath}"`)
 
-    const gitRepoInfo = await getGitRepoInfo(options.repoPath, logger.createLog('ci-logic', { disable: true }))
-    const packagesPath = await getPackages({ repoPath: options.repoPath, log })
+    const gitRepoInfo = await getGitRepoInfo({
+      repoPath: options.repoPath,
+      log: logger.createLog('ci-logic', { disable: true }),
+    })
+    const packagesPath = await getPackages({ repoPath: options.repoPath, processEnv: options.processEnv }).then(r =>
+      Object.values(r).map(w => w.location),
+    )
 
     log.info(`git-repo: "${gitRepoInfo.repoName}"`)
     log.info(`git-commit: "${gitRepoInfo.commit}"`)

@@ -1,3 +1,4 @@
+import { Graph, StepInfo } from '@era-ci/utils'
 import { Actions } from './steps-execution'
 
 export type RedisFlowEvent = {
@@ -8,4 +9,12 @@ export type RedisFlowEvent = {
   startFlowMs: number
   eventTs: number
   event: Actions
+}
+
+export type CiResult = {
+  flowId: string
+  repoHash?: string
+  steps?: Graph<{ stepInfo: StepInfo }>
+  passed: boolean
+  fatalError: boolean
 }

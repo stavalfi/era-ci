@@ -1,3 +1,5 @@
+/// <reference path="../../../declarations.d.ts" />
+
 /* eslint-disable no-console */
 
 // if we load this module with jest, the source map are corrupted
@@ -19,6 +21,8 @@ import {
   quayNotificationEventToBuildStatus,
   sendQuayNotificationInRedis,
 } from './utils'
+import pino from 'pino'
+import pinoPretty from 'pino-pretty'
 
 export async function startQuayHelperService(
   env: Record<string, string | undefined>,
@@ -26,10 +30,11 @@ export async function startQuayHelperService(
   const config = getConfig(env)
 
   const app = fastify({
-    logger: {
-      prettyPrint: true,
+    logger: pino({
       level: env['ERA_TEST_MODE'] ? 'error' : 'info',
-    },
+      prettyPrint: true,
+      prettifier: pinoPretty,
+    }),
   })
 
   if (!env.ERA_TEST_MODE) {

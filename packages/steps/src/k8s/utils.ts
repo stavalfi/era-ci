@@ -4,7 +4,7 @@ import * as k8s from '@kubernetes/client-node'
 import _ from 'lodash'
 import { EMPTY, firstValueFrom, Observable, of, defer } from 'rxjs'
 import { concatMap, filter, first, map, scan } from 'rxjs/operators'
-import { DeepPartial } from 'ts-essentials'
+import type { DeepPartial } from 'ts-essentials'
 import {
   DeploymentEvent,
   DeploymentStatus,
@@ -395,7 +395,7 @@ async function waitForDeploymentResult({
   failDeplomentOnPodError: boolean
   deploymentApi: k8s.AppsV1Api
 }) {
-  let listenToPodsEvents = false
+  let alreadyListeningToPodsEvents = false
   return firstValueFrom(
     getDeploymentEvents$({
       deploymentToTrackOn: reDeploymentResult,
@@ -421,10 +421,10 @@ async function waitForDeploymentResult({
                 })
                 switch (result.status) {
                   case DeploymentStatus.NotReadyYet:
-                    if (listenToPodsEvents || !failDeplomentOnPodError) {
+                    if (alreadyListeningToPodsEvents || !failDeplomentOnPodError) {
                       return EMPTY
                     } else {
-                      listenToPodsEvents = true
+                      alreadyListeningToPodsEvents = true
                       // need to make sure that the pods are actually in ready state
                       return getPodsEvents$({
                         k8sNamesapce,

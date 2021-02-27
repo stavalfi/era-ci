@@ -1,5 +1,5 @@
 import { ConstrainResultType, createConstrain } from '@era-ci/core'
-import { ExecutionStatus, Status, execaCommand } from '@era-ci/utils'
+import { execaCommand, ExecutionStatus, Status } from '@era-ci/utils'
 
 export const skipAsFailedIfGitChangesNotCommitedConstrain = createConstrain<void, void, { isStepEnabled: boolean }>({
   constrainName: 'skip-as-failed-if-step-is-disabled-constrain',

@@ -12,6 +12,7 @@ if (!process.env.ERA_TEST_MODE) {
 import { startCli } from './configuration/cli'
 
 export * from './ci-logic'
+export * from './print-flow-logs'
 export * from './configuration'
 export * from './create-logger'
 export * from './redis-client'

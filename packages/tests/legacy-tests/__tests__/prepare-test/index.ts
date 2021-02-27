@@ -1,10 +1,9 @@
 /// <reference path="../../../../../declarations.d.ts" />
 
-import { createTest } from '@era-ci/e2e-tests-infra'
-import { buildFullDockerImageName } from '@era-ci/utils'
+import { createGitRepo, createTest } from '@era-ci/e2e-tests-infra'
+import { buildFullDockerImageName, PackageManager } from '@era-ci/utils'
 import chance from 'chance'
 import execa from 'execa'
-import { createRepo } from './create-repo'
 import {
   addRandomFileToPackage,
   addRandomFileToRoot,
@@ -19,8 +18,8 @@ import {
   renamePackageFolder,
   unpublishNpmPackage,
 } from './test-helpers'
-import { CreateAndManageRepo, GetFlowLogs, MinimalNpmPackage, NewEnv, RunCi } from './types'
-import { getPackagePath, runCiUsingConfigFile, runNcExecutable } from './utils'
+import { CreateAndManageRepo, MinimalNpmPackage, NewEnv, RunCi } from './types'
+import { getPackagePath, runCiUsingConfigFile } from './utils'
 
 export const newEnv: NewEnv = () => {
   const testFuncs = createTest()
@@ -37,29 +36,18 @@ export const newEnv: NewEnv = () => {
 
     const { dockerRegistry, npmRegistry, gitServer, redisServerUrl } = testFuncs.getResources()
 
-    const { repoPath, repoName, repoOrg, subPackagesFolderPath, testLog, testLogger } = await createRepo({
+    const { repoName, repoOrg, repoPath, subPackagesFolderPath } = await createGitRepo({
+      packageManager: PackageManager.yarn1,
       repo,
       gitServer,
       toActualName,
       gitIgnoreFiles: ['*.log'],
       npm: testFuncs.getResources().npmRegistry,
-      createTestLogger: testFuncs.createTestLogger,
+      processEnv: testFuncs.getProcessEnv(),
     })
 
-    const getFlowLogs: GetFlowLogs = async ({ flowId, execaOptions }) => {
-      return runNcExecutable({
-        testLogger,
-        repoPath,
-        testOptions: {
-          execaOptions,
-        },
-        printFlowId: flowId,
-        dockerOrganizationName,
-        dockerRegistry,
-        npmRegistry,
-        redisServerUrl,
-      })
-    }
+    const testLogger = await testFuncs.createTestLogger(repoPath)
+    const testLog = testLogger.createLog('test')
 
     const runCi: RunCi = async ({ targetsInfo, execaOptions } = {}) => {
       return runCiUsingConfigFile({
@@ -74,6 +62,7 @@ export const newEnv: NewEnv = () => {
         toOriginalName,
         redisServerUrl,
         testLogger,
+        processEnv: testFuncs.getProcessEnv(),
       })
     }
 
@@ -82,7 +71,7 @@ export const newEnv: NewEnv = () => {
         execa.command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath }).then(r => r.stdout.slice(0, 8)),
       repoPath,
       toActualName,
-      getPackagePath: getPackagePath(repoPath, toActualName),
+      getPackagePath: getPackagePath(repoPath, toActualName, testFuncs.getProcessEnv()),
       getFullImageName: (packageName, imageTag) =>
         buildFullDockerImageName({
           dockerOrganizationName,
@@ -94,6 +83,7 @@ export const newEnv: NewEnv = () => {
         repoPath,
         gitRepoAddress: gitServer.generateGitRepositoryAddress(repoOrg, repoName),
         toActualName,
+        processEnv: testFuncs.getProcessEnv(),
       }),
       addRandomFileToRoot: () =>
         addRandomFileToRoot({
@@ -102,7 +92,6 @@ export const newEnv: NewEnv = () => {
         }),
       npmRegistryAddress: npmRegistry.address,
       runCi,
-      getFlowLogs,
       dockerOrganizationName,
       installAndRunNpmDependency: dependencyName =>
         installAndRunNpmDependency({
@@ -112,6 +101,7 @@ export const newEnv: NewEnv = () => {
           dependencyName,
           log: testLog,
           repoPath,
+          processEnv: testFuncs.getProcessEnv(),
         }),
       publishNpmPackageWithoutCi: packageName =>
         publishNpmPackageWithoutCi({
@@ -120,6 +110,7 @@ export const newEnv: NewEnv = () => {
           repoPath,
           toActualName,
           log: testLog,
+          processEnv: testFuncs.getProcessEnv(),
         }),
       unpublishNpmPackage: (packageName, versionToUnpublish) =>
         unpublishNpmPackage({
@@ -129,6 +120,7 @@ export const newEnv: NewEnv = () => {
           toActualName,
           repoPath,
           log: testLog,
+          processEnv: testFuncs.getProcessEnv(),
         }),
       removeAllNpmHashTags: packageName =>
         removeAllNpmHashTags({
@@ -142,6 +134,7 @@ export const newEnv: NewEnv = () => {
           toActualName,
           packageName,
           modification,
+          processEnv: testFuncs.getProcessEnv(),
         }),
       publishDockerPackageWithoutCi: (packageName, imageTag, labels) =>
         publishDockerPackageWithoutCi({
@@ -152,6 +145,7 @@ export const newEnv: NewEnv = () => {
           dockerOrganizationName,
           dockerRegistry,
           labels,
+          processEnv: testFuncs.getProcessEnv(),
         }),
       createNewPackage: (newNpmPackage: MinimalNpmPackage) =>
         createNewPackage({
@@ -160,6 +154,8 @@ export const newEnv: NewEnv = () => {
           newNpmPackage,
           repoPath,
           toActualName,
+          npmRegistryAddressToPublish: npmRegistry.address,
+          processEnv: testFuncs.getProcessEnv(),
         }),
       deletePackage: (packageName: string) =>
         deletePackage({
@@ -169,6 +165,7 @@ export const newEnv: NewEnv = () => {
           packageName,
           npmRegistry,
           log: testLog,
+          processEnv: testFuncs.getProcessEnv(),
         }),
       movePackageFolder: (packageName: string) =>
         movePackageFolder({
@@ -177,6 +174,7 @@ export const newEnv: NewEnv = () => {
           toActualName,
           packageName,
           newParentDirPath: subPackagesFolderPath,
+          processEnv: testFuncs.getProcessEnv(),
         }),
       renamePackageFolder: (packageName: string) =>
         renamePackageFolder({
@@ -184,6 +182,7 @@ export const newEnv: NewEnv = () => {
           repoPath,
           toActualName,
           packageName,
+          processEnv: testFuncs.getProcessEnv(),
         }),
     }
   }

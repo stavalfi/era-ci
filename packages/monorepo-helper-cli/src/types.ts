@@ -1,11 +1,3 @@
-export type Workspaces = {
-  [packageJsonName: string]: {
-    location: string // relative-path
-    workspaceDependencies: string[] // packageJson-names
-    mismatchedWorkspaceDependencies: []
-  }
-}
-
 export type Tsconfig = {
   compilerOptions: {
     paths: { [dep: string]: string }

@@ -14,6 +14,7 @@ import {
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { localSequentalTaskQueue, taskWorkerTaskQueue } from '@era-ci/task-queues'
 import chance from 'chance'
+import colors from 'colors/safe'
 
 const {
   SHOULD_PUBLISH_NPM,
@@ -24,8 +25,6 @@ const {
   NPM_EMAIL,
   NPM_USERNAME,
   NPM_PASSWORD,
-  DOCKER_HUB_USERNAME,
-  DOCKER_HUB_TOKEN,
   REDIS_ENDPOINT,
   TEST_SCRIPT_NAME,
   // eslint-disable-next-line no-process-env
@@ -59,13 +58,9 @@ const steps = createLinearStepsGraph([
     isStepEnabled: Boolean(SHOULD_PUBLISH_DOCKER),
     dockerOrganizationName: DOCKER_ORGANIZATION_NAME!,
     dockerRegistry: DOCKER_REGISTRY!,
-    dockerRegistryAuth: {
-      username: DOCKER_HUB_USERNAME!,
-      token: DOCKER_HUB_TOKEN!,
-    },
   }),
   jsonReporter(),
-  cliTableReporter(),
+  cliTableReporter({ colorizeTable: s => colors.white(s) }),
 ])
 
 export default config({

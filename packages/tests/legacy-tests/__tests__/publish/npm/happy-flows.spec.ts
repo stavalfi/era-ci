@@ -1,5 +1,5 @@
+import { expect, test } from '@jest/globals'
 import chance from 'chance'
-import expect from 'expect'
 import { newEnv } from '../../prepare-test'
 import { TargetType } from '../../prepare-test/types'
 
@@ -20,7 +20,6 @@ test('1 package', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -42,7 +41,6 @@ test('multiple publishes of the same package', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -54,7 +52,6 @@ test('multiple publishes of the same package', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -68,7 +65,6 @@ test('multiple publishes of the same package', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -101,7 +97,6 @@ test('multiple packages', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -127,7 +122,6 @@ test('1 package - validate publish content', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -167,7 +161,6 @@ test('reproduce bug in travelGraph function', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })

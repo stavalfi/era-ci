@@ -1,11 +1,12 @@
 import { ConstrainResultBase, ConstrainResultType, createConstrain, createStep } from '@era-ci/core'
-import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { JsonReport } from '@era-ci/steps'
 import { createLinearStepsGraph, createTreeStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { AbortResult, ExecutionStatus, Status } from '@era-ci/utils'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import sinon from 'sinon'
+import type { DeepPartial } from 'ts-essentials'
 
 const { createRepo, sleep } = createTest()
 
@@ -134,7 +135,7 @@ test('reproduce bug: ensure constrain is called at most once', async () => {
 // we prefer to "ignore" the results of the other constrains (even if they chose to skip-as-fail)
 // USECASE: quay-docker-publish step is disabled and git repo is dirty,
 // so it should skip as passed but because the git-repo is dirty, it will skip as failed.
-test.only('if a step has multiple constains such that: one say to skip-as-passed but the others say skip-as-failed,\
+test('if a step has multiple constains such that: one say to skip-as-passed but the others say skip-as-failed,\
  then we should ignore the skip-as-failed results entirly', async () => {
   const { runCi } = await createRepo({
     repo: {

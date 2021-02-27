@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import { newEnv } from './prepare-test'
 import { manageStepResult } from './prepare-test/test-helpers'
 import { TargetType } from './prepare-test/types'
@@ -19,12 +19,11 @@ test('ensure log file is created', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: false,
-        shouldDeploy: false,
       },
     },
   })
   expect(result1.flowId).toBeTruthy()
-  expect(result1.ncLogfileContent).toMatch(result1.flowId!)
+  expect(result1.flowLogs).toMatch(result1.flowId!)
 })
 
 test('ensure log file is deleted when a new flow starts', async () => {
@@ -41,7 +40,6 @@ test('ensure log file is deleted when a new flow starts', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: false,
-        shouldDeploy: false,
       },
     },
   })
@@ -50,13 +48,12 @@ test('ensure log file is deleted when a new flow starts', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: false,
-        shouldDeploy: false,
       },
     },
   })
 
-  expect(result2.ncLogfileContent).not.toEqual(expect.stringContaining(`flow-id: "${result1.flowId}"`))
-  expect(result2.ncLogfileContent).toEqual(expect.stringContaining(`flow-id: "${result2.flowId}"`))
+  expect(result2.flowLogs).not.toEqual(expect.stringContaining(`flow-id: "${result1.flowId}"`))
+  expect(result2.flowLogs).toEqual(expect.stringContaining(`flow-id: "${result2.flowId}"`))
 })
 
 test('ensure any user-command that we run will be sent to the log file - user command passed', async () => {
@@ -81,11 +78,10 @@ test('ensure any user-command that we run will be sent to the log file - user co
     targetsInfo: {
       npm: {
         shouldPublish: false,
-        shouldDeploy: false,
       },
     },
   })
-  expect(result1.ncLogfileContent).toMatch(test.expectedContentInLog())
+  expect(result1.flowLogs).toMatch(test.expectedContentInLog())
 })
 
 test('ensure any user-command that we run will be sent to the log file - user command failed', async () => {
@@ -110,12 +106,11 @@ test('ensure any user-command that we run will be sent to the log file - user co
     targetsInfo: {
       npm: {
         shouldPublish: false,
-        shouldDeploy: false,
       },
     },
     execaOptions: {
       reject: false,
     },
   })
-  expect(result1.ncLogfileContent).toMatch(test.expectedContentInLog())
+  expect(result1.flowLogs).toMatch(test.expectedContentInLog())
 })

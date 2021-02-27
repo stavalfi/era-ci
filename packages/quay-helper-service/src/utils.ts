@@ -1,5 +1,5 @@
 import compressing from 'compressing'
-import { createFolder } from 'create-folder-structure'
+import { createFolder } from '@stavalfi/create-folder-structure'
 import execa from 'execa'
 import fs from 'fs'
 import got from 'got'

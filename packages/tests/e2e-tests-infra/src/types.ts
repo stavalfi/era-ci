@@ -1,12 +1,12 @@
 import { Config, Log, Logger, LogLevel, RedisFlowEvent, TaskQueueBase } from '@era-ci/core'
 import { JsonReport } from '@era-ci/steps'
 import { Graph, PackageJson, StepInfo, TargetType } from '@era-ci/utils'
-import { FolderStructure } from 'create-folder-structure'
+import { AppsV1Api, V1Deployment } from '@kubernetes/client-node'
+import { FolderStructure } from '@stavalfi/create-folder-structure'
 import { Redis } from 'ioredis'
 import { IDependencyMap } from 'package-json-type'
-import { DeepPartial } from 'ts-essentials'
+import type { DeepPartial } from 'ts-essentials'
 import { GitServer } from './git-server-testkit'
-import { AppsV1Api, V1Deployment } from '@kubernetes/client-node'
 
 export type TestWithContextType = {
   resources: TestResources
@@ -17,7 +17,6 @@ export type TestWithContextType = {
   testLogger: Logger
 }
 
-export { DeepPartial } from 'ts-essentials'
 export { TargetType, PackageJson }
 
 export type Cleanup = () => Promise<unknown>
@@ -42,7 +41,7 @@ export type TestProcessEnv = {
   SKIP_EXIT_CODE_1: string
   QUAY_BUILD_STATUS_CHANED_TEST_REDIS_TOPIC: string
   ERA_CI_EVENTS_TOPIC_PREFIX: string
-}
+} & NodeJS.ProcessEnv
 
 export type Package = {
   name: string
@@ -104,6 +103,7 @@ export type CreateRepoOptions<TaskQueue extends TaskQueueBase<any, any>> = {
   configurations?: Partial<Config<TaskQueue>>
   dontAddReportSteps?: boolean
   logLevel?: LogLevel
+  overrideInitialInstallNpmRegistry?: string
 }
 
 export type CreateRepo = (
@@ -129,6 +129,7 @@ export type RunCiResult = {
   flowLogs: string
   published: Map<string, ResultingArtifact>
   flowEvents: RedisFlowEvent[]
+  printFlowLogsFromCli: (flowId?: string) => Promise<string>
 }
 
 type Deployment = { address: string; cleanup: () => Promise<unknown> }
@@ -142,6 +143,7 @@ export type CreateK8sDeployment = (options: {
   portInContainer: number
   labels: { app: string }
   progressDeadlineSeconds?: number
+  minReadySeconds?: number
 }) => Promise<V1Deployment>
 
 export type FindPodName = (deploymentName: string) => Promise<string | undefined>

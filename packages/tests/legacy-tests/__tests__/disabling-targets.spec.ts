@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import { newEnv } from './prepare-test'
 import { TargetType } from './prepare-test/types'
 
@@ -24,7 +24,6 @@ test('disable npm targets', async () => {
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -52,7 +51,6 @@ test('disable docker targets', async () => {
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })

@@ -3,7 +3,7 @@ import { createTest } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 
 const { createRepo, sleep } = createTest()
 
@@ -12,7 +12,7 @@ test('waitUntilArtifactParentsFinishedParentSteps=true - ensure it does not do n
     repo: {
       packages: [
         {
-          name: 'a',
+          name: 'a23',
           version: '1.0.0',
         },
       ],

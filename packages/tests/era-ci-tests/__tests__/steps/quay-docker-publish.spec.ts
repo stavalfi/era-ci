@@ -3,7 +3,7 @@ import { quayDockerPublish } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { quayBuildsTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status, TargetType } from '@era-ci/utils'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 
 const { getResources, createRepo } = createTest({
   startQuayHelperService: true,

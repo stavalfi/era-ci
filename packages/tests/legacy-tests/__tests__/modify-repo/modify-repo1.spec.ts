@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import { newEnv } from '../prepare-test'
 import { TargetType } from '../prepare-test/types'
 
@@ -24,7 +24,6 @@ test('multiple packages - all publish again because of modification in root file
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -38,7 +37,6 @@ test('multiple packages - all publish again because of modification in root file
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -69,7 +67,6 @@ test('multiple packages - all publish again because of modification in each pack
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -84,7 +81,6 @@ test('multiple packages - all publish again because of modification in each pack
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -110,7 +106,6 @@ test(`no publish if the package folder name has modified`, async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -121,7 +116,6 @@ test(`no publish if the package folder name has modified`, async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })

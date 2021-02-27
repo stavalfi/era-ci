@@ -7,11 +7,13 @@ import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import {
   Artifact,
   calculateNewVersion,
+  determinePackageManager,
   execaCommand,
   ExecutionStatus,
   getPackageTargetTypes,
   Node,
   PackageJson,
+  PackageManager,
   Status,
   TargetType,
 } from '@era-ci/utils'
@@ -142,14 +144,12 @@ export async function npmRegistryLogin({
   log,
   npmRegistryEmail,
   npmRegistryUsername,
-  repoPath,
 }: {
   npmRegistry: string
   npmRegistryUsername: string
   npmRegistryEmail: string
   npmRegistryPassword: string
-  log: Log
-  repoPath: string
+  log?: Log // it's optional for test purposes
 }): Promise<void> {
   if (npmRegistry[npmRegistry.length - 1] === '/') {
     npmRegistry = npmRegistry.slice(0, npmRegistry.length - 1)
@@ -160,12 +160,10 @@ export async function npmRegistryLogin({
   // by enabling always-auth will force yarn do it on each request.
   await execa.command(`npm config set always-auth true `, {
     stdio: 'pipe',
-    cwd: repoPath,
   })
 
   await execa.command(require.resolve(`.bin/npm-login-noninteractive`), {
     stdio: 'pipe',
-    cwd: repoPath,
     env: {
       NPM_USER: npmRegistryUsername,
       NPM_PASS: npmRegistryPassword,
@@ -173,7 +171,7 @@ export async function npmRegistryLogin({
       NPM_REGISTRY: npmRegistry,
     },
   })
-  log.info(`logged in to npm-registry: "${npmRegistry}"`)
+  log?.info(`logged in to npm-registry: "${npmRegistry}"`)
 }
 
 const customConstrain = createConstrain<
@@ -264,7 +262,7 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
   stepName: 'npm-publish',
   stepGroup: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async ({ stepConfigurations, repoPath, log, immutableCache, logger }) => {
+  run: async ({ stepConfigurations, repoPath, log, immutableCache, logger, processEnv }) => {
     if (stepConfigurations.isStepEnabled) {
       // we need to login before we run the constrains and before run the artifacts-logic
       await npmRegistryLogin({
@@ -272,7 +270,6 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
         npmRegistryPassword: stepConfigurations.registryAuth.password,
         npmRegistryEmail: stepConfigurations.registryAuth.email,
         npmRegistryUsername: stepConfigurations.registryAuth.username,
-        repoPath,
         log,
       })
     }
@@ -298,6 +295,12 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
             stepNameToSearchInCache: 'validate-packages',
             skipAsPassedIfStepNotExists: true,
           }),
+        artifact =>
+          skipAsFailedIfArtifactStepResultFailedInCacheConstrain({
+            currentArtifact: artifact,
+            stepNameToSearchInCache: 'install-root',
+            skipAsPassedIfStepNotExists: true,
+          }),
         artifact => customConstrain({ currentArtifact: artifact }),
       ],
       onArtifact: async ({ artifact }) => {
@@ -309,7 +312,7 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
           log,
         })
 
-        log.info(`publising npm target with new version: "${artifact.data.artifact.packageJson.name}@${newVersion}"`)
+        log.info(`publishing npm target with new version: "${artifact.data.artifact.packageJson.name}@${newVersion}"`)
 
         // copy the package to different temp-dir on the OS because the publish phase
         // mutate the package.json and we don't want this while other steps are running right now.
@@ -320,12 +323,28 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
           `copied-${artifact.data.artifact.packageJson.name}-${chance().hash().slice(0, 8)}`,
         )
         await fse.copy(artifact.data.artifact.packagePath, copiedPackagePathToPublish)
+        const newPackageJsonPath = path.join(copiedPackagePathToPublish, 'package.json')
+        await fse.writeJSON(newPackageJsonPath, { ...(await fse.readJSON(newPackageJsonPath)), version: newVersion })
+
+        let publishCommand: string
 
         const withAcess = artifact.data.artifact.packageJson.name?.includes('@')
           ? `--access ${stepConfigurations.npmScopeAccess}`
           : ''
 
-        const publishCommand = `yarn publish --registry ${stepConfigurations.registry} --non-interactive --new-version ${newVersion} ${withAcess}`
+        switch (await determinePackageManager({ repoPath, processEnv })) {
+          case PackageManager.yarn1: {
+            publishCommand = `npm publish ${withAcess}`
+            break
+          }
+          case PackageManager.yarn2: {
+            // I'm not sure how to login and publish in yarn2: https://github.com/yarnpkg/berry/issues/2503
+            // for now, we publish with npm
+            publishCommand = `npm publish ${withAcess}`
+            break
+          }
+        }
+
         await execaCommand(publishCommand, {
           stdio: 'pipe',
           cwd: copiedPackagePathToPublish,

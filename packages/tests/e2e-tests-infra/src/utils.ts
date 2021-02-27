@@ -4,8 +4,10 @@ import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { V1Pod } from '@kubernetes/client-node'
 import _ from 'lodash'
 import { execaCommand } from '@era-ci/utils'
-import { CreateK8sDeployment, DeepPartial, FindPodName, GetCleanups, K8sHelpers, TestResources } from './types'
+import { CreateK8sDeployment, FindPodName, GetCleanups, K8sHelpers, TestResources } from './types'
 import os from 'os'
+import { DeepPartial } from 'ts-essentials'
+import colors from 'colors/safe'
 
 function isDeepSubsetOf<T = unknown>({
   subset,
@@ -130,7 +132,10 @@ export function addReportToStepsAsLastNodes(
 ): Config<TaskQueueBase<any, any>>['steps'] {
   const stepsCopy = _.cloneDeep(steps)
 
-  const additionalSteps = createLinearStepsGraph([jsonReporter(), cliTableReporter()])
+  const additionalSteps = createLinearStepsGraph([
+    jsonReporter(),
+    cliTableReporter({ colorizeTable: s => colors.white(s) }),
+  ])
 
   const leafs = stepsCopy.filter(s => s.childrenIndexes.length === 0)
 
@@ -171,6 +176,7 @@ export const k8sHelpers = ({
           selector: {
             matchLabels: options.labels,
           },
+          minReadySeconds: options.minReadySeconds,
           template: {
             metadata: {
               name: options.podName,

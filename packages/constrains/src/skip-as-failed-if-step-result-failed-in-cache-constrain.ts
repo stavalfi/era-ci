@@ -57,14 +57,18 @@ export const skipAsFailedIfStepResultFailedInCacheConstrain = createConstrain<{
     if (stepResult.failed.length > 0 || stepResult.skippedAsFailed.length > 0) {
       const notes: string[] = []
       if (stepResult.failed.length > 0) {
+        const plural = stepResult.failed.length > 1 ? 'flows' : 'flow'
+
         notes.push(
-          `step: "${step.data.stepInfo.displayName}" failed in flows: ${stepResult.failed
+          `step: "${step.data.stepInfo.displayName}" failed in ${plural}: ${stepResult.failed
             .map(f => f.flowId)
             .join(',')}`,
         )
       } else {
+        const plural = stepResult.passed.length > 1 ? 'flows' : 'flow'
+
         notes.push(
-          `step: "${step.data.stepInfo.displayName}" failed in flows: ${stepResult.skippedAsFailed
+          `step: "${step.data.stepInfo.displayName}" failed in ${plural}: ${stepResult.skippedAsFailed
             .map(f => f.flowId)
             .join(',')}`,
         )

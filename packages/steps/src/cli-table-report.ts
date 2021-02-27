@@ -17,24 +17,25 @@ colors.enable()
 // note: this file is not tested (or can't even be tested?). modify with caution!!!
 
 type TableRow = Table.HorizontalTableRow | Table.VerticalTableRow | Table.CrossTableRow
+export type ColorizeTable = (chart: string) => string
 
-const DEFAULT_CHART = {
-  top: '─',
-  'top-mid': '┬',
-  'top-left': '┌',
-  'top-right': '┐',
-  bottom: '─',
-  'bottom-mid': '┴',
-  'bottom-left': '└',
-  'bottom-right': '┘',
-  left: '│',
-  'left-mid': '│',
-  mid: '─',
-  'mid-mid': '┼',
-  right: '│',
-  'right-mid': '│',
-  middle: '│',
-}
+const createChart = (colorizeTable: ColorizeTable) => ({
+  top: colorizeTable('─'),
+  'top-mid': colorizeTable('┬'),
+  'top-left': colorizeTable('┌'),
+  'top-right': colorizeTable('┐'),
+  bottom: colorizeTable('─'),
+  'bottom-mid': colorizeTable('┴'),
+  'bottom-left': colorizeTable('└'),
+  'bottom-right': colorizeTable('┘'),
+  left: colorizeTable('│'),
+  'left-mid': colorizeTable('│'),
+  mid: colorizeTable('─'),
+  'mid-mid': colorizeTable('┼'),
+  right: colorizeTable('│'),
+  'right-mid': colorizeTable('│'),
+  middle: colorizeTable('│'),
+})
 
 const good = (word: string) => colors.green(word)
 const bad = (word: string) => colors.red(word)
@@ -51,7 +52,11 @@ const EXECUTION_STATUS_COLORED = {
   [ExecutionStatus.scheduled]: colors.cyan('scheduled'),
 }
 
-function generatePackagesStatusReport(jsonReport: JsonReport, logLevel: LogLevel): string {
+function generatePackagesStatusReport(
+  jsonReport: JsonReport,
+  logLevel: LogLevel,
+  colorizeTable: ColorizeTable,
+): string {
   const stepsName = jsonReport.steps.map(step => step.data.stepInfo.stepName)
 
   function getRows() {
@@ -133,7 +138,7 @@ function generatePackagesStatusReport(jsonReport: JsonReport, logLevel: LogLevel
   }))
 
   const packagesStatusTable = new Table({
-    chars: DEFAULT_CHART,
+    chars: createChart(colorizeTable),
     colWidths: colums.map((_, i) => (hasNotes && i === colums.length - 1 ? 100 : null)),
     wordWrap: true,
   })
@@ -225,7 +230,7 @@ Errors in steps:
   return result
 }
 
-function generateSummaryReport(jsonReport: JsonReport): string {
+function generateSummaryReport(jsonReport: JsonReport, colorizeTable: ColorizeTable): string {
   const flowId: TableRow = ['flow-id', jsonReport.flow.flowId].map(content => ({
     vAlign: 'center',
     hAlign: 'center',
@@ -283,7 +288,7 @@ function generateSummaryReport(jsonReport: JsonReport): string {
   ]
 
   const ciTable = new Table({
-    chars: DEFAULT_CHART,
+    chars: createChart(colorizeTable),
   })
   ciTable.push(flowId, repoHash, flowStartFlowDateUtc)
   if (duration) {
@@ -293,10 +298,17 @@ function generateSummaryReport(jsonReport: JsonReport): string {
   return ciTable.toString()
 }
 
-export const cliTableReporter = createStep({
+export const cliTableReporter = createStep<
+  LocalSequentalTaskQueue,
+  { colorizeTable?: ColorizeTable },
+  { colorizeTable: ColorizeTable }
+>({
   stepName: 'cli-table-reporter',
   stepGroup: 'cli-table-reporter',
   taskQueueClass: LocalSequentalTaskQueue,
+  normalizeStepConfigurations: async stepConfig => ({
+    colorizeTable: stepConfig.colorizeTable ?? ((s: string) => colors.white(s)),
+  }),
   run: async options => ({
     stepConstrains: [
       skipAsFailedIfStepResultFailedInCacheConstrain({
@@ -332,8 +344,12 @@ export const cliTableReporter = createStep({
 
       const packagesErrorsReport = generatePackagesErrorsReport(jsonReportResult.value)
       const stepsErrorsReport = generateStepsErrorsReport(jsonReportResult.value)
-      const packagesStatusReport = generatePackagesStatusReport(jsonReportResult.value, options.logger.logLevel)
-      const summaryReport = generateSummaryReport(jsonReportResult.value)
+      const packagesStatusReport = generatePackagesStatusReport(
+        jsonReportResult.value,
+        options.logger.logLevel,
+        options.stepConfigurations.colorizeTable,
+      )
+      const summaryReport = generateSummaryReport(jsonReportResult.value, options.stepConfigurations.colorizeTable)
 
       if (packagesErrorsReport.split('\n').length > 15) {
         if (packagesErrorsReport) {

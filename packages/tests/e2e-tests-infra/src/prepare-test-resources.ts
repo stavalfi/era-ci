@@ -1,14 +1,16 @@
 import { getEventsTopicName } from '@era-ci/core'
 import { startQuayHelperService } from '@era-ci/quay-helper-service'
 import { startQuayMockService } from '@era-ci/quay-mock-service'
+import { beforeEach } from '@jest/globals'
+import * as k8s from '@kubernetes/client-node'
 import chance from 'chance'
+import fs from 'fs'
 import Redis from 'ioredis'
+import os from 'os'
+import path from 'path'
+import { npmRegistryLogin } from '@era-ci/steps'
 import { starGittServer } from './git-server-testkit'
 import { GetCleanups, TestProcessEnv, TestResources } from './types'
-import * as k8s from '@kubernetes/client-node'
-import path from 'path'
-import fs from 'fs'
-import os from 'os'
 
 async function k8sResources(
   isK8sTestFile?: boolean,
@@ -66,6 +68,14 @@ export function resourcesBeforeAfterEach(options: {
       showFriendlyErrorStack: true,
       lazyConnect: true,
     })
+    const npmRegistry = {
+      address: `http://localhost:34873`,
+      auth: {
+        username: 'username',
+        password: 'password',
+        email: 'root@root.root',
+      },
+    }
 
     const [k8s, quayMockService, quayHelperService, gitServer] = await Promise.all([
       k8sResources(options.isK8sTestFile),
@@ -92,6 +102,12 @@ export function resourcesBeforeAfterEach(options: {
       redisFlowEventsSubscriptionsConnection
         .connect()
         .then(() => redisFlowEventsSubscriptionsConnection.subscribe(getEventsTopicName(processEnv))),
+      npmRegistryLogin({
+        npmRegistry: npmRegistry.address,
+        npmRegistryEmail: npmRegistry.auth.email,
+        npmRegistryPassword: npmRegistry.auth.password,
+        npmRegistryUsername: npmRegistry.auth.username,
+      }),
     ])
     options.getCleanups().cleanups.push(quayMockService.cleanup)
     options.getCleanups().cleanups.push(quayHelperService.cleanup)
@@ -104,14 +120,7 @@ export function resourcesBeforeAfterEach(options: {
 
     resources = {
       k8s,
-      npmRegistry: {
-        address: `http://localhost:34873`,
-        auth: {
-          username: 'username',
-          password: 'password',
-          email: 'root@root.root',
-        },
-      },
+      npmRegistry,
       dockerRegistry,
       redisServerUrl,
       gitServer,

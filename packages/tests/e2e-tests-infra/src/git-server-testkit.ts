@@ -1,6 +1,6 @@
 /// <reference path="../../../../declarations.d.ts" />
 
-import { createFolder } from 'create-folder-structure'
+import { createFolder } from '@stavalfi/create-folder-structure'
 import { Server } from 'http'
 import { URL } from 'url'
 import NodeGitServer from 'node-git-server'

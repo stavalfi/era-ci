@@ -1,7 +1,7 @@
-import execa from 'execa'
-import path from 'path'
-import fs from 'fs'
+import * as swc from '@swc/core'
 import chance from 'chance'
+import fs from 'fs'
+import path from 'path'
 import { Describe, is, number, object, optional, string, validate } from 'superstruct'
 import { WorkerConfig } from './types'
 
@@ -26,18 +26,29 @@ function validateConfiguration(configuration: unknown): configuration is WorkerC
   return is(configuration, getConfigValidationObject())
 }
 
-export async function parseConfig(ciConfigFilePath: string): Promise<WorkerConfig> {
+export async function parseConfig(repoPath: string, ciConfigFilePath: string): Promise<WorkerConfig> {
   const outputFilePath = path.join(
     path.dirname(ciConfigFilePath),
     `compiled-task-worker-${chance().hash().slice(0, 8)}.config.js`,
   )
-  const swcConfigFile = require.resolve('@era-ci/task-worker/.era-ci-swcrc.config')
-  const swcPath = require.resolve('.bin/swc')
-  const command = `${swcPath} ${ciConfigFilePath} -o ${outputFilePath} --config-file ${swcConfigFile}`
 
-  await execa.command(command, {
-    stdio: 'pipe',
+  const compiledConfig = await swc.transform(await fs.promises.readFile(ciConfigFilePath, 'utf-8'), {
+    jsc: {
+      parser: {
+        syntax: 'typescript',
+        decorators: false,
+        dynamicImport: false,
+      },
+      target: 'es2019',
+    },
+    module: {
+      type: 'commonjs',
+      strict: true,
+      noInterop: false,
+    },
   })
+
+  await fs.promises.writeFile(outputFilePath, compiledConfig.code, 'utf-8')
 
   const result = (await import(outputFilePath)).default
   const configuration = result.default ?? result

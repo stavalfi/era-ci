@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { expect, test } from '@jest/globals'
 import { newEnv } from '../../../prepare-test'
 import { TargetType } from '../../../prepare-test/types'
 
@@ -20,7 +20,6 @@ test(`run ci as the first time after there is already a docker publish`, async (
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -42,7 +41,6 @@ test(`run ci -> override all labels in registry with empty values -> run ci`, as
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -59,7 +57,6 @@ test(`run ci -> override all labels in registry with empty values -> run ci`, as
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -84,7 +81,6 @@ test(`run ci -> override all labels in registry with invalid values -> run ci an
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -101,7 +97,6 @@ test(`run ci -> override all labels in registry with invalid values -> run ci an
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -127,7 +122,6 @@ test(`run ci -> override latest-tag label in registry with empty value -> run ci
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -143,7 +137,6 @@ test(`run ci -> override latest-tag label in registry with empty value -> run ci
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -171,7 +164,6 @@ test('run ci -> change packageJson.version to invalid version -> run ci', async 
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
     execaOptions: {
@@ -180,5 +172,5 @@ test('run ci -> change packageJson.version to invalid version -> run ci', async 
     },
   })
 
-  expect(result.ncLogfileContent).toEqual(expect.stringContaining('is invalid: "lalalal"'))
+  expect(result.flowLogs).toEqual(expect.stringContaining('is invalid: "lalalal"'))
 })

@@ -1,6 +1,6 @@
 import { toTaskEvent$ } from '@era-ci/core'
 import { distructPackageJsonName } from '@era-ci/utils'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import { lastValueFrom, merge } from 'rxjs'
 import { beforeAfterEach } from '../utils'
 

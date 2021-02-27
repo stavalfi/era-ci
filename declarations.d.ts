@@ -54,8 +54,12 @@ declare module '@hutson/set-npm-auth-token-for-ci' {
   export default function (): void
 }
 
+declare module 'pino-pretty' {
+  const x: any
+  export default x
+}
+
 declare module 'npm-login-noninteractive' {
-  // docs: https://github.com/icdevin/npm-login-noninteractive
   export default function (
     npmUsername: string,
     npmPassword: string,

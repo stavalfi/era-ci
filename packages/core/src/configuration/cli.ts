@@ -31,12 +31,13 @@ export async function startCli(processArgv: Array<string>, processEnv: NodeJS.Pr
       const configFilePath = args['config-file']
         ? path.resolve(args['config-file'])
         : path.join(repoPath, 'era-ci.config.ts')
-      const config = await readNcConfigurationFile(configFilePath)
+      const config = await readNcConfigurationFile(repoPath, configFilePath)
       if (args['print-flow']) {
         await printFlowLogs({
           flowId: args['print-flow'],
           repoPath,
           config,
+          processEnv,
         })
       } else {
         await ci({

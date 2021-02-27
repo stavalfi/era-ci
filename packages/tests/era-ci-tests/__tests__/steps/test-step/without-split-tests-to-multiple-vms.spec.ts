@@ -4,8 +4,8 @@ import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { taskWorkerTaskQueue } from '@era-ci/task-queues'
 import { startWorker } from '@era-ci/task-worker'
 import { ExecutionStatus, Status } from '@era-ci/utils'
+import { expect, test } from '@jest/globals'
 import chance from 'chance'
-import expect from 'expect'
 import fs from 'fs'
 import _ from 'lodash'
 
@@ -110,19 +110,20 @@ test('single worker - single task', async () => {
   const { flowLogs } = await runCi()
 
   expect(flowLogs).toEqual(expect.stringContaining(message))
-  expect(flowLogs.split(message)).toHaveLength(3) // ensure the message was printed two times (printing the command and then the result of the command)
+  expect(flowLogs.split(message)).toHaveLength(3)
 })
 
-test('splitTestsToMultipleVms=false - single worker - single task', async () => {
+test('splitTestsToMultipleVms=false - single worker - single task - ensure the ci do not set TOTAL_KEY_NAME', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo({
+    // packageManager: PackageManager.yarn2,
     repo: {
       packages: [
         {
           name: 'a',
           version: '1.0.0',
           scripts: {
-            test: `echo "total=$TOTAL_KEY_NAME, index=$INDEX_KEY_NAME"`,
+            test: `echo "total=$TOTAL_KEY_NAME"`,
           },
         },
       ],
@@ -147,19 +148,58 @@ test('splitTestsToMultipleVms=false - single worker - single task', async () => 
   })
 
   const { flowLogs } = await runCi()
-  expect(flowLogs).toEqual(expect.stringContaining(`total=, index=`))
+  expect(flowLogs).toEqual(expect.stringContaining('total=\n'))
 })
 
-test('splitTestsToMultipleVms=undefined - single worker - single task', async () => {
+test('splitTestsToMultipleVms=false - single worker - single task - ensure the ci do not set INDEX_KEY_NAME', async () => {
   const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo({
+    // packageManager: PackageManager.yarn2,
     repo: {
       packages: [
         {
           name: 'a',
           version: '1.0.0',
           scripts: {
-            test: `echo "total=$TOTAL_KEY_NAME, index=$INDEX_KEY_NAME"`,
+            test: `echo "index=$INDEX_KEY_NAME"`,
+          },
+        },
+      ],
+    },
+    configurations: {
+      taskQueues: [
+        taskWorkerTaskQueue({
+          queueName,
+          redis: {
+            url: getResources().redisServerUrl,
+          },
+        }),
+      ],
+      steps: createLinearStepsGraph([
+        testStep({
+          isStepEnabled: true,
+          scriptName: 'test',
+          splitTestsToMultipleVms: false,
+        }),
+      ]),
+    },
+  })
+
+  const { flowLogs } = await runCi()
+  expect(flowLogs).toEqual(expect.stringContaining('index=\n'))
+})
+
+test('splitTestsToMultipleVms=undefined - single worker - single task', async () => {
+  const queueName = `queue-${chance().hash().slice(0, 8)}`
+  const { runCi } = await createRepo({
+    // packageManager: PackageManager.yarn2,
+    repo: {
+      packages: [
+        {
+          name: 'a',
+          version: '1.0.0',
+          scripts: {
+            test: `echo "total=$TOTAL_KEY_NAME"`,
           },
         },
       ],
@@ -184,7 +224,7 @@ test('splitTestsToMultipleVms=undefined - single worker - single task', async ()
   })
 
   const { flowLogs } = await runCi()
-  expect(flowLogs).toEqual(expect.stringContaining(`total=, index=`))
+  expect(flowLogs).toEqual(expect.stringContaining('total=\n'))
 })
 
 test('single worker - two tasks', async () => {
@@ -231,10 +271,10 @@ test('single worker - two tasks', async () => {
   const { flowLogs } = await runCi()
 
   expect(flowLogs).toEqual(expect.stringContaining(message1))
-  expect(flowLogs.split(message1)).toHaveLength(3) // ensure the message was printed two times (printing the command and then the result of the command)
+  expect(flowLogs.split(message1)).toHaveLength(3)
 
   expect(flowLogs).toEqual(expect.stringContaining(message2))
-  expect(flowLogs.split(message2)).toHaveLength(3) // ensure the message was printed two times (printing the command and then the result of the command)
+  expect(flowLogs.split(message2)).toHaveLength(3)
 })
 
 test('two workers - single task - only one worker should execute the task', async () => {
@@ -284,7 +324,7 @@ test('two workers - single task - only one worker should execute the task', asyn
   const combinedLogs = `${flowLogs}${workerLogs}`
 
   expect(combinedLogs).toEqual(expect.stringContaining(message))
-  expect(combinedLogs.split(message)).toHaveLength(3) // ensure the message was printed two times (printing the command and then the result of the command)
+  expect(combinedLogs.split(message)).toHaveLength(3)
   await worker2.cleanup() // we don't have to do it but it ends the test 1-2 seconds faster.
 })
 
@@ -344,10 +384,10 @@ test('two workers - one task for each worker', async () => {
   const combinedLogs = `${flowLogs}${workerLogs}`
 
   expect(combinedLogs).toEqual(expect.stringContaining(message1))
-  expect(combinedLogs.split(message1)).toHaveLength(3) // ensure the message was printed two times (printing the command and then the result of the command)
+  expect(combinedLogs.split(message1)).toHaveLength(3)
 
   expect(combinedLogs).toEqual(expect.stringContaining(message2))
-  expect(combinedLogs.split(message2)).toHaveLength(3) // ensure the message was printed two times (printing the command and then the result of the command)
+  expect(combinedLogs.split(message2)).toHaveLength(3)
   await worker2.cleanup() // we don't have to do it but it ends the test 1-2 seconds faster.
 })
 

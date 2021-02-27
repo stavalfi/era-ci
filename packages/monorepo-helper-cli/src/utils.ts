@@ -1,16 +1,15 @@
-import { execSync } from 'child_process'
+import { WorkspacesInfo } from '@era-ci/utils'
 import fs from 'fs'
 import path from 'path'
-import { PackageJson, Workspaces } from './types'
-
-export function getGraph(repoPath: string): Workspaces {
-  const result = execSync('yarn workspaces --json info', { cwd: repoPath }).toString()
-  return JSON.parse(JSON.parse(result).data)
-}
+import { PackageJson } from './types'
 
 // return all packageJson-names which are direct/recursive dependencies of the given packageJson-name
 // find only deps (not dev-deps)
-export function findAllRecursiveDepsOfPackage(repoPath: string, graph: Workspaces, packageJsonName: string): string[] {
+export function findAllRecursiveDepsOfPackage(
+  repoPath: string,
+  graph: WorkspacesInfo,
+  packageJsonName: string,
+): string[] {
   const results: string[] = [packageJsonName]
 
   function find(packageJsonName1: string): void {

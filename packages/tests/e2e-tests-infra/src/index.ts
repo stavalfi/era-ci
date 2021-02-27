@@ -13,7 +13,7 @@ import { listTags } from '@era-ci/image-registry-client'
 import { winstonLogger } from '@era-ci/loggers'
 import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@era-ci/steps'
 import { localSequentalTaskQueue } from '@era-ci/task-queues'
-import { ExecutionStatus, Status } from '@era-ci/utils'
+import { ExecutionStatus, PackageManager, Status } from '@era-ci/utils'
 import chance from 'chance'
 import execa from 'execa'
 import fs from 'fs'
@@ -24,11 +24,13 @@ import { resourcesBeforeAfterEach } from './prepare-test-resources'
 import { getPublishResult } from './seach-targets'
 import { Cleanup, CreateRepo, GetCleanups, RunCiResult, TestFuncs, TestProcessEnv, TestResources } from './types'
 import { addReportToStepsAsLastNodes, k8sHelpers } from './utils'
+import { beforeEach, afterEach } from '@jest/globals'
+import { printFlowLogs } from '@era-ci/core'
 
 export { createGitRepo } from './create-git-repo'
 export { GitServer } from './git-server-testkit'
 export { resourcesBeforeAfterEach } from './prepare-test-resources'
-export { CreateRepo, DeepPartial, TestFuncs, TestResources, TestWithContextType } from './types'
+export type { CreateRepo, TestFuncs, TestResources, TestWithContextType } from './types'
 export { isDeepSubset } from './utils'
 
 const getJsonReport = (testFuncs: TestFuncs) => async ({
@@ -151,6 +153,7 @@ const runCi = (testFuncs: TestFuncs) => ({
       npmRegistryUsername: testFuncs.getResources().npmRegistry.auth.username,
       npmRegistryPassword: testFuncs.getResources().npmRegistry.auth.password,
     },
+    processEnv: testFuncs.getProcessEnv(),
   })
 
   return {
@@ -176,6 +179,13 @@ const runCi = (testFuncs: TestFuncs) => ({
     },
     passed,
     flowEvents,
+    printFlowLogsFromCli: (flowIdOverride?: string) =>
+      printFlowLogs({
+        flowId: flowIdOverride ?? flowId,
+        repoPath,
+        config: configurations,
+        processEnv: testFuncs.getProcessEnv(),
+      }),
   }
 }
 
@@ -186,23 +196,26 @@ export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options =>
     name.endsWith(`-${resourcesNamesPostfix}`) ? name : `${name}-${resourcesNamesPostfix}`
   const toOriginalName = (name: string) => toActualName(name).replace(`-${resourcesNamesPostfix}`, '')
 
-  const { repo, configurations = {}, dontAddReportSteps, logLevel = LogLevel.trace } =
-    typeof options === 'function' ? options(toActualName) : options
+  const {
+    repo,
+    configurations = {},
+    dontAddReportSteps,
+    logLevel = LogLevel.trace,
+    overrideInitialInstallNpmRegistry,
+  } = typeof options === 'function' ? options(toActualName) : options
 
   const { repoPath, repoName } = await createGitRepo({
     repo,
+    overrideInitialInstallNpmRegistry,
     gitServer: testFuncs.getResources().gitServer,
     toActualName,
     gitIgnoreFiles: ['*.log'],
+    npm: testFuncs.getResources().npmRegistry,
+    packageManager: PackageManager.yarn1,
+    processEnv: testFuncs.getProcessEnv(),
   })
 
-  const testLogger = await winstonLogger({
-    customLogLevel: LogLevel.trace,
-    disabled: false,
-    logFilePath: path.join(repoPath, 'era-ci-test.log'),
-  }).callInitializeLogger({
-    repoPath,
-  })
+  const testLogger = await testFuncs.createTestLogger(repoPath)
 
   const getImageTags = async (packageName: string): Promise<string[]> => {
     return listTags({

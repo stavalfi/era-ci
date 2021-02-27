@@ -6,7 +6,6 @@ src/npm-ci
 *.iml
 .DS_Store
 .project
-node_modules
 .vscode
 packages/fed-build-flow-runner-cli/test/storage-internal/
 packages/fed-build-flow-runner-cli/test/storage-public/
@@ -33,3 +32,11 @@ lib1.js
 dist
 packages/quick-start/verdaccio/storage
 .history
+.yarn/*
+!.yarn/cache
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+compiled-era-ci-*.js
+node_modules

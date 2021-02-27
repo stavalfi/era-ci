@@ -1,9 +1,10 @@
-import { createFolder, FolderStructure } from 'create-folder-structure'
-import execa from 'execa'
-import { GitServer } from './git-server-testkit'
-import { Repo, TargetType, ToActualName, Package, PackageJson } from './types'
+import { PackageManager } from '@era-ci/utils/src'
+import { createFolder, FolderStructure } from '@stavalfi/create-folder-structure'
 import chance from 'chance'
+import execa from 'execa'
 import path from 'path'
+import { GitServer } from './git-server-testkit'
+import { Package, PackageJson, Repo, TargetType, ToActualName } from './types'
 
 async function initializeGitRepo({
   gitServer,
@@ -39,14 +40,20 @@ function createPackageJson({
   artifact,
   toActualName,
   isFromThisMonorepo,
+  npmRegistryAddressToPublish,
 }: {
   artifact: Package
   toActualName: ToActualName
   isFromThisMonorepo: (depName: string) => boolean
+  npmRegistryAddressToPublish: string
 }): PackageJson {
   return {
     name: toActualName(artifact.name),
     version: artifact.version,
+    publishConfig: {
+      access: 'public',
+      registry: npmRegistryAddressToPublish,
+    },
     private: artifact.targetType !== TargetType.npm,
     ...(artifact['index.js'] && { main: 'index.js' }),
     ...(artifact.scripts && { scripts: artifact.scripts }),
@@ -72,9 +79,11 @@ function createPackageJson({
 function createPackages({
   toActualName,
   repo,
+  npmRegistryAddressToPublish,
 }: {
   repo: Repo
   toActualName: ToActualName
+  npmRegistryAddressToPublish: string
 }): {
   [k: string]: {
     'index.js'?: string
@@ -97,6 +106,7 @@ function createPackages({
             artifact,
             isFromThisMonorepo,
             toActualName,
+            npmRegistryAddressToPublish,
           }),
           ...(artifact['index.js'] && { 'index.js': artifact['index.js'] }),
           ...(artifact.src && {
@@ -123,11 +133,26 @@ export async function createGitRepo({
   repo,
   gitServer,
   gitIgnoreFiles,
+  npm,
+  packageManager,
+  processEnv,
+  overrideInitialInstallNpmRegistry,
 }: {
+  overrideInitialInstallNpmRegistry?: string
   repo: Repo
   gitServer: GitServer
   toActualName: ToActualName
   gitIgnoreFiles: Array<string>
+  npm: {
+    address: string
+    auth: {
+      username: string
+      password: string
+      email: string
+    }
+  }
+  packageManager: PackageManager
+  processEnv: NodeJS.ProcessEnv
 }): Promise<{
   repoPath: string
   repoName: string
@@ -149,15 +174,21 @@ export async function createGitRepo({
       workspaces: [`${packagesFolderName}/*`, `${packagesFolderName}/${subPackagesFolderName}/*`],
       ...repo.rootPackageJson,
     },
-    '.dockerignore': `node_modules`,
     '.gitignore': `\
 node_modules
+.yarn/*
+!.yarn/cache
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
 ${gitIgnoreFiles.join('\n')}\
     `,
     packages: {
       ...createPackages({
         repo,
         toActualName,
+        npmRegistryAddressToPublish: npm.address,
       }),
       [subPackagesFolderName]: {
         '.gitkeep': '',
@@ -169,7 +200,44 @@ ${gitIgnoreFiles.join('\n')}\
   const packagesFolderPath = path.join(repoPath, packagesFolderName)
   const subPackagesFolderPath = path.join(packagesFolderPath, subPackagesFolderName)
 
-  await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })
+  switch (packageManager) {
+    case PackageManager.yarn1: {
+      // await execa.command(`yarn set version 1.22.10`, { cwd: repoPath, stdio: 'pipe', extendEnv: false })
+      const registry = overrideInitialInstallNpmRegistry ?? npm.address
+      await execa.command(`yarn install --registry ${registry}`, {
+        cwd: repoPath,
+        stdio: 'pipe',
+        extendEnv: false,
+      })
+      break
+    }
+    case PackageManager.yarn2: {
+      throw new Error(`not supported yet`)
+      // the following code is an alternative to download yarn2 which decrease this step from 1.8s -> 10ms (for every test!)
+      //       await fs.promises.mkdir(path.join(repoPath, '.yarn', 'releases'), { recursive: true })
+      //       await Promise.all([
+      //         fs.promises.copyFile(
+      //           path.join(__dirname, '..', '..', '..', '..', '.yarn', 'install-state.gz'),
+      //           path.join(repoPath, '.yarn', 'install-state.gz'),
+      //         ),
+      //         fs.promises.copyFile(
+      //           path.join(__dirname, '..', '..', '..', '..', '.yarn', 'releases', 'yarn-2.4.0.cjs'),
+      //           path.join(repoPath, '.yarn', 'releases', 'yarn-2.4.0.cjs'),
+      //         ),
+      //         fs.promises.copyFile(path.join(__dirname, '..', '..', '..', '..', '.pnp.js'), path.join(repoPath, '.pnp.js')),
+      //         fs.promises.writeFile(
+      //           path.join(repoPath, '.yarnrc.yml'),
+      //           `yarnPath: ${path.join('.yarn', 'releases', 'yarn-2.4.0.cjs')}
+      // unsafeHttpWhitelist:
+      //   - "${new URL(npm.address).hostname}"`,
+      //           'utf-8',
+      //         ),
+      //       ])
+      //       // TODO: install from verdaccio
+      //       await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })
+      break
+    }
+  }
 
   await initializeGitRepo({
     gitServer,

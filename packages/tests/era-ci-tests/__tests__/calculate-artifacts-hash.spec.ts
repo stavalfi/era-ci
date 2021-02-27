@@ -1,6 +1,6 @@
 import { createTest } from '@era-ci/e2e-tests-infra'
 import execa from 'execa'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import fs from 'fs'
 import path from 'path'
 
@@ -102,6 +102,7 @@ test('artifact-hash depends on parent-artifact-hash so if parent-artifact-hash c
 
 test('reproduce bug - parent-indexes of monorepo artifacts should be only artifacts from monorepo (without external npm dependencies)', async () => {
   const { runCi } = await createRepo({
+    overrideInitialInstallNpmRegistry: 'https://registry.npmjs.org',
     repo: {
       packages: [
         {

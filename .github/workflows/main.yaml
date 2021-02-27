@@ -4,6 +4,7 @@ on: [push]
 
 jobs:
   build:
+    timeout-minutes: 10
     runs-on: ubuntu-20.04
 
     strategy:
@@ -28,26 +29,41 @@ jobs:
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
       - uses: actions/cache@v2
+        id: typescript-build-cache
+        with:
+          path: |
+            **/dist
+          key: typescript-build
+
+      - uses: actions/cache@v2
+        id: eslint-cache
+        with:
+          path: .eslintcache
+          key: eslint-cache
+
+      - uses: actions/cache@v2
         id: yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: ${{ runner.os }}-yarn-
+          restore-keys: |
+            ${{ runner.os }}-yarn-
 
-      - name: Yarn Install && Build
-        run: |
-          yarn install
-          yarn build
+      - name: Yarn Install
+        run: yarn install --immutable
+      - name: Typescript Build
+        run: yarn build
 
       - name: Execute ERA CI
         env:
           CI_NODE_INDEX: ${{ matrix.ci_node_index }}
-          SECRETHUB_CREDENTIAL: ${{ secrets.SECRETHUB_CREDENTIAL }}
+          REDIS_ENDPOINT: ${{ secrets.REDIS_ENDPOINT }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
           FULL_RUN: true
         run: |
           if [ "$CI_NODE_INDEX" -eq "0" ]
           then
-            yarn run-era-ci:secrethub
+            yarn run-era-ci
           else
-            yarn run-task-worker:secrethub
+            yarn run-task-worker
           fi
