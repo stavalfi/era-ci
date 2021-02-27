@@ -3,7 +3,6 @@
   "version": "2.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
-  "private": false,
   "files": [
     "dist",
     "src",
@@ -16,13 +15,18 @@
   },
   "dependencies": {
     "@era-ci/quay-client": "^2.0.0",
+    "@stavalfi/create-folder-structure": "^3.0.6",
     "compressing": "^1.5.1",
-    "create-folder-structure": "^3.0.5",
-    "execa": "^4.0.1",
+    "execa": "^5.0.0",
     "fastify": "^3.8.0",
     "got": "^11.8.1",
     "ioredis": "^4.19.4",
-    "pino-pretty": "^4.3.0",
+    "pino": "^6.11.1",
+    "pino-pretty": "^4.5.0",
     "source-map-support": "0.5.19"
+  },
+  "devDependencies": {
+    "@types/ioredis": "^4.19.3",
+    "@types/pino": "^6.3.6"
   }
 }

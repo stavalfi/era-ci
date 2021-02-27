@@ -3,7 +3,6 @@
   "version": "2.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
-  "private": false,
   "files": [
     "dist",
     "src",
@@ -11,11 +10,12 @@
   ],
   "types": "dist/src/index.d.ts",
   "dependencies": {
-    "parse-gitignore": "^1.0.1",
     "glob-gitignore": "^1.0.14",
-    "ignore": "^5.1.8"
+    "ignore": "^5.1.8",
+    "parse-gitignore": "^1.0.1"
   },
   "devDependencies": {
-    "@era-ci/utils": "^2.0.0"
+    "@era-ci/utils": "^2.0.0",
+    "@types/parse-gitignore": "^1.0.0"
   }
 }

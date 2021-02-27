@@ -9,6 +9,9 @@
       "path": "../../core/tsconfig-build.json"
     },
     {
+      "path": "../../task-queues/tsconfig-build.json"
+    },
+    {
       "path": "../e2e-tests-infra/tsconfig-build.json"
     },
     {

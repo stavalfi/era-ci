@@ -3,7 +3,6 @@
   "version": "2.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
-  "private": false,
   "files": [
     "dist",
     "src",
@@ -25,13 +24,16 @@
     "start-mocks": "node --unhandled-rejections=strict dist/src/index.js --redis-url localhost:36379 --quay-helper-service-port 9000 --quay-mock-service-port 9001 --docker-registry-url localhost:35000 --docker-fake-org org1 --docker-fake-token token1"
   },
   "dependencies": {
-    "yargs-parser": "^20.2.4",
-    "@era-ci/loggers": "^2.0.0",
     "@era-ci/constrains": "^2.0.0",
+    "@era-ci/loggers": "^2.0.0",
     "@era-ci/quay-helper-service": "^2.0.0",
     "@era-ci/quay-mock-service": "^2.0.0",
     "@era-ci/steps": "^2.0.0",
     "@era-ci/steps-graph": "^2.0.0",
-    "@era-ci/task-queues": "^2.0.0"
+    "@era-ci/task-queues": "^2.0.0",
+    "yargs-parser": "^20.2.4"
+  },
+  "devDependencies": {
+    "@types/yargs-parser": "^20.2.0"
   }
 }

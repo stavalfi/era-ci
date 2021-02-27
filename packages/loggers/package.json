@@ -3,7 +3,6 @@
   "version": "2.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
-  "private": false,
   "files": [
     "dist",
     "src",
@@ -17,5 +16,8 @@
     "randomcolor": "^0.6.2",
     "winston": "^3.3.3",
     "winston-transport": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/randomcolor": "^0.5.5"
   }
 }
