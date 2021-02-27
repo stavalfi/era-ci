@@ -64,14 +64,14 @@ export const skipAsPassedIfArtifactStepResultPassedInCacheConstrain = createCons
         const plural = artifactStepResult.passed.length > 1 ? 'flows' : 'flow'
         notes.push(
           `step: "${step.data.stepInfo.displayName}" passed in ${plural}: ${artifactStepResult.passed
-            .map(f => f.flowId)
+            .map(f => (f.flowId === flowId ? 'this-flow' : f.flowId))
             .join(',')}`,
         )
       } else {
         const plural = artifactStepResult.skippedAsPassed.length > 1 ? 'flows' : 'flow'
         notes.push(
           `step: "${step.data.stepInfo.displayName}" passed in ${plural}: ${artifactStepResult.skippedAsPassed
-            .map(f => f.flowId)
+            .map(f => (f.flowId === flowId ? 'this-flow' : f.flowId))
             .join(',')}`,
         )
       }

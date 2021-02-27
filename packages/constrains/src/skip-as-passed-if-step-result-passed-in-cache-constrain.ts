@@ -61,7 +61,7 @@ export const skipAsPassedIfStepResultPassedInCacheConstrain = createConstrain<{
 
         notes.push(
           `step: "${step.data.stepInfo.displayName}" passed in ${plural}: ${stepResult.passed
-            .map(f => f.flowId)
+            .map(f => (f.flowId === flowId ? 'this-flow' : f.flowId))
             .join(',')}`,
         )
       } else {
@@ -69,7 +69,7 @@ export const skipAsPassedIfStepResultPassedInCacheConstrain = createConstrain<{
 
         notes.push(
           `step: "${step.data.stepInfo.displayName}" passed in ${plural}: ${stepResult.skippedAsPassed
-            .map(f => f.flowId)
+            .map(f => (f.flowId === flowId ? 'this-flow' : f.flowId))
             .join(',')}`,
         )
       }
