@@ -334,7 +334,7 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
 
         switch (await determinePackageManager({ repoPath, processEnv })) {
           case PackageManager.yarn1: {
-            publishCommand = `npm publish ${withAcess}`
+            publishCommand = `npm publish ${withAcess} --registry ${stepConfigurations.registry}`
             break
           }
           case PackageManager.yarn2: {

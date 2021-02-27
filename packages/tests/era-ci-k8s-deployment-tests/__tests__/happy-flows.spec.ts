@@ -181,6 +181,10 @@ test('failDeplomentOnPodError=true - redeploy to k8s fails because the new image
     labels: { app: toActualName('a3') },
     podName: toActualName('a3'),
     portInContainer: 80,
+    // in some rare cases, k8s sends pod-event that the pod is ok (for a very short moment) and then it will send the crush-pod-event.
+    // that's a problem because k8s-step will think that the deployment was successful. so we tell k8s to wait at least `minReadySeconds`
+    // on every new pod, before k8s send un pod-event about pod-success.
+    minReadySeconds: 5,
   })
 
   const { passed, jsonReport } = await runCi()
