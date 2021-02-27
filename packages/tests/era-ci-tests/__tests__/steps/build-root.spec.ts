@@ -96,7 +96,7 @@ test('install failed so build-step should skip-as-failed', async () => {
   expect(jsonReport.stepsResultOfArtifactsByStep[1].data.stepResult).toMatchObject<DeepPartial<Result>>({
     executionStatus: ExecutionStatus.aborted,
     status: Status.skippedAsFailed,
-    notes: [`step: "${jsonReport.steps[0].data.stepInfo.displayName}" failed in flow: this-flow`],
+    notes: [`step: "${jsonReport.steps[0].data.stepInfo.displayName}" failed in this flow`],
     errors: [],
   })
 })
@@ -138,14 +138,14 @@ test.only('reproduce bug: first-flow: install failed so build-step should skip-a
   // it will cause the install-step to fail
   await fs.promises.writeFile(path.join(repoPath, 'uncommited-new-file'), 'lalala', 'utf-8')
 
-  const flow1 = await runCi()
+  await runCi()
 
   const { jsonReport } = await runCi()
 
   expect(jsonReport.stepsResultOfArtifactsByStep[1].data.stepResult).toMatchObject<DeepPartial<Result>>({
     executionStatus: ExecutionStatus.aborted,
     status: Status.skippedAsFailed,
-    notes: [`step: "${jsonReport.steps[0].data.stepInfo.displayName}" failed in flows: ${flow1.flowId},this-flow`],
+    notes: [`step: "${jsonReport.steps[0].data.stepInfo.displayName}" failed in this and 1 more flows`],
     errors: [],
   })
 })

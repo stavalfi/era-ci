@@ -1,5 +1,6 @@
 import { ConstrainResultType, createConstrain } from '@era-ci/core'
 import { ExecutionStatus, Status } from '@era-ci/utils'
+import { createFlowsPassedFailedNote } from './utils'
 
 export const skipAsPassedIfStepResultPassedInCacheConstrain = createConstrain<{
   stepNameToSearchInCache: string
@@ -55,29 +56,21 @@ export const skipAsPassedIfStepResultPassedInCacheConstrain = createConstrain<{
     }
 
     if (stepResult.passed.length > 0 || stepResult.skippedAsPassed.length > 0) {
-      const notes: string[] = []
-      if (stepResult.passed.length > 0) {
-        const plural = stepResult.passed.length > 1 ? 'flows' : 'flow'
-
-        notes.push(
-          `step: "${step.data.stepInfo.displayName}" passed in ${plural}: ${stepResult.passed
-            .map(f => (f.flowId === flowId ? 'this-flow' : f.flowId))
-            .join(',')}`,
-        )
-      } else {
-        const plural = stepResult.skippedAsPassed.length > 1 ? 'flows' : 'flow'
-
-        notes.push(
-          `step: "${step.data.stepInfo.displayName}" passed in ${plural}: ${stepResult.skippedAsPassed
-            .map(f => (f.flowId === flowId ? 'this-flow' : f.flowId))
-            .join(',')}`,
-        )
-      }
       return {
         resultType: ConstrainResultType.shouldSkip,
         result: {
           errors: [],
-          notes,
+          notes: [
+            createFlowsPassedFailedNote({
+              currentFlowId: flowId,
+              flowIds:
+                stepResult.passed.length > 0
+                  ? stepResult.passed.map(r => r.flowId)
+                  : stepResult.skippedAsPassed.map(r => r.flowId),
+              result: 'passed',
+              step: step.data.stepInfo.displayName,
+            }),
+          ],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsPassed,
         },
