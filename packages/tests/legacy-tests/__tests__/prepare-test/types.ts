@@ -1,7 +1,7 @@
 import { NpmScopeAccess } from '@era-ci/steps'
 import { TestFuncs } from '@era-ci/e2e-tests-infra'
 import { TargetType } from '@era-ci/utils'
-import { FolderStructure } from 'create-folder-structure'
+import { FolderStructure } from '@stavalfi/create-folder-structure'
 import execa, { StdioOption } from 'execa'
 import { IDependencyMap, IPackageJson } from 'package-json-type'
 
@@ -40,19 +40,12 @@ export type TestOptions = {
   targetsInfo?: {
     [target in TargetType]?: {
       shouldPublish: boolean
-    } & (
-      | {
-          shouldDeploy: true
-          deploymentStrigifiedSection: string
+    } & (target extends TargetType.npm
+      ? {
+          npmScopeAccess?: NpmScopeAccess
         }
-      | { shouldDeploy: false; deploymentStrigifiedSection?: string }
-    ) &
-      (target extends TargetType.npm
-        ? {
-            npmScopeAccess?: NpmScopeAccess
-          }
-        : // eslint-disable-next-line @typescript-eslint/ban-types
-          {})
+      : // eslint-disable-next-line @typescript-eslint/ban-types
+        {})
   }
   execaOptions?: {
     stdio?: 'pipe' | 'ignore' | 'inherit' | Array<StdioOption>
@@ -71,9 +64,9 @@ export type ResultingArtifact = {
 }
 
 export type CiResults = {
-  ciProcessResult: execa.ExecaReturnValue<string>
+  passed: boolean
   published: Map<string, ResultingArtifact>
-  ncLogfileContent: string
+  flowLogs: string
   flowId: string | undefined
 }
 
@@ -114,7 +107,7 @@ export type ManageRepoResult = {
   renamePackageFolder: (packageName: string) => Promise<string>
   createNewPackage: (newNpmPackage: MinimalNpmPackage) => Promise<void>
   runCi: RunCi
-  getFlowLogs: GetFlowLogs
+  // getFlowLogs: GetFlowLogs
 }
 
 export type CreateAndManageRepo = (repo?: Repo) => Promise<ManageRepoResult>

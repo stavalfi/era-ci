@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { expect, test } from '@jest/globals'
 import { newEnv } from '../../../prepare-test'
 import { TargetType } from '../../../prepare-test/types'
 
@@ -21,7 +21,6 @@ test(`run ci as the first time after there is already an npm publish`, async () 
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -45,7 +44,6 @@ test(`run ci -> unpublish npm while keeping hashes in redis that indicate that w
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -56,7 +54,6 @@ test(`run ci -> unpublish npm while keeping hashes in redis that indicate that w
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -80,7 +77,6 @@ test(`run ci -> remove all npm hash tags -> run ci`, async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -91,7 +87,6 @@ test(`run ci -> remove all npm hash tags -> run ci`, async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -117,12 +112,11 @@ test('run ci -> change packageJson.version to invalid version -> run ci', async 
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
     execaOptions: {
       reject: false,
     },
   })
-  expect(result.ncLogfileContent).toEqual(expect.stringContaining('is invalid: "lalalal"'))
+  expect(result.flowLogs).toEqual(expect.stringContaining('is invalid: "lalalal"'))
 })

@@ -1,3 +1,5 @@
+/// <reference path="../../../../declarations.d.ts" />
+
 /* eslint-disable no-console */
 
 import { NotificationsListResult } from '@era-ci/quay-client'
@@ -20,6 +22,8 @@ import {
   TriggerBuildResponse,
 } from './types'
 import { buildDockerFile } from './utils'
+import pino from 'pino'
+import pinoPretty from 'pino-pretty'
 
 export {
   Config,
@@ -35,10 +39,11 @@ export async function startQuayMockService(
   config: Config,
 ): Promise<{ address: string; cleanup: () => Promise<unknown> }> {
   const app = fastify({
-    logger: {
-      prettyPrint: true,
+    logger: pino({
       level: config.isTestMode ? 'error' : 'info',
-    },
+      prettyPrint: true,
+      prettifier: pinoPretty,
+    }),
   })
 
   app.register(fastifyRateLimiter, {

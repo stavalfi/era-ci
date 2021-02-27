@@ -4,21 +4,27 @@ import { Config } from './configuration'
 import { Log } from './create-logger'
 import { createImmutableCache } from './immutable-cache'
 import { connectToRedis } from './redis-client'
+import { TaskQueueBase } from './create-task-queue'
 
-export async function printFlowLogs<TaskQueue>(options: {
+export async function printFlowLogs(options: {
   flowId: string
-  config: Config<TaskQueue>
+  config: Config<TaskQueueBase<any, any>>
   repoPath: string
-}): Promise<void> {
+  processEnv: NodeJS.ProcessEnv
+}): Promise<string> {
   const cleanups: Cleanup[] = []
   let log: Log | undefined
+  let logs = 'no-logs'
   try {
     const logger = await options.config.logger.callInitializeLogger({
       repoPath: options.repoPath,
+      disableFileOutput: true,
     })
     log = logger.createLog('print-flow')
 
-    const packagesPath = await getPackages({ repoPath: options.repoPath, log })
+    const packagesPath = await getPackages({ repoPath: options.repoPath, processEnv: options.processEnv }).then(r =>
+      Object.values(r).map(w => w.location),
+    )
 
     const { artifacts } = await calculateArtifactsHash({
       repoPath: options.repoPath,
@@ -58,14 +64,18 @@ export async function printFlowLogs<TaskQueue>(options: {
       // we want to avoid stacktraces so we don't throw an Error object
       throw MISSING_FLOW_ID_ERROR
     }
-    log.noFormattingInfo(flowLogsResult.value)
+    logs = flowLogsResult.value
+    log.noFormattingInfo(logs)
   } catch (error) {
     if (error === MISSING_FLOW_ID_ERROR) {
       log?.noFormattingError(error)
     } else {
       log?.error(`CI failed unexpectedly`, error)
     }
-    process.exitCode = 1
+    // 'SKIP_EXIT_CODE_1' is for test purposes
+    if (!options.processEnv['SKIP_EXIT_CODE_1']) {
+      process.exitCode = 1
+    }
   }
   const result = await Promise.allSettled(
     cleanups.map(f => f().catch(e => log?.error(`cleanup function failed to run`, e))),
@@ -73,4 +83,6 @@ export async function printFlowLogs<TaskQueue>(options: {
   if (result.some(r => r.status === 'rejected')) {
     throw result
   }
+
+  return logs
 }

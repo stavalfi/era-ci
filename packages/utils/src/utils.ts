@@ -5,8 +5,49 @@ import gitUrlParse from 'git-url-parse'
 import _ from 'lodash'
 import path from 'path'
 import semver from 'semver'
-import { TargetType } from './enums'
-import { ExecutionStatus, GitRepoInfo, PackageJson, Status, UnionArrayValues } from './types'
+import { PackageManager, TargetType } from './enums'
+import {
+  ExecutionStatus,
+  GitRepoInfo,
+  PackageJson,
+  Status,
+  UnionArrayValues,
+  WorkspacesInfo,
+  Yarn1Workspaces,
+  Yarn2Workspace,
+} from './types'
+
+export async function determinePackageManager({
+  repoPath,
+  processEnv,
+}: {
+  repoPath: string
+  processEnv: NodeJS.ProcessEnv
+}): Promise<PackageManager> {
+  const { stdout: yarnVersion } = await execa.command(`yarn --version`, {
+    cwd: repoPath,
+  })
+  if (semver.major(yarnVersion) === 2) {
+    return PackageManager.yarn2
+  }
+
+  const [dotYarn, dotPnp, dotYarnrcYaml, yarnLock] = [
+    fs.existsSync(path.join(repoPath, '.yarn')),
+    fs.existsSync(path.join(repoPath, '.pnp.js')),
+    fs.existsSync(path.join(repoPath, '.yarnrc.yml')),
+    fs.existsSync(path.join(repoPath, 'yarn.lock')),
+  ]
+
+  if (semver.major(yarnVersion) === 1 || yarnLock || dotYarn || dotYarnrcYaml || dotPnp) {
+    return PackageManager.yarn1
+  }
+
+  throw new Error(
+    `could not determine which package-manager this repository is using: "${repoPath}". supported package-managers: ${Object.values(
+      PackageManager,
+    )}`,
+  )
+}
 
 export const didPassOrSkippedAsPassed = (status: Status): boolean =>
   [Status.passed, Status.skippedAsPassed].includes(status)
@@ -100,25 +141,57 @@ export async function execaCommand<Options extends SupportedExecaCommandOptions>
 }
 
 export async function getPackages({
-  log,
   repoPath,
+  processEnv,
 }: {
   repoPath: string
-  log: {
-    trace: (message: string, json?: Record<string, unknown>) => void
-    infoFromStream: (stream: NodeJS.ReadableStream) => void
-    errorFromStream: (stream: NodeJS.ReadableStream) => void
+  processEnv: NodeJS.ProcessEnv
+}): Promise<WorkspacesInfo> {
+  switch (await determinePackageManager({ repoPath, processEnv })) {
+    case PackageManager.yarn1: {
+      // this function does not use execaCommand on purpose because other cli packages are using it and they don't have a logger to provide
+      const result = await execa.command(`yarn workspaces --json info`, {
+        cwd: repoPath,
+        stdio: 'pipe',
+        shell: true,
+      })
+      const workspacesInfo: Yarn1Workspaces = JSON.parse(JSON.parse(result.stdout).data)
+      return Object.fromEntries(
+        Object.entries(workspacesInfo).map(([packageName, workspaceInfo]) => [
+          packageName,
+          {
+            ...workspaceInfo,
+            name: packageName,
+            location: path.join(repoPath, workspaceInfo.location),
+          },
+        ]),
+      )
+    }
+    case PackageManager.yarn2: {
+      return execa
+        .command(`yarn workspaces list --json --verbose`, {
+          cwd: repoPath,
+          stdio: 'pipe',
+          shell: true,
+        })
+        .then(r =>
+          r.stdout
+            .split('\n')
+            .map(line => JSON.parse(line) as Yarn2Workspace)
+            .filter(r => r.location !== '.')
+            .map(r => [
+              r.name,
+              {
+                name: r.name,
+                location: path.join(repoPath, r.location),
+                workspaceDependencies: r.workspaceDependencies,
+                mismatchedWorkspaceDependencies: r.mismatchedWorkspaceDependencies,
+              },
+            ]),
+        )
+        .then(r => Object.fromEntries(r))
+    }
   }
-}): Promise<Array<string>> {
-  const result = await execaCommand('yarn workspaces --json info', {
-    cwd: repoPath,
-    stdio: 'pipe',
-    log,
-  })
-  const workspacesInfo: { location: string }[] = JSON.parse(JSON.parse(result.stdout).data)
-  return Object.values(workspacesInfo)
-    .map(workspaceInfo => workspaceInfo.location)
-    .map(relativePackagePath => path.join(repoPath, relativePackagePath))
 }
 
 export const buildFullDockerImageName = ({
@@ -141,14 +214,17 @@ export const buildFullDockerImageName = ({
   }${withImageTag}`
 }
 
-export async function getGitRepoInfo(
-  repoPath: string,
+export async function getGitRepoInfo({
+  repoPath,
+  log,
+}: {
+  repoPath: string
   log: {
     trace: (message: string, json?: Record<string, unknown>) => void
     infoFromStream: (stream: NodeJS.ReadableStream) => void
     errorFromStream: (stream: NodeJS.ReadableStream) => void
-  },
-): Promise<GitRepoInfo> {
+  }
+}): Promise<GitRepoInfo> {
   const gitInfo = gitUrlParse(await gitRemoteOriginUrl(repoPath))
   const { stdout: headCommit } = await execaCommand(`git rev-parse HEAD`, {
     log,

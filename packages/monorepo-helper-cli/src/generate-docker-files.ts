@@ -1,12 +1,12 @@
-import { Workspaces } from './types'
 import { findAllRecursiveDepsOfPackage } from './utils'
 import fs from 'fs'
 import path from 'path'
+import { WorkspacesInfo } from '@era-ci/utils'
 
 const packageNameToArg = (packageName: string) =>
   packageName.split('/')[packageName.split('/').length - 1].split('-').join('_')
 
-function generateDockerfile(repoPath: string, graph: Workspaces, packageJsonName: string): string {
+function generateDockerfile(repoPath: string, graph: WorkspacesInfo, packageJsonName: string): string {
   const deps = findAllRecursiveDepsOfPackage(repoPath, graph, packageJsonName)
 
   const args = deps.map(dep => `ARG ${packageNameToArg(dep)}_path=${graph[dep].location}`).join('\n')
@@ -55,7 +55,7 @@ CMD yarn workspace ${packageJsonName} start:prod\
 
 export async function generateDockerfiles(
   repoPath: string,
-  graph: Workspaces,
+  graph: WorkspacesInfo,
   packageJsonNames: string[],
 ): Promise<void> {
   const filtered = packageJsonNames.filter(p => fs.existsSync(path.join(repoPath, graph[p].location, 'Dockerfile')))

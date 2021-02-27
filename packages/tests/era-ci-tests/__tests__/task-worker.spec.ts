@@ -3,9 +3,9 @@ import { amountOfWrokersKey, isFlowFinishedKey, startWorker, WorkerConfig, Worke
 import { DoneResult, ExecutionStatus, Status } from '@era-ci/utils'
 import BeeQueue from 'bee-queue'
 import chance from 'chance'
-import { createFolder } from 'create-folder-structure'
+import { createFolder } from '@stavalfi/create-folder-structure'
 import execa from 'execa'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import fs from 'fs'
 import _ from 'lodash'
 import path from 'path'
@@ -399,11 +399,12 @@ test('the worker runs a task which fails so when the worker exits, it will exit 
     `export default ${JSON.stringify(workerConfig, null, 2)}`,
     'utf-8',
   )
+
   const workerProcess = execa.command(
     `yarn ts-node ${require.resolve('@era-ci/task-worker')} --repo-path ${repoPath}`,
     {
       stdio: 'pipe',
-      cwd: __dirname, // helping yarn to find "ts-node",
+      cwd: __dirname,
       reject: false,
     },
   )

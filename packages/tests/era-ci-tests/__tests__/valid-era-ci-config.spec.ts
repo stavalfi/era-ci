@@ -3,7 +3,7 @@ import { createTest } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import { EventEmitter } from 'events'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 
 const { createRepo } = createTest()
 

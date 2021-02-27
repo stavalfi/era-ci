@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { buildFullDockerImageName } from '@era-ci/utils'
 import compressing from 'compressing'
-import { createFile, createFolder } from 'create-folder-structure'
+import { createFile, createFolder } from '@stavalfi/create-folder-structure'
 import execa from 'execa'
 import fs, { ReadStream } from 'fs'
 import got from 'got'

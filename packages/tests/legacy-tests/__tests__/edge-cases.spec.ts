@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import { newEnv } from './prepare-test'
 
 const { createRepo } = newEnv()
@@ -11,11 +11,9 @@ test('empty repo', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -37,11 +35,9 @@ test('artifacts without targets', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })

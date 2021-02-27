@@ -74,7 +74,9 @@ export async function chooseTagAndPublish<
       executionStatus: ExecutionStatus.aborted,
       status: Status.skippedAsFailed,
       notes: [
-        `there is already a docker-image with a tag equal to <current-git-head>. please commit your changes and try again`,
+        `there is already a docker-image with a tag equal to <current-git-head> ("${fullImageNameWithTag(
+          newTag,
+        )}"). please commit your changes and try again`,
       ],
     }
   }

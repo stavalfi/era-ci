@@ -1,5 +1,5 @@
 import { NpmScopeAccess } from '@era-ci/steps'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import { newEnv } from '../../prepare-test'
 import { TargetType } from '../../prepare-test/types'
 
@@ -20,7 +20,7 @@ test('npm package with scope.access=public', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
+
         npmScopeAccess: NpmScopeAccess.public,
       },
     },
@@ -43,7 +43,7 @@ test('npm package with scope.access=private', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
+
         npmScopeAccess: NpmScopeAccess.restricted,
       },
     },

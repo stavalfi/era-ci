@@ -61,14 +61,18 @@ export const skipAsFailedIfArtifactStepResultFailedInCacheConstrain = createCons
     if (artifactStepResult.failed.length > 0 || artifactStepResult.skippedAsFailed.length > 0) {
       const notes: string[] = []
       if (artifactStepResult.failed.length > 0) {
+        const plural = artifactStepResult.failed.length > 1 ? 'flows' : 'flow'
+
         notes.push(
-          `step: "${step.data.stepInfo.displayName}" failed in flows: ${artifactStepResult.failed
+          `step: "${step.data.stepInfo.displayName}" ${plural} in flows: ${artifactStepResult.failed
             .map(f => f.flowId)
             .join(',')}`,
         )
       } else {
+        const plural = artifactStepResult.skippedAsFailed.length > 1 ? 'flows' : 'flow'
+
         notes.push(
-          `step: "${step.data.stepInfo.displayName}" failed in flows: ${artifactStepResult.skippedAsFailed
+          `step: "${step.data.stepInfo.displayName}" ${plural} in flows: ${artifactStepResult.skippedAsFailed
             .map(f => f.flowId)
             .join(',')}`,
         )

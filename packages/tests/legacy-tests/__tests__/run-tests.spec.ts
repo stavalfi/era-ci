@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import { newEnv } from './prepare-test'
 import { manageStepResult } from './prepare-test/test-helpers'
 import { TargetType } from './prepare-test/types'
@@ -23,13 +23,13 @@ test('make sure tests output is printed', async () => {
 
   await test.makeStepPass()
 
-  const { ciProcessResult } = await runCi({
+  const { flowLogs } = await runCi({
     execaOptions: {
       stdio: 'pipe',
     },
   })
 
-  expect(ciProcessResult.stdout).toContain(test.expectedContentInLog())
+  expect(flowLogs).toContain(test.expectedContentInLog())
 })
 
 test('make sure ci fails if tests fails', async () => {
@@ -55,7 +55,7 @@ test('make sure ci fails if tests fails', async () => {
       reject: false,
     },
   })
-  expect(result.ciProcessResult.failed).toBeTruthy()
+  expect(!result.passed).toBeTruthy()
   // todo: find a way to check in the report that a-package failed in test-step
 })
 
@@ -93,7 +93,7 @@ test('multiple packages', async () => {
     },
   })
 
-  expect(result.ciProcessResult.failed).toBeTruthy()
+  expect(!result.passed).toBeTruthy()
 })
 
 test('skip package with passed tests', async () => {
@@ -151,7 +151,7 @@ test('skip package with failed tests', async () => {
     },
   })
 
-  expect(pr.ciProcessResult.failed).toBeTruthy()
+  expect(!pr.passed).toBeTruthy()
   // todo: find a way to check in the report that a-package failed in test-step
 })
 
@@ -183,6 +183,6 @@ test('run tests of package after the package changed even if the tests passed at
     },
   })
 
-  expect(result.ciProcessResult.failed).toBeTruthy()
+  expect(!result.passed).toBeTruthy()
   // todo: find a way to check in the report that a-package failed in test-step
 })

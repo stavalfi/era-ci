@@ -1,0 +1,45 @@
+{
+  "extends": "../../../tsconfig",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src", "__tests__"],
+  "references": [
+    {
+      "path": "../../constrains/tsconfig-build.json"
+    },
+    {
+      "path": "../../task-worker/tsconfig-build.json"
+    },
+    {
+      "path": "../../image-registry-client/tsconfig-build.json"
+    },
+    {
+      "path": "../e2e-tests-infra/tsconfig-build.json"
+    },
+    {
+      "path": "../quay-mock-service/tsconfig-build.json"
+    },
+    {
+      "path": "../../core/tsconfig-build.json"
+    },
+    {
+      "path": "../../steps/tsconfig-build.json"
+    },
+    {
+      "path": "../../utils/tsconfig-build.json"
+    },
+    {
+      "path": "../../loggers/tsconfig-build.json"
+    },
+    {
+      "path": "../../task-queues/tsconfig-build.json"
+    },
+    {
+      "path": "../../quay-helper-service/tsconfig-build.json"
+    },
+    {
+      "path": "../../steps-graph/tsconfig-build.json"
+    }
+  ]
+}

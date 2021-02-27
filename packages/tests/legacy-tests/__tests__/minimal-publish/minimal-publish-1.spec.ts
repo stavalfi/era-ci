@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { test, expect, describe } from '@jest/globals'
 import { newEnv } from '../prepare-test'
 import { manageStepResult } from '../prepare-test/test-helpers'
 import { TargetType } from '../prepare-test/types'
@@ -21,7 +21,6 @@ describe('skip publish of package that did not change from the last publish', ()
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -31,7 +30,6 @@ describe('skip publish of package that did not change from the last publish', ()
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -52,7 +50,6 @@ describe('skip publish of package that did not change from the last publish', ()
       targetsInfo: {
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -61,7 +58,6 @@ describe('skip publish of package that did not change from the last publish', ()
       targetsInfo: {
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -89,14 +85,13 @@ describe('skip publish of package that did not change from the last publish', ()
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
       execaOptions: {
         reject: false,
       },
     })
-    expect(master1.ciProcessResult.failed).toBeTruthy()
+    expect(!master1.passed).toBeTruthy()
 
     await aPublish.makeStepPass()
 
@@ -104,13 +99,12 @@ describe('skip publish of package that did not change from the last publish', ()
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
       execaOptions: {
         reject: false,
       },
     })
-    expect(master2.ciProcessResult.failed).toBeFalsy()
+    expect(!master2.passed).toBeFalsy()
   })
 })

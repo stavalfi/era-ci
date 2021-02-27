@@ -4,7 +4,7 @@ import {
 } from '@era-ci/constrains'
 import { createStep } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
-import { execaCommand, ExecutionStatus, Status } from '@era-ci/utils'
+import { determinePackageManager, execaCommand, ExecutionStatus, PackageManager, Status } from '@era-ci/utils'
 import fs from 'fs'
 import path from 'path'
 
@@ -12,7 +12,7 @@ export const installRoot = createStep<LocalSequentalTaskQueue, { isStepEnabled: 
   stepName: 'install-root',
   stepGroup: 'install',
   taskQueueClass: LocalSequentalTaskQueue,
-  run: async ({ repoPath, log }) => ({
+  run: async ({ repoPath, log, processEnv }) => ({
     globalConstrains: [skipAsPassedIfStepIsDisabledConstrain()],
     stepConstrains: [
       skipAsFailedIfStepResultFailedInCacheConstrain({
@@ -21,13 +21,30 @@ export const installRoot = createStep<LocalSequentalTaskQueue, { isStepEnabled: 
       }),
     ],
     stepLogic: async () => {
+      const packageManager = await determinePackageManager({ repoPath, processEnv })
+
+      log.info(`identified package-manager: "${packageManager}"`)
+
       const isExists = fs.existsSync(path.join(repoPath, 'yarn.lock'))
 
       if (!isExists) {
         throw new Error(`project must have yarn.lock file in the root folder of the repository`)
       }
 
-      await execaCommand('yarn install', {
+      let installCommand: string
+
+      switch (packageManager) {
+        case PackageManager.yarn1: {
+          installCommand = `yarn install`
+          break
+        }
+        case PackageManager.yarn2: {
+          installCommand = `yarn install --immutable`
+          break
+        }
+      }
+
+      await execaCommand(installCommand, {
         cwd: repoPath,
         stdio: 'inherit',
         log,
@@ -37,15 +54,14 @@ export const installRoot = createStep<LocalSequentalTaskQueue, { isStepEnabled: 
 
       const isRepoClean = await execaCommand('git diff --exit-code', {
         cwd: repoPath,
-        stdio: 'inherit',
+        stdio: 'pipe',
         log,
         reject: false,
-      }).then(
-        () => true,
-        () => false,
-      )
+      })
 
-      if (!isRepoClean) {
+      if (isRepoClean.failed) {
+        log.error(`you have uncommited changes:`)
+        log.error(isRepoClean.stdout)
         return {
           executionStatus: ExecutionStatus.done,
           status: Status.failed,

@@ -1,6 +1,6 @@
+import { expect, test } from '@jest/globals'
 import chance from 'chance'
 import execa from 'execa'
-import expect from 'expect'
 import { newEnv } from '../../prepare-test'
 import { runDockerImage } from '../../prepare-test/test-helpers'
 import { TargetType } from '../../prepare-test/types'
@@ -22,7 +22,6 @@ test('1 package', async () => {
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -49,7 +48,6 @@ test('ensure the image is working', async () => {
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -89,7 +87,6 @@ test('ensure image is deleted after docker-push', async () => {
     targetsInfo: {
       docker: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })

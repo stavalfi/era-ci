@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import { newEnv } from './prepare-test'
 import { TargetType } from './prepare-test/types'
 
@@ -18,9 +18,9 @@ test('1 package', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: false,
-        shouldDeploy: false,
       },
     },
   })
+  expect(pr.passed).toBeTruthy()
   expect(pr.published).toHaveProperty('size', 0)
 })

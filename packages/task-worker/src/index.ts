@@ -38,7 +38,7 @@ export async function main(processEnv: NodeJS.ProcessEnv, processArgv: string[])
 
   const repoPath = argv['repo-path']
   const configFilePath = argv['config-file'] ?? path.join(repoPath, 'task-worker.config.ts')
-  const config = await parseConfig(configFilePath)
+  const config = await parseConfig(repoPath, configFilePath)
 
   const connectionsCleanups: (() => Promise<unknown>)[] = []
 

@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { test, expect, describe } from '@jest/globals'
 import { newEnv } from '../../prepare-test'
 import { manageStepResult } from '../../prepare-test/test-helpers'
 import { TargetType } from '../../prepare-test/types'
@@ -27,7 +27,6 @@ describe('publish only packages without failing tests', () => {
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
       execaOptions: {
@@ -59,7 +58,6 @@ describe('publish only packages without failing tests', () => {
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -99,7 +97,6 @@ describe('publish only packages without failing tests', () => {
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
       execaOptions: {

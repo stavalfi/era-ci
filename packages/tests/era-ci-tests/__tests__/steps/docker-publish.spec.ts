@@ -4,12 +4,12 @@ import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { localSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, TargetType } from '@era-ci/utils'
 import execa from 'execa'
-import expect from 'expect'
 import path from 'path'
+import { test, expect } from '@jest/globals'
 
 const { createRepo, getResources } = createTest()
 
-test('docker-artifact depends on published npm-artifact during docker-build', async () => {
+test.only('docker-artifact depends on published npm-artifact during docker-build', async () => {
   const hostIp = `172.17.0.1`
   const {
     npmRegistry: {
@@ -21,22 +21,22 @@ test('docker-artifact depends on published npm-artifact during docker-build', as
     repo: {
       packages: [
         {
-          name: 'a',
+          name: 'a24',
           version: '1.0.0',
           additionalFiles: {
             Dockerfile: `\
             FROM quay.io/eraci/node:15.7.0-alpine3.10
-            RUN NPM_USER=${username} NPM_PASS="${password}" NPM_EMAIL=${email} NPM_REGISTRY=${registryAddress} npx npm-login-noninteractive && \
-npm view ${toActualName('b')}@2.0.0 --registry ${registryAddress}
+            RUN NPM_USER=${username} NPM_PASS="${password}" NPM_EMAIL=${email} NPM_REGISTRY=${registryAddress} npx npm-login-noninteractive
+            RUN npm view ${toActualName('b24')}@2.0.0 --registry ${registryAddress}
             CMD ["echo","hello"]
             `,
           },
           dependencies: {
-            b: '2.0.0',
+            b24: '2.0.0',
           },
         },
         {
-          name: 'b',
+          name: 'b24',
           version: '2.0.0',
           targetType: TargetType.npm,
         },
@@ -63,8 +63,8 @@ npm view ${toActualName('b')}@2.0.0 --registry ${registryAddress}
 
   const { passed, published } = await runCi()
   expect(passed).toBeTruthy()
-  expect(published.get('a')?.docker.tags).toEqual([await gitHeadCommit()])
-  expect(published.get('b')?.npm.versions).toEqual(['2.0.0'])
+  expect(published.get('a24')?.docker.tags).toEqual([await gitHeadCommit()])
+  expect(published.get('b24')?.npm.versions).toEqual(['2.0.0'])
 })
 
 test('publish with semver-tag', async () => {

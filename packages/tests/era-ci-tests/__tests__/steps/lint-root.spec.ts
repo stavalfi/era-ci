@@ -4,13 +4,13 @@ import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { taskWorkerTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import chance from 'chance'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import fs from 'fs'
 import path from 'path'
 
 const { createRepo, getResources } = createTest()
 
-test.only('ensure lint-root runs', async () => {
+test('ensure lint-root runs', async () => {
   const { runCi } = await createRepo({
     repo: {
       rootPackageJson: {

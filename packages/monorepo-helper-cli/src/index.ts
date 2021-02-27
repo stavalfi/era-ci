@@ -1,11 +1,12 @@
 #! /usr/bin/env node
 
 import { calculateArtifactsHash } from '@era-ci/artifact-hash'
+import { getPackages, WorkspacesInfo } from '@era-ci/utils'
 import path from 'path'
 import { generateDockerfiles } from './generate-docker-files'
-import { deleteAllDevDeps, updateAllTsconfigBuildFiles, updateMainTsconfigFile } from './remove-dev-deps'
-import { Actions, Workspaces } from './types'
-import { findAllRecursiveDepsOfPackage, getGraph } from './utils'
+import { deleteAllDevDeps, updateAllTsconfigBuildFiles, updateMainTsconfigFile } from './remoev-dev-deps'
+import { Actions } from './types'
+import { findAllRecursiveDepsOfPackage } from './utils'
 
 async function evaluateAction({
   action,
@@ -14,7 +15,7 @@ async function evaluateAction({
   repoPath,
 }: {
   repoPath: string
-  graph: Workspaces
+  graph: WorkspacesInfo
   action: Actions
   params: string[]
 }): Promise<void> {
@@ -63,14 +64,14 @@ async function evaluateAction({
   }
 }
 
-export async function main(argv: string[]) {
+export async function main(argv: string[], processEnv: NodeJS.ProcessEnv) {
   const [action, repoPathStr, repoPath, ...params] = argv
 
   if (repoPathStr !== '--repo-path') {
     throw new Error(`2'th param must be --repo-path`)
   }
 
-  const graph = getGraph(repoPath)
+  const graph = await getPackages({ repoPath, processEnv })
 
   await evaluateAction({
     action: action as Actions,
@@ -81,5 +82,6 @@ export async function main(argv: string[]) {
 }
 
 if (require.main === module) {
-  main(process.argv.slice(2))
+  // eslint-disable-next-line no-process-env
+  main(process.argv.slice(2), process.env)
 }

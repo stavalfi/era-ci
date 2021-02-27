@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import { newEnv } from './prepare-test'
 import { TargetType } from './prepare-test/types'
 
@@ -35,7 +35,6 @@ test('c depends on b which depends on a. if a changes, all need to run again eve
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -50,7 +49,6 @@ test('c depends on b which depends on a. if a changes, all need to run again eve
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })

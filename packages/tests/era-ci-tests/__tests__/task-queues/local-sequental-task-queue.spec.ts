@@ -2,11 +2,11 @@ import { connectToRedis } from '@era-ci/core'
 import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { LocalSequentalTaskQueue, localSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
-import { createFolder } from 'create-folder-structure'
-import expect from 'expect'
+import { createFolder } from '@stavalfi/create-folder-structure'
+import { test, expect, beforeEach } from '@jest/globals'
 import sinon from 'sinon'
 
-const { getCleanups, sleep, createTestLogger, getResources } = createTest()
+const { getCleanups, sleep, createTestLogger, getResources, getProcessEnv } = createTest()
 
 let taskQueue: LocalSequentalTaskQueue
 
@@ -34,7 +34,7 @@ beforeEach(async () => {
     },
     logger,
     repoPath,
-    processEnv: {},
+    processEnv: getProcessEnv(),
   })
   getCleanups().cleanups.push(taskQueue.cleanup)
 })

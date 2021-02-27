@@ -4,7 +4,7 @@ import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { taskWorkerTaskQueue } from '@era-ci/task-queues'
 import { startWorker } from '@era-ci/task-worker'
 import chance from 'chance'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import fs from 'fs'
 import _ from 'lodash'
 import path from 'path'
@@ -67,7 +67,7 @@ test('single worker - single task', async () => {
     repo: {
       packages: [
         {
-          name: 'a',
+          name: 'a21',
           version: '1.0.0',
           scripts: {
             test: `echo total=$TOTAL_KEY_NAME, index=$INDEX_KEY_NAME`, // the test files will be added to the end of this line

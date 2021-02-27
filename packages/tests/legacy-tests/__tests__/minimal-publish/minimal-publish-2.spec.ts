@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import { newEnv } from '../prepare-test'
 import { TargetType } from '../prepare-test/types'
 
@@ -24,7 +24,6 @@ test('multiple packages - publish again changed package', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -38,7 +37,6 @@ test('multiple packages - publish again changed package', async () => {
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -63,7 +61,6 @@ test('no addtional publish of the same package with the exact same content', asy
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -78,7 +75,6 @@ test('no addtional publish of the same package with the exact same content', asy
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })
@@ -95,7 +91,6 @@ test('no addtional publish of the same package with the exact same content', asy
     targetsInfo: {
       npm: {
         shouldPublish: true,
-        shouldDeploy: false,
       },
     },
   })

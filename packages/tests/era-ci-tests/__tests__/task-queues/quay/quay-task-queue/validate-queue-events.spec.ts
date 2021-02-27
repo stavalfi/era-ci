@@ -2,7 +2,7 @@ import { AbortedTask, DoneTask, RunningTask, ScheduledTask, toTaskEvent$ } from 
 import { isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { QuayBuildsTaskPayload } from '@era-ci/task-queues'
 import { distructPackageJsonName, ExecutionStatus, Status } from '@era-ci/utils'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import fs from 'fs'
 import path from 'path'
 import { firstValueFrom, lastValueFrom, merge } from 'rxjs'

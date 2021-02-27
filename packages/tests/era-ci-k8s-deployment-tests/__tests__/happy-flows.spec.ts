@@ -3,7 +3,7 @@ import { dockerPublish, k8sDeployment } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { localSequentalTaskQueue } from '@era-ci/task-queues'
 import { execaCommand, ExecutionStatus, Status } from '@era-ci/utils'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import _ from 'lodash'
 
 const { createRepo, getResources, k8sHelpers } = createTest({ isK8sTestFile: true })
@@ -204,7 +204,9 @@ test('failDeplomentOnPodError=true - redeploy to k8s fails because the new image
   ])
 })
 
-test('failDeplomentOnPodError=false, progressDeadlineSeconds=8 - redeploy to k8s fails because the new image throw exceptions -  ensure the ci notify about a deployment timeout', async () => {
+// this test is flaky when we run all tests. it seems like k3s does not trigger `ProgressDeadlineExceeded` event. looks like k3s bug:
+// https://github.com/k3s-io/k3s/issues/2971
+test.skip('failDeplomentOnPodError=false, progressDeadlineSeconds=8 - redeploy to k8s fails because the new image throw exceptions -  ensure the ci notify about a deployment timeout', async () => {
   const { runCi, toActualName } = await createRepo(toActualName => ({
     repo: {
       packages: [

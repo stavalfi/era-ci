@@ -19,6 +19,7 @@ import {
   quayBuildsTaskQueue,
 } from './packages/task-queues/dist/src/index'
 import chance from 'chance'
+import colors from 'colors/safe'
 
 const {
   NPM_REGISTRY = 'http://localhost:34873',
@@ -166,7 +167,7 @@ export default config({
     },
     {
       // 8
-      step: cliTableReporter(),
+      step: cliTableReporter({ colorizeTable: s => colors.white(s) }),
       children: [],
     },
   ]),

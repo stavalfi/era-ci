@@ -7,6 +7,7 @@ import { distructPackageJsonName, getGitRepoInfo } from '@era-ci/utils'
 import execa from 'execa'
 import _ from 'lodash'
 import path from 'path'
+import { beforeEach } from '@jest/globals'
 
 export type ContextType = {
   taskQueuesResources: TestDependencies
@@ -189,7 +190,7 @@ async function createTestDependencies(
   const queue = await queue1.createFunc({
     redisClient,
     log: logger.createLog('quayBuildsTaskQueue'),
-    gitRepoInfo: await getGitRepoInfo(repoPath, logger.createLog('--')),
+    gitRepoInfo: await getGitRepoInfo({ repoPath, log: logger.createLog('--') }),
     logger,
     repoPath,
     processEnv: {

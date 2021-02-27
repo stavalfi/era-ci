@@ -7,7 +7,7 @@ import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 
 const { createRepo } = createTest()
 
@@ -17,7 +17,7 @@ test('first flow will fail, second flow will pass, we expect the third flow be s
     repo: {
       packages: [
         {
-          name: 'a',
+          name: 'a22',
           version: '1.0.0',
         },
       ],
@@ -212,7 +212,7 @@ and show the flow-id of the first flow as a reason in the last two flows', async
               stepResult: {
                 executionStatus: ExecutionStatus.aborted,
                 status: Status.skippedAsPassed,
-                notes: [`step: "step1" passed in flows: ${result1.flowId}`],
+                notes: [`step: "step1" passed in flow: ${result1.flowId}`],
               },
             },
           },
@@ -234,7 +234,7 @@ and show the flow-id of the first flow as a reason in the last two flows', async
               stepResult: {
                 executionStatus: ExecutionStatus.aborted,
                 status: Status.skippedAsPassed,
-                notes: [`step: "step1" passed in flows: ${result1.flowId}`],
+                notes: [`step: "step1" passed in flow: ${result1.flowId}`],
               },
             },
           },

@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { test, expect, describe } from '@jest/globals'
 import { newEnv } from '../../../prepare-test'
 import { TargetType } from '../../../prepare-test/types'
 
@@ -22,7 +22,6 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       targetsInfo: {
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -35,7 +34,6 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       targetsInfo: {
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -60,7 +58,6 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       targetsInfo: {
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -72,7 +69,6 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       targetsInfo: {
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -96,7 +92,6 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       targetsInfo: {
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -108,7 +103,6 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       targetsInfo: {
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -132,7 +126,6 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       targetsInfo: {
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -144,7 +137,6 @@ describe('run ci -> increase packageJson.version -> run ci', () => {
       targetsInfo: {
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })

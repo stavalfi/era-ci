@@ -2,7 +2,7 @@ import { createStep } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, getPackageTargetTypes, Status, TargetType } from '@era-ci/utils'
 import _ from 'lodash'
-import { IDependencyMap } from 'package-json-type'
+import type { IDependencyMap } from 'package-json-type'
 import semver from 'semver'
 
 export const validatePackages = createStep({

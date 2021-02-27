@@ -1,10 +1,11 @@
 import { createStep } from '@era-ci/core'
-import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import { JsonReport } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
+import type { DeepPartial } from 'ts-essentials'
 
 const { createRepo } = createTest()
 

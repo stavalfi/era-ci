@@ -1,4 +1,4 @@
-import expect from 'expect'
+import { test, expect, describe } from '@jest/globals'
 import { newEnv } from './prepare-test'
 import { TargetType } from './prepare-test/types'
 
@@ -28,7 +28,6 @@ describe('npm package depends on.....', () => {
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -42,7 +41,6 @@ describe('npm package depends on.....', () => {
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -76,7 +74,6 @@ describe('npm package depends on.....', () => {
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -90,7 +87,6 @@ describe('npm package depends on.....', () => {
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -123,11 +119,9 @@ describe('npm package depends on.....', () => {
       targetsInfo: {
         npm: {
           shouldPublish: false,
-          shouldDeploy: false,
         },
         docker: {
           shouldPublish: false,
-          shouldDeploy: false,
         },
       },
       execaOptions: {
@@ -135,7 +129,7 @@ describe('npm package depends on.....', () => {
       },
     })
 
-    expect(result.ciProcessResult.failed).toBeFalsy()
+    expect(!result.passed).toBeFalsy()
   })
 
   test('public npm-package cannot depends on private-npm-package', async () => {
@@ -160,7 +154,6 @@ describe('npm package depends on.....', () => {
       targetsInfo: {
         npm: {
           shouldPublish: false,
-          shouldDeploy: false,
         },
       },
       execaOptions: {
@@ -169,14 +162,14 @@ describe('npm package depends on.....', () => {
     })
 
     // cli-table3 prints this message but with "\n" in between so we fail to find it.
-    // expect(result.ncLogfileContent).toEqual(
+    // expect(result.flowLogs).toEqual(
     //   expect.stringContaining(
     //     `the package "${toActualName('b')}" can't depend on dependency: "${toActualName(
     //       'a',
     //     )}" in version "^1.0.0" becuase this version represents a private-npm-package`,
     //   ),
     // )
-    expect(result.ciProcessResult.failed).toBeTruthy()
+    expect(!result.passed).toBeTruthy()
   })
 })
 
@@ -202,7 +195,6 @@ test('private npm-package can depends on private-npm-package', async () => {
       targetsInfo: {
         npm: {
           shouldPublish: false,
-          shouldDeploy: false,
         },
       },
     }),
@@ -233,11 +225,9 @@ describe('docker-package depends on...', () => {
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -252,11 +242,9 @@ describe('docker-package depends on...', () => {
       targetsInfo: {
         npm: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })
@@ -290,7 +278,6 @@ describe('docker-package depends on...', () => {
       targetsInfo: {
         npm: {
           shouldPublish: false,
-          shouldDeploy: false,
         },
       },
       execaOptions: {
@@ -298,7 +285,7 @@ describe('docker-package depends on...', () => {
       },
     })
 
-    expect(result.ciProcessResult.failed).toBeFalsy()
+    expect(!result.passed).toBeFalsy()
   })
 
   test('docker-package can depend on private npm package', async () => {
@@ -335,7 +322,6 @@ RUN yarn install --frozen-lockfile --production\
       targetsInfo: {
         docker: {
           shouldPublish: true,
-          shouldDeploy: false,
         },
       },
     })

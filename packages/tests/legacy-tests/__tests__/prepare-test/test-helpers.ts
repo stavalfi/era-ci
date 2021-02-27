@@ -1,15 +1,14 @@
 import { Log } from '@era-ci/core'
-import { npmRegistryLogin } from '@era-ci/steps'
-import { buildFullDockerImageName } from '@era-ci/utils'
+import { buildFullDockerImageName, getPackages } from '@era-ci/utils'
+import { createFile, createFolder } from '@stavalfi/create-folder-structure'
 import chance from 'chance'
-import { createFile } from 'create-folder-structure'
 import execa from 'execa'
 import fs from 'fs'
 import Redis from 'ioredis'
 import { IPackageJson } from 'package-json-type'
 import path from 'path'
 import { CreateAndManageRepo, MinimalNpmPackage, ToActualName } from './types'
-import { getPackagePath, getPackages, ignore } from './utils'
+import { getPackagePath, ignore } from './utils'
 
 export async function manageStepResult() {
   const assertionFilePath = await createFile()
@@ -62,6 +61,7 @@ export async function publishNpmPackageWithoutCi({
   repoPath,
   toActualName,
   log,
+  processEnv,
 }: {
   packageName: string
   npmRegistry: {
@@ -75,16 +75,9 @@ export async function publishNpmPackageWithoutCi({
   toActualName: ToActualName
   repoPath: string
   log: Log
+  processEnv: NodeJS.ProcessEnv
 }): Promise<void> {
-  const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
-  await npmRegistryLogin({
-    npmRegistry: npmRegistry.address,
-    npmRegistryPassword: npmRegistry.auth.password,
-    npmRegistryUsername: npmRegistry.auth.username,
-    npmRegistryEmail: npmRegistry.auth.email,
-    log,
-    repoPath,
-  })
+  const packagePath = await getPackagePath(repoPath, toActualName, processEnv)(packageName)
   await execa.command(`npm publish --registry ${npmRegistry.address}`, {
     stdio: 'pipe',
     cwd: packagePath,
@@ -99,6 +92,7 @@ export async function publishDockerPackageWithoutCi({
   toActualName,
   imageTag,
   labels,
+  processEnv,
 }: {
   packageName: string
   dockerRegistry: string
@@ -107,8 +101,9 @@ export async function publishDockerPackageWithoutCi({
   toActualName: ToActualName
   imageTag: string
   labels?: { 'latest-hash'?: string; 'latest-tag'?: string }
+  processEnv: NodeJS.ProcessEnv
 }): Promise<void> {
-  const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
+  const packagePath = await getPackagePath(repoPath, toActualName, processEnv)(packageName)
   const fullImageNameNewVersion = buildFullDockerImageName({
     dockerOrganizationName,
     dockerRegistry,
@@ -138,6 +133,7 @@ export async function unpublishNpmPackage({
   versionToUnpublish,
   repoPath,
   log,
+  processEnv,
 }: {
   packageName: string
   npmRegistry: {
@@ -152,15 +148,8 @@ export async function unpublishNpmPackage({
   versionToUnpublish: string
   repoPath: string
   log: Log
+  processEnv: NodeJS.ProcessEnv
 }): Promise<void> {
-  await npmRegistryLogin({
-    npmRegistry: npmRegistry.address,
-    npmRegistryPassword: npmRegistry.auth.password,
-    npmRegistryUsername: npmRegistry.auth.username,
-    npmRegistryEmail: npmRegistry.auth.email,
-    log,
-    repoPath,
-  })
   await execa.command(
     `npm unpublish ${toActualName(packageName)}@${versionToUnpublish} --registry ${npmRegistry.address}`,
     {
@@ -173,12 +162,14 @@ export const addRandomFileToPackage = ({
   repoPath,
   toActualName,
   gitRepoAddress,
+  processEnv,
 }: {
   toActualName: ToActualName
   repoPath: string
   gitRepoAddress: string
+  processEnv: NodeJS.ProcessEnv
 }) => async (packageName: string): Promise<string> => {
-  const packagesPath = await getPackages(repoPath)
+  const packagesPath = await getPackages({ repoPath, processEnv }).then(r => Object.values(r).map(w => w.location))
   const packagePath = packagesPath.find(path => path.endsWith(toActualName(packageName)))
   if (!packagePath) {
     throw new Error(`package "${packageName}" not found in [${packagesPath.join(', ')}]`)
@@ -201,6 +192,7 @@ export const installAndRunNpmDependency = async ({
   dependencyName,
   log,
   repoPath,
+  processEnv,
 }: {
   toActualName: ToActualName
   npmRegistry: {
@@ -215,30 +207,18 @@ export const installAndRunNpmDependency = async ({
   dependencyName: string
   repoPath: string
   log: Log
+  processEnv: NodeJS.ProcessEnv
 }): Promise<execa.ExecaChildProcess<string>> => {
-  await npmRegistryLogin({
-    npmRegistry: npmRegistry.address,
-    npmRegistryPassword: npmRegistry.auth.password,
-    npmRegistryUsername: npmRegistry.auth.username,
-    npmRegistryEmail: npmRegistry.auth.email,
-    log,
-    repoPath,
+  const newRepoPath = await createFolder()
+  await fs.promises.writeFile(path.join(newRepoPath, 'package.json'), JSON.stringify({ name: 'b' }), 'utf-8')
+  // I can't find a way to install from private-registry in yarn2 :(
+  await execa.command(`npm install ${toActualName(dependencyName)} --registry ${npmRegistry.address}`, {
+    cwd: newRepoPath,
+    stdio: 'pipe',
   })
-  const { getPackagePath } = await createRepo({
-    packages: [
-      {
-        name: 'b',
-        version: '2.0.0',
-        dependencies: {
-          [toActualName(dependencyName)]: `${npmRegistry.address}/${toActualName(dependencyName)}/-/${toActualName(
-            dependencyName,
-          )}-1.0.0.tgz`,
-        },
-        'index.js': `require("${toActualName(dependencyName)}")`,
-      },
-    ],
-  })
-  return execa.node(path.join(await getPackagePath('b'), 'index.js'), { stdio: 'pipe' })
+  await fs.promises.writeFile(path.join(newRepoPath, 'index.js'), `require("${toActualName(dependencyName)}")`, 'utf-8')
+
+  return execa.node(path.join(newRepoPath, 'index.js'), { stdio: 'pipe' })
 }
 
 export const addRandomFileToRoot = async ({
@@ -261,18 +241,20 @@ export const modifyPackageJson = async ({
   gitRepoAddress,
   modification,
   toActualName,
+  processEnv,
 }: {
   packageName: string
   repoPath: string
   gitRepoAddress: string
   toActualName: ToActualName
   modification: (packageJson: IPackageJson) => IPackageJson
+  processEnv: NodeJS.ProcessEnv
 }): Promise<void> => {
-  const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
+  const packagePath = await getPackagePath(repoPath, toActualName, processEnv)(packageName)
   const before: IPackageJson = JSON.parse(await fs.promises.readFile(path.join(packagePath, 'package.json'), 'utf-8'))
   const after = modification(before)
   await fs.promises.unlink(path.join(packagePath, 'package.json'))
-  await fs.promises.writeFile(path.join(packagePath, 'package.json'), JSON.stringify(after, null, 2), 'utf-8')
+  await fs.promises.writeFile(path.join(packagePath, 'package.json'), `${JSON.stringify(after, null, 2)}`, 'utf-8')
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
 }
 
@@ -281,13 +263,15 @@ export const renamePackageFolder = async ({
   repoPath,
   gitRepoAddress,
   toActualName,
+  processEnv,
 }: {
   packageName: string
   repoPath: string
   gitRepoAddress: string
   toActualName: ToActualName
+  processEnv: NodeJS.ProcessEnv
 }): Promise<string> => {
-  const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
+  const packagePath = await getPackagePath(repoPath, toActualName, processEnv)(packageName)
   const newPackagePath = path.join(packagePath, '..', `${packageName}-rename-${chance().hash().slice(0, 8)}`)
   await fs.promises.rename(packagePath, newPackagePath)
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
@@ -300,14 +284,16 @@ export const movePackageFolder = async ({
   gitRepoAddress,
   toActualName,
   newParentDirPath,
+  processEnv,
 }: {
   packageName: string
   repoPath: string
   gitRepoAddress: string
   toActualName: ToActualName
   newParentDirPath: string
+  processEnv: NodeJS.ProcessEnv
 }): Promise<string> => {
-  const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
+  const packagePath = await getPackagePath(repoPath, toActualName, processEnv)(packageName)
   const newPackagePath = path.join(newParentDirPath, path.basename(packagePath))
   await fs.promises.rename(packagePath, newPackagePath)
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
@@ -320,12 +306,16 @@ export const createNewPackage = async ({
   toActualName,
   newNpmPackage,
   createUnderFolderPath,
+  processEnv,
+  npmRegistryAddressToPublish,
 }: {
   repoPath: string
   gitRepoAddress: string
   toActualName: ToActualName
   newNpmPackage: MinimalNpmPackage
   createUnderFolderPath: string
+  processEnv: NodeJS.ProcessEnv
+  npmRegistryAddressToPublish: string
 }): Promise<void> => {
   await fs.promises.writeFile(
     path.join(createUnderFolderPath, 'package.json'),
@@ -333,12 +323,17 @@ export const createNewPackage = async ({
       {
         name: toActualName(newNpmPackage.name),
         version: newNpmPackage.version,
+        publishConfig: {
+          access: 'public',
+          registry: npmRegistryAddressToPublish,
+        },
       },
       null,
       2,
     ),
     'utf-8',
   )
+
   await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
 }
@@ -350,6 +345,7 @@ export const deletePackage = async ({
   packageName,
   log,
   npmRegistry,
+  processEnv,
 }: {
   repoPath: string
   gitRepoAddress: string
@@ -364,17 +360,13 @@ export const deletePackage = async ({
       email: string
     }
   }
+  processEnv: NodeJS.ProcessEnv
 }): Promise<void> => {
-  await npmRegistryLogin({
-    npmRegistry: npmRegistry.address,
-    npmRegistryPassword: npmRegistry.auth.password,
-    npmRegistryUsername: npmRegistry.auth.username,
-    npmRegistryEmail: npmRegistry.auth.email,
-    log,
-    repoPath,
-  })
-  const packagePath = await getPackagePath(repoPath, toActualName)(packageName)
+  const packagePath = await getPackagePath(repoPath, toActualName, processEnv)(packageName)
   await fs.promises.rm(packagePath, { recursive: true })
-  await execa.command(`yarn install`, { cwd: repoPath, stdio: 'pipe' })
+  await execa.command(`yarn install`, {
+    cwd: repoPath,
+    stdio: 'pipe',
+  })
   await commitAllAndPushChanges(repoPath, gitRepoAddress)
 }

@@ -2,7 +2,7 @@ import { createStep } from '@era-ci/core'
 import { createTest } from '@era-ci/e2e-tests-infra'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import sinon from 'sinon'
 
 const { createRepo, sleep } = createTest()

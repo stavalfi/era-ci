@@ -1,3 +1,5 @@
+/// <reference path="../../../declarations.d.ts" />
+
 export { buildRoot } from './build-root'
 export { cliTableReporter } from './cli-table-report'
 export { dockerPublish } from './docker-publish'

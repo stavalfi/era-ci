@@ -1,5 +1,5 @@
 import { createStep } from '@era-ci/core'
-import { createTest, DeepPartial, isDeepSubset } from '@era-ci/e2e-tests-infra'
+import { createTest, isDeepSubset } from '@era-ci/e2e-tests-infra'
 import {
   buildRoot,
   installRoot,
@@ -14,9 +14,10 @@ import { LocalSequentalTaskQueue, taskWorkerTaskQueue } from '@era-ci/task-queue
 import { ExecutionStatus, PackageJson, Status, TargetType } from '@era-ci/utils'
 import chance from 'chance'
 import execa from 'execa'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 import fs from 'fs'
 import path from 'path'
+import type { DeepPartial } from 'ts-essentials'
 
 const { createRepo, getResources } = createTest()
 

@@ -3,7 +3,7 @@ import { createTest } from '@era-ci/e2e-tests-infra'
 import { dockerPublish, installRoot, npmPublish, NpmScopeAccess, validatePackages } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { TargetType } from '@era-ci/utils'
-import expect from 'expect'
+import { test, expect } from '@jest/globals'
 
 const { createRepo, getResources } = createTest()
 
