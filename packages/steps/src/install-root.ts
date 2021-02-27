@@ -58,10 +58,21 @@ export const installRoot = createStep<LocalSequentalTaskQueue, { isStepEnabled: 
         log,
         reject: false,
       })
+      const { stdout: newFiels } = await execaCommand('git ls-files -o  --exclude-standard', {
+        cwd: repoPath,
+        stdio: 'pipe',
+        log,
+      })
 
-      if (isRepoClean.failed) {
-        log.error(`you have uncommited changes:`)
-        log.error(isRepoClean.stdout)
+      if (isRepoClean.failed || newFiels) {
+        if (isRepoClean.failed) {
+          log.error(`you have uncommited changes:`)
+          log.error(isRepoClean.stdout)
+        }
+        if (newFiels) {
+          log.error('uncommited new files:')
+          log.error(newFiels)
+        }
         return {
           executionStatus: ExecutionStatus.done,
           status: Status.failed,
