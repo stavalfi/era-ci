@@ -9,7 +9,6 @@ import { DeepPartial } from 'ts-essentials'
 const { createRepo, getResources } = createTest()
 
 test('run flow once - should pass without notes', async () => {
-  const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo({
     repo: {
       packages: [
@@ -25,7 +24,7 @@ test('run flow once - should pass without notes', async () => {
     configurations: {
       taskQueues: [
         taskWorkerTaskQueue({
-          queueName,
+          queueName: `queue-${chance().hash().slice(0, 8)}`,
           redis: {
             url: getResources().redisServerUrl,
           },
@@ -53,7 +52,6 @@ test('run flow once - should pass without notes', async () => {
 })
 
 test('run flow twice - second time should skip-as-passed with a note that indicates that the tests already passed in first flow', async () => {
-  const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo({
     repo: {
       packages: [
@@ -69,7 +67,7 @@ test('run flow twice - second time should skip-as-passed with a note that indica
     configurations: {
       taskQueues: [
         taskWorkerTaskQueue({
-          queueName,
+          queueName: `queue-${chance().hash().slice(0, 8)}`,
           redis: {
             url: getResources().redisServerUrl,
           },
@@ -99,7 +97,6 @@ test('run flow twice - second time should skip-as-passed with a note that indica
 })
 
 test('run flow three times - third time should skip-as-passed with a note that indicates that the tests already passed in first flow', async () => {
-  const queueName = `queue-${chance().hash().slice(0, 8)}`
   const { runCi } = await createRepo({
     repo: {
       packages: [
@@ -115,7 +112,7 @@ test('run flow three times - third time should skip-as-passed with a note that i
     configurations: {
       taskQueues: [
         taskWorkerTaskQueue({
-          queueName,
+          queueName: `queue-${chance().hash().slice(0, 8)}`,
           redis: {
             url: getResources().redisServerUrl,
           },

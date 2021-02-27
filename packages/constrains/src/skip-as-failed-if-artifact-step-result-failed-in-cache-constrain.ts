@@ -65,7 +65,7 @@ export const skipAsFailedIfArtifactStepResultFailedInCacheConstrain = createCons
 
         notes.push(
           `step: "${step.data.stepInfo.displayName}" ${plural} in flows: ${artifactStepResult.failed
-            .map(f => f.flowId)
+            .map(f => (f.flowId === flowId ? 'this-flow' : f.flowId))
             .join(',')}`,
         )
       } else {
@@ -73,7 +73,7 @@ export const skipAsFailedIfArtifactStepResultFailedInCacheConstrain = createCons
 
         notes.push(
           `step: "${step.data.stepInfo.displayName}" ${plural} in flows: ${artifactStepResult.skippedAsFailed
-            .map(f => f.flowId)
+            .map(f => (f.flowId === flowId ? 'this-flow' : f.flowId))
             .join(',')}`,
         )
       }
