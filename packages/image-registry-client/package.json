@@ -3,7 +3,6 @@
   "version": "2.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
-  "private": false,
   "files": [
     "dist",
     "src",
@@ -11,8 +10,11 @@
   ],
   "types": "dist/src/index.d.ts",
   "dependencies": {
+    "@era-ci/utils": "^2.0.0",
     "bunyan": "1.8.14",
-    "docker-registry-client": "3.3.0",
-    "@era-ci/utils": "^2.0.0"
+    "docker-registry-client": "3.3.0"
+  },
+  "devDependencies": {
+    "@types/bunyan": "^1.8.6"
   }
 }

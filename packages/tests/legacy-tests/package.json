@@ -6,22 +6,33 @@
   "scripts": {
     "test": "jest"
   },
-  "dependencies": {
+  "devDependencies": {
     "@era-ci/core": "^2.0.0",
     "@era-ci/e2e-tests-infra": "^2.0.0",
     "@era-ci/image-registry-client": "^2.0.0",
-    "@era-ci/steps": "^2.0.0",
-    "@era-ci/utils": "^2.0.0",
     "@era-ci/loggers": "^2.0.0",
+    "@era-ci/steps": "^2.0.0",
     "@era-ci/steps-graph": "^2.0.0",
+    "@era-ci/task-queues": "^2.0.0",
+    "@era-ci/utils": "^2.0.0",
+    "@jest/globals": "27.0.0-next.3",
+    "@stavalfi/create-folder-structure": "^3.0.6",
+    "@types/chance": "^1.0.8",
+    "@types/ioredis": "^4.19.3",
+    "@types/sinon": "^9.0.10",
     "chance": "^1.1.5",
-    "create-folder-structure": "^3.0.5",
-    "execa": "^4.0.1",
+    "colors": "^1.4.0",
+    "execa": "^5.0.0",
     "expect": "^26.6.2",
     "ioredis": "^4.19.4",
+    "jest": "^26.6.3",
+    "jest-circus": "^26.6.3",
     "node-git-server": "^0.6.1",
     "package-json-type": "^1.0.3",
     "semver": "^7.3.2",
-    "sinon": "^9.2.3"
+    "sinon": "^9.2.3",
+    "ts-essentials": "^7.0.1",
+    "ts-jest": "^26.5.0",
+    "typescript": "4.1.3"
   }
 }

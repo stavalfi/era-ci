@@ -3,7 +3,6 @@
   "version": "2.0.0",
   "license": "UNLICENSED",
   "main": "dist/src/index.js",
-  "private": false,
   "files": [
     "dist",
     "src",
@@ -17,6 +16,7 @@
     "start:prod": "node --unhandled-rejections=strict dist/src/index.js"
   },
   "dependencies": {
-    "@era-ci/artifact-hash": "^2.0.0"
+    "@era-ci/artifact-hash": "^2.0.0",
+    "@era-ci/utils": "^2.0.0"
   }
 }
