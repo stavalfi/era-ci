@@ -26,5 +26,5 @@ export type Logger = {
 }
 
 export type CreateLogger = {
-  callInitializeLogger: (options: { repoPath: string; disableFileOutput?: boolean }) => Promise<Logger>
+  callInitializeLogger: (options: { repoPath: string; disableFileOutput?: boolean; flowId: string }) => Promise<Logger>
 }

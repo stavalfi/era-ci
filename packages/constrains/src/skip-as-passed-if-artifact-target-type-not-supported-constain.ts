@@ -17,7 +17,7 @@ export const skipAsPassedIfArtifactTargetTypeNotSupportedConstrain = createConst
         resultType: ConstrainResultType.shouldSkip,
         result: {
           errors: [],
-          notes: [],
+          notes: [`skipping because it's not ${supportedTargetType} artifact`],
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsPassed,
         },

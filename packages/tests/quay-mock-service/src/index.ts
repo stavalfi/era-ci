@@ -33,11 +33,12 @@ export {
   Headers,
   TriggerBuildRequest,
   TriggerBuildResponse,
+  Db as QuayMockDb,
 }
 
 export async function startQuayMockService(
   config: Config,
-): Promise<{ address: string; cleanup: () => Promise<unknown> }> {
+): Promise<{ db: Db; address: string; cleanup: () => Promise<unknown> }> {
   const app = fastify({
     logger: pino({
       level: config.isTestMode ? 'error' : 'info',
@@ -54,7 +55,9 @@ export async function startQuayMockService(
   app.addHook<{ Headers: Headers }>('onRequest', async req => {
     if (req.headers.authorization !== `Bearer ${config.token}`) {
       throw new Error(
-        `token is invalid. expected: "${`Bearer ${config.token}`}". actual: "${req.headers.Authorization}".`,
+        `quay-mock - token is invalid. expected: "${`Bearer ${config.token}`}". actual: "${
+          req.headers.Authorization
+        }".`,
       )
     }
   })
@@ -152,7 +155,7 @@ export async function startQuayMockService(
         })
       }
     }
-    throw new Error(`build-id not found`)
+    throw new Error(`quay-mock - build-id not found`)
   })
 
   app.delete<{
@@ -172,7 +175,7 @@ export async function startQuayMockService(
         return res.send()
       }
     }
-    throw new Error(`build-id not found`)
+    throw new Error(`quay-mock - build-id not found`)
   })
 
   app.get<{
@@ -200,7 +203,7 @@ export async function startQuayMockService(
         })),
       })
     } else {
-      throw new Error(`repo-name not found`)
+      throw new Error(`quay-mock - repo-name not found`)
     }
   })
 
@@ -215,7 +218,7 @@ export async function startQuayMockService(
     Headers: Headers
   }>('/api/v1/repository/:namespace/:repoName/notification/', async (req, res) => {
     if (req.body.method !== 'webhook') {
-      throw new Error(`only webhook is supported`)
+      throw new Error(`quay-mock - only webhook is supported`)
     }
     const repo = db.namespaces[req.params.namespace].repos[req.params.repoName]
     if (repo) {
@@ -223,7 +226,10 @@ export async function startQuayMockService(
         n => n.event === req.body.event && n.method === req.body.method && n.webhookAddress === req.body.config.url,
       )
       if (isNotificationAlreadySet) {
-        throw new Error(`notification was already set - looks like a bug`)
+        console.log(
+          `quay-mock - notification was already set - ignoring request and returning 200 (this is what real quay does)`,
+        )
+        return res.send()
       }
       const notificationId = chance().hash().slice(0, 8)
       repo.notifications[notificationId] = {
@@ -234,7 +240,7 @@ export async function startQuayMockService(
       }
       return res.send()
     } else {
-      throw new Error(`repo-name not found`)
+      throw new Error(`quay-mock - repo-name not found`)
     }
   })
 
@@ -248,26 +254,27 @@ export async function startQuayMockService(
     Reply: TriggerBuildResponse
     Headers: Headers
   }>('/api/v1/repository/:namespace/:repoName/build/', async (req, res) => {
+    const buildId = chance().hash().slice(0, 8)
+    console.log(`quay-mock - build-id: "${buildId}", repo: "${req.params.repoName}" - created build-id`)
     if (req.body.context[0] !== '/') {
       throw new Error(
-        `first char of context must be "/". received: "${req.body.context}" (without this, real quay builds won't work)`,
+        `quay-mock - build-id: "${buildId}", repo: "${req.params.repoName}" - first char of context must be "/". received: "${req.body.context}" (without this, real quay builds won't work)`,
       )
     }
     if (req.body.context[req.body.context.length - 1] === '/') {
       throw new Error(
-        `last char of context can't be "/". received: "${req.body.context}" (with this, real quay builds won't work)`,
+        `quay-mock - build-id: "${buildId}", repo: "${req.params.repoName}" - last char of context can't be "/". received: "${req.body.context}" (with this, real quay builds won't work)`,
       )
     }
     if (req.body.dockerfile_path[0] !== '/') {
       throw new Error(
-        `first char of dockerfile_path must be "/". received: "${req.body.context}" (without this, real quay builds won't work)`,
+        `quay-mock - build-id: "${buildId}", repo: "${req.params.repoName}" - first char of dockerfile_path must be "/". received: "${req.body.context}" (without this, real quay builds won't work)`,
       )
     }
     const repo = db.namespaces[req.params.namespace].repos[req.params.repoName]
     if (!repo) {
-      throw new Error(`repo not found`)
+      throw new Error(`quay-mock - build-id: "${buildId}", repo: "${req.params.repoName}" - repo not found`)
     }
-    const buildId = chance().hash().slice(0, 8)
     db.namespaces[req.params.namespace].repos[req.params.repoName].builds[buildId] = {
       buildId,
       status: QuayBuildStatus.waiting,
@@ -275,7 +282,7 @@ export async function startQuayMockService(
 
     const build = db.namespaces[req.params.namespace].repos[req.params.repoName].builds[buildId]
 
-    console.log(`build-id: "${buildId}" - start building Dockerfile`)
+    console.log(`quay-mock - build-id: "${buildId}", repo: "${req.params.repoName}" - start building Dockerfile`)
 
     await res.send({
       status: '',
@@ -312,9 +319,10 @@ export async function startQuayMockService(
   })
 
   const address = await app.listen(config.port ?? 0)
-  console.log(`quay-mock-service: "${address}"`)
+  console.log(`quay-mock - "${address}"`)
   let closed = false
   return {
+    db,
     address,
     cleanup: async () => {
       if (closed) {
@@ -323,7 +331,7 @@ export async function startQuayMockService(
       closed = true
       await app.close()
       await Promise.all(cleanups.map(f => f()))
-      console.log(`closed quay-mock-service: "${address}"`)
+      console.log(`quay-mock - closed: "${address}"`)
     },
   }
 }

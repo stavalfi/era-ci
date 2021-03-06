@@ -47,7 +47,6 @@ test('task is executed and we expect the docker-image to be presentin the regist
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10000_000,
     },
   ])
 
@@ -76,7 +75,6 @@ test('scheduled and running events are fired', async () => {
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -101,7 +99,6 @@ test('illegal parameter - relativeContextPath', async () => {
         imageTags: ['1.0.0'],
         relativeContextPath: '/invalid-path-to-context',
         relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-        taskTimeoutMs: 10_000,
       },
     ]),
   ).toThrow()
@@ -117,7 +114,6 @@ test('illegal parameter - relativeDockerfilePath', async () => {
         imageTags: ['1.0.0'],
         relativeContextPath: '',
         relativeDockerfilePath: '/invalid-path-to-context',
-        taskTimeoutMs: 10_000,
       },
     ]),
   ).toThrow()
@@ -146,7 +142,6 @@ RUN exit 1
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -174,7 +169,6 @@ test('events schema is valid', async () => {
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -240,7 +234,6 @@ RUN exit 1
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -284,7 +277,6 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10_000,
     },
     {
       packageName: getResources().packages.package2.name,
@@ -293,7 +285,6 @@ test('abort event is fired for all tasks when queue is cleaned (before the tasks
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package2.relativeDockerFilePath,
-      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -328,7 +319,6 @@ RUN sleep 1000 # make sure that this task will not end
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -364,7 +354,6 @@ RUN sleep 10_000 # make sure that this task will not end
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10_000,
     },
   ])
 
@@ -412,7 +401,6 @@ test('multiple tasks', async () => {
         imageTags: [`1.0.${i}`],
         relativeContextPath: '',
         relativeDockerfilePath: packageInfo.relativeDockerFilePath,
-        taskTimeoutMs: 40_000, // eventually, quay-mock-service process one request at a time, so we need to give a big timeout for each task.
       })),
   )
 

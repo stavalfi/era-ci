@@ -6,6 +6,7 @@ import { FolderStructure } from '@stavalfi/create-folder-structure'
 import { Redis } from 'ioredis'
 import { IDependencyMap } from 'package-json-type'
 import type { DeepPartial } from 'ts-essentials'
+import { QuayMockDb } from '@era-ci/quay-mock-service'
 import { GitServer } from './git-server-testkit'
 
 export type TestWithContextType = {
@@ -74,7 +75,7 @@ export type TestResources = {
   dockerRegistry: string
   gitServer: GitServer
   redisServerUrl: string
-  quayMockService: Deployment
+  quayMockService: Deployment & { db: QuayMockDb }
   quayHelperService: Deployment
   quayNamespace: string
   quayToken: string

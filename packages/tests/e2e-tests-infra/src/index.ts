@@ -331,6 +331,7 @@ const createTestLogger = async (repoPath: string) =>
     logFilePath: path.join(repoPath, `era-ci-test.log`),
   }).callInitializeLogger({
     repoPath,
+    flowId: 'test-flow-id',
   })
 
 export function createTest(options?: {

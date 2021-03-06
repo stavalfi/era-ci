@@ -35,7 +35,6 @@ async function buildAndPublishArtifact({
       relativeContextPath: '',
       relativeDockerfilePath: path.join(currentArtifact.data.artifact.relativePackagePath, 'Dockerfile'),
       imageTags: [tag],
-      taskTimeoutMs: stepConfigurations.dockerfileBuildTimeoutMs,
       repoName: distructPackageJsonName(currentArtifact.data.artifact.packageJson.name).name,
       visibility: stepConfigurations.imagesVisibility,
     },

@@ -90,7 +90,7 @@ export function resourcesBeforeAfterEach(options: {
             },
             token: quayToken,
           })
-        : Promise.resolve({ address: '', cleanup: () => Promise.resolve() }),
+        : Promise.resolve({ address: '', cleanup: () => Promise.resolve(), db: { namespaces: {} } }),
       options?.startQuayHelperService
         ? await startQuayHelperService({
             PORT: '0',

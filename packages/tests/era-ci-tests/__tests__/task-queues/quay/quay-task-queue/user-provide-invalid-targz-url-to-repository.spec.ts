@@ -30,7 +30,6 @@ test('user provide tar gz to repository which is not exist - it can be because o
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 100_000,
     },
   ])
 
@@ -58,7 +57,6 @@ test('reproduce bug: user provide tar gz to repository which is not exist - it c
       imageTags: ['1.0.0'],
       relativeContextPath: '',
       relativeDockerfilePath: getResources().packages.package1.relativeDockerFilePath,
-      taskTimeoutMs: 10_000,
     },
   ])
 

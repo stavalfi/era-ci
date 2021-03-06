@@ -22,7 +22,7 @@ export async function notify({
 }): Promise<void> {
   for (const namespace of Object.values(db.namespaces)) {
     const repo = namespace.repos[repoName]
-    if (repo) {
+    if (repo && repo.builds[buildId]) {
       for (const notification of Object.values(repo.notifications)) {
         if (notification.event === event) {
           switch (notification.method) {
@@ -71,6 +71,7 @@ export async function buildDockerFile({
       buildId,
       repoName,
     })
+    console.log(`quay-mock - build-id: "${buildId}", repo: "${repoName}" - notified about build in queue`)
 
     build.status = QuayBuildStatus.started
 
@@ -80,6 +81,7 @@ export async function buildDockerFile({
       buildId,
       repoName,
     })
+    console.log(`quay-mock - build-id: "${buildId}", repo: "${repoName}" - notified about build started`)
 
     const extractedContextPath = await createFolder()
     // it looks like when downloading "real" tar.gz from github, it's not the same as I generate tar.gz files in tests.
@@ -98,6 +100,7 @@ export async function buildDockerFile({
         })
         .then(result => compressing.tgz.uncompress((result.res as unknown) as ReadStream, extractedContextPath))
     }
+    console.log(`quay-mock - build-id: "${buildId}", repo: "${repoName}" - extracted tar file`)
 
     for (const imageTag of docker_tags) {
       const image = buildFullDockerImageName({
@@ -108,6 +111,9 @@ export async function buildDockerFile({
       })
 
       const dockerBuildCommand = `docker build -f Dockerfile -t ${image} ${path.join(extractedContextPath, context)}`
+      console.log(
+        `quay-mock - build-id: "${buildId}", repo: "${repoName}" - start building image: "${image}". command: "${dockerBuildCommand}"`,
+      )
       const p = execa.command(dockerBuildCommand, {
         cwd: path.dirname(path.join(extractedContextPath, dockerfile_path)),
         stdio: config.isTestMode ? 'pipe' : 'inherit',
@@ -120,13 +126,18 @@ export async function buildDockerFile({
 
       await p
 
+      console.log(`quay-mock - build-id: "${buildId}", repo: "${repoName}" - built image: "${image}"`)
+
       await execa.command(`docker push ${image}`, {
         stdio: config.isTestMode ? 'pipe' : 'inherit',
       })
 
+      console.log(`quay-mock - build-id: "${buildId}", repo: "${repoName}" - pushed image: "${image}"`)
+
       await execa.command(`docker rmi ${image}`, {
         stdio: 'pipe',
       })
+      console.log(`quay-mock - build-id: "${buildId}", repo: "${repoName}" - deleted local image: "${image}"`)
 
       if ((build.status as QuayBuildStatus) !== QuayBuildStatus.cancelled) {
         build.status = QuayBuildStatus.complete
@@ -136,6 +147,7 @@ export async function buildDockerFile({
           buildId,
           repoName,
         })
+        console.log(`quay-mock - build-id: "${buildId}", repo: "${repoName}" - notified about build succeed`)
       }
     }
   } catch (e) {
@@ -154,6 +166,6 @@ export async function buildDockerFile({
         }
       })
     }
-    console.error(`failed to build-push image: ${repoName}`, e)
+    console.log(`quay-mock - build-id: "${buildId}", repo: "${repoName}" - failed to build-push`, e)
   }
 }

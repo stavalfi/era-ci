@@ -19,6 +19,7 @@ export async function printFlowLogs(options: {
     const logger = await options.config.logger.callInitializeLogger({
       repoPath: options.repoPath,
       disableFileOutput: true,
+      flowId: options.flowId,
     })
     log = logger.createLog('print-flow')
 
