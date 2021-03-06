@@ -10,7 +10,6 @@ import {
   QuayCreateRepoResult,
   QuayNewBuildResult,
   QuayNotificationEvents,
-  TaskTimeoutEventEmitter,
 } from './types'
 export * from './types'
 
@@ -25,7 +24,6 @@ export class QuayClient {
       error: (s: string, e: Error) => void
     },
     private readonly processEnv: NodeJS.ProcessEnv,
-    private readonly taskTimeoutEventEmitter: TaskTimeoutEventEmitter,
     private readonly abortEventHandler: AbortEventHandler,
   ) {}
 
@@ -57,18 +55,11 @@ export class QuayClient {
     })
 
     const closed = () => p.cancel()
-    const timeout = (taskId: string) => {
-      if (taskId === options.taskId) {
-        p.cancel()
-      }
-    }
 
     this.abortEventHandler.once('closed', closed)
-    this.taskTimeoutEventEmitter.once('timeout', timeout)
 
     return p.finally(() => {
       this.abortEventHandler.off('closed', closed)
-      this.taskTimeoutEventEmitter.off('timeout', timeout)
     })
   }
 

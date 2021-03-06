@@ -11,7 +11,6 @@ export type DockerPublishConfiguration = {
 
 export type QuayDockerPublishConfiguration = DockerPublishConfiguration & {
   quayService: 'https://quay.io' | string // this value is not really used. it's here to show that in tests/local-mock runs, dockerRegistry!==quayService
-  dockerfileBuildTimeoutMs: number
   imagesVisibility: 'public' | 'private'
 }
 export type LocalDockerPublishConfiguration = DockerPublishConfiguration & {

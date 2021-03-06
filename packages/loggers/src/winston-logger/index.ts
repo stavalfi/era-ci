@@ -47,7 +47,7 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
       }
     }
   },
-  initializeLogger: async ({ loggerConfigurations }) => {
+  initializeLogger: async ({ loggerConfigurations, flowId }) => {
     if (!loggerConfigurations.disableFileOutput) {
       await fs.promises.unlink(loggerConfigurations.logFilePath).catch(() => {
         // ignore error
@@ -56,8 +56,12 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
     const mainLogger = winston.createLogger({
       level: loggerConfigurations.customLogLevel === LogLevel.trace ? 'silly' : loggerConfigurations.customLogLevel,
       transports: [
-        createConsoleTransport(defaultFormat),
-        createFileTransport(loggerConfigurations.logFilePath, loggerConfigurations.disableFileOutput, defaultFormat),
+        createConsoleTransport(defaultFormat({ flowId })),
+        createFileTransport(
+          loggerConfigurations.logFilePath,
+          loggerConfigurations.disableFileOutput,
+          defaultFormat({ flowId }),
+        ),
       ],
       silent: loggerConfigurations.disabled,
     })

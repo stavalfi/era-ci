@@ -56,6 +56,7 @@ export async function main(processEnv: NodeJS.ProcessEnv, processArgv: string[])
     logFilePath: path.join(repoPath, `${workerName}.log`),
   }).callInitializeLogger({
     repoPath,
+    flowId: 'worker-flow-id',
   })
 
   await startWorker({

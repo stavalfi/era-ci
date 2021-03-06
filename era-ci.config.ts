@@ -134,7 +134,6 @@ export default config({
       // 5
       step: quayDockerPublish({
         isStepEnabled: !CI,
-        dockerfileBuildTimeoutMs: 200_000,
         imagesVisibility: 'public',
         dockerOrganizationName: QUAY_ORG,
         dockerRegistry: QUAY_REGISTRY,

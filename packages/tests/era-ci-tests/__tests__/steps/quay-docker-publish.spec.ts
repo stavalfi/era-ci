@@ -3,7 +3,7 @@ import { quayDockerPublish } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { quayBuildsTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status, TargetType } from '@era-ci/utils'
-import { test, expect } from '@jest/globals'
+import { expect, test } from '@jest/globals'
 
 const { getResources, createRepo } = createTest({
   startQuayHelperService: true,
@@ -51,7 +51,6 @@ test('single package - no problems - step should pass', async () => {
           dockerRegistry: getResources().dockerRegistry,
           quayService: getResources().quayMockService.address,
           dockerOrganizationName: getResources().quayNamespace,
-          dockerfileBuildTimeoutMs: 100 * 1000,
           imagesVisibility: 'public',
         }),
       ]),
@@ -112,7 +111,6 @@ test('multiple packages - no problems - step should pass', async () => {
         quayDockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          dockerfileBuildTimeoutMs: 100 * 1000,
           dockerRegistry: getResources().dockerRegistry,
           quayService: getResources().quayMockService.address,
           imagesVisibility: 'public',
@@ -168,7 +166,6 @@ test('expect the step to be failed if the Dockerfile has an error', async () => 
         quayDockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          dockerfileBuildTimeoutMs: 100 * 1000,
           dockerRegistry: getResources().dockerRegistry,
           quayService: getResources().quayMockService.address,
           imagesVisibility: 'public',
@@ -225,7 +222,6 @@ test('run step again on failure and expect to fail again (no skip)', async () =>
         quayDockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          dockerfileBuildTimeoutMs: 100 * 1000,
           dockerRegistry: getResources().dockerRegistry,
           quayService: getResources().quayMockService.address,
           imagesVisibility: 'public',
@@ -284,7 +280,6 @@ test('do not run step again if step succeed (image built and pushed to registry)
         quayDockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          dockerfileBuildTimeoutMs: 100 * 1000,
           dockerRegistry: getResources().dockerRegistry,
           quayService: getResources().quayMockService.address,
           imagesVisibility: 'public',
@@ -338,7 +333,6 @@ test('publish with final-tag', async () => {
         quayDockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          dockerfileBuildTimeoutMs: 100 * 1000,
           dockerRegistry: getResources().dockerRegistry,
           quayService: getResources().quayMockService.address,
           imagesVisibility: 'public',
@@ -386,7 +380,6 @@ test('publish with final-tag twice', async () => {
         quayDockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          dockerfileBuildTimeoutMs: 100 * 1000,
           dockerRegistry: getResources().dockerRegistry,
           quayService: getResources().quayMockService.address,
           imagesVisibility: 'public',
@@ -436,7 +429,6 @@ test('artifact package-json name has @ symbol', async () => {
         quayDockerPublish({
           isStepEnabled: true,
           dockerOrganizationName: getResources().quayNamespace,
-          dockerfileBuildTimeoutMs: 100 * 1000,
           dockerRegistry: getResources().dockerRegistry,
           quayService: getResources().quayMockService.address,
           imagesVisibility: 'public',

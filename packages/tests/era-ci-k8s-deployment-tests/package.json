@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "test": "jest"
+    "test": "jest --forceExit"
   },
   "devDependencies": {
     "@era-ci/constrains": "^2.0.0",

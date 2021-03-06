@@ -2,7 +2,7 @@ import { LogLevel } from '@era-ci/core'
 import winston from 'winston'
 import { randomModuleColor } from './modules-color'
 
-export function formatLog(log: winston.Logform.TransformableInfo): string {
+export function formatLog(_flowId: string, log: winston.Logform.TransformableInfo): string {
   const logLevel = log.level.replace('silly', LogLevel.trace)
   const withModule = log.module ? ` [${randomModuleColor(log.module)}] ` : ' '
   const base = `${log.timestamp}${withModule}${logLevel}`

@@ -101,7 +101,7 @@ test('install failed so build-step should skip-as-failed', async () => {
   })
 })
 
-test.only('reproduce bug: first-flow: install failed so build-step should skip-as-failed, second-flow: build-step should have a note that the install-step failed in this flow (also)', async () => {
+test('reproduce bug: first-flow: install failed so build-step should skip-as-failed, second-flow: build-step should have a note that the install-step failed in this flow (also)', async () => {
   const { runCi, repoPath } = await createRepo({
     repo: {
       packages: [

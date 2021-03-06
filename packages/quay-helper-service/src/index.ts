@@ -108,7 +108,6 @@ export async function startQuayHelperService(
       },
       env,
       serverClosedEventEmitter,
-      serverClosedEventEmitter,
     )
 
     let failures404 = 0

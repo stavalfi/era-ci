@@ -36,6 +36,7 @@ export async function ci(options: {
     const startFlowMs = Date.now()
     logger = await options.config.logger.callInitializeLogger({
       repoPath: options.repoPath,
+      flowId,
     })
 
     log = logger.createLog('ci-logic')
