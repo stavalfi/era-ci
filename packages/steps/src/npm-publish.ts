@@ -228,6 +228,14 @@ const customConstrain = createConstrain<
       }
     }
 
+    await npmRegistryLogin({
+      npmRegistry: stepConfigurations.registry,
+      npmRegistryPassword: stepConfigurations.registryAuth.password,
+      npmRegistryEmail: stepConfigurations.registryAuth.email,
+      npmRegistryUsername: stepConfigurations.registryAuth.username,
+      log,
+    })
+
     if (
       await isNpmVersionAlreadyPulished({
         npmRegistry: stepConfigurations.registry,
@@ -263,17 +271,6 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
   stepGroup: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,
   run: async ({ stepConfigurations, repoPath, log, immutableCache, logger, processEnv }) => {
-    if (stepConfigurations.isStepEnabled) {
-      // we need to login before we run the constrains and before run the artifacts-logic
-      await npmRegistryLogin({
-        npmRegistry: stepConfigurations.registry,
-        npmRegistryPassword: stepConfigurations.registryAuth.password,
-        npmRegistryEmail: stepConfigurations.registryAuth.email,
-        npmRegistryUsername: stepConfigurations.registryAuth.username,
-        log,
-      })
-    }
-
     return {
       globalConstrains: [skipAsPassedIfStepIsDisabledConstrain()],
       artifactConstrains: [
@@ -303,6 +300,14 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
           }),
         artifact => customConstrain({ currentArtifact: artifact }),
       ],
+      onBeforeArtifacts: () =>
+        npmRegistryLogin({
+          npmRegistry: stepConfigurations.registry,
+          npmRegistryPassword: stepConfigurations.registryAuth.password,
+          npmRegistryEmail: stepConfigurations.registryAuth.email,
+          npmRegistryUsername: stepConfigurations.registryAuth.username,
+          log,
+        }),
       onArtifact: async ({ artifact }) => {
         const newVersion = await calculateNextNewVersion({
           npmRegistry: stepConfigurations.registry,
