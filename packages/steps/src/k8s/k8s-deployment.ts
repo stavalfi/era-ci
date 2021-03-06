@@ -25,9 +25,8 @@ export const k8sDeployment = createStep<
     ignorePackageNames: config.ignorePackageNames ?? [],
   }),
   run: async ({ stepConfigurations, getState, steps, artifacts, log }) => {
-    const kc = new k8s.KubeConfig()
-    kc.loadFromString(Buffer.from(stepConfigurations.kubeConfigBase64, 'base64').toString())
-    const deploymentApi = kc.makeApiClient(k8s.AppsV1Api)
+    let kc: k8s.KubeConfig
+    let deploymentApi: k8s.AppsV1Api
 
     return {
       globalConstrains: [skipAsPassedIfStepIsDisabledConstrain()],
@@ -48,7 +47,12 @@ export const k8sDeployment = createStep<
             currentArtifact: artifact,
           }),
       ],
-      onBeforeArtifacts: async () => log.info(`starting to deploy to k8s. Please don't stop the CI manually!`),
+      onBeforeArtifacts: async () => {
+        log.info(`starting to deploy to k8s. Please don't stop the CI manually!`)
+        kc = new k8s.KubeConfig()
+        kc.loadFromString(Buffer.from(stepConfigurations.kubeConfigBase64, 'base64').toString())
+        deploymentApi = kc.makeApiClient(k8s.AppsV1Api)
+      },
       onArtifact: async ({ artifact }) => {
         const artifactName = artifact.data.artifact.packageJson.name
         const deploymentName = stepConfigurations.artifactNameToDeploymentName({ artifactName })
