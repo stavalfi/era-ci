@@ -393,7 +393,7 @@ RUN sleep 10_000 # make sure that this task will not end
 test('multiple tasks', async () => {
   const tasks = getResources().taskQueuesResources.queue.addTasksToQueue(
     Object.values(getResources().packages)
-      .slice(0, 15)
+      .slice(0, 3)
       .map((packageInfo, i) => ({
         packageName: packageInfo.name,
         repoName: distructPackageJsonName(packageInfo.name).name,
@@ -415,7 +415,7 @@ test('multiple tasks', async () => {
     ),
   )
 
-  for (const [i, packageInfo] of [...Object.values(getResources().packages).entries()].slice(0, 15)) {
+  for (const [i, packageInfo] of [...Object.values(getResources().packages).entries()].slice(0, 3)) {
     await expect(getResources().getImageTags(packageInfo.name)).resolves.toEqual([`1.0.${i}`])
   }
 })
