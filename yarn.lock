@@ -702,6 +702,24 @@
     mkdirp "^0.5.1"
     tmp-promise "^2.0.2"
 
+"@stavalfi/docker-registry-client@3.3.0":
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/@stavalfi/docker-registry-client/-/docker-registry-client-3.3.0.tgz#c1fc4e7f47b77a2e9c4d6a8a3180b94086328112"
+  integrity sha512-YjpGZTYmQgI/ZeD9x2M3yc+/SjJpAZfbzgtj04KhJ6Z/ucO4lgbfshY0ZpCSnJDTBM+L4M7rzz+zwHkNUL28kg==
+  dependencies:
+    assert-plus "^0.1.5"
+    base64url "1.x >=1.0.4"
+    bunyan "1.x >=1.3.3"
+    jwk-to-pem "1.2.0"
+    jws "3.1.0"
+    restify-clients "^1.4.0"
+    restify-errors "^3.0.0"
+    strsplit "1.x"
+    tough-cookie "2.0.x"
+    vasync "1.x >=1.6.1"
+    verror "1.x >=1.6.0"
+    www-authenticate "0.6.x >=0.6.2"
+
 "@swc/core-android-arm64@^1.2.43":
   version "1.2.49"
   resolved "https://registry.yarnpkg.com/@swc/core-android-arm64/-/core-android-arm64-1.2.49.tgz#2c6bdf0ff2ead107224c1ef3447661566e61ddeb"
@@ -2501,24 +2519,6 @@ dir-glob@^3.0.1:
   integrity sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==
   dependencies:
     path-type "^4.0.0"
-
-docker-registry-client@3.3.0:
-  version "3.3.0"
-  resolved "https://registry.yarnpkg.com/docker-registry-client/-/docker-registry-client-3.3.0.tgz#11cd40255f31462587c799ed5df9ac81dfef3d09"
-  integrity sha1-Ec1AJV8xRiWHx5ntXfmsgd/vPQk=
-  dependencies:
-    assert-plus "^0.1.5"
-    base64url "1.x >=1.0.4"
-    bunyan "1.x >=1.3.3"
-    jwk-to-pem "1.2.0"
-    jws "3.1.0"
-    restify-clients "^1.4.0"
-    restify-errors "^3.0.0"
-    strsplit "1.x"
-    tough-cookie "2.0.x"
-    vasync "1.x >=1.6.1"
-    verror "1.x >=1.6.0"
-    www-authenticate "0.6.x >=0.6.2"
 
 doctrine@^3.0.0:
   version "3.0.0"

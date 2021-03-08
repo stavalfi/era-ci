@@ -1,6 +1,6 @@
 /// <reference path="../../../declarations.d.ts" />
 
-import { createClientV2 } from 'docker-registry-client'
+import { createClientV2 } from '@stavalfi/docker-registry-client'
 import bunyan from 'bunyan'
 import { buildFullDockerImageName } from '@era-ci/utils'
 

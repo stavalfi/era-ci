@@ -12,7 +12,7 @@
   "dependencies": {
     "@era-ci/utils": "^2.0.0",
     "bunyan": "1.8.14",
-    "docker-registry-client": "3.3.0"
+    "@stavalfi/docker-registry-client": "3.3.0"
   },
   "devDependencies": {
     "@types/bunyan": "^1.8.6"
