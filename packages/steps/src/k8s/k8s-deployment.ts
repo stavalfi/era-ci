@@ -24,7 +24,7 @@ export const k8sDeployment = createStep<
     ...config,
     ignorePackageNames: config.ignorePackageNames ?? [],
   }),
-  run: async ({ stepConfigurations, getState, steps, artifacts, log }) => {
+  run: async ({ stepConfigurations, getState, steps, artifacts, log, processEnv }) => {
     let kc: k8s.KubeConfig
     let deploymentApi: k8s.AppsV1Api
 
@@ -77,6 +77,7 @@ export const k8sDeployment = createStep<
           deploymentName,
           containerName,
           failDeplomentOnPodError: stepConfigurations.failDeplomentOnPodError,
+          isTestMode: Boolean(processEnv['ERA_TEST_MODE']),
         })
       },
     }

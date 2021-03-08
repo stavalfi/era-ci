@@ -193,6 +193,14 @@ export const k8sHelpers = ({
                       containerPort: options.portInContainer,
                     },
                   ],
+                  // we define this because k3s has a bug where it specify a pod is in ready-state even when it was crushed
+                  // (or it specify it's ready between the start of the pod until the actual run)
+                  livenessProbe: {
+                    exec: {
+                      command: ['curl', 'localhost:80'],
+                    },
+                    periodSeconds: 1,
+                  },
                 },
               ],
             },
