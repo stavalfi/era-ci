@@ -116,7 +116,6 @@ export type CreateRepo = (
   repoPath: string
   repoName: string
   gitHeadCommit: () => Promise<string>
-  getImageTags: (packageName: string) => Promise<string[]>
   runCi: (options?: { processEnv?: NodeJS.ProcessEnv }) => Promise<RunCiResult>
   toActualName: ToActualName
 }>

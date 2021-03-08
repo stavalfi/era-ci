@@ -6,14 +6,15 @@ import {
   createImmutableCache,
   Logger,
   LogLevel,
+  printFlowLogs,
   RedisFlowEvent,
   TaskQueueBase,
 } from '@era-ci/core'
-import { listTags } from '@era-ci/image-registry-client'
 import { winstonLogger } from '@era-ci/loggers'
 import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@era-ci/steps'
 import { localSequentalTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, PackageManager, Status } from '@era-ci/utils'
+import { afterEach, beforeEach } from '@jest/globals'
 import chance from 'chance'
 import execa from 'execa'
 import fs from 'fs'
@@ -24,8 +25,6 @@ import { resourcesBeforeAfterEach } from './prepare-test-resources'
 import { getPublishResult } from './seach-targets'
 import { Cleanup, CreateRepo, GetCleanups, RunCiResult, TestFuncs, TestProcessEnv, TestResources } from './types'
 import { addReportToStepsAsLastNodes, k8sHelpers } from './utils'
-import { beforeEach, afterEach } from '@jest/globals'
-import { printFlowLogs } from '@era-ci/core'
 
 export { createGitRepo } from './create-git-repo'
 export { GitServer } from './git-server-testkit'
@@ -217,14 +216,6 @@ export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options =>
 
   const testLogger = await testFuncs.createTestLogger(repoPath)
 
-  const getImageTags = async (packageName: string): Promise<string[]> => {
-    return listTags({
-      registry: testFuncs.getResources().dockerRegistry,
-      dockerOrg: testFuncs.getResources().quayNamespace,
-      repo: toActualName(packageName),
-    })
-  }
-
   const logFilePath = path.join(repoPath, 'era-ci.log')
 
   const finalConfigurations = config({
@@ -252,7 +243,6 @@ export const createRepo = (testFuncs: TestFuncs): CreateRepo => async options =>
     gitHeadCommit: () =>
       execa.command(`git rev-parse HEAD`, { stdio: 'pipe', cwd: repoPath }).then(r => r.stdout.slice(0, 8)),
     toActualName,
-    getImageTags,
     runCi: runCi(testFuncs)({
       testLogger,
       repoPath,

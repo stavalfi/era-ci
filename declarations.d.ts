@@ -15,7 +15,7 @@ declare module 'glob-gitignore' {
   ): Promise<string[]>
 }
 
-declare module 'docker-registry-client' {
+declare module '@stavalfi/docker-registry-client' {
   export function createClientV2(options: {
     name: string
     log: bunyan
