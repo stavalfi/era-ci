@@ -26,10 +26,12 @@ function getUpdatedDeploymentStatus({
   reDeploymentResult,
   updatedDeployment,
   log,
+  isTestMode,
 }: {
   log: Log
   reDeploymentResult: k8s.V1Deployment
   updatedDeployment: k8s.V1Deployment
+  isTestMode: boolean
 }):
   | {
       status: DeploymentStatus.Succees | DeploymentStatus.NotReadyYet
@@ -82,8 +84,10 @@ function getUpdatedDeploymentStatus({
       updatedDeployment.status.replicas === updatedDeployment.status.updatedReplicas &&
       updatedDeployment.status.replicas === updatedDeployment.status.availableReplicas
     ) {
-      log.info(`stav1`, { reDeploymentResult })
-      log.info(`stav2`, { updatedDeployment })
+      if (isTestMode) {
+        log.info(`stav1`, { reDeploymentResult })
+        log.info(`stav2`, { updatedDeployment })
+      }
       return { status: DeploymentStatus.Succees }
     }
   }
@@ -387,6 +391,7 @@ async function waitForDeploymentResult({
   kc,
   failDeplomentOnPodError,
   deploymentApi,
+  isTestMode,
 }: {
   reDeploymentResult: k8s.V1Deployment
   k8sNamesapce: string
@@ -394,7 +399,8 @@ async function waitForDeploymentResult({
   kc: k8s.KubeConfig
   failDeplomentOnPodError: boolean
   deploymentApi: k8s.AppsV1Api
-}) {
+  isTestMode: boolean
+}): Promise<DeploymentWatchResult> {
   let alreadyListeningToPodsEvents = false
   return firstValueFrom(
     getDeploymentEvents$({
@@ -403,7 +409,9 @@ async function waitForDeploymentResult({
       kc,
     }).pipe(
       concatMap<DeploymentEvent, Observable<DeploymentWatchResult>>(event => {
-        log.info('stav3', event)
+        if (isTestMode) {
+          log.info('stav3', event)
+        }
         switch (event.eventType) {
           case WatchEventType.Added:
             return of({ status: DeploymentStatus.added })
@@ -418,6 +426,7 @@ async function waitForDeploymentResult({
                   reDeploymentResult,
                   updatedDeployment: event.resource,
                   log,
+                  isTestMode,
                 })
                 switch (result.status) {
                   case DeploymentStatus.NotReadyYet:
@@ -433,7 +442,9 @@ async function waitForDeploymentResult({
                       }).pipe(
                         scan(
                           (acc: { podsReady: k8s.V1Pod[]; podError?: k8s.V1Pod }, event) => {
-                            log.info('stav4', event)
+                            if (isTestMode) {
+                              log.info('stav4', event)
+                            }
                             switch (event.eventType) {
                               case WatchEventType.Deleted:
                                 return {
@@ -579,6 +590,7 @@ export async function deployAndWait({
   containerName,
   kc,
   failDeplomentOnPodError,
+  isTestMode,
 }: {
   containerName: string
   changeCause: string
@@ -589,6 +601,7 @@ export async function deployAndWait({
   log: Log
   kc: k8s.KubeConfig
   failDeplomentOnPodError: boolean
+  isTestMode: boolean
 }): Promise<UserReturnValue> {
   log.info(`trying to deploy image: "${newFullImageName}" in deployment: "${deploymentName}"`)
 
@@ -616,6 +629,7 @@ export async function deployAndWait({
     failDeplomentOnPodError,
     kc,
     deploymentApi,
+    isTestMode,
   })
 
   return processDeploymentResult({

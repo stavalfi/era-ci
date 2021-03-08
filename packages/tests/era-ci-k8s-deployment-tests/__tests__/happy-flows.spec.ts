@@ -60,7 +60,7 @@ test('redeploy to k8s and ensure the new image is running', async () => {
     namespaceName: 'default',
     containerName: toActualName('a1'),
     deploymentName: toActualName('a1'),
-    fullImageName: 'nginx:1.18.0-alpine',
+    fullImageName: 'nginx:1.18.0',
     labels: { app: toActualName('a1') },
     podName: toActualName('a1'),
     portInContainer: 80,
@@ -177,7 +177,7 @@ test('failDeplomentOnPodError=true - redeploy to k8s fails because the new image
     namespaceName: 'default',
     containerName: toActualName('a3'),
     deploymentName: toActualName('a3'),
-    fullImageName: 'nginx:1.18.0-alpine',
+    fullImageName: 'nginx:1.18.0',
     labels: { app: toActualName('a3') },
     podName: toActualName('a3'),
     portInContainer: 80,
@@ -208,9 +208,7 @@ test('failDeplomentOnPodError=true - redeploy to k8s fails because the new image
   ])
 })
 
-// this test is flaky when we run all tests. it seems like k3s does not trigger `ProgressDeadlineExceeded` event. looks like k3s bug:
-// https://github.com/k3s-io/k3s/issues/2971
-test.skip('failDeplomentOnPodError=false, progressDeadlineSeconds=8 - redeploy to k8s fails because the new image throw exceptions -  ensure the ci notify about a deployment timeout', async () => {
+test('failDeplomentOnPodError=false, progressDeadlineSeconds=8 - redeploy to k8s fails because the new image throw exceptions -  ensure the ci notify about a deployment timeout', async () => {
   const { runCi, toActualName } = await createRepo(toActualName => ({
     repo: {
       packages: [
@@ -258,7 +256,7 @@ test.skip('failDeplomentOnPodError=false, progressDeadlineSeconds=8 - redeploy t
     namespaceName: 'default',
     containerName: toActualName('a4'),
     deploymentName: toActualName('a4'),
-    fullImageName: 'nginx:1.18.0-alpine',
+    fullImageName: 'nginx:1.18.0',
     labels: { app: toActualName('a4') },
     podName: toActualName('a4'),
     portInContainer: 80,
@@ -336,7 +334,7 @@ test('running the flow again will cause to redeploy to k8s the same image again 
     namespaceName: 'default',
     containerName: toActualName('a5'),
     deploymentName: toActualName('a5'),
-    fullImageName: 'nginx:1.18.0-alpine',
+    fullImageName: 'nginx:1.18.0',
     labels: { app: toActualName('a5') },
     podName: toActualName('a5'),
     portInContainer: 80,
