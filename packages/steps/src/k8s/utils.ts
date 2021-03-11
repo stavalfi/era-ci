@@ -2,8 +2,8 @@ import { Log, UserReturnValue } from '@era-ci/core'
 import { ExecutionStatus, Status } from '@era-ci/utils'
 import * as k8s from '@kubernetes/client-node'
 import _ from 'lodash'
-import { EMPTY, firstValueFrom, Observable, of, defer } from 'rxjs'
-import { concatMap, filter, first, map, scan } from 'rxjs/operators'
+import { defer, EMPTY, firstValueFrom, Observable, of } from 'rxjs'
+import { concatMap, filter, first, scan } from 'rxjs/operators'
 import type { DeepPartial } from 'ts-essentials'
 import {
   DeploymentEvent,
@@ -401,6 +401,8 @@ async function waitForDeploymentResult({
   deploymentApi: k8s.AppsV1Api
   isTestMode: boolean
 }): Promise<DeploymentWatchResult> {
+  let podsSuccess = false
+  let deploymentSuccess = false
   let alreadyListeningToPodsEvents = false
   return firstValueFrom(
     getDeploymentEvents$({
@@ -496,16 +498,27 @@ async function waitForDeploymentResult({
                           acc => Boolean(acc.podError) || acc.podsReady.length === reDeploymentResult.spec?.replicas,
                         ),
                         first(),
-                        map(acc => {
+                        concatMap<
+                          {
+                            podsReady: k8s.V1Pod[]
+                            podError?: k8s.V1Pod | undefined
+                          },
+                          Observable<DeploymentWatchResult>
+                        >(acc => {
                           if (acc.podError) {
-                            return {
+                            return of({
                               status: DeploymentStatus.PodFailed,
                               podName: acc.podError.metadata?.name!,
                               reasons: extractPodContainersErrors(acc.podError),
-                            }
+                            })
                           } else {
-                            return {
-                              status: DeploymentStatus.Succees,
+                            podsSuccess = true
+                            if (deploymentSuccess) {
+                              return of({
+                                status: DeploymentStatus.Succees,
+                              })
+                            } else {
+                              return EMPTY
                             }
                           }
                         }),
@@ -522,9 +535,20 @@ async function waitForDeploymentResult({
                       replicateSetNameWithTimeout: updatedDeploymentReplicaSet.metadata?.name!,
                     })
                   case DeploymentStatus.Succees: {
-                    return of({
-                      status: DeploymentStatus.Succees,
-                    })
+                    deploymentSuccess = true
+                    if (failDeplomentOnPodError) {
+                      if (podsSuccess) {
+                        return of({
+                          status: DeploymentStatus.Succees,
+                        })
+                      } else {
+                        return EMPTY
+                      }
+                    } else {
+                      return of({
+                        status: DeploymentStatus.Succees,
+                      })
+                    }
                   }
                 }
               }),

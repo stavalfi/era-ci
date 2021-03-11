@@ -1,11 +1,10 @@
 import {
   skipAsFailedIfArtifactStepResultFailedInCacheConstrain,
-  skipAsPassedIfArtifactTargetTypeNotSupportedConstrain,
+  skipAsPassedIfArtifactNotDeployableConstrain,
   skipAsPassedIfStepIsDisabledConstrain,
 } from '@era-ci/constrains'
 import { createStep, getReturnValue } from '@era-ci/core'
 import { LocalSequentalTaskQueue } from '@era-ci/task-queues'
-import { TargetType } from '@era-ci/utils'
 import * as k8s from '@kubernetes/client-node'
 import _ from 'lodash'
 import { skipAsPassedIfPackageIsIgnoredFromDeployConstrain } from './skip-as-passed-if-package-is-ignored-from-deploy-constrain'
@@ -20,21 +19,24 @@ export const k8sDeployment = createStep<
   stepName: 'k8s-deployment',
   stepGroup: 'k8s-deployment',
   taskQueueClass: LocalSequentalTaskQueue,
-  normalizeStepConfigurations: async config => ({
-    ...config,
-    ignorePackageNames: config.ignorePackageNames ?? [],
-  }),
+  normalizeStepConfigurations: async config => {
+    return {
+      ignorePackageNames: [],
+      useImageFromPackageName: ({ artifactName }) => artifactName,
+      ...config,
+    }
+  },
   run: async ({ stepConfigurations, getState, steps, artifacts, log, processEnv }) => {
     let kc: k8s.KubeConfig
     let deploymentApi: k8s.AppsV1Api
 
     return {
+      waitUntilArtifactParentsFinishedParentSteps: Boolean(stepConfigurations.useImageFromPackageName),
       globalConstrains: [skipAsPassedIfStepIsDisabledConstrain()],
       artifactConstrains: [
         artifact =>
-          skipAsPassedIfArtifactTargetTypeNotSupportedConstrain({
+          skipAsPassedIfArtifactNotDeployableConstrain({
             currentArtifact: artifact,
-            supportedTargetType: TargetType.docker,
           }),
         artifact =>
           skipAsFailedIfArtifactStepResultFailedInCacheConstrain({
@@ -58,11 +60,22 @@ export const k8sDeployment = createStep<
         const deploymentName = stepConfigurations.artifactNameToDeploymentName({ artifactName })
         const containerName = stepConfigurations.artifactNameToContainerName({ artifactName })
 
+        const useImageFromPackageName = stepConfigurations.useImageFromPackageName({ artifactName })
+        if (!artifacts.some(a => a.data.artifact.packageJson.name === useImageFromPackageName)) {
+          throw new Error(
+            `k8s-deployment - illegal value was calculated from option: "useImageFromPackageName": can't find artifact: "${JSON.stringify(
+              useImageFromPackageName,
+              null,
+              2,
+            )}"`,
+          )
+        }
+
         const newFullImageName = getReturnValue<string>({
           state: getState(),
           artifacts,
           steps,
-          artifactName: artifact.data.artifact.packageJson.name,
+          artifactName: useImageFromPackageName,
           stepGroup: 'docker-publish',
           mapper: _.identity,
         })

@@ -47,6 +47,7 @@ export type TestProcessEnv = {
 export type Package = {
   name: string
   version: string
+  packageJsonRecords?: Record<string, any>
   targetType?: TargetType
   'index.js'?: string
   dependencies?: IDependencyMap

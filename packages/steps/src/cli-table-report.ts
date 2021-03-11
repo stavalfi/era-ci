@@ -193,6 +193,7 @@ Errors in Packages:
 ##########################################`
   for (const row of rows) {
     for (const error of row.errors) {
+      result += '\n'
       result += `error in package: "${row.packageName}" - ${error}`
     }
   }

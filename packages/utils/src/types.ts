@@ -40,7 +40,7 @@ export type PackageJson = {
     access?: 'public' | 'restricted'
     registry?: string
   }
-}
+} & { [key: string]: any }
 
 export type Node<T> = {
   data: T
