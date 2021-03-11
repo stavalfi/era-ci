@@ -107,6 +107,7 @@ export function resourcesBeforeAfterEach(options: {
         npmRegistryEmail: npmRegistry.auth.email,
         npmRegistryPassword: npmRegistry.auth.password,
         npmRegistryUsername: npmRegistry.auth.username,
+        loggedInToNpmState: { loggedInToNpm: false },
       }),
     ])
     options.getCleanups().cleanups.push(quayMockService.cleanup)

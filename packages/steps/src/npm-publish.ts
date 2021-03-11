@@ -144,12 +144,14 @@ export async function npmRegistryLogin({
   log,
   npmRegistryEmail,
   npmRegistryUsername,
+  loggedInToNpmState,
 }: {
   npmRegistry: string
   npmRegistryUsername: string
   npmRegistryEmail: string
   npmRegistryPassword: string
   log?: Log // it's optional for test purposes
+  loggedInToNpmState: { loggedInToNpm: boolean }
 }): Promise<void> {
   if (npmRegistry[npmRegistry.length - 1] === '/') {
     npmRegistry = npmRegistry.slice(0, npmRegistry.length - 1)
@@ -158,7 +160,7 @@ export async function npmRegistryLogin({
   // https://verdaccio.org/docs/en/cli-registry#yarn-1x
   // yarn@1.x does not send the authorization header on yarn install if your packages requires authentication,
   // by enabling always-auth will force yarn do it on each request.
-  await execa.command(`npm config set always-auth true `, {
+  await execa.command(`npm config set always-auth true`, {
     stdio: 'pipe',
   })
 
@@ -171,12 +173,17 @@ export async function npmRegistryLogin({
       NPM_REGISTRY: npmRegistry,
     },
   })
-  log?.info(`logged in to npm-registry: "${npmRegistry}"`)
+
+  // this is a work-around to avoid multiple prints of this line in the log
+  if (!loggedInToNpmState.loggedInToNpm) {
+    loggedInToNpmState.loggedInToNpm = true
+    log?.info(`logged in to npm-registry: "${npmRegistry}"`)
+  }
 }
 
 const customConstrain = createConstrain<
-  { currentArtifact: Node<{ artifact: Artifact }> },
-  { currentArtifact: Node<{ artifact: Artifact }> },
+  { currentArtifact: Node<{ artifact: Artifact }>; loggedInToNpmState: { loggedInToNpm: boolean } },
+  { currentArtifact: Node<{ artifact: Artifact }>; loggedInToNpmState: { loggedInToNpm: boolean } },
   NpmPublishConfiguration
 >({
   constrainName: 'custom-constrain',
@@ -185,7 +192,7 @@ const customConstrain = createConstrain<
     immutableCache,
     repoPath,
     log,
-    constrainConfigurations: { currentArtifact },
+    constrainConfigurations: { currentArtifact, loggedInToNpmState },
   }) => {
     const targetTypes = await getPackageTargetTypes(
       currentArtifact.data.artifact.packagePath,
@@ -234,6 +241,7 @@ const customConstrain = createConstrain<
       npmRegistryEmail: stepConfigurations.registryAuth.email,
       npmRegistryUsername: stepConfigurations.registryAuth.username,
       log,
+      loggedInToNpmState,
     })
 
     if (
@@ -271,6 +279,8 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
   stepGroup: 'npm-publish',
   taskQueueClass: LocalSequentalTaskQueue,
   run: async ({ stepConfigurations, repoPath, log, immutableCache, logger, processEnv }) => {
+    const loggedInToNpmState = { loggedInToNpm: false }
+
     return {
       globalConstrains: [skipAsPassedIfStepIsDisabledConstrain()],
       artifactConstrains: [
@@ -298,7 +308,7 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
             stepNameToSearchInCache: 'install-root',
             skipAsPassedIfStepNotExists: true,
           }),
-        artifact => customConstrain({ currentArtifact: artifact }),
+        artifact => customConstrain({ currentArtifact: artifact, loggedInToNpmState }),
       ],
       onBeforeArtifacts: () =>
         npmRegistryLogin({
@@ -307,6 +317,7 @@ export const npmPublish = createStep<LocalSequentalTaskQueue, NpmPublishConfigur
           npmRegistryEmail: stepConfigurations.registryAuth.email,
           npmRegistryUsername: stepConfigurations.registryAuth.username,
           log,
+          loggedInToNpmState,
         }),
       onArtifact: async ({ artifact }) => {
         const newVersion = await calculateNextNewVersion({
