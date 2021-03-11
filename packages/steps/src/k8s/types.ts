@@ -38,6 +38,7 @@ export type k8sDeploymentConfiguration = {
   k8sNamesapce: string
   artifactNameToDeploymentName: (options: { artifactName: string }) => string
   artifactNameToContainerName: (options: { artifactName: string }) => string
+  useImageFromPackageName?: (options: { artifactName: string }) => string
   ignorePackageNames?: string[]
   failDeplomentOnPodError: boolean
 }

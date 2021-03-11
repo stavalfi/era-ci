@@ -17,6 +17,9 @@ test('2 deployments - all succeed', async () => {
         {
           name: 'a6',
           version: '1.0.0',
+          packageJsonRecords: {
+            deployable: true,
+          },
           src: {
             'index.js': `
             require('http')
@@ -104,6 +107,9 @@ test('2 deployments - first succeed, second fail because of code-bug in the imag
         {
           name: 'a7',
           version: '1.0.0',
+          packageJsonRecords: {
+            deployable: true,
+          },
           src: {
             'index.js': `
             require('http')

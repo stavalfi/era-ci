@@ -73,6 +73,7 @@ function createPackageJson({
         ]),
       ),
     }),
+    ...artifact.packageJsonRecords,
   }
 }
 

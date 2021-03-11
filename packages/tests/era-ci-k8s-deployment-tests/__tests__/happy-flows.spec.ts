@@ -15,6 +15,9 @@ test('redeploy to k8s and ensure the new image is running', async () => {
         {
           name: 'a1',
           version: '1.0.0',
+          packageJsonRecords: {
+            deployable: true,
+          },
           src: {
             'index.js': `
             require('http')
@@ -85,6 +88,9 @@ test('era-ci try to redeploy a deployment which does not exist', async () => {
         {
           name: 'a2',
           version: '1.0.0',
+          packageJsonRecords: {
+            deployable: true,
+          },
           src: {
             'index.js': `
             require('http')
@@ -136,6 +142,9 @@ test('failDeplomentOnPodError=true - redeploy to k8s fails because the new image
         {
           name: 'a3',
           version: '1.0.0',
+          packageJsonRecords: {
+            deployable: true,
+          },
           src: {
             'index.js': 'throw new Error("error-123")',
           },
@@ -215,6 +224,9 @@ test('failDeplomentOnPodError=false, progressDeadlineSeconds=8 - redeploy to k8s
         {
           name: 'a4',
           version: '1.0.0',
+          packageJsonRecords: {
+            deployable: true,
+          },
           src: {
             'index.js': 'throw new Error("error-123")',
           },
@@ -289,6 +301,9 @@ test('running the flow again will cause to redeploy to k8s the same image again 
         {
           name: 'a5',
           version: '1.0.0',
+          packageJsonRecords: {
+            deployable: true,
+          },
           src: {
             'index.js': `
             require('http')
