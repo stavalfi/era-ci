@@ -4,7 +4,8 @@ import { calculateArtifactsHash } from '@era-ci/artifact-hash'
 import { getPackages, WorkspacesInfo } from '@era-ci/utils'
 import path from 'path'
 import { generateDockerfiles } from './generate-docker-files'
-import { deleteAllDevDeps, updateAllTsconfigBuildFiles, updateMainTsconfigFile } from './remoev-dev-deps'
+import { deleteAllDevDeps, updateAllTsconfigBuildFiles, updateMainTsconfigFile } from './remove-dev-deps'
+import { removePackages } from './remove-package'
 import { Actions } from './types'
 import { findAllRecursiveDepsOfPackage } from './utils'
 
@@ -20,6 +21,14 @@ async function evaluateAction({
   params: string[]
 }): Promise<void> {
   switch (action as Actions) {
+    case Actions.removePackage: {
+      const packageNamesToRemove = params
+      if (packageNamesToRemove.some(packageName => !graph[packageName])) {
+        throw new Error(`not all provided package-names exists in the monorepo: "${packageNamesToRemove}"`)
+      }
+      await removePackages({ graph, repoPath, packageNamesToRemove })
+      break
+    }
     case Actions.removeAllDevDeps: {
       const [expectDepsParam = '--except-deps', expectDevDepsNames = ''] = params
 
