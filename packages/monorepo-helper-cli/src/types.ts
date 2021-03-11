@@ -15,6 +15,7 @@ export type PackageJson = {
 }
 
 export enum Actions {
+  removeAllDevDeps = 'remove-all-dev-deps',
   removeAllDevDepsNotRelatedTo = 'remove-all-dev-deps-not-related-to',
   generateDockerfiles = 'generate-docker-files',
   calculateArtifactHash = 'calculate-artifact-hash',
