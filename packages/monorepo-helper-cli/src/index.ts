@@ -20,6 +20,20 @@ async function evaluateAction({
   params: string[]
 }): Promise<void> {
   switch (action as Actions) {
+    case Actions.removeAllDevDeps: {
+      const [expectDepsParam = '--except-deps', expectDevDepsNames = ''] = params
+
+      if (expectDepsParam && expectDepsParam !== '--except-deps') {
+        throw new Error(`4'th param must be "--except-deps"`)
+      }
+      const expectDevDepsNamesArray = expectDepsParam ? expectDevDepsNames.split(',') : []
+
+      for (const packageInfo of Object.values(graph)) {
+        deleteAllDevDeps(repoPath, graph, packageInfo.name, expectDevDepsNamesArray)
+      }
+
+      break
+    }
     case Actions.removeAllDevDepsNotRelatedTo: {
       const [packageName, expectDepsParam, expectDevDepsNames = ''] = params
       if (!graph[packageName]) {
