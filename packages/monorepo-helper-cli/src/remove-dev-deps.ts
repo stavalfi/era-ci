@@ -1,8 +1,8 @@
 import { WorkspacesInfo } from '@era-ci/utils'
 import fs from 'fs'
 import path from 'path'
-import { PackageJson, Tsconfig, TsconfigBuild } from './types'
-import { findAllRecursiveDepsOfPackage, updateMainTsconfigBuildFile } from './utils'
+import { Tsconfig } from './types'
+import { findAllRecursiveDepsOfPackage, updateMainTsconfigBuildFile, updatePackageTsconfigBuildFile } from './utils'
 
 // remove packages which are devDeps from tsconfig.json/paths
 export function updateMainTsconfigFile(repoPath: string, graph: WorkspacesInfo, deps: string[]): void {
@@ -27,7 +27,7 @@ export function updateAllTsconfigBuildFiles(repoPath: string, graph: WorkspacesI
   const deps = findAllRecursiveDepsOfPackage(graph, packageJsonName)
   updateMainTsconfigBuildFile(repoPath, graph, deps)
   for (const dep of deps) {
-    updatePackageTsconfigBuildFile(graph, dep, findAllRecursiveDepsOfPackage(graph, dep))
+    updatePackageTsconfigBuildFile({ graph, packageJsonName: dep, keepDeps: findAllRecursiveDepsOfPackage(graph, dep) })
   }
 }
 
@@ -47,21 +47,6 @@ function deleteDevDepsFromPackageJson(packageJsonPath: string, expectDevDeps: st
       .filter(x => x.length > 0),
   )
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2), 'utf-8')
-}
-
-export const getPackageJson = (packageJsonPath: string): PackageJson =>
-  JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'))
-
-// remove packages which are devDeps from tsconfig-build.json
-export function updatePackageTsconfigBuildFile(graph: WorkspacesInfo, packageJsonName: string, deps: string[]): void {
-  const tsconfigBuildFilePath = path.join(graph[packageJsonName].location, 'tsconfig-build.json')
-  const tsconfigBuild = JSON.parse(fs.readFileSync(tsconfigBuildFilePath, 'utf-8')) as TsconfigBuild
-  const packageJson = getPackageJson(path.join(graph[packageJsonName].location, 'package.json'))
-  const directDeps = deps.filter(dep => packageJson.dependencies?.[dep])
-  tsconfigBuild.references = directDeps.map(dep => ({
-    path: path.relative(graph[packageJsonName].location, path.join(graph[dep].location, 'tsconfig-build.json')),
-  }))
-  fs.writeFileSync(tsconfigBuildFilePath, JSON.stringify(tsconfigBuild, null, 2), 'utf-8')
 }
 
 export function deleteAllDevDeps(
