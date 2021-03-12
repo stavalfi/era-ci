@@ -40,3 +40,5 @@ packages/quick-start/verdaccio/storage
 !.yarn/versions
 compiled-era-ci-*.js
 node_modules
+.husky
+!husky/pre-commit
