@@ -52,19 +52,19 @@ export async function ci(options: {
       Object.values(r).map(w => w.location),
     )
 
-    log.info(`git-repo: "${gitRepoInfo.repoName}"`)
-    log.info(`git-commit: "${gitRepoInfo.commit}"`)
-    log.info(`log-level: "${logger.logLevel}"`)
-    log.info(`packages: ${packagesPath.length}`)
-
-    // in the legacy-tests, we extract the flowId using regex from this line (super ugly :S)
-
-    const { artifacts, repoHash: rh } = await calculateArtifactsHash({
+    const { artifacts, rootFilesHash, repoHash: rh } = await calculateArtifactsHash({
       repoPath: options.repoPath,
       packagesPath,
     })
 
     repoHash = rh
+
+    log.info(`git-repo: "${gitRepoInfo.repoName}"`)
+    log.info(`git-commit: "${gitRepoInfo.commit}"`)
+    log.info(`repo-hash: "${repoHash}"`)
+    log.info(`root-files-hash: "${rootFilesHash}"`)
+    log.info(`log-level: "${logger.logLevel}"`)
+    log.info(`packages: ${packagesPath.length}`)
 
     log.verbose('calculated hashes to every package in the monorepo:')
     log.verbose(`root-files -> ${rh}`)
