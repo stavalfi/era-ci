@@ -1,5 +1,5 @@
 import { calculateArtifactsHash } from '@era-ci/artifact-hash'
-import { Cleanup, getGitRepoInfo, getPackages, Graph, PackageJson, StepInfo, toFlowLogsContentKey } from '@era-ci/utils'
+import { Cleanup, getGitRepoInfo, getPackages, Graph, PackageJson, StepInfo } from '@era-ci/utils'
 import chance from 'chance'
 import fs from 'fs'
 import path from 'path'
@@ -10,7 +10,7 @@ import { createImmutableCache, ImmutableCache } from './immutable-cache'
 import { connectToRedis } from './redis-client'
 import { runAllSteps } from './steps-execution'
 import { CiResult } from './types'
-import { getExitCode } from './utils'
+import { checkIfAllChangesCommitted, finishFlow, getExitCode } from './utils'
 
 export { CiResult }
 
@@ -25,7 +25,7 @@ export async function ci(options: {
   const cleanups: Cleanup[] = []
   const connectionsCleanups: Cleanup[] = []
   const flowId = chance().hash().slice(0, 8)
-  let fatalError: boolean
+  let fatalError = false
   let repoHash: string | undefined
   let immutableCache: ImmutableCache | undefined
   let log: Log | undefined
@@ -75,6 +75,23 @@ export async function ci(options: {
       ),
     )
     log.verbose('---------------------------------------------------')
+
+    if (!(await checkIfAllChangesCommitted({ repoPath: options.repoPath, log }))) {
+      processExitCode = 1
+      return finishFlow({
+        cleanups,
+        processExitCode,
+        fatalError,
+        flowId,
+        processEnv: options.processEnv,
+        connectionsCleanups,
+        immutableCache,
+        log,
+        logger,
+        repoHash,
+        steps,
+      })
+    }
 
     const redisClient = await connectToRedis({
       config: options.config.redis,
@@ -137,7 +154,6 @@ export async function ci(options: {
     })
 
     processExitCode = getExitCode(state)
-    fatalError = false
   } catch (error: unknown) {
     fatalError = true
     processExitCode = 1
@@ -149,39 +165,17 @@ export async function ci(options: {
     }
   }
 
-  if (immutableCache && logger) {
-    await immutableCache.set({
-      key: toFlowLogsContentKey(flowId),
-      value: await fs.promises.readFile(logger.logFilePath, 'utf-8'),
-      asBuffer: true,
-      ttl: immutableCache.ttls.flowLogs,
-    })
-  }
-  await Promise.all(cleanups.map(f => f().catch(e => log?.error(`cleanup function failed to run`, e))))
-  await Promise.all(
-    connectionsCleanups.map(f => f().catch(e => log?.error(`cleanup function of a connection failed to run`, e))),
-  )
-
-  // 'SKIP_EXIT_CODE_1' is for test purposes
-  if (!options.processEnv['SKIP_EXIT_CODE_1']) {
-    process.exitCode = processExitCode
-  }
-
-  // jest don't print last 2 console.log lines so it's a workaround
-  if (options.processEnv['ERA_TEST_MODE']) {
-    // eslint-disable-next-line no-console
-    console.log('------------------------')
-    // eslint-disable-next-line no-console
-    console.log('------------------------')
-    // eslint-disable-next-line no-console
-    console.log('------------------------')
-  }
-
-  return {
+  return finishFlow({
+    cleanups,
+    processExitCode,
+    fatalError,
     flowId,
+    processEnv: options.processEnv,
+    connectionsCleanups,
+    immutableCache,
+    log,
+    logger,
     repoHash,
     steps,
-    passed: processExitCode === 0,
-    fatalError,
-  }
+  })
 }
