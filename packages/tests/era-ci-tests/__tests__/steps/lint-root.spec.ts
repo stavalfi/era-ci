@@ -3,8 +3,9 @@ import { lintRoot } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
 import { taskWorkerTaskQueue } from '@era-ci/task-queues'
 import { ExecutionStatus, Status } from '@era-ci/utils'
+import { expect, test } from '@jest/globals'
 import chance from 'chance'
-import { test, expect } from '@jest/globals'
+import execa from 'execa'
 import fs from 'fs'
 import path from 'path'
 
@@ -201,6 +202,10 @@ test('reproduce bug - lint-root should run if hash of one of the packages change
   await runCi() // should skip because all the hashes are the same
 
   await fs.promises.writeFile(path.join(repoPath, 'packages', toActualName('a'), 'file1'), 'hi', 'utf-8')
+  await execa.command(`git add --all && git commit -m wip && git push`, {
+    cwd: repoPath,
+    shell: true,
+  })
 
   const { jsonReport } = await runCi() // should run because the hash of one of the packages changed.
 
