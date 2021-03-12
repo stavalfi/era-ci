@@ -106,7 +106,9 @@ export const processTask = ({
         const durationMs = Date.now() - startBeforeAllMs
         taskLog.info('----------------------------------')
         taskLog.info(
-          `ended before-all: "${group.beforeAll.shellCommand}" - passed: ${!result.failed} (${prettyMs(durationMs)})`,
+          `ended before-all: "${group.beforeAll.shellCommand}" - passed: ${!result.failed} (${prettyMs(
+            durationMs,
+          )}). cwd: "${group.beforeAll.cwd}"`,
         )
         taskLog.info('----------------------------------')
 
@@ -118,14 +120,18 @@ export const processTask = ({
         if (result.failed) {
           state.allTasksSucceed = false
           taskLog.info('----------------------------------')
-          taskLog.info(`skipping task: "${job.data.task.shellCommand}" because the before-all failed on this worker.`)
+          taskLog.info(
+            `skipping task: "${job.data.task.shellCommand}" because the before-all failed on this worker. cwd: "${job.data.task.cwd}"`,
+          )
           taskLog.info('----------------------------------')
 
           return {
             executionStatus: ExecutionStatus.aborted,
             status: Status.skippedAsFailed,
             durationMs: Date.now() - startMs,
-            notes: [`failed to run before-all-tests in worker: "${workerName}": "${group.beforeAll.shellCommand}"`],
+            notes: [
+              `failed to run before-all-tests in worker: "${workerName}": "${group.beforeAll.shellCommand}". cwd: "${group.beforeAll.cwd}"`,
+            ],
             errors: result.failed ? [serializeError('error' in result ? result.error : result)] : [],
           }
         }
@@ -136,7 +142,9 @@ export const processTask = ({
           executionStatus: ExecutionStatus.aborted,
           status: Status.skippedAsFailed,
           durationMs: Date.now() - startMs,
-          notes: [`failed to run before-all-tests in worker: "${workerName}": "${group.beforeAll.shellCommand}"`],
+          notes: [
+            `failed to run before-all-tests in worker: "${workerName}": "${group.beforeAll.shellCommand}". cwd: "${group.beforeAll.cwd}"`,
+          ],
           errors: [],
         }
       }
@@ -177,7 +185,9 @@ export const processTask = ({
     const durationMs = Date.now() - startTaskMs
 
     taskLog.info('----------------------------------')
-    taskLog.info(`ended task: "${task.shellCommand}" - passed: ${!result.failed} (${prettyMs(durationMs)})`)
+    taskLog.info(
+      `ended task: "${task.shellCommand}" - passed: ${!result.failed} (${prettyMs(durationMs)}). cwd: "${task.cwd}"`,
+    )
     taskLog.info('----------------------------------')
 
     if (result.failed) {
