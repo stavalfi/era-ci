@@ -1,12 +1,11 @@
 import { createTest } from '@era-ci/e2e-tests-infra'
 import { buildRoot, installRoot } from '@era-ci/steps'
 import { createLinearStepsGraph } from '@era-ci/steps-graph'
-import { ExecutionStatus, Result, Status } from '@era-ci/utils'
-import fs from 'fs'
-import path from 'path'
-import { DeepPartial } from 'ts-essentials'
 import { taskWorkerTaskQueue } from '@era-ci/task-queues'
+import { ExecutionStatus, Result, Status } from '@era-ci/utils'
 import chance from 'chance'
+import execa from 'execa'
+import { DeepPartial } from 'ts-essentials'
 
 const { createRepo, getResources } = createTest()
 
@@ -88,8 +87,11 @@ test('install failed so build-step should skip-as-failed', async () => {
     },
   })
 
-  // it will cause the install-step to fail
-  await fs.promises.writeFile(path.join(repoPath, 'uncommited-new-file'), 'lalala', 'utf-8')
+  // it will cause the install-step to fail because the yarn.lock will be modified in the CI
+  await execa.command(`yarn add -W empty-npm-package && git checkout -- yarn.lock && git commit -am wip && git push`, {
+    cwd: repoPath,
+    shell: true,
+  })
 
   const { jsonReport } = await runCi()
 
@@ -135,10 +137,19 @@ test('reproduce bug: first-flow: install failed so build-step should skip-as-fai
     },
   })
 
-  // it will cause the install-step to fail
-  await fs.promises.writeFile(path.join(repoPath, 'uncommited-new-file'), 'lalala', 'utf-8')
+  // it will cause the install-step to fail because the yarn.lock will be modified in the CI
+  await execa.command(`yarn add -W empty-npm-package && git checkout -- yarn.lock && git commit -am wip && git push`, {
+    cwd: repoPath,
+    shell: true,
+  })
 
   await runCi()
+
+  // the last flow run "yarn install" so the yarn.lock was modified. we want to remove this change and reproduce the exact same error from the last flow
+  await execa.command(`git checkout -- yarn.lock`, {
+    cwd: repoPath,
+    shell: true,
+  })
 
   const { jsonReport } = await runCi()
 

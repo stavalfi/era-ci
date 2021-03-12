@@ -7,6 +7,7 @@ import { ExecutionStatus, Status } from '@era-ci/utils/src'
 import { expect, test } from '@jest/globals'
 import fs from 'fs'
 import path from 'path'
+import execa from 'execa'
 
 const { createRepo } = createTest()
 
@@ -52,6 +53,10 @@ test('yarn1 - run flow, move the package, then in second flow, the step is skipp
     path.join(repoPath, 'packages', toActualName('a')),
     path.join(repoPath, 'packages', toActualName('a') + '-new-dir'),
   )
+  await execa.command(`git add --all && git commit -m wip && git push`, {
+    cwd: repoPath,
+    shell: true,
+  })
 
   const { jsonReport } = await runCi()
 
