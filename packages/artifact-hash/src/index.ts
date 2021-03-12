@@ -84,6 +84,7 @@ export async function calculateArtifactsHash({
   artifacts: Graph<{
     artifact: { relativePackagePath: string; packagePath: string; packageHash: string; packageJson: PackageJson }
   }>
+  rootFilesHash: string
   repoHash: string
 }> {
   const repoFilesPath = await glob(['**'], {
@@ -151,5 +152,5 @@ export async function calculateArtifactsHash({
 
   const repoHash = combineHashes([rootFilesHash, ...artifactsWithCombinedHash.map(p => p.data.artifact.packageHash)])
 
-  return { repoHash, artifacts: artifactsWithCombinedHash }
+  return { repoHash, rootFilesHash, artifacts: artifactsWithCombinedHash }
 }
