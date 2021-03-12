@@ -166,17 +166,7 @@ function getJsonReport({
               return s.data.stepResult.notes.map(n => `${s.data.stepInfo.displayName} - ${n}`)
             }),
           ),
-          durationMs: _.sum(
-            state.stepsResultOfArtifactsByStep.map(s => {
-              if (
-                s.data.stepResult.executionStatus !== ExecutionStatus.done &&
-                s.data.stepResult.executionStatus !== ExecutionStatus.aborted
-              ) {
-                throw new Error(`we can't be here12`)
-              }
-              return s.data.stepResult.durationMs
-            }),
-          ),
+          durationMs: Date.now() - startFlowMs,
           status: calculateCombinedStatus(
             state.stepsResultOfArtifactsByStep.map(s => {
               if (
@@ -217,17 +207,7 @@ function getJsonReport({
               return s.data.stepResult.notes.map(n => `${s.data.stepInfo.displayName} - ${n}`)
             }),
           ),
-          durationMs: _.sum(
-            state.stepsResultOfArtifactsByStep.map(s => {
-              if (
-                s.data.stepResult.executionStatus !== ExecutionStatus.done &&
-                s.data.stepResult.executionStatus !== ExecutionStatus.aborted
-              ) {
-                throw new Error(`we can't be here12`)
-              }
-              return s.data.stepResult.durationMs
-            }),
-          ),
+          durationMs: Date.now() - startFlowMs,
           status: calculateCombinedStatus(
             state.stepsResultOfArtifactsByStep.map(s => {
               if (s.data.stepResult.executionStatus !== ExecutionStatus.aborted) {
