@@ -127,7 +127,6 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
       return {
         ...base,
         infoFromStream: (stream: NodeJS.ReadableStream) => {
-          // stream.pipe(process.stdout)
           stream.on('data', chunk => {
             const asString = chunk.toString()
             const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString
@@ -136,7 +135,6 @@ export const winstonLogger = createLogger<LoggerConfiguration, NormalizedLoggerC
           })
         },
         errorFromStream: (stream: NodeJS.ReadableStream) => {
-          // stream.pipe(process.stderr)
           stream.on('data', chunk => {
             const asString = chunk.toString()
             const final = asString.endsWith('\n') ? asString.substr(0, asString.lastIndexOf('\n')) : asString

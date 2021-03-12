@@ -6,6 +6,5 @@ export { skipAsPassedIfStepIsDisabledConstrain } from './skip-as-passed-if-step-
 export { skipAsPassedIfRootPackageJsonMissingScriptConstrain } from './skip-as-passed-if-root-package-json-missing-script-constrain'
 export { skipAsFailedIfStepResultFailedInCacheConstrain } from './skip-as-failed-if-step-result-failed-in-cache-constrain'
 export { skipAsPassedIfStepResultPassedInCacheConstrain } from './skip-as-passed-if-step-result-passed-in-cache-constrain'
-export { skipAsFailedIfGitChangesNotCommitedConstrain } from './skip-as-failed-if-git-changes-not-committed-constrain'
 export { skipAsPassedIfArtifactNotDeployableConstrain } from './skip-as-passed-if-artifact-not-deployable-constain'
 export { createFlowsPassedFailedNote } from './utils'

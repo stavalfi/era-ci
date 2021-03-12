@@ -13,7 +13,7 @@ import {
 import { winstonLogger } from '@era-ci/loggers'
 import { JsonReport, jsonReporter, jsonReporterCacheKey, stringToJsonReport } from '@era-ci/steps'
 import { localSequentalTaskQueue } from '@era-ci/task-queues'
-import { ExecutionStatus, PackageManager, Status } from '@era-ci/utils'
+import { PackageManager } from '@era-ci/utils'
 import { afterEach, beforeEach } from '@jest/globals'
 import chance from 'chance'
 import execa from 'execa'
@@ -123,24 +123,21 @@ const runCi = (testFuncs: TestFuncs) => ({
     throw new Error(`ci didn't return repo-hash. it looks like a bug`)
   }
 
-  if (!steps) {
-    throw new Error(`ci didn't return steps-graph. can't find json-report`)
-  }
-  const jsonReportStepId = steps.find(s => s.data.stepInfo.stepName === jsonReporter().stepName)?.data.stepInfo.stepId
-  if (!fatalError && !stepsDontContainReport && !jsonReportStepId) {
+  const jsonReportStepId = steps?.find(s => s.data.stepInfo.stepName === jsonReporter().stepName)?.data.stepInfo.stepId
+  if (!fatalError && !stepsDontContainReport && !jsonReportStepId && steps) {
     throw new Error(`can't find jsonReportStepId. can't find json-report`)
   }
 
   const jsonReport =
-    !fatalError &&
-    !stepsDontContainReport &&
-    (await getJsonReport(testFuncs)({
-      testLogger,
-      flowId,
-      repoHash,
-      jsonReportStepId:
-        jsonReportStepId || `we will never be here. this default value is here only because of typescript.`,
-    }))
+    !fatalError && steps && !stepsDontContainReport
+      ? await getJsonReport(testFuncs)({
+          testLogger,
+          flowId,
+          repoHash,
+          jsonReportStepId:
+            jsonReportStepId || `we will never be here. this default value is here only because of typescript.`,
+        })
+      : undefined
 
   const published = await getPublishResult(testFuncs)({
     testLogger,
@@ -159,23 +156,11 @@ const runCi = (testFuncs: TestFuncs) => ({
     flowId,
     logFilePath,
     flowLogs: await fs.promises.readFile(logFilePath, 'utf-8'),
+    // @ts-expect-error - in rare cases, where the flow exit early, there won't be any jsonReport and steps.
     steps,
+    // @ts-expect-error - in rare cases, where the flow exit early, there won't be any jsonReport and steps.
+    jsonReport,
     published,
-    jsonReport: jsonReport || {
-      artifacts: [],
-      flow: { flowId: '', repoHash: '', startFlowMs: 0 },
-      steps: [],
-      flowExecutionStatus: ExecutionStatus.done,
-      flowResult: {
-        durationMs: 0,
-        errors: [],
-        executionStatus: ExecutionStatus.done,
-        notes: [],
-        status: Status.passed,
-      },
-      stepsResultOfArtifactsByArtifact: [],
-      stepsResultOfArtifactsByStep: [],
-    },
     passed,
     flowEvents,
     printFlowLogsFromCli: (flowIdOverride?: string) =>

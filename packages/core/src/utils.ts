@@ -2,16 +2,22 @@ import {
   AbortResult,
   Artifact,
   calculateCombinedStatus,
+  Cleanup,
   didPassOrSkippedAsPassed,
   DoneResult,
+  execaCommand,
   ExecutionStatus,
   Graph,
   RunningResult,
   ScheduledResult,
   Status,
   StepInfo,
+  toFlowLogsContentKey,
 } from '@era-ci/utils'
+import fs from 'fs'
 import _ from 'lodash'
+import { Log, Logger } from './create-logger'
+import { ImmutableCache } from './immutable-cache'
 import type { State } from './steps-execution'
 
 export function getEventsTopicName(env: NodeJS.ProcessEnv): string {
@@ -106,4 +112,102 @@ export const getReturnValue = <T>(
     throw new Error(`invalid return-value from step: "undefined"`)
   }
   return result
+}
+
+export async function checkIfAllChangesCommitted({ repoPath, log }: { repoPath: string; log: Log }) {
+  const diffIsEmpty = await execaCommand(`git diff-index --quiet HEAD --`, {
+    stdio: 'ignore',
+    log,
+    cwd: repoPath,
+  }).then(
+    () => true,
+    () => false,
+  )
+  // not ignored and untracked files
+  const noUnteackedFiles = await execaCommand(`git ls-files --exclude-standard --others`, {
+    stdio: 'pipe',
+    log,
+    cwd: repoPath,
+  }).then(({ stdout = '' }) => stdout.length === 0)
+
+  if (!diffIsEmpty) {
+    log.error(`found uncommited changes. please commit the following files:`)
+    await execaCommand(`git diff --name-only`, {
+      stdio: 'inherit',
+      log,
+      cwd: repoPath,
+    })
+  }
+  if (!noUnteackedFiles) {
+    log.error(`found untracked files. please remove/commit the following files:`)
+    await execaCommand(`git ls-files --exclude-standard --others`, {
+      stdio: 'inherit',
+      log,
+      cwd: repoPath,
+    })
+  }
+
+  return diffIsEmpty && noUnteackedFiles
+}
+
+export async function finishFlow({
+  flowId,
+  log,
+  fatalError,
+  logger,
+  immutableCache,
+  processExitCode,
+  repoHash,
+  steps,
+  cleanups,
+  connectionsCleanups,
+  processEnv,
+}: {
+  flowId: string
+  fatalError: boolean
+  repoHash?: string
+  immutableCache?: ImmutableCache
+  log?: Log
+  logger?: Logger
+  steps?: Graph<{ stepInfo: StepInfo }>
+  processExitCode: number
+  cleanups: Cleanup[]
+  connectionsCleanups: Cleanup[]
+  processEnv: NodeJS.ProcessEnv
+}) {
+  if (immutableCache && logger) {
+    await immutableCache.set({
+      key: toFlowLogsContentKey(flowId),
+      value: await fs.promises.readFile(logger.logFilePath, 'utf-8'),
+      asBuffer: true,
+      ttl: immutableCache.ttls.flowLogs,
+    })
+  }
+  await Promise.all(cleanups.map(f => f().catch(e => log?.error(`cleanup function failed to run`, e))))
+  await Promise.all(
+    connectionsCleanups.map(f => f().catch(e => log?.error(`cleanup function of a connection failed to run`, e))),
+  )
+
+  // 'SKIP_EXIT_CODE_1' is for test purposes
+  if (!processEnv['SKIP_EXIT_CODE_1']) {
+    process.exitCode = processExitCode
+  }
+
+  // jest don't print last 2 console.log lines so it's a workaround
+  if (processEnv['ERA_TEST_MODE']) {
+    // eslint-disable-next-line no-console
+    console.log('------------------------')
+    // eslint-disable-next-line no-console
+    console.log('------------------------')
+    // eslint-disable-next-line no-console
+    console.log('------------------------')
+  }
+
+  return {
+    flowId,
+    repoHash,
+    steps,
+    passed: processExitCode === 0,
+    fatalError,
+  }
 }
