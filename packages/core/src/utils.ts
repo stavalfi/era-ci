@@ -132,7 +132,7 @@ export async function checkIfAllChangesCommitted({ repoPath, log }: { repoPath: 
 
   if (!diffIsEmpty) {
     log.error(`found uncommited changes. please commit the following files:`)
-    await execaCommand(`git diff --name-only`, {
+    await execaCommand(`git diff-index HEAD --`, {
       stdio: 'inherit',
       log,
       cwd: repoPath,
