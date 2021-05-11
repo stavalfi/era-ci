@@ -32,7 +32,7 @@
     "ioredis": "^4.19.4",
     "jest": "^26.6.3",
     "jest-circus": "^26.6.3",
-    "lodash": "4.17.20",
+    "lodash": "4.17.21",
     "node-git-server": "^0.6.1",
     "package-json-type": "^1.0.3",
     "rxjs": "^7.0.0-beta.10",
