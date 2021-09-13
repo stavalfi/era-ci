@@ -27,13 +27,14 @@ export async function determinePackageManager({
   const { stdout: yarnVersion } = await execa.command(`yarn --version`, {
     cwd: repoPath,
   })
-  if (semver.major(yarnVersion) === 2) {
+  if (semver.major(yarnVersion) >= 2) {
     return PackageManager.yarn2
   }
 
   const [dotYarn, dotPnp, dotYarnrcYaml, yarnLock] = [
     fs.existsSync(path.join(repoPath, '.yarn')),
     fs.existsSync(path.join(repoPath, '.pnp.js')),
+    fs.existsSync(path.join(repoPath, '.pnp.cjs')),
     fs.existsSync(path.join(repoPath, '.yarnrc.yml')),
     fs.existsSync(path.join(repoPath, 'yarn.lock')),
   ]
