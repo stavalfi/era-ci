@@ -18,7 +18,7 @@
     "@stavalfi/create-folder-structure": "^3.0.6",
     "compressing": "^1.5.1",
     "execa": "^5.0.0",
-    "fastify": "^3.8.0",
+    "fastify": "^3.29.4",
     "got": "^11.8.1",
     "ioredis": "^4.19.4",
     "pino": "^6.11.1",
